@@ -1,0 +1,8 @@
+{
+  "name": "card-protocol-xdai",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "https://github.com/cardstack/card-protocol-xdai.git",
+  "author": "Phuong Lan <phuongzlan@gmail.com>",
+  "license": "MIT"
+}
