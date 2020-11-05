@@ -1,6 +1,7 @@
 pragma solidity ^0.5.0;
 
 import "@gnosis.pm/safe-contracts/contracts/proxies/GnosisSafeProxyFactory.sol";
+import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 import "@openzeppelin/contracts/ownership/Ownable.sol";
 
 import "./IRevenuePool.sol";
@@ -88,6 +89,7 @@ contract RevenuePool is Ownable {
 
     function tokenFallback(address from, uint amount, bytes calldata data) external returns(bool) {
         // todo: find better way describe data
+        // todo: verify from address is prepaid 
         // only DAICPXD contract can call this method
         require(msg.sender == address(daicpxdToken), "Something wrong!!!");
         (address merchantId) = abi.decode(data, (address));
