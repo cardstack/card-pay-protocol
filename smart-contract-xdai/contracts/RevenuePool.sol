@@ -11,10 +11,10 @@ import "./token/ISPEND.sol";
 contract RevenuePool is Ownable {    
     event WalletAddress(address merchant, address wallet);
 
-    address private masterCopyAddress;
+    address private GSmasterCopyAddress;
     ISPEND private spendToken;
-    IERC677 private daicpxdToken;
-    GnosisSafeProxyFactory private proxyFactory;
+    IERC677 private daiCPXDToken;
+    GnosisSafeProxyFactory private GSproxyFactory;
 
 
     struct Merchant {
@@ -22,16 +22,16 @@ contract RevenuePool is Ownable {
         string name;
     }
 
-    mapping (address => Merchant) merchantData;
+    mapping (address => Merchant) merchants;
 
-    function setup(address spendAddress, address daicpxdAddress, address proxyFactoryAddress, address _masterCopyAddress) 
+    function setup(address _spendAddress, address _daiCPXDAddress, address _GSproxyFactoryAddress, address _GSmasterCopyAddress) 
         public 
         onlyOwner
     {   
-        masterCopyAddress = _masterCopyAddress;
-        proxyFactory = GnosisSafeProxyFactory(proxyFactoryAddress);
-        daicpxdToken = IERC677(daicpxdAddress);
-        spendToken = ISPEND(spendAddress);
+        GSmasterCopyAddress = _GSmasterCopyAddress;
+        GSproxyFactory = GnosisSafeProxyFactory(_GSproxyFactoryAddress);
+        daiCPXDToken = IERC677(_daiCPXDAddress);
+        spendToken = ISPEND(_spendAddress);
     }
 
     
@@ -41,7 +41,7 @@ contract RevenuePool is Ownable {
         bytes memory payloads = abi.encodeWithSignature("setup(address[],uint256,address,bytes,address,address,uint256,address)", 
                                 owners, 1, address(0), hex"", address(0), address(0), 0, address(0));
         
-        address walletProxy = address(proxyFactory.createProxy(masterCopyAddress, payloads));
+        address walletProxy = address(GSproxyFactory.createProxy(GSmasterCopyAddress, payloads));
         emit WalletAddress(walletOwner, walletProxy);
 
         return walletProxy;
@@ -53,19 +53,26 @@ contract RevenuePool is Ownable {
         onlyOwner 
         returns(bool) 
     {
-        Merchant storage merchant = merchantData[merchantId];
+        require(merchantId != address(0), "Merchant address shouldn't zero address.");
+
+        Merchant storage merchant = merchants[merchantId];
+
         require(merchant.wallet == address(0), "Merchant has been resiter");
+
+        // create new merchant
         merchant.name = name;
         merchant.wallet = createWallet(merchantId);
-        merchantData[merchantId] = merchant;    
+        merchants[merchantId] = merchant;    
+
         return true;
     }
 
     function getWalletAddress(address merchantId) public view returns(address) {
-        return merchantData[merchantId].wallet;
+        return merchants[merchantId].wallet;
     }
 
     function rate() internal pure returns(uint) {
+        // TODO: using current exchange rate from chainlink
         return 100;
     }
 
@@ -80,18 +87,21 @@ contract RevenuePool is Ownable {
 
  
     function _pay(address merchantId, uint amount) internal returns(bool) {
-        address wallet = merchantData[merchantId].wallet;
+
+        address wallet = merchants[merchantId].wallet;
         require(wallet != address(0), "You should register merchant role first.");
+
         uint spendAmount = exchangeDAIToSPEND(amount);
         spendToken.mint(wallet, spendAmount);
+
         return true;
     }
 
     function tokenFallback(address from, uint amount, bytes calldata data) external returns(bool) {
-        // todo: find better way describe data
-        // todo: verify from address is prepaid 
+        // TODO: find better way describe data
+        // TODO: verify from address is prepaid 
         // only DAICPXD contract can call this method
-        require(msg.sender == address(daicpxdToken), "Something wrong!!!");
+        require(msg.sender == address(daiCPXDToken), "Something wrong!!!");
         (address merchantId) = abi.decode(data, (address));
         _pay(merchantId, amount);
         return true;
@@ -115,7 +125,7 @@ contract RevenuePool is Ownable {
         uint amountInDAI = exchangeSPENDToDAI(amountInSPEND);
 
         // transfer from DAI to merchant wallet address
-        daicpxdToken.transfer(merchantWalletAddress, amountInDAI);
+        daiCPXDToken.transfer(merchantWalletAddress, amountInDAI);
 
         return true;
     }
