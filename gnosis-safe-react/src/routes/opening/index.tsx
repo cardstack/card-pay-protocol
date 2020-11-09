@@ -253,7 +253,7 @@ const SafeDeployment = ({ creationTxHash, onCancel, onRetry, onSuccess, submitte
         let safeAddress
 
         if (receipt.events) {
-          safeAddress = receipt.events.ProxyCreation.returnValues.proxy
+          safeAddress = receipt.events.ProxyCreation[1].returnValues.proxy
         } else {
           // get the address for the just created safe
           const events = web3.eth.abi.decodeLog(
@@ -263,7 +263,7 @@ const SafeDeployment = ({ creationTxHash, onCancel, onRetry, onSuccess, submitte
                 name: 'ProxyCreation',
               },
             ],
-            receipt.logs[0].data,
+            receipt.logs[2].data,
             receipt.logs[0].topics,
           )
           safeAddress = events[0]

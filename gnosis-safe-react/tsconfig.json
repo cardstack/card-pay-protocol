@@ -19,8 +19,9 @@
     "jsx": "react"
   },
   "paths": {
-    "src/*": ["./*"]
+    "src/*": ["./*"],
+    "build/*": ["../build/*"]
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "build/**/*"],
   "exclude": ["node_modules"]
 }

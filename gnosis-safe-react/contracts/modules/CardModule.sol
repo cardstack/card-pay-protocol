@@ -1,17 +1,18 @@
 pragma solidity >=0.5.0 <0.7.0;
-import '../base/Module.sol';
-import '../base/ModuleManager.sol';
-import '../base/OwnerManager.sol';
-import '../common/Enum.sol';
+import '@gnosis.pm/safe-contracts/contracts/base/Module.sol';
+import '@gnosis.pm/safe-contracts/contracts/base/ModuleManager.sol';
+import '@gnosis.pm/safe-contracts/contracts/base/OwnerManager.sol';
+import '@gnosis.pm/safe-contracts/contracts/common/Enum.sol';
 
 contract CardModule is Module {
-  string public constant NAME = 'Whitelist Module';
+  string public constant NAME = 'Card Module';
   string public constant VERSION = '0.1.0';
-  address public REVENUE_POOL_ADDRESS;
-  address public CARD_STACK_ADMIN_ADDRESS;
+  address REVENUE_POOL_ADDRESS;
+  address CARD_STACK_ADMIN_ADDRESS;
 
   /// @dev Setup function sets initial storage of contract.
   /// @param revenuePoolAddress Revenue Pool Address
+  /// @param admin Admin address
   function setup(address revenuePoolAddress, address admin) public {
     setManager();
     REVENUE_POOL_ADDRESS = revenuePoolAddress;
@@ -27,10 +28,10 @@ contract CardModule is Module {
     address token,
     address to,
     uint256 amount
-  ) public returns (bool) {
+  ) public {
     // Prevent Card stack admin use
     require(msg.sender != CARD_STACK_ADMIN_ADDRESS, 'Card stack admin can not use');
-    // Only Safe owners are allowed to execute transactions to whitelisted accounts.
+    // Only Safe owners are allowed to execute transactions.
     require(OwnerManager(address(manager)).isOwner(msg.sender), 'Method can only be called by an owner');
     bytes memory data = abi.encodeWithSignature(
       'transferAndCall(address,uint256,bytes)',

@@ -27,6 +27,7 @@ import { EMPTY_DATA } from 'src/logic/wallets/ethTransactions'
 import SafeInfo from 'src/routes/safe/components/Balances/SendModal/SafeInfo'
 import { setImageToPlaceholder } from 'src/routes/safe/components/Balances/utils'
 import { extendedSafeTokensSelector } from 'src/routes/safe/container/selector'
+import { safeModulesSelector } from 'src/logic/safe/store/selectors'
 import { sm } from 'src/theme/variables'
 
 import ArrowDown from '../assets/arrow-down.svg'
@@ -62,33 +63,36 @@ const ReviewTx = ({ onClose, onPrev, tx }: ReviewTxProps): React.ReactElement =>
   const isSendingETH = txToken?.address === nativeCoin.address
   const txRecipient = isSendingETH ? tx.recipientAddress : txToken?.address
 
+  const modules = useSelector(safeModulesSelector)?.[0] || [safeAddress]
+
   useEffect(() => {
     let isCurrent = true
 
     const estimateGas = async () => {
-      if (!txToken) {
-        return
-      }
+      setData('0x')
+      // if (!txToken) {
+      //   return
+      // }
 
-      let txData = EMPTY_DATA
+      // let txData = EMPTY_DATA
 
-      if (!isSendingETH) {
-        const StandardToken = await getHumanFriendlyToken()
-        const tokenInstance = await StandardToken.at(txToken.address as string)
-        const decimals = await tokenInstance.decimals()
-        const txAmount = new BigNumber(tx.amount).times(10 ** decimals.toNumber()).toString()
+      // if (!isSendingETH) {
+      //   const StandardToken = await getHumanFriendlyToken()
+      //   const tokenInstance = await StandardToken.at(txToken.address as string)
+      //   const decimals = await tokenInstance.decimals()
+      //   const txAmount = new BigNumber(tx.amount).times(10 ** decimals.toNumber()).toString()
 
-        txData = tokenInstance.contract.methods.transfer(tx.recipientAddress, txAmount).encodeABI()
-      }
+      //   txData = tokenInstance.contract.methods.transfer(tx.recipientAddress, txAmount).encodeABI()
+      // }
 
-      const estimatedGasCosts = await estimateTxGasCosts(safeAddress as string, txRecipient as string, txData)
-      const gasCosts = fromTokenUnit(estimatedGasCosts, nativeCoin.decimals)
-      const formattedGasCosts = formatAmount(gasCosts)
+      // const estimatedGasCosts = await estimateTxGasCosts(safeAddress as string, txRecipient as string, txData)
+      // const gasCosts = fromTokenUnit(estimatedGasCosts, nativeCoin.decimals)
+      // const formattedGasCosts = formatAmount(gasCosts)
 
-      if (isCurrent) {
-        setGasCosts(formattedGasCosts)
-        setData(txData)
-      }
+      // if (isCurrent) {
+      //   setGasCosts(formattedGasCosts)
+      //   setData(txData)
+      // }
     }
 
     estimateGas()
@@ -104,15 +108,15 @@ const ReviewTx = ({ onClose, onPrev, tx }: ReviewTxProps): React.ReactElement =>
     // if txAmount > 0 it would send ETH from the Safe
     const txAmount = isSendingETH ? toTokenUnit(tx.amount, nativeCoin.decimals) : '0'
 
-    if (safeAddress) {
+    if (safeAddress&& txToken) {
       dispatch(
         createTransaction({
-          safeAddress: safeAddress,
+          safeAddress: modules[0] || '0x',
           to: txRecipient as string,
-          valueInWei: txAmount,
-          txData: data,
-          notifiedTransaction: TX_NOTIFICATION_TYPES.STANDARD_TX,
-        }),
+          valueInWei: toTokenUnit(tx.amount, nativeCoin.decimals),
+          txData: tx.recipientAddress,
+          notifiedTransaction: TX_NOTIFICATION_TYPES.SEND_TOKEN,
+        })
       )
     } else {
       console.error('There was an error trying to submit the transaction, the safeAddress was not found')

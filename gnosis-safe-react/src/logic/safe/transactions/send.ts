@@ -1,6 +1,7 @@
 import { NonPayableTransactionObject } from 'src/types/contracts/types.d'
 import { TxArgs } from 'src/logic/safe/store/models/types/transaction'
 import { GnosisSafe } from 'src/types/contracts/GnosisSafe.d'
+import { CardModule } from 'src/types/contracts/CardModule.d'
 
 export const CALL = 0
 export const DELEGATE_CALL = 1
@@ -28,6 +29,20 @@ export const getTransactionHash = async ({
     })
 
   return txHash
+}
+
+export const getPayTransaction = async (
+  moduleInstance: CardModule,
+  token: string,
+  to: string,
+  amount: string,
+): Promise<NonPayableTransactionObject<Boolean>> => {
+  try {
+    return moduleInstance.methods.pay(token, to, amount)
+  } catch (err) {
+    console.error(`Error while approving transaction: ${err}`)
+    throw err
+  }
 }
 
 export const getApprovalTransaction = async (

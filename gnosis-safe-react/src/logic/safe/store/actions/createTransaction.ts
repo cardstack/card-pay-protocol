@@ -6,14 +6,16 @@ import { ThunkAction } from 'redux-thunk'
 
 import { onboardUser } from 'src/components/ConnectButton'
 import { decodeMethods } from 'src/logic/contracts/methodIds'
-import { getGnosisSafeInstanceAt } from 'src/logic/contracts/safeContracts'
+import { getGnosisSafeInstanceAt, getCardModuleInstanceAt } from 'src/logic/contracts/safeContracts'
 import { getNotificationsFromTxType } from 'src/logic/notifications'
 import {
   CALL,
   getApprovalTransaction,
   getExecutionTransaction,
+  getPayTransaction,
   SAFE_VERSION_FOR_OFFCHAIN_SIGNATURES,
   saveTxToHistory,
+  TX_NOTIFICATION_TYPES,
   tryOffchainSigning,
 } from 'src/logic/safe/transactions'
 import { estimateSafeTxGas } from 'src/logic/safe/transactions/gas'
@@ -132,14 +134,37 @@ const createTransaction = (
 ): CreateTransactionAction => async (dispatch: Dispatch, getState: () => AppReduxState): Promise<DispatchReturn> => {
   const state = getState()
 
-  if (navigateToTransactionsTab) {
-    dispatch(push(`${SAFELIST_ADDRESS}/${safeAddress}/transactions`))
-  }
-
   const ready = await onboardUser()
   if (!ready) return
 
   const { account: from, hardwareWallet, smartContractWallet } = providerSelector(state)
+
+  if (notifiedTransaction === TX_NOTIFICATION_TYPES.SEND_TOKEN) {
+    let txHash
+    try {
+      const sendParams: PayableTx = { from, value: 0 }
+      const moduleInstance = getCardModuleInstanceAt(safeAddress)
+      const tx = await getPayTransaction(moduleInstance, to, txData, valueInWei)
+      await tx
+        .send(sendParams)
+        .once('transactionHash', async (hash) => {
+          txHash = hash
+          console.log(hash)
+        })
+        .on('error', (error) => {
+          console.error('Tx error: ', error)
+        })
+        .then(async (receipt) => {
+          return receipt.transactionHash
+        })
+    } catch (err) {
+      console.log(err)
+    }
+    return txHash
+  }
+  if (navigateToTransactionsTab) {
+    dispatch(push(`${SAFELIST_ADDRESS}/${safeAddress}/transactions`))
+  }
   const safeInstance = await getGnosisSafeInstanceAt(safeAddress)
   const lastTx = await getLastTx(safeAddress)
   const nonce = await getNewTxNonce(txNonce?.toString(), lastTx, safeInstance)

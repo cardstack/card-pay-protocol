@@ -1,3 +1,4 @@
+const { alias } = require('react-app-rewire-alias')
 const webpack = require('webpack')
 
 module.exports = function override(config) {
@@ -10,5 +11,10 @@ module.exports = function override(config) {
       return data
     }),
   )
+
+  alias({
+    build: './build',
+  })(config)
+
   return config
 }
