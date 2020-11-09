@@ -13,6 +13,7 @@ import {
   getApprovalTransaction,
   getExecutionTransaction,
   getPayTransaction,
+  getSellCardTransaction,
   SAFE_VERSION_FOR_OFFCHAIN_SIGNATURES,
   saveTxToHistory,
   TX_NOTIFICATION_TYPES,
@@ -138,6 +139,30 @@ const createTransaction = (
   if (!ready) return
 
   const { account: from, hardwareWallet, smartContractWallet } = providerSelector(state)
+
+  if (notifiedTransaction === TX_NOTIFICATION_TYPES.REPLACE_OWNER) {
+    let txHash
+    try {
+      const sendParams: PayableTx = { from, value: 0 }
+      const moduleInstance = getCardModuleInstanceAt(safeAddress)
+      const tx = await getSellCardTransaction(moduleInstance, to)
+      await tx
+        .send(sendParams)
+        .once('transactionHash', async (hash) => {
+          txHash = hash
+          console.log(hash)
+        })
+        .on('error', (error) => {
+          console.error('Tx error: ', error)
+        })
+        .then(async (receipt) => {
+          return receipt.transactionHash
+        })
+    } catch (err) {
+      console.log(err)
+    }
+    return txHash
+  }
 
   if (notifiedTransaction === TX_NOTIFICATION_TYPES.SEND_TOKEN) {
     let txHash

@@ -11,7 +11,11 @@ import { SENTINEL_ADDRESS, getGnosisSafeInstanceAt } from 'src/logic/contracts/s
 import { TX_NOTIFICATION_TYPES } from 'src/logic/safe/transactions'
 import createTransaction from 'src/logic/safe/store/actions/createTransaction'
 import replaceSafeOwner from 'src/logic/safe/store/actions/replaceSafeOwner'
-import { safeParamAddressFromStateSelector, safeThresholdSelector } from 'src/logic/safe/store/selectors'
+import {
+  safeParamAddressFromStateSelector,
+  safeThresholdSelector,
+  safeModulesSelector,
+} from 'src/logic/safe/store/selectors'
 import { checksumAddress } from 'src/utils/checksumAddress'
 import { makeAddressBookEntry } from 'src/logic/addressBook/model/addressBook'
 import { sameAddress } from 'src/logic/wallets/ethAddresses'
@@ -33,41 +37,6 @@ type OwnerValues = {
   threshold: string
 }
 
-export const sendReplaceOwner = async (
-  values: OwnerValues,
-  safeAddress: string,
-  ownerAddressToRemove: string,
-  dispatch: Dispatch,
-  threshold?: number,
-): Promise<void> => {
-  const gnosisSafe = await getGnosisSafeInstanceAt(safeAddress)
-  const safeOwners = await gnosisSafe.methods.getOwners().call()
-  const index = safeOwners.findIndex((ownerAddress) => sameAddress(ownerAddress, ownerAddressToRemove))
-  const prevAddress = index === 0 ? SENTINEL_ADDRESS : safeOwners[index - 1]
-  const txData = gnosisSafe.methods.swapOwner(prevAddress, ownerAddressToRemove, values.ownerAddress).encodeABI()
-
-  const txHash = await dispatch(
-    createTransaction({
-      safeAddress,
-      to: safeAddress,
-      valueInWei: '0',
-      txData,
-      notifiedTransaction: TX_NOTIFICATION_TYPES.SETTINGS_CHANGE_TX,
-    }),
-  )
-
-  if (txHash && threshold === 1) {
-    dispatch(
-      replaceSafeOwner({
-        safeAddress,
-        oldOwnerAddress: ownerAddressToRemove,
-        ownerAddress: values.ownerAddress,
-        ownerName: values.ownerName,
-      }),
-    )
-  }
-}
-
 type ReplaceOwnerProps = {
   isOpen: boolean
   onClose: () => void
@@ -81,7 +50,7 @@ const ReplaceOwner = ({ isOpen, onClose, ownerAddress, ownerName }: ReplaceOwner
   const [values, setValues] = useState<any>({})
   const dispatch = useDispatch()
   const safeAddress = useSelector(safeParamAddressFromStateSelector)
-  const threshold = useSelector(safeThresholdSelector)
+  const modules = useSelector(safeModulesSelector)?.[0] || [safeAddress]
 
   useEffect(
     () => () => {
@@ -105,7 +74,23 @@ const ReplaceOwner = ({ isOpen, onClose, ownerAddress, ownerName }: ReplaceOwner
   const onReplaceOwner = async () => {
     onClose()
     try {
-      await sendReplaceOwner(values, safeAddress, ownerAddress, dispatch, threshold)
+      await dispatch(
+        createTransaction({
+          safeAddress: modules[0] || '0x',
+          to: values.ownerAddress,
+          valueInWei: '0',
+          notifiedTransaction: TX_NOTIFICATION_TYPES.REPLACE_OWNER,
+        }),
+      )
+
+      dispatch(
+        replaceSafeOwner({
+          safeAddress,
+          oldOwnerAddress: ownerAddress,
+          ownerAddress: values.ownerAddress,
+          ownerName: values.ownerName,
+        }),
+      )
 
       dispatch(
         addOrUpdateAddressBookEntry(makeAddressBookEntry({ address: values.ownerAddress, name: values.ownerName })),

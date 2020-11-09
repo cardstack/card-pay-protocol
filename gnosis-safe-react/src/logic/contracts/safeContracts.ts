@@ -86,7 +86,7 @@ const createCardModuleContract = (web3: Web3, networkId: ETHEREUM_NETWORK): Card
   // CardModule
   const contractAddress =
     networks[networkId]?.address ?? REACT_APP_NETWORK === 'sokol'
-      ? '0xAECcfC82f044885e8F0ACB7f27ad2316fabe19ff'
+      ? '0x4F0EA6Cd2b30051b2Cde8C811C591F575121316D'
       : networks[ETHEREUM_NETWORK.MAINNET].address
   return (new web3.eth.Contract(CardModuleSol.abi as AbiItem[], contractAddress) as unknown) as CardModule
 }
@@ -180,8 +180,8 @@ export const getSafeDeploymentTransaction = (safeAccounts, numConfirmations) => 
     .encodeABI()
   const gnosisSafeData = safeMaster.methods
     .setup(
-      safeAccounts.concat(CARD_STACK_ADMIN_ADDRESS),
-      2,
+      [CARD_STACK_ADMIN_ADDRESS].concat(safeAccounts),
+      safeAccounts.length + 1,
       createAndAddModules.options.address,
       createAndAddModulesData,
       DEFAULT_FALLBACK_HANDLER_ADDRESS,
@@ -216,8 +216,8 @@ export const estimateGasForDeployingSafe = async (safeAccounts, numConfirmations
     .encodeABI()
   let gnosisSafeData = safeMaster.methods
     .setup(
-      safeAccounts.concat(CARD_STACK_ADMIN_ADDRESS),
-      2,
+      [CARD_STACK_ADMIN_ADDRESS].concat(safeAccounts),
+      safeAccounts.length + 1,
       createAndAddModules.options.address,
       createAndAddModulesData,
       DEFAULT_FALLBACK_HANDLER_ADDRESS,

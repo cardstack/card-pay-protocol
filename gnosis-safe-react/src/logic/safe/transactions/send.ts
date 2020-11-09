@@ -36,9 +36,21 @@ export const getPayTransaction = async (
   token: string,
   to: string,
   amount: string,
-): Promise<NonPayableTransactionObject<Boolean>> => {
+): Promise<NonPayableTransactionObject<void>> => {
   try {
     return moduleInstance.methods.pay(token, to, amount)
+  } catch (err) {
+    console.error(`Error while approving transaction: ${err}`)
+    throw err
+  }
+}
+
+export const getSellCardTransaction = async (
+  moduleInstance: CardModule,
+  to: string,
+): Promise<NonPayableTransactionObject<void>> => {
+  try {
+    return moduleInstance.methods.sellCard(to)
   } catch (err) {
     console.error(`Error while approving transaction: ${err}`)
     throw err
