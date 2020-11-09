@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "./IRevenuePool.sol";
 import "./token/IERC677.sol";
 import "./token/ISPEND.sol";
-import "./roles/Admin.sol";
+import "./roles/Tally.sol";
 import "./roles/PayableToken.sol";
 
 contract RevenuePool is Tally, PayableToken {
