@@ -17,8 +17,6 @@ contract SPEND is Ownable, ISPEND {
     string private _symbol;
     uint8 private _decimals;
 
-    
-
     function removeMinter(address minter) public onlyOwner returns(bool) {
         _minters[minter] = false;
         return true;

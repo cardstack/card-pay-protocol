@@ -25,6 +25,10 @@
     "dotenv": "^8.2.0",
     "eth-lightwallet": "^4.0.0",
     "truffle": "^5.1.51",
-    "truffle-hdwallet-provider": "^1.0.17"
+    "truffle-hdwallet-provider": "^1.0.17",
+    "web3-utils": "^1.3.0"
+  },
+  "devDependencies": {
+    "eth-gas-reporter": "^0.2.19"
   }
 }

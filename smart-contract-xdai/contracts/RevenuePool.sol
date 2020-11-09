@@ -1,133 +1,208 @@
-pragma solidity ^0.5.0;
+pragma solidity ^0.5.17;
 
 import "@gnosis.pm/safe-contracts/contracts/proxies/GnosisSafeProxyFactory.sol";
-import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 import "@openzeppelin/contracts/ownership/Ownable.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "./IRevenuePool.sol";
 import "./token/IERC677.sol";
 import "./token/ISPEND.sol";
+import "./roles/Admin.sol";
+import "./roles/PayableToken.sol";
 
-contract RevenuePool is Ownable {    
-    event WalletAddress(address merchant, address wallet);
+contract RevenuePool is Tally, PayableToken {
+    event CreateMerchantWallet(address merchant, address wallet);
 
-    address private GSmasterCopyAddress;
-    ISPEND private spendToken;
-    IERC677 private daiCPXDToken;
-    GnosisSafeProxyFactory private GSproxyFactory;
+    using SafeMath for uint256;
 
+    address private spendToken;
+    address private gsMasterCopy;
+    address private gsProxyFactory;
 
     struct Merchant {
         address wallet;
-        string name;
+        mapping(address => uint256) lockTotal;
     }
 
-    mapping (address => Merchant) merchants;
+    mapping(address => Merchant) merchants;
 
-    function setup(address _spendAddress, address _daiCPXDAddress, address _GSproxyFactoryAddress, address _GSmasterCopyAddress) 
-        public 
-        onlyOwner
-    {   
-        GSmasterCopyAddress = _GSmasterCopyAddress;
-        GSproxyFactory = GnosisSafeProxyFactory(_GSproxyFactoryAddress);
-        daiCPXDToken = IERC677(_daiCPXDAddress);
-        spendToken = ISPEND(_spendAddress);
+    function setup(
+        address _tally,
+        address[] memory _gnosisSafe,
+        address _spendToken,
+        address[] memory _payableTokens
+    ) public onlyOwner {
+        // setup tally user
+        addTally(_tally);
+        // setup gnosis safe address
+        // _gnosisSafe[0] is masterCopy address, _gnosisSafe[1] is gnosis proxy factory address.
+        gsMasterCopy = _gnosisSafe[0];
+        gsProxyFactory = _gnosisSafe[1];
+
+        spendToken = _spendToken;
+        // set token list payable.
+        for (uint256 i = 0; i < _payableTokens.length; ++i) {
+            addPayableToken(_payableTokens[i]);
+        }
     }
 
-    
-    function createWallet(address walletOwner) internal returns(address) {
-        address[] memory owners = new address[](1); 
-        owners[0] = address(walletOwner);
-        bytes memory payloads = abi.encodeWithSignature("setup(address[],uint256,address,bytes,address,address,uint256,address)", 
-                                owners, 1, address(0), hex"", address(0), address(0), 0, address(0));
-        
-        address walletProxy = address(GSproxyFactory.createProxy(GSmasterCopyAddress, payloads));
-        emit WalletAddress(walletOwner, walletProxy);
+    /**
+     * @dev create merchant wallet(gnosis safe)
+     * @param walletOwner - wallet owner 
+     * @return address of merchant wallet
+     */
+    function createWallet(address walletOwner) internal returns (address) {
+        address[] memory owners = new address[](1);
+        owners[0] = walletOwner;
 
-        return walletProxy;
+        bytes memory payloads = abi.encodeWithSignature(
+            "setup(address[],uint256,address,bytes,address,address,uint256,address)",
+            owners,
+            1,
+            address(0),
+            hex"",
+            address(0),
+            address(0),
+            0,
+            address(0)
+        );
+
+        address gnosis = address(
+            GnosisSafeProxyFactory(gsProxyFactory).createProxy(
+                gsMasterCopy,
+                payloads
+            )
+        );
+
+        emit CreateMerchantWallet(walletOwner, gnosis);
+
+        return gnosis;
     }
 
-
-    function registerMerchant(address merchantId, string calldata name) 
-        external 
-        onlyOwner 
-        returns(bool) 
+    /**
+     * @dev register merchant, can only by tally account
+     * @param merchantId - address of merchant 
+     */
+    function registerMerchant(address merchantId)
+        external
+        onlyTally
+        returns (bool)
     {
-        require(merchantId != address(0), "Merchant address shouldn't zero address.");
+        require(
+            merchantId != address(0),
+            "Merchant address shouldn't zero address"
+        );
 
         Merchant storage merchant = merchants[merchantId];
 
-        require(merchant.wallet == address(0), "Merchant has been resiter");
+        require(merchant.wallet == address(0), "Merchant exists");
 
-        // create new merchant
-        merchant.name = name;
+        //create wallet for merchant
         merchant.wallet = createWallet(merchantId);
-        merchants[merchantId] = merchant;    
+
+        merchants[merchantId] = merchant;
 
         return true;
     }
 
-    function getWalletAddress(address merchantId) public view returns(address) {
+    function getMerchantWallet(address merchantId)
+        public
+        view
+        returns (address)
+    {
         return merchants[merchantId].wallet;
     }
 
-    function rate() internal pure returns(uint) {
+    function exchangeRateOf(address _token) internal pure returns (uint256) {
         // TODO: using current exchange rate from chainlink
         return 100;
     }
 
-    function exchangeSPENDToDAI(uint spend) internal pure returns(uint) {
-        // TODO: use safe math
-        return spend / rate();
-    }
-    function exchangeDAIToSPEND(uint dai) internal pure returns(uint) {
-        // TODO: use safe math
-        return dai * rate();
+    function exchangeSPEND2Other(address otherToken, uint256 amountSPEND)
+        internal
+        pure
+        returns (uint256)
+    {
+        return amountSPEND.div(exchangeRateOf(otherToken));
     }
 
- 
-    function _pay(address merchantId, uint amount) internal returns(bool) {
+    function exchangeOther2SPEND(address otherToken, uint256 amountOther)
+        internal
+        pure
+        returns (uint256)
+    {
+        return amountOther.mul(exchangeRateOf(otherToken));
+    }
 
+    function _pay(
+        address merchantId,
+        address payableToken,
+        uint256 amount
+    ) internal returns (bool) {
         address wallet = merchants[merchantId].wallet;
-        require(wallet != address(0), "You should register merchant role first.");
+        require(wallet != address(0), "Merchants not registered");
 
-        uint spendAmount = exchangeDAIToSPEND(amount);
-        spendToken.mint(wallet, spendAmount);
+        uint lockTotal = merchants[merchantId].lockTotal[payableToken];
+        merchants[merchantId].lockTotal[payableToken] = lockTotal.add(amount);
 
-        return true;
-    }
+        uint256 amountSPEND = exchangeOther2SPEND(payableToken, amount);
 
-    function tokenFallback(address from, uint amount, bytes calldata data) external returns(bool) {
-        // TODO: find better way describe data
-        // TODO: verify from address is prepaid 
-        // only DAICPXD contract can call this method
-        require(msg.sender == address(daiCPXDToken), "Something wrong!!!");
-        (address merchantId) = abi.decode(data, (address));
-        _pay(merchantId, amount);
+        ISPEND(spendToken).mint(wallet, amountSPEND);
+
         return true;
     }
 
     /**
-     * @dev merchant redeem
-     * @param merchantId address of merchant
-     * @param amountInSPEND amount in spend token
-     * TODO: set who can call this method
+     * @dev tokenFallback(ERC677) - call when token receive pool. 
+     * we will exchange receive token to SPEND token and transfer it to wallet of merchant.
+     * @param from - who transfer token (should from prepaid card).
+     * @param amount - number token them pay.
+     * @param data - merchantId in encode format.
      */
-    function redeemRevenue(address merchantId, uint amountInSPEND) external returns(bool) {
-
-        address merchantWalletAddress = getWalletAddress(merchantId);
-        require(merchantWalletAddress != address(0), "Merchant has been not register");
-
-        // burn spend in merchant wallet
-        spendToken.burn(merchantWalletAddress, amountInSPEND);  
-
-        // exchange amount SPEND to DAI
-        uint amountInDAI = exchangeSPENDToDAI(amountInSPEND);
-
-        // transfer from DAI to merchant wallet address
-        daiCPXDToken.transfer(merchantWalletAddress, amountInDAI);
-
+    function tokenFallback(
+        address from,
+        uint256 amount,
+        bytes calldata data
+    ) external onlyPayableToken() returns (bool) {
+        address merchantId = abi.decode(data, (address));
+        _pay(merchantId, _msgSender(), amount);
         return true;
     }
 
+    /**
+     * @dev merchant redeem, only tally account can call this method
+     * @param merchantId address of merchant
+     * @param payableToken address of payable token
+     * @param amountSPEND amount in spend token
+     */
+    function redeemRevenue(
+        address merchantId,
+        address payableToken,
+        uint256 amountSPEND
+    ) external onlyTally verifyPayableToken(payableToken) returns (bool) {
+        
+        address merchantWallet = getMerchantWallet(merchantId);
+
+        require(merchantWallet != address(0), "Merchants not registered");
+
+        // burn spend in merchant wallet
+        ISPEND(spendToken).burn(merchantWallet, amountSPEND);
+
+        // exchange amount SPEND to payable token(DAICPXD or USDTCPXD)
+        uint256 amountOther = exchangeSPEND2Other(payableToken, amountSPEND);
+
+        uint256 lockTotal = merchants[merchantId].lockTotal[payableToken];
+        require(amountOther <= lockTotal, "Don't enough token for redeem");
+
+        // unlock token of merchant
+        lockTotal = lockTotal.sub(amountOther);
+
+        // update new lockTotal
+        merchants[merchantId].lockTotal[payableToken] = lockTotal;
+
+        // transfer payable token from revenue pool to merchant wallet address
+        IERC677(payableToken).transfer(merchantWallet, amountOther);
+        
+        return true;
+    }
 }
