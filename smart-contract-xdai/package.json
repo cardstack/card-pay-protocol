@@ -1,0 +1,34 @@
+{
+  "name": "card-protocol-xdai",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "compile-contract": "./node_modules/.bin/truffle compile",
+    "test": "./node_modules/.bin/truffle test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cardstack/card-protocol-xdai.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/cardstack/card-protocol-xdai/issues"
+  },
+  "homepage": "https://github.com/cardstack/card-protocol-xdai#readme",
+  "dependencies": {
+    "@gnosis.pm/mock-contract": "github:gnosis/mock-contract#sol_0_5_0",
+    "@gnosis.pm/safe-contracts": "^1.2.0",
+    "@openzeppelin/contracts": "^2.5.1",
+    "dotenv": "^8.2.0",
+    "eth-lightwallet": "^4.0.0",
+    "truffle": "^5.1.51",
+    "truffle-hdwallet-provider": "^1.0.17",
+    "web3-utils": "^1.3.0"
+  },
+  "devDependencies": {
+    "eth-gas-reporter": "^0.2.19"
+  }
+}
