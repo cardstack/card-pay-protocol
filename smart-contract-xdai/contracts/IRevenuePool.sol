@@ -1,9 +1,9 @@
-pragma solidity ^0.5.0;
+pragma solidity ^0.5.17;
 
 
 interface IRevenuePool {
     
-    function registerMerchant(string calldata name) external returns(bool);
+    function registerMerchant(address merchantAddr, string calldata merchantId) external returns(bool);
 
     // function registerServiceOrProduct(uint productId, uint price) external returns(bool);
 

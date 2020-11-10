@@ -1,15 +1,16 @@
-pragma solidity ^0.5.0;
+pragma solidity ^0.5.17;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20Detailed.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20Mintable.sol"; 
+import "@openzeppelin/contracts/token/ERC20/ERC20Burnable.sol";
 import "./IERC677.sol";
 import "./ERC677TransferReceiver.sol";
 
 /**
  * @dev reference from https://github.com/rnsdomains/erc677
  */
-contract DAICPXD is IERC677, ERC20Detailed, ERC20 {
-    constructor(uint initialSupply) ERC20Detailed("DAICPXD Token", "DAICPXD", 18) public {
+contract DAICPXD is IERC677, ERC20Detailed, ERC20Mintable, ERC20Burnable {
+    constructor(uint initialSupply) ERC20Detailed("DAI CPXD Token", "DAI CPXD", 18) public {
         _mint(msg.sender, initialSupply);
     }
 

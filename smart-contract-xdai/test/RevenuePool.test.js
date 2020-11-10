@@ -6,12 +6,10 @@ const GnosisSafe = artifacts.require('GnosisSafe');
 
 const utils = require('./utils/general');
 
-
 contract('Test Revenue Pool contract', accounts => {
-    let daicpxdToken, revenuePool, spendToken;
+    let daicpxdToken, revenuePool, spendToken, fakeToken;
     let walletOfMerchant, lw;
     let tally;
-
     before( async() => {
         lw = await utils.createLightwallet()
         tally = accounts[0];
@@ -19,7 +17,7 @@ contract('Test Revenue Pool contract', accounts => {
         let proxyFactory = await ProxyFactory.new()
         let gnosisSafeMasterCopy = await utils.deployContract('deploying Gnosis Safe Mastercopy', GnosisSafe);
 
-        revenuePool = await utils.deployContract('deploying revenue pool', RevenuePool);
+        revenuePool = await RevenuePool.new();
         
         spendToken = await SPEND.new('SPEND Token', 'SPEND', [revenuePool.address]);
 
@@ -33,6 +31,8 @@ contract('Test Revenue Pool contract', accounts => {
             spendToken.address,
             [daicpxdToken.address]
         );
+        
+        fakeToken = await DAICPXD.new("10000000000000000000");
 
         console.log('  Spend Token: ' + spendToken.address);
         console.log('  Daicpxd Token: ' +  daicpxdToken.address)
@@ -83,7 +83,7 @@ contract('Test Revenue Pool contract', accounts => {
     })
 
     it('pay 10 DAI CPXD token to pool and mint SPEND token for merchant wallet', async() => {
-        let amount = utils.toAmountToken('2'); // equal 10 * 10^18
+        let amount = utils.toAmountToken('2'); // equal 2 * 10^18
         let data = web3.eth.abi.encodeParameter('address', lw.accounts[0]);
 
         await daicpxdToken.transferAndCall(revenuePool.address, amount, data);
@@ -106,7 +106,7 @@ contract('Test Revenue Pool contract', accounts => {
     })
 
 
-    it('send 1 DAI CPXD and receive address is not merchant', async() => {
+    it('pay 1 DAI CPXD and receive address is not merchant', async() => {
         let balanceBefore = await daicpxdToken.balanceOf(accounts[0]);
         let amount = utils.toAmountToken(1); // 1 DAI CPXD
         try {
@@ -127,6 +127,19 @@ contract('Test Revenue Pool contract', accounts => {
             assert.ok(false);
         } catch(err) {
             assert.ok(true);
+        }
+    })
+
+    it("call transferAndCall from contract which not payable", async() => {
+        try {
+
+            let amount = utils.toAmountToken('1'); // equal 1 * 10^18
+            let data = web3.eth.abi.encodeParameter('address', lw.accounts[0]);
+
+            await fakeToken.transferAndCall(revenuePool.address, amount, data);
+            assert.ok(false, "Should not accept this token");
+        } catch(err) {
+            assert.equal(err.reason, "Guard: Token is not support payable by contract.");
         }
     })
 })
