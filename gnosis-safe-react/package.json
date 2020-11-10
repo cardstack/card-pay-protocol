@@ -41,6 +41,7 @@
     "start-mainnet": "REACT_APP_NETWORK=mainnet yarn start",
     "start-sokol": "REACT_APP_NETWORK=sokol yarn start",
     "start": "react-app-rewired start",
+    "start-transaction-service": "cd tally-oracle/transaction-history-service && docker-compose up",
     "test": "react-app-rewired test --env=jsdom",
     "test:coverage": "yarn test --coverage --watchAll=false",
     "coveralls": "cat ./coverage/lcov.info | coveralls",

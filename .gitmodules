@@ -1,0 +1,4 @@
+[submodule "gnosis-safe-react/tally-oracle"]
+	path = gnosis-safe-react/tally-oracle
+	url = https://github.com/cardstack/tally-oracle.git
+	branch = add-transaction-history-service

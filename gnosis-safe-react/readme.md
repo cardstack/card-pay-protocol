@@ -14,6 +14,7 @@ What things you need to install the software and how to install them
 yarn add truffle // recommended usage of -g flag
 yarn add ganache-cli // recommended usage of -g flag
 yarn add flow-type // recommended usage of -g flag
+git submodule update --init --recursive --remote
 ```
 
 We use [yarn](https://yarnpkg.com) in our infrastacture, so we decided to go with yarn in the README
@@ -22,11 +23,13 @@ We use [yarn](https://yarnpkg.com) in our infrastacture, so we decided to go wit
 
 A step by step series of examples that tell you have to get a development env running
 
-Install dependencies for the project:
+**Install dependencies for the project:**
 
 ```
 yarn install
 ```
+
+**Running**
 
 For using the Rinkeby services:
 
@@ -37,12 +40,18 @@ yarn start
 For using the Sokol network:
 
 1. Run `transaction-history-service`
+   
+   ```
+      yarn start-transaction-service
+   ```
+
+ 
 2. Copy .example.env to .env
 3. Start app
 
-```
-yarn start-sokol
-```
+   ```
+   yarn start-sokol
+   ```
 
 If you prefer using Mainnet ones:
 
