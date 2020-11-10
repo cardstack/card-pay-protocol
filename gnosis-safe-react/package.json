@@ -24,7 +24,7 @@
     "build-sokol": "cross-env REACT_APP_NETWORK=sokol yarn build",
     "build": "cross-env REACT_APP_APP_VERSION=$npm_package_version react-app-rewired --max-old-space-size=8192 build",
     "compile": "yarn truffle compile",
-    "compile-card-contracts": "cd ../smart-contract-xdai && yarn && truffle compile && cd ../gnosis-safe-react/ && mkdir -p build && cd build && mkdir -p contracts && cd contracts && cp ../../../smart-contract-xdai/build/contracts/CardModule.json CardModule.json",
+    "compile-card-contracts": "cd ../smart-contract-xdai && npm install && truffle compile && cd ../gnosis-safe-react/ && mkdir -p build && cd build && mkdir -p contracts && cd contracts && cp ../../../smart-contract-xdai/build/contracts/CardModule.json CardModule.json",
     "eject": "react-app-rewired eject",
     "electron-build": "electron-builder --mac --windows --linux",
     "electron-dev": "concurrently \"BROWSER=none yarn start\" \"wait-on http://localhost:3000 && electron .\"",

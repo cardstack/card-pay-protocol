@@ -1,4 +1,4 @@
-const Migrations = artifacts.require("CardModule");
+const CardModule = artifacts.require("CardModule");
 
 module.exports = function (deployer) {
 	deployer.deploy(CardModule);
