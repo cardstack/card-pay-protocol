@@ -1,11 +1,11 @@
-pragma solidity ^0.5.0;
+pragma solidity ^0.5.17;
 
 import "./ISPEND.sol";
 import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
+import "../roles/Minter.sol";
 
-contract SPEND is Ownable, ISPEND {
-    mapping(address => bool) _minters;
+contract SPEND is ISPEND, Minter {
 
     using SafeMath for uint256;
 
@@ -17,32 +17,12 @@ contract SPEND is Ownable, ISPEND {
     string private _symbol;
     uint8 private _decimals;
 
-    function removeMinter(address minter) public onlyOwner returns(bool) {
-        _minters[minter] = false;
-        return true;
-    }
-
-    function addMiner(address newMinter) public onlyOwner returns(bool){
-        _minters[newMinter] = true;
-        return true;
-    }
-
-
-    modifier onlyMinter() {
-        require(isMinter(), "Minter: caller is not the minter");
-        _;
-    }
-
-    function isMinter() public view returns (bool) {
-        return _minters[_msgSender()] == true;
-    }
-
     constructor (string memory name, string memory symbol, address[] memory minters) public {
         _name = name;
         _symbol = symbol;
         _decimals = 18;
         for (uint i = 0;i < minters.length; ++i) {
-            addMiner(minters[i]);
+            addMinter(minters[i]);
         }
     }
 

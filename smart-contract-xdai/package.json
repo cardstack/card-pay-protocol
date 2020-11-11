@@ -31,6 +31,7 @@
 	},
 	"devDependencies": {
 		"eth-gas-reporter": "^0.2.19",
-		"truffle-contract": "^4.0.31"
+		"truffle-contract": "^4.0.31",
+		"solidity-coverage": "^0.7.11"
 	}
 }
