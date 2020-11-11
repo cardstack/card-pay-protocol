@@ -23,7 +23,7 @@ contract RevenuePool is Tally, PayableToken {
     address private gsProxyFactory;
 
     struct Merchant {
-        address wallet;
+        address wallet;        
         mapping(address => uint256) lockTotal;
     }
 
@@ -185,13 +185,13 @@ contract RevenuePool is Tally, PayableToken {
     }
 
     /**
-     * @dev tokenFallback(ERC677) - call when token receive pool. 
+     * @dev onTokenTransfer(ERC677) - call when token receive pool. 
      * we will exchange receive token to SPEND token and mint it for the wallet of merchant.
      * @param from - who transfer token (should from prepaid card).
      * @param amount - number token customer pay for merchant.
      * @param data - merchantId in encode format.
      */
-    function tokenFallback(
+    function onTokenTransfer(
         address from,
         uint256 amount,
         bytes calldata data
