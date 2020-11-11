@@ -71,9 +71,9 @@ contract PrepaidCardManage is Tally, PayableToken {
 
     /**
      * @dev Create Prepaid card
-     * @param supplier - Supplier address
-     * @param token - Token address
-     * @param amount - Amount of Prepaid card
+     * @param supplier Supplier address
+     * @param token Token address
+     * @param amount Amount of Prepaid card
      * @return PrepaidCard address
      */
     function _createPrepaidCard(
@@ -136,11 +136,11 @@ contract PrepaidCardManage is Tally, PayableToken {
 
     /**
      * @dev Split Prepaid card
-     * @param supplier - Supplier address
-     * @param card - Prepaid card address
-     * @param token - Token address
-     * @param amount - Amount to split
-     * @param payloads - Payloads
+     * @param supplier Supplier address
+     * @param card Prepaid card address
+     * @param token Token address
+     * @param amount Amount to split
+     * @param payloads Payloads
      */
     function _split(
         address supplier,
@@ -175,13 +175,12 @@ contract PrepaidCardManage is Tally, PayableToken {
     }
 
     /**
-     * @dev tokenFallback(ERC677) - call when token receive pool.
-     * we will exchange receive token to SPEND token and transfer it to wallet of merchant.
-     * @param from - Supplier or Prepaid card address
-     * @param amount - number token them pay.
-     * @param data - data encoded
+     * @dev onTokenTransfer(ERC677) - call when token send this contract.
+     * @param from Supplier or Prepaid card address
+     * @param amount number token them pay.
+     * @param data data encoded
      */
-    function tokenFallback(
+    function onTokenTransfer(
         address from,
         uint256 amount,
         bytes calldata data
