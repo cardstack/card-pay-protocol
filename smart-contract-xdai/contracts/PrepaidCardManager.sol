@@ -5,9 +5,6 @@ import "@gnosis.pm/safe-contracts/contracts/libraries/CreateAndAddModules.sol";
 import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-//BytesLib https://github.com/GNSPS/solidity-bytes-utils
-import "solidity-bytes-utils/contracts/BytesLib.sol";
-
 //modules
 import "./modules/CardModule.sol";
 
@@ -16,7 +13,6 @@ import "./roles/Tally.sol";
 import "./roles/PayableToken.sol";
 
 contract PrepaidCardManager is Tally, PayableToken {
-    using BytesLib for bytes;
     using SafeMath for uint256;
 
     event CreatePrepaidCard(
@@ -102,8 +98,17 @@ contract PrepaidCardManager is Tally, PayableToken {
             cardModule,
             moduleDataPayloads
         );
-        bytes memory modulesCreationDataPayloads = proxyFactoryDataPayloads
-            .slice(72, proxyFactoryDataPayloads.length.sub(72));
+
+        bytes memory moduleDataWrapper = abi.encodeWithSignature(
+            "setup(bytes)",
+            proxyFactoryDataPayloads
+        );
+        bytes memory modulesCreationDataPayloads = new bytes(
+            moduleDataWrapper.length - 36
+        );
+        for (uint256 i = 0; i < modulesCreationDataPayloads.length; i++) {
+            modulesCreationDataPayloads[i] = moduleDataWrapper[i.add(36)];
+        }
         bytes memory createAndAddModulesDataPayloads = abi.encodeWithSignature(
             "createAndAddModules(address,bytes)",
             gsProxyFactory,
@@ -113,7 +118,7 @@ contract PrepaidCardManager is Tally, PayableToken {
             "setup(address[],uint256,address,bytes,address,address,uint256,address)",
             owners,
             2,
-            address(0),
+            gsCreateAndAddModules,
             createAndAddModulesDataPayloads,
             address(0),
             address(0),
