@@ -34,26 +34,6 @@ contract PrepaidCardManager is Tally, PayableToken {
         address[] list
     );
 
-    function executeDelegateCall(
-        address to,
-        bytes memory data,
-        uint256 txGas
-    ) private returns (bool success) {
-        // solium-disable-next-line security/no-inline-assembly
-        assembly {
-            success := delegatecall(
-                txGas,
-                to,
-                add(data, 0x20),
-                mload(data),
-                0,
-                0
-            )
-        }
-    }
-
-    using SafeMath for uint256;
-
     address private gsMasterCopy;
     address private gsProxyFactory;
     address private gsCreateAndAddModules;
@@ -62,26 +42,32 @@ contract PrepaidCardManager is Tally, PayableToken {
 
     mapping(address => bool) cards;
 
+    /**
+     * @dev Setup function sets initial storage of contract.
+     * @param _tally Tally address
+     * @param _gsMasterCopy Gnosis safe Master Copy address
+     * @param _gsProxyFactory Gnosis safe Proxy Factory address
+     * @param _gsCreateAndAddModules Gnosis safe CreateAndAddModules address
+     * @param _revenuePool Revenue Pool address
+     * @param _cardModule Card Module address
+     * @param _payableTokens Payable tokens are allowed to use
+     */
     function setup(
         address _tally,
-        address[] memory _gnosisSafe,
+        address _gsMasterCopy,
+        address _gsProxyFactory,
+        address _gsCreateAndAddModules,
+        address _revenuePool,
+        address _cardModule,
         address[] memory _payableTokens
     ) public onlyOwner {
         // setup tally user
         addTally(_tally);
-        /**
-        setup gnosis safe address
-        _gnosisSafe[0] is masterCopy address
-        _gnosisSafe[1] is gnosis proxy factory address
-        _gnosisSafe[2] is gnosis CreateAndAddModules 
-        _gnosisSafe[3] is revenuePool address
-        _gnosisSafe[3] is cardModule address
-        */
-        gsMasterCopy = _gnosisSafe[0];
-        gsProxyFactory = _gnosisSafe[1];
-        gsCreateAndAddModules = _gnosisSafe[2];
-        revenuePool = _gnosisSafe[3];
-        cardModule = _gnosisSafe[4];
+        gsMasterCopy = _gsMasterCopy;
+        gsProxyFactory = _gsProxyFactory;
+        gsCreateAndAddModules = _gsCreateAndAddModules;
+        revenuePool = _revenuePool;
+        cardModule = _cardModule;
 
         // set token list payable.
         for (uint256 i = 0; i < _payableTokens.length; ++i) {
@@ -117,7 +103,7 @@ contract PrepaidCardManager is Tally, PayableToken {
             moduleDataPayloads
         );
         bytes memory modulesCreationDataPayloads = proxyFactoryDataPayloads
-            .slice(72, proxyFactoryDataPayloads.length.add(72));
+            .slice(72, proxyFactoryDataPayloads.length.sub(72));
         bytes memory createAndAddModulesDataPayloads = abi.encodeWithSignature(
             "createAndAddModules(address,bytes)",
             gsProxyFactory,
@@ -144,16 +130,7 @@ contract PrepaidCardManager is Tally, PayableToken {
 
         require(card != address(0), "Could not create card");
 
-        bytes memory data = payloads = abi.encodeWithSignature(
-            "transfer(address,uint256)",
-            card,
-            amount
-        );
-
-        require(
-            executeDelegateCall(token, data, gasleft()),
-            "Could not transfer token to card"
-        );
+        require(IERC677(token).transfer(card, amount));
 
         emit CreatePrepaidCard(supplier, card, token, amount);
 
@@ -213,14 +190,17 @@ contract PrepaidCardManager is Tally, PayableToken {
         uint256 amount,
         bytes calldata data
     ) external onlyPayableToken() returns (bool) {
-        address supplier;
+        address supplier = address(0);
         bytes memory payloads;
-        (supplier, payloads) = abi.decode(data, (address, bytes));
+
+        if (data.length > 2) {
+            (supplier, payloads) = abi.decode(data, (address, bytes));
+        }
 
         if (cards[from] && supplier != address(0)) {
             _split(supplier, from, _msgSender(), amount, payloads);
         } else {
-            _createPrepaidCard(from, _msgSender(), amount) != address(0);
+            _createPrepaidCard(from, _msgSender(), amount);
         }
         return true;
     }
