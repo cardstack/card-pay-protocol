@@ -15,7 +15,7 @@ import "./token/IERC677.sol";
 import "./roles/Tally.sol";
 import "./roles/PayableToken.sol";
 
-contract PrepaidCardManage is Tally, PayableToken {
+contract PrepaidCardManager is Tally, PayableToken {
     using BytesLib for bytes;
     using SafeMath for uint256;
 
@@ -34,6 +34,24 @@ contract PrepaidCardManage is Tally, PayableToken {
         address[] list
     );
 
+    function executeDelegateCall(
+        address to,
+        bytes memory data,
+        uint256 txGas
+    ) private returns (bool success) {
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            success := delegatecall(
+                txGas,
+                to,
+                add(data, 0x20),
+                mload(data),
+                0,
+                0
+            )
+        }
+    }
+
     using SafeMath for uint256;
 
     address private gsMasterCopy;
@@ -41,6 +59,8 @@ contract PrepaidCardManage is Tally, PayableToken {
     address private gsCreateAndAddModules;
     address private revenuePool;
     address private cardModule;
+
+    mapping(address => bool) cards;
 
     function setup(
         address _tally,
@@ -124,12 +144,21 @@ contract PrepaidCardManage is Tally, PayableToken {
 
         require(card != address(0), "Could not create card");
 
+        bytes memory data = payloads = abi.encodeWithSignature(
+            "transfer(address,uint256)",
+            card,
+            amount
+        );
+
         require(
-            IERC677(token).transfer(card, amount),
+            executeDelegateCall(token, data, gasleft()),
             "Could not transfer token to card"
         );
 
         emit CreatePrepaidCard(supplier, card, token, amount);
+
+        // card was created
+        cards[card] = true;
 
         return card;
     }
@@ -165,7 +194,6 @@ contract PrepaidCardManage is Tally, PayableToken {
         address newCard;
         for (uint256 p = 0; p < number; p++) {
             newCard = _createPrepaidCard(supplier, token, amountPerCard);
-            require(newCard != address(0));
             list[p] = newCard;
         }
 
@@ -189,12 +217,10 @@ contract PrepaidCardManage is Tally, PayableToken {
         bytes memory payloads;
         (supplier, payloads) = abi.decode(data, (address, bytes));
 
-        if (supplier != address(0)) {
+        if (cards[from] && supplier != address(0)) {
             _split(supplier, from, _msgSender(), amount, payloads);
         } else {
-            require(
-                _createPrepaidCard(from, _msgSender(), amount) != address(0)
-            );
+            _createPrepaidCard(from, _msgSender(), amount) != address(0);
         }
         return true;
     }

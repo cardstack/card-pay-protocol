@@ -2,9 +2,7 @@ const DAICPXD = artifacts.require("DAICPXD.sol");
 const RevenuePool = artifacts.require("RevenuePool.sol");
 const SPEND = artifacts.require("SPEND.sol");
 const ProxyFactory = artifacts.require("GnosisSafeProxyFactory");
-const contract = require("truffle-contract");
-const gnosisSafeJson = require("@gnosis.pm/safe-contracts/build/contracts/GnosisSafe.json");
-const GnosisSafe = contract(gnosisSafeJson);
+const GnosisSafe = artifacts.require("gnosisSafe");
 
 const utils = require("./utils/general");
 
