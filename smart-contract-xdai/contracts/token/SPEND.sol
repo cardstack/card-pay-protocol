@@ -3,9 +3,9 @@ pragma solidity ^0.5.17;
 import "./ISPEND.sol";
 import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "../roles/Minter.sol";
+import "../roles/MinterRole.sol";
 
-contract SPEND is ISPEND, Minter {
+contract SPEND is ISPEND, MinterRole {
 
     using SafeMath for uint256;
 

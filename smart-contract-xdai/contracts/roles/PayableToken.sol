@@ -1,43 +1,55 @@
 pragma solidity ^0.5.17;
 
 import "@openzeppelin/contracts/ownership/Ownable.sol";
-import "@openzeppelin/contracts/access/Roles.sol";
-
+import "@openzeppelin/contracts/utils/EnumerableSet.sol";
 
 contract PayableToken is Ownable {
-    using Roles for Roles.Role;
+    using EnumerableSet for EnumerableSet.AddressSet;
 
-    Roles.Role private payableTokens;
-    
+    EnumerableSet.AddressSet internal payableTokens;
+
     /**
      * @dev Throws if called by any account other than the admin.
      */
     modifier onlyPayableToken() {
-        require(payableTokens.has(_msgSender()), "Guard: Token is not support payable by contract.");
+        require(
+            payableTokens.contains(_msgSender()),
+            "Guard: Token is not support payable by contract."
+        );
         _;
     }
 
     modifier verifyPayableToken(address _token) {
-        require(payableTokens.has(_token), "Guard: Token is not support payable by contract.");
+        require(
+            payableTokens.contains(_token),
+            "Guard: Token is not support payable by contract."
+        );
         _;
     }
-    
-    function addPayableToken(address _token) public onlyOwner returns(bool) {
+
+    function addPayableToken(address _token) public onlyOwner returns (bool) {
         return _addPayableToken(_token);
     }
 
-    function _addPayableToken(address _token) internal returns(bool) {
+    function _addPayableToken(address _token) internal returns (bool) {
         payableTokens.add(_token);
         return true;
     }
 
-    function removePayableToken(address _token) public onlyOwner returns(bool) {
+    function removePayableToken(address _token)
+        public
+        onlyOwner
+        returns (bool)
+    {
         return _removePayableToken(_token);
     }
 
-    function _removePayableToken(address _token) internal returns(bool) {
+    function _removePayableToken(address _token) internal returns (bool) {
         payableTokens.remove(_token);
         return true;
     }
 
+    function getTokens() public view returns (address[] memory) {
+        return payableTokens.enumerate();
+    }
 }
