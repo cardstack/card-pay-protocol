@@ -9,8 +9,9 @@ import "./token/ISPEND.sol";
 import "./roles/TallyRole.sol";
 import "./roles/PayableToken.sol";
 import "./core/MerchantManager.sol";
+import "./core/Exchange.sol";
 
-contract RevenuePool is TallyRole, PayableToken, MerchantManager {
+contract RevenuePool is TallyRole, PayableToken, MerchantManager, Exchange {
     address private spendToken;
     using SafeMath for uint256;
 
@@ -41,45 +42,9 @@ contract RevenuePool is TallyRole, PayableToken, MerchantManager {
     }
 
     /**
-     * @dev query exchange rate of payable token and SPEND
-     * @param _token address of payableToken
-     * @return exchange rate
-     */
-    function exchangeRateOf(address _token) internal pure returns (uint256) {
-        // TODO: using current exchange rate from chainlink
-        return 100;
-    }
-
-    /**
-     * @dev convert amount in SPEND to amount in payableToken
-     * @param payableTokenAddr address of payableToken
-     * @param amount amount in SPEND
-     */
-    function convertToPayableToken(address payableTokenAddr, uint256 amount)
-        internal
-        pure
-        returns (uint256)
-    {
-        return amount.div(exchangeRateOf(payableTokenAddr));
-    }
-
-    /**
-     * @dev convert amount in payableToken to amount in SPEND
-     * @param payableTokenAddr address of payableToken
-     * @param amount amount in payableToken
-     * @return amount
-     */
-    function convertToSpend(address payableTokenAddr, uint256 amount)
-        internal
-        pure
-        returns (uint256)
-    {
-        return amount.mul(exchangeRateOf(payableTokenAddr));
-    }
-
-    /**
      * @dev mint SPEND for merchant wallet when customer pay token for them.
      * @param merchantAddr merchant account address
+     * @param walletIndex wallet index of merchant
      * @param payableToken payableToken contract address
      * @param amount amount in payableToken
      */
@@ -89,8 +54,8 @@ contract RevenuePool is TallyRole, PayableToken, MerchantManager {
         address payableToken,
         uint256 amount
     ) internal returns (bool) {
+
         address merchantWallet = getMerchantWallet(merchantAddr, walletIndex);
-        require(merchantWallet != address(0), "Merchants not registered");
 
         uint256 lockTotal = merchants[merchantAddr].lockTotal[payableToken];
         merchants[merchantAddr].lockTotal[payableToken] = lockTotal.add(amount);
@@ -122,6 +87,7 @@ contract RevenuePool is TallyRole, PayableToken, MerchantManager {
     /**
      * @dev merchant redeem, only tally account can call this method
      * @param merchantAddr address of merchant
+     * @param walletIndex wallet index of merchant  
      * @param payableToken address of payable token
      * @param amountSPEND amount in spend token
      */
@@ -131,10 +97,8 @@ contract RevenuePool is TallyRole, PayableToken, MerchantManager {
         address payableToken,
         uint256 amountSPEND
     ) external onlyTally verifyPayableToken(payableToken) returns (bool) {
-
+        // get merchant wallet by merchant Address and wallet index
         address merchantWallet = getMerchantWallet(merchantAddr, walletIndex);
-
-        require(merchantWallet != address(0), "Merchants not registered");
 
         // burn spend in merchant wallet
         ISPEND(spendToken).burn(merchantWallet, amountSPEND);

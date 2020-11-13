@@ -11,7 +11,7 @@ import "./IERC677.sol";
  */
 contract DAICPXD is IERC677, ERC20Detailed, ERC20Mintable, ERC20Burnable {
 
-    constructor(uint initialSupply) ERC20Detailed("DAI CPXD Token", "DAI CPXD", 18) public {
+    constructor(uint initialSupply) ERC20Detailed("DAI CPXD Token", "DAI CPXD", 2) public {
         _mint(msg.sender, initialSupply);
     }
 

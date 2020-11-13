@@ -20,7 +20,7 @@ contract SPEND is ISPEND, MinterRole {
     constructor (string memory name, string memory symbol, address[] memory minters) public {
         _name = name;
         _symbol = symbol;
-        _decimals = 18;
+        _decimals = 0;
         for (uint i = 0;i < minters.length; ++i) {
             addMinter(minters[i]);
         }

@@ -22,3 +22,9 @@ npm run compile-contracts
 ```
 npm run test
 ```
+
+Run test with coverage
+
+```
+truffle run coverage
+```

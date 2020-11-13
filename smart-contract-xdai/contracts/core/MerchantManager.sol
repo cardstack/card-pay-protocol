@@ -43,7 +43,7 @@ contract MerchantManager is TallyRole {
             "Merchant address shouldn't zero address"
         );
 
-        require(!isRegistered(merchantAddr), "Merchant exists");
+        require(!isRegistered(merchantAddr), "Merchants registered");
 
         merchants[merchantAddr].registered = true;
 
@@ -91,12 +91,17 @@ contract MerchantManager is TallyRole {
         return true;
     }
 
+    function getNumberWallet(address merchantAddr) public view returns(uint) {
+        return merchants[merchantAddr].wallets.values.length;
+    }
+    
     function getMerchantWallet(address merchantAddr, uint256 walletIndex)
         public
         view
         returns (address)
     {
         require(isRegistered(merchantAddr), "Merchants not registered");
+        require(walletIndex < getNumberWallet(merchantAddr), "Wrong wallet index");
 
         return merchants[merchantAddr].wallets.get(walletIndex);
     }

@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "compile-contract": "./node_modules/.bin/truffle compile",
-    "test": "./node_modules/.bin/truffle test"
+    "test": "./node_modules/.bin/truffle test", 
+    "test:coverage": "./node_modules/.bin/truffle run coverage"
   },
   "repository": {
     "type": "git",
