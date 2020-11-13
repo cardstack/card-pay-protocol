@@ -202,7 +202,7 @@ contract PrepaidCardManager is Tally, PayableToken {
             (supplier, payloads) = abi.decode(data, (address, bytes));
         }
 
-        if (cards[from] && supplier != address(0)) {
+        if (supplier != address(0)) {
             _split(supplier, from, _msgSender(), amount, payloads);
         } else {
             _createPrepaidCard(from, _msgSender(), amount);
