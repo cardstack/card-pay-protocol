@@ -61,16 +61,9 @@ contract CardModule is Module {
             "transferAndCall(address,uint256,bytes)",
             PREPAID_CARD_MANAGER_ADDRESS,
             number.mul(amountPerCard),
-            abi.encodeWithSignature(
-                "address,bytes",
-                msg.sender,
-                abi.encodeWithSignature(
-                    "uint256,uint256",
-                    number,
-                    amountPerCard
-                )
-            )
+            abi.encode(msg.sender, abi.encode(number, amountPerCard))
         );
+
         require(
             manager.execTransactionFromModule(
                 token,
