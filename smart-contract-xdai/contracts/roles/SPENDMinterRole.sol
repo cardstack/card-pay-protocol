@@ -4,7 +4,7 @@ import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts/utils/EnumerableSet.sol";
 
 
-contract MinterRole is Ownable {
+contract SPENDMinterRole is Ownable {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     EnumerableSet.AddressSet internal minter;

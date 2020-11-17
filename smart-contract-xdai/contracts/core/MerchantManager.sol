@@ -79,6 +79,8 @@ contract MerchantManager is TallyRole {
             )
         );
 
+        require(gsWallet != address(0), "Create wallet failed.");
+        
         return gsWallet;
     }
 
@@ -88,6 +90,8 @@ contract MerchantManager is TallyRole {
         address gsWalletAddr = createGnosisSafeWallet(merchantAddr);
         
         merchants[merchantAddr].wallets.add(gsWalletAddr);
+
+        emit CreateMerchantWallet(merchantAddr, gsWalletAddr);
         return true;
     }
 

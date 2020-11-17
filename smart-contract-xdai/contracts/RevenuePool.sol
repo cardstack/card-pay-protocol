@@ -12,8 +12,12 @@ import "./core/MerchantManager.sol";
 import "./core/Exchange.sol";
 
 contract RevenuePool is TallyRole, PayableToken, MerchantManager, Exchange {
-    address private spendToken;
     using SafeMath for uint256;
+
+    event Redeem(address merchantAddr, uint walletIndex, address payableToken, uint amount);
+    event Payment(address prepaidCardArr, address merchantAddr, uint walletIndex, address payableToken, uint amount);
+    
+    address private spendToken;
 
     /**
      * @dev set up revenue pool
@@ -81,6 +85,8 @@ contract RevenuePool is TallyRole, PayableToken, MerchantManager, Exchange {
     ) external onlyPayableToken() returns (bool) {
         (address merchantAddr, uint walletIndex) = abi.decode(data, (address, uint));
         _pay(merchantAddr, walletIndex, _msgSender(), amount);
+        
+        emit Payment(from, merchantAddr, walletIndex, _msgSender(), amount);
         return true;
     }
 
@@ -119,6 +125,7 @@ contract RevenuePool is TallyRole, PayableToken, MerchantManager, Exchange {
         // transfer payable token from revenue pool to merchant wallet address
         IERC677(payableToken).transfer(merchantWallet, amountOther);
 
+        emit Redeem(merchantAddr, walletIndex, payableToken, amountOther);
         return true;
     }
 }
