@@ -11,12 +11,29 @@ import "./roles/PayableToken.sol";
 import "./core/MerchantManager.sol";
 import "./core/Exchange.sol";
 
-contract RevenuePool is TallyRole, PayableToken, MerchantManager, Exchange {
+contract RevenuePool is
+    TallyRole,
+    PayableToken,
+    MerchantManager,
+    Exchange,
+    IRevenuePool
+{
     using SafeMath for uint256;
 
-    event Redeem(address merchantAddr, uint walletIndex, address payableToken, uint amount);
-    event Payment(address prepaidCardArr, address merchantAddr, uint walletIndex, address payableToken, uint amount);
-    
+    event Redeem(
+        address merchantAddr,
+        uint256 walletIndex,
+        address payableToken,
+        uint256 amount
+    );
+    event Payment(
+        address prepaidCardArr,
+        address merchantAddr,
+        uint256 walletIndex,
+        address payableToken,
+        uint256 amount
+    );
+
     address private spendToken;
 
     /**
@@ -29,7 +46,8 @@ contract RevenuePool is TallyRole, PayableToken, MerchantManager, Exchange {
      */
     function setup(
         address _tally,
-        address _gsMasterCopy, address _gsProxyFactory,
+        address _gsMasterCopy,
+        address _gsProxyFactory,
         address _spendToken,
         address[] memory _payableTokens
     ) public onlyOwner {
@@ -37,7 +55,7 @@ contract RevenuePool is TallyRole, PayableToken, MerchantManager, Exchange {
         addTally(_tally);
         // setup gnosis safe address
         MerchantManager.setup(_gsMasterCopy, _gsProxyFactory);
-        
+
         spendToken = _spendToken;
         // set token list payable.
         for (uint256 i = 0; i < _payableTokens.length; i++) {
@@ -58,7 +76,6 @@ contract RevenuePool is TallyRole, PayableToken, MerchantManager, Exchange {
         address payableToken,
         uint256 amount
     ) internal returns (bool) {
-
         address merchantWallet = getMerchantWallet(merchantAddr, walletIndex);
 
         uint256 lockTotal = merchants[merchantAddr].lockTotal[payableToken];
@@ -83,49 +100,77 @@ contract RevenuePool is TallyRole, PayableToken, MerchantManager, Exchange {
         uint256 amount,
         bytes calldata data
     ) external onlyPayableToken() returns (bool) {
-        (address merchantAddr, uint walletIndex) = abi.decode(data, (address, uint));
+
+        (address merchantAddr, uint256 walletIndex) = abi.decode(
+            data,
+            (address, uint256)
+        );
+
         _pay(merchantAddr, walletIndex, _msgSender(), amount);
-        
+
         emit Payment(from, merchantAddr, walletIndex, _msgSender(), amount);
         return true;
     }
 
     /**
-     * @dev merchant redeem, only tally account can call this method
+     * @dev merchant redeem
      * @param merchantAddr address of merchant
-     * @param walletIndex wallet index of merchant  
+     * @param walletIndex wallet index of merchant
      * @param payableToken address of payable token
-     * @param amountSPEND amount in spend token
+     * @param amount amount in payable token
      */
-    function redeemRevenue(
+    function _redeemRevenue(
         address merchantAddr,
-        uint walletIndex,
+        uint256 walletIndex,
         address payableToken,
-        uint256 amountSPEND
-    ) external onlyTally verifyPayableToken(payableToken) returns (bool) {
+        uint256 amount
+    ) internal verifyPayableToken(payableToken) returns (bool) {
         // get merchant wallet by merchant Address and wallet index
         address merchantWallet = getMerchantWallet(merchantAddr, walletIndex);
 
-        // burn spend in merchant wallet
-        ISPEND(spendToken).burn(merchantWallet, amountSPEND);
-
-        // exchange amount SPEND to payable token(DAICPXD or USDTCPXD)
-        uint256 amountOther = convertToPayableToken(payableToken, amountSPEND);
-
         // ensure enough token for redeem
         uint256 lockTotal = merchants[merchantAddr].lockTotal[payableToken];
-        require(amountOther <= lockTotal, "Don't enough token for redeem");
+        require(amount <= lockTotal, "Don't enough token for redeem");
 
         // unlock token of merchant
-        lockTotal = lockTotal.sub(amountOther);
+        lockTotal = lockTotal.sub(amount);
 
         // update new lockTotal
         merchants[merchantAddr].lockTotal[payableToken] = lockTotal;
 
         // transfer payable token from revenue pool to merchant wallet address
-        IERC677(payableToken).transfer(merchantWallet, amountOther);
+        IERC677(payableToken).transfer(merchantWallet, amount);
 
-        emit Redeem(merchantAddr, walletIndex, payableToken, amountOther);
+        emit Redeem(merchantAddr, walletIndex, payableToken, amount);
+        return true;
+    }
+
+     /**
+     * @dev merchant redeem, only tally account can call this method
+     * @param merchantAddr address of merchant
+     * @param walletIndex wallet index of merchant
+     * @param payableTokens array address of payable token
+     * @param amounts array amount in payable token
+     */
+    function redeemRevenue(
+        address merchantAddr,
+        uint256 walletIndex,
+        address[] calldata payableTokens,
+        uint256[] calldata amounts
+    ) external onlyTally returns (bool) {
+        uint256 numberKindOfToken = payableTokens.length;
+
+        require(numberKindOfToken == amounts.length);
+
+        for (uint256 index = 0; index < numberKindOfToken; index = index + 1) {
+            _redeemRevenue(
+                merchantAddr,
+                walletIndex,
+                payableTokens[index],
+                amounts[index]
+            );
+        }
+
         return true;
     }
 }

@@ -102,18 +102,18 @@ contract('Test Revenue Pool contract', accounts => {
         assert.equal(balanceOfMerchantSPEND.toString(), '100');
     })
 
-    it('redeem 100 SPEND for merchant by tally', async () => {
-        let amountSPEND = '100';
+    it('redeem 1 DAI CPXD for merchant by tally', async () => {
+        let amount = '100';
 
-        await revenuePool.redeemRevenue(lw.accounts[0], 0, daicpxdToken.address, amountSPEND, {
+        await revenuePool.redeemRevenue(lw.accounts[0], 0, [daicpxdToken.address], [amount], {
             from: tally
         });
 
-        let balanceOfMerchantSPEND = await spendToken.balanceOf(walletOfMerchant);
         let balanceOfMerchantDAICPXD = await daicpxdToken.balanceOf(walletOfMerchant);
+        let numberSPEND = await spendToken.balanceOf(walletOfMerchant);
 
-        assert.equal(balanceOfMerchantDAICPXD.toString(), utils.toAmountToken(1, 2));
-        assert.equal(balanceOfMerchantSPEND.toString(), '0');
+        assert.equal(balanceOfMerchantDAICPXD.toString(), '100');
+        assert.equal(numberSPEND.toString(), '100');
     })
 
     it('pay 2 DAI CPXD token to pool and mint SPEND token for merchant wallet', async () => {
@@ -126,13 +126,13 @@ contract('Test Revenue Pool contract', accounts => {
         let balanceCustomer = await daicpxdToken.balanceOf(accounts[0]);
 
         assert.equal(balanceCustomer.toString(), '700');
-        assert.equal(balanceOfMerchantSPEND.toString(), '200');
+        assert.equal(balanceOfMerchantSPEND.toString(), '300');0
     })
 
-    it('redeem 100 SPEND for merchant and sender is not tally', async () => {
-        let amountSPEND = utils.fromDAICPXD2SPEND(1, 100);
+    it('redeem 1 for merchant and sender is not tally', async () => {
+        let amount = '1';
         try {
-            await revenuePool.redeemRevenue(lw.accounts[0], 0, daicpxdToken.address, amountSPEND, {
+            await revenuePool.redeemRevenue(lw.accounts[0], 0, [daicpxdToken.address], [amount], {
                 from: accounts[2]
             });
             assert.ok(false, "Dont allow for do this.");
