@@ -12,6 +12,12 @@ import "./roles/TallyRole.sol";
 import "./roles/PayableToken.sol";
 
 contract PrepaidCardManager is TallyRole, PayableToken, SignatureDecoder {
+    
+    //setup(address[],uint256,address,bytes,address,address,uint256,address)
+    bytes4 public constant SET_UP = 0xb63e800d;
+    //swapOwner(address,address,address)
+    bytes4 public constant  SWAP_OWNER = 0xe318b52b;
+
     using SafeMath for uint256;
 
     event CreatePrepaidCard(
@@ -21,11 +27,11 @@ contract PrepaidCardManager is TallyRole, PayableToken, SignatureDecoder {
         uint256 amount
     );
 
-    address private gsMasterCopy;
-    address private gsProxyFactory;
-    address private gsCreateAndAddModules;
-    address private revenuePool;
-    address private cardModule;
+    address public gsMasterCopy;
+    address public gsProxyFactory;
+    address public gsCreateAndAddModules;
+    address public revenuePool;
+    address public cardModule;
 
     mapping(address => address) suppliers;
 
@@ -84,8 +90,8 @@ contract PrepaidCardManager is TallyRole, PayableToken, SignatureDecoder {
         owners[0] = address(this);
         owners[1] = supplier;
 
-        bytes memory payloads = abi.encodeWithSignature(
-            "setup(address[],uint256,address,bytes,address,address,uint256,address)",
+        bytes memory payloads = abi.encodeWithSelector(
+            SET_UP,
             owners,
             2,
             address(0),
@@ -226,8 +232,8 @@ contract PrepaidCardManager is TallyRole, PayableToken, SignatureDecoder {
         // Swap owner
         // CARD_STACK_ADMIN_ADDRESS must be add before user address when crating card
         return
-            abi.encodeWithSignature(
-                "swapOwner(address,address,address)",
+            abi.encodeWithSelector(
+                SWAP_OWNER,
                 address(this),
                 suppliers[card],
                 to
