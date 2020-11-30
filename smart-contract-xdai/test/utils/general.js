@@ -21,7 +21,38 @@ function toAmountToken(amount, decimals = "18") {
 const CREATE_PREPAID_CARD_TOPIC = web3.utils.keccak256(
 	"CreatePrepaidCard(address,address,address,uint256)"
 );
+const EXECUTE_EVENT_FAILED = web3EthAbi.encodeEventSignature("ExecutionFailure(bytes32,uint256)");
+
+const EXECUTE_EVENT_SUCCESS = web3EthAbi.encodeEventSignature("ExecutionSuccess(bytes32,uint256)");
+
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+
+const EXECUTE_EVENT_META = [{
+	'type': 'bytes32',
+	'name': 'txHash'
+}, {
+	'type': 'uint256',
+	'name': 'payment'
+}]
+
+const CREATE_PREPAID_CARD_META = [{
+		type: "address",
+		name: "supplier"
+	},
+	{
+		type: "address",
+		name: "card"
+	},
+	{
+		type: "address",
+		name: "token"
+	},
+	{
+		type: "uint256",
+		name: "amount"
+	},
+];
+
 
 const signTypedData = async function (account, data) {
 	return new Promise(function (resolve, reject) {
@@ -159,57 +190,45 @@ function encodeArray(amounts = [], decimals = 18) {
 }
 
 
-async function getGnosisSafeFromEventLog(tx, topic) {
-	let logs = tx.receipt.rawLogs
-		.map((rawLog) => {
-			if (rawLog.topics[0] === topic) {
-				const log = web3.eth.abi.decodeLog(
-					[{
-							type: "address",
-							name: "supplier"
-						},
-						{
-							type: "address",
-							name: "card"
-						},
-						{
-							type: "address",
-							name: "token"
-						},
-						{
-							type: "uint256",
-							name: "amount"
-						},
-					],
-					rawLog.data,
-					rawLog.topics
-				);
-
-				return log.card;
-			}
-		})
-		.filter(Boolean);
+async function getGnosisSafeFromEventLog(tx) {
+	let logsData = getParamsFromEvent(tx, CREATE_PREPAID_CARD_TOPIC, CREATE_PREPAID_CARD_META);
 	let cards = [];
-	for (let i = 0; i < logs.length; ++i) {
-		const prepaidCard = await GnosisSafe.at(logs[i]);
+	for (let i = 0; i < logsData.length; ++i) {
+		const prepaidCard = await GnosisSafe.at(logsData[i].card);
 		cards.push(prepaidCard);
 	}
 	return cards;
 }
 
 
-async function setUp() {
 
+function getParamsFromEvent(tx, topic, decodeMetadata) {
+	let eventParams = tx.receipt.rawLogs
+		.filter(rawLog => (rawLog.topics[0] === topic))
+		.map((rawLog) => {
+			let eventParam = web3.eth.abi.decodeLog(
+				decodeMetadata,
+				rawLog.data,
+				rawLog.topics
+			);
+			return eventParam;
+		})
+	return eventParams;
 }
+
 Object.assign(exports, {
 	CREATE_PREPAID_CARD_TOPIC,
 	ZERO_ADDRESS,
+	EXECUTE_EVENT_FAILED,
+	EXECUTE_EVENT_SUCCESS,
+	EXECUTE_EVENT_META,
 	fromDAICPXD2SPEND,
 	toAmountToken,
 	encodeMultiSendCall,
 	signSafeTransaction,
-	encodeArray, 
-	getGnosisSafeFromEventLog
+	encodeArray,
+	getGnosisSafeFromEventLog,
+	getParamsFromEvent
 });
 
 module.exports = exports;

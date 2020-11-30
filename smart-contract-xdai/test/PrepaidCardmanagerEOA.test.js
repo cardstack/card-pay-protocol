@@ -9,12 +9,14 @@ const MultiSend = artifacts.require("MultiSend");
 const {
     getGnosisSafeFromEventLog,
     CREATE_PREPAID_CARD_TOPIC,
+    encodeMultiSendCall
 } = require('./utils/general');
 
 const {
     TokenHelper,
-    isEqualBalance
+    ContractHelper
 } = require("./utils/helper");
+
 
 contract("Test contract by EOA", (accounts) => {
 
@@ -95,18 +97,9 @@ contract("Test contract by EOA", (accounts) => {
 
     it("Create muliple card by EOA account", async () => {
 
-        let amounts = [1, 2, 10];
+        let amounts = [1, 2, 10].map(amount => TokenHelper.toAmount(amount, 2));
 
-        let data = web3.eth.abi.encodeParameters(
-            ["address", "bytes"],
-            [
-                supplierEOA,
-                web3.eth.abi.encodeParameters(
-                    ["uint256[]"],
-                    [amounts.map(number => TokenHelper.toAmount(number, 2).toString())]
-                ),
-            ]
-        )
+        let data = ContractHelper.prepageDataForCreateMutipleToken(supplierEOA, amounts);
 
         let tx = await daicpxdToken.transferAndCall(prepaidCardManager.address, TokenHelper.toAmount(13, 2), data, {
             from: supplierEOA
@@ -119,37 +112,42 @@ contract("Test contract by EOA", (accounts) => {
         for (let i = 0; i < cards.length; ++i) {
             let card = cards[i];
             assert.ok(await card.isOwner(supplierEOA));
-            await isEqualBalance(daicpxdToken, card.address, TokenHelper.toAmount(amounts[i], 2))
+            await TokenHelper.isEqualBalance(daicpxdToken, card.address, amounts[i])
         }
 
-        await isEqualBalance(daicpxdToken, supplierEOA, TokenHelper.toAmount('7', 2));
+        await TokenHelper.isEqualBalance(daicpxdToken, supplierEOA, TokenHelper.toAmount(7, 2));
     })
 
     it('Create muliple card by EOA account failed because not enough token', async () => {
         try {
-            let amounts = [1, 2, 10];
+            let amounts = [1, 2, 3].map(amount => TokenHelper.toAmount(amount, 2));
 
-            let data = web3.eth.abi.encodeParameters(
-                ["address", "bytes"],
-                [
-                    supplierEOA,
-                    web3.eth.abi.encodeParameters(
-                        ["uint256[]"],
-                        [amounts.map(number => TokenHelper.toAmount(number, 2).toString())]
-                    ),
-                ]
-            )
+            let data = ContractHelper.prepageDataForCreateMutipleToken(supplierEOA, amounts);
 
-            let tx = await daicpxdToken.transferAndCall(prepaidCardManager.address, TokenHelper.toAmount(13, 2), data, {
+            let tx = await daicpxdToken.transferAndCall(prepaidCardManager.address, TokenHelper.toAmount(10, 2), data, {
                 from: supplierEOA
             });
-
             assert.ok(false, "Should failed");
         } catch (err) {
-            assert.ok(true);
-            // assert.ok(err.reason == "your amount must be == sum of new cardAmounts.");
+            assert.equal(err.reason, "ERC20: transfer amount exceeds balance");
         }
     })
 
-    
+
+    it('Create muliple card by EOA account failed because your amount must be == sum of new cardAmounts', async () => {
+        try {
+            let amounts = [1, 2, 9].map(amount => TokenHelper.toAmount(amount,2));
+
+            let data = ContractHelper.prepageDataForCreateMutipleToken(supplierEOA, amounts)
+
+            let tx = await daicpxdToken.transferAndCall(prepaidCardManager.address, TokenHelper.toAmount(6, 2), data, {
+                from: supplierEOA
+            });
+            assert.ok(false, "Should failed");
+        } catch (err) {
+            assert.equal(err.reason, "your amount must be == sum of new cardAmounts");
+        }
+    })
+
+
 })

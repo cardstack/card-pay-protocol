@@ -1,11 +1,10 @@
 const assert = require('assert');
+const AbiCoder = require('web3-eth-abi');
+
 const {
     toBN
 } = require('web3-utils');
 
-async function isEqualBalance(token, address, amount) {
-    return assert.strictEqual((await token.balanceOf(address)).toString(), amount.toString());
-}
 
 class TokenHelper {
 
@@ -25,6 +24,10 @@ class TokenHelper {
         return instance;
     }
 
+    static async isEqualBalance(token, address, amount) {
+        return assert.strictEqual((await token.balanceOf(address)).toString(), amount.toString());
+    }
+    
     async setUp({
         contractToken
     }) {
@@ -69,7 +72,19 @@ class TokenHelper {
     }
 }
 
+class ContractHelper {
+    static prepageDataForCreateMutipleToken(account, amounts = []) {
+        return AbiCoder.encodeParameters(
+            ["address", "bytes"], 
+            [
+                account, 
+                AbiCoder.encodeParameter("uint256[]", amounts)
+            ]
+        )
+    }
+}
+
 module.exports = {
-    isEqualBalance,
-    TokenHelper
+    TokenHelper, 
+    ContractHelper
 }
