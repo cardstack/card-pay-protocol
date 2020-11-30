@@ -6,11 +6,24 @@ const ProxyFactory = artifacts.require("GnosisSafeProxyFactory");
 const GnosisSafe = artifacts.require("gnosisSafe");
 const MultiSend = artifacts.require("MultiSend");
 
-const utils = require("./utils/general");
-const CREATE_PREPAID_CARD_TOPIC = utils.CREATE_PREPAID_CARD_TOPIC;
-const ZERO_ADDRESS = utils.ZERO_ADDRESS;
-const signer = utils.signer;
-const encodeMultiSendCall = utils.encodeMultiSendCall;
+const {
+	keccak256
+} = require("web3-utils");
+
+const {
+	signSafeTransaction,
+	encodeMultiSendCall,
+	ZERO_ADDRESS,
+	CREATE_PREPAID_CARD_TOPIC,
+	getParamFromTxEvent,
+	encodeArray,
+	getGnosisSafeFromEventLog
+} = require("./utils/general");
+
+
+const helper = require('./utils/helper');
+
+const {TokenHelper} = require('./utils/helper');
 
 contract("Test Prepaid Card Manager contract", (accounts) => {
 	let daicpxdToken,
@@ -20,7 +33,9 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 		multiSend,
 		offChainId = "Id",
 		fakeDaicpxdToken;
-	let tally, supplier, customer, merchant, relayer, walletOfSupplier;
+	let tally, supplier, customer, merchant, relayer, walletOfSupplier, supplierEOA;
+
+	let daiHelper;
 	let prepaidCards = [];
 
 	before(async () => {
@@ -29,6 +44,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 		customer = accounts[2];
 		merchant = accounts[3];
 		relayer = accounts[4];
+		supplierEOA = accounts[8];
 
 		let proxyFactory = await ProxyFactory.new();
 		let gnosisSafeMasterCopy = await GnosisSafe.new();
@@ -39,25 +55,26 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 		]);
 
 		// Deploy and mint 100 daicpxd token for deployer as owner
-		daicpxdToken = await DAICPXD.new(utils.toAmountToken("100", 2));
-		// Deploy and mint 100 daicpxd token for deployer as owner
-		fakeDaicpxdToken = await DAICPXD.new(utils.toAmountToken("100", 2));
+		daicpxdToken = await TokenHelper.deploy({TokenABIs: DAICPXD, args: [TokenHelper.toAmount(100, 2)]});
 
-		walletOfSupplier = await utils.getParamFromTxEvent(
+		// Deploy and mint 100 daicpxd token for deployer as owner
+		fakeDaicpxdToken = await TokenHelper.deploy({TokenABIs: DAICPXD, args: [TokenHelper.toAmount(100, 2)]});
+
+		walletOfSupplier = await getParamFromTxEvent(
 			await proxyFactory.createProxy(
 				gnosisSafeMasterCopy.address,
 				gnosisSafeMasterCopy.contract.methods
-					.setup(
-						[supplier],
-						1,
-						ZERO_ADDRESS,
-						"0x",
-						ZERO_ADDRESS,
-						ZERO_ADDRESS,
-						0,
-						ZERO_ADDRESS
-					)
-					.encodeABI()
+				.setup(
+					[supplier],
+					1,
+					ZERO_ADDRESS,
+					"0x",
+					ZERO_ADDRESS,
+					ZERO_ADDRESS,
+					0,
+					ZERO_ADDRESS
+				)
+				.encodeABI()
 			),
 			"ProxyCreation",
 			"proxy",
@@ -69,8 +86,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 		// Transfer 20 daicpxd to supplier's wallet
 		await daicpxdToken.transfer(
 			walletOfSupplier.address,
-			utils.toAmountToken("20", 2),
-			{
+			TokenHelper.toAmount(20, 2), {
 				from: tally,
 			}
 		);
@@ -78,11 +94,14 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 		// Transfer 20 daicpxd to supplier's wallet
 		await fakeDaicpxdToken.transfer(
 			walletOfSupplier.address,
-			utils.toAmountToken("20", 2),
-			{
+			TokenHelper.toAmount(20, 2), {
 				from: tally,
 			}
 		);
+
+		await daicpxdToken.transfer(supplierEOA, TokenHelper.toAmount('20', 2), {
+			from: tally
+		});
 
 		prepaidCardManager = await PrepaidCardManager.new();
 
@@ -94,6 +113,8 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 			spendToken.address,
 			[daicpxdToken.address]
 		);
+
+		await revenuePool.registerMerchant(merchant, offChainId);
 
 		await prepaidCardManager.setup(
 			tally,
@@ -107,72 +128,27 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 	});
 
 	it("Supplier create multi Prepaid Card (1 daicpxd 2 daicpxd 5 daicpxd) ", async () => {
-		assert.ok(
-			(await daicpxdToken.balanceOf(revenuePool.address)).toString() ==
-				utils.toAmountToken("0", 2).toString()
-		);
-
-		assert.ok(
-			(
-				await daicpxdToken.balanceOf(prepaidCardManager.address)
-			).toString() == utils.toAmountToken("0", 2).toString()
-		);
-
-		assert.ok(
-			(await daicpxdToken.balanceOf(tally)).toString() ==
-				utils.toAmountToken("80", 2).toString()
-		);
-
-		assert.ok(
-			(await daicpxdToken.balanceOf(supplier)).toString() ==
-				utils.toAmountToken("0", 2).toString()
-		);
-
-		assert.ok(
-			(
-				await daicpxdToken.balanceOf(walletOfSupplier.address)
-			).toString() == utils.toAmountToken("20", 2).toString()
-		);
-
-		assert.ok(
-			(await daicpxdToken.balanceOf(customer)).toString() ==
-				utils.toAmountToken("0", 2).toString()
-		);
-
-		assert.ok(
-			(await daicpxdToken.balanceOf(merchant)).toString() ==
-				utils.toAmountToken("0", 2).toString()
-		);
-
-		assert.ok(
-			(await daicpxdToken.balanceOf(relayer)).toString() ==
-				utils.toAmountToken("0", 2).toString()
-		);
+		let amounts = [
+			TokenHelper.toAmount("1", 2),
+			TokenHelper.toAmount("2", 2),
+			TokenHelper.toAmount("5", 2),
+		];
 
 		let payloads = daicpxdToken.contract.methods
 			.transferAndCall(
 				prepaidCardManager.address,
-				utils.toAmountToken("8", 2),
+				TokenHelper.toAmount("8", 2),
 				web3.eth.abi.encodeParameters(
 					["address", "bytes"],
 					[
 						walletOfSupplier.address,
-						web3.eth.abi.encodeParameters(
-							["uint256[]"],
-							[
-								[
-									utils.toAmountToken("1", 2).toString(),
-									utils.toAmountToken("2", 2).toString(),
-									utils.toAmountToken("5", 2).toString(),
-								],
-							]
-						),
+						encodeArray([1, 2, 5], 2).toString()
 					]
 				)
 			)
 			.encodeABI();
 
-		const signature = await signer(
+		const signature = await signSafeTransaction(
 			daicpxdToken.address,
 			0,
 			payloads,
@@ -197,18 +173,31 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 			0,
 			ZERO_ADDRESS,
 			relayer,
-			signature,
-			{ from: relayer }
+			signature, {
+				from: relayer
+			}
 		);
+
 		let logs = tx.receipt.rawLogs
 			.map((rawLog) => {
 				if (rawLog.topics[0] === CREATE_PREPAID_CARD_TOPIC) {
 					const log = web3.eth.abi.decodeLog(
-						[
-							{ type: "address", name: "supplier" },
-							{ type: "address", name: "card" },
-							{ type: "address", name: "token" },
-							{ type: "uint256", name: "amount" },
+						[{
+								type: "address",
+								name: "supplier"
+							},
+							{
+								type: "address",
+								name: "card"
+							},
+							{
+								type: "address",
+								name: "token"
+							},
+							{
+								type: "uint256",
+								name: "amount"
+							},
 						],
 						rawLog.data,
 						rawLog.topics
@@ -226,73 +215,21 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 			prepaidCards.push(prepaidCard);
 		}
 
-		assert.ok(
-			(await daicpxdToken.balanceOf(revenuePool.address)).toString() ==
-				utils.toAmountToken("0", 2).toString()
-		);
+		await helper.isEqualBalance(daicpxdToken, tally, TokenHelper.toAmount("60", 2))
 
-		assert.ok(
-			(
-				await daicpxdToken.balanceOf(prepaidCardManager.address)
-			).toString() == utils.toAmountToken("0", 2).toString()
-		);
+		await helper.isEqualBalance(daicpxdToken, walletOfSupplier.address, TokenHelper.toAmount("12", 2));
 
-		assert.ok(
-			(await daicpxdToken.balanceOf(tally)).toString() ==
-				utils.toAmountToken("80", 2).toString()
-		);
-
-		assert.ok(
-			(await daicpxdToken.balanceOf(supplier)).toString() ==
-				utils.toAmountToken("0", 2).toString()
-		);
-
-		assert.ok(
-			(
-				await daicpxdToken.balanceOf(walletOfSupplier.address)
-			).toString() == utils.toAmountToken("12", 2).toString()
-		);
-
-		assert.ok(
-			(await daicpxdToken.balanceOf(customer)).toString() ==
-				utils.toAmountToken("0", 2).toString()
-		);
-
-		assert.ok(
-			(await daicpxdToken.balanceOf(merchant)).toString() ==
-				utils.toAmountToken("0", 2).toString()
-		);
-
-		assert.ok(
-			(await daicpxdToken.balanceOf(relayer)).toString() ==
-				utils.toAmountToken("0", 2).toString()
-		);
-
-		let Owners = [
-			walletOfSupplier.address,
-			walletOfSupplier.address,
-			walletOfSupplier.address,
-		];
-		let amounts = [
-			utils.toAmountToken("1", 2),
-			utils.toAmountToken("2", 2),
-			utils.toAmountToken("5", 2),
-		];
-		for (let i = 0; i < prepaidCards.length; ++i) {
-			assert((await prepaidCards[i].getOwners())[1] === Owners[i]);
-			assert(
-				(
-					await daicpxdToken.balanceOf(prepaidCards[i].address)
-				).toString() === amounts[i].toString()
-			);
-		}
+		prepaidCards.forEach(async function (prepaidCard, index) {
+			assert.ok(await prepaidCard.isOwner(walletOfSupplier.address))
+			helper.isEqualBalance(daicpxdToken, prepaidCard.address, amounts[index]);
+		})
 	});
 
 	it("Supplier Create multi Prepaid Card fail when amount > supplier's balance", async () => {
 		let payloads = daicpxdToken.contract.methods
 			.transferAndCall(
 				prepaidCardManager.address,
-				utils.toAmountToken("80", 2),
+				TokenHelper.toAmount("80", 2),
 				web3.eth.abi.encodeParameters(
 					["address", "bytes"],
 					[
@@ -301,9 +238,9 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 							["uint256[]"],
 							[
 								[
-									utils.toAmountToken("10", 2).toString(),
-									utils.toAmountToken("20", 2).toString(),
-									utils.toAmountToken("50", 2).toString(),
+									TokenHelper.toAmount("10", 2).toString(),
+									TokenHelper.toAmount("20", 2).toString(),
+									TokenHelper.toAmount("50", 2).toString(),
 								],
 							]
 						),
@@ -312,7 +249,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 			)
 			.encodeABI();
 
-		const signature = await signer(
+		const signature = await signSafeTransaction(
 			daicpxdToken.address,
 			0,
 			payloads,
@@ -337,18 +274,30 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 			0,
 			ZERO_ADDRESS,
 			relayer,
-			signature,
-			{ from: relayer }
+			signature, {
+				from: relayer
+			}
 		);
 		let logs = tx.receipt.rawLogs
 			.map((rawLog) => {
 				if (rawLog.topics[0] === CREATE_PREPAID_CARD_TOPIC) {
 					const log = web3.eth.abi.decodeLog(
-						[
-							{ type: "address", name: "supplier" },
-							{ type: "address", name: "card" },
-							{ type: "address", name: "token" },
-							{ type: "uint256", name: "amount" },
+						[{
+								type: "address",
+								name: "supplier"
+							},
+							{
+								type: "address",
+								name: "card"
+							},
+							{
+								type: "address",
+								name: "token"
+							},
+							{
+								type: "uint256",
+								name: "amount"
+							},
 						],
 						rawLog.data,
 						rawLog.topics
@@ -368,44 +317,39 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 
 		assert.ok(
 			(await daicpxdToken.balanceOf(revenuePool.address)).toString() ==
-				utils.toAmountToken("0", 2).toString()
+			TokenHelper.toAmount("0", 2).toString()
 		);
 
 		assert.ok(
 			(
 				await daicpxdToken.balanceOf(prepaidCardManager.address)
-			).toString() == utils.toAmountToken("0", 2).toString()
-		);
-
-		assert.ok(
-			(await daicpxdToken.balanceOf(tally)).toString() ==
-				utils.toAmountToken("80", 2).toString()
+			).toString() == TokenHelper.toAmount("0", 2).toString()
 		);
 
 		assert.ok(
 			(await daicpxdToken.balanceOf(supplier)).toString() ==
-				utils.toAmountToken("0", 2).toString()
+			TokenHelper.toAmount("0", 2).toString()
 		);
 
 		assert.ok(
 			(
 				await daicpxdToken.balanceOf(walletOfSupplier.address)
-			).toString() == utils.toAmountToken("12", 2).toString()
+			).toString() == TokenHelper.toAmount("12", 2).toString()
 		);
 
 		assert.ok(
 			(await daicpxdToken.balanceOf(customer)).toString() ==
-				utils.toAmountToken("0", 2).toString()
+			TokenHelper.toAmount("0", 2).toString()
 		);
 
 		assert.ok(
 			(await daicpxdToken.balanceOf(merchant)).toString() ==
-				utils.toAmountToken("0", 2).toString()
+			TokenHelper.toAmount("0", 2).toString()
 		);
 
 		assert.ok(
 			(await daicpxdToken.balanceOf(relayer)).toString() ==
-				utils.toAmountToken("0", 2).toString()
+			TokenHelper.toAmount("0", 2).toString()
 		);
 
 		let Owners = [
@@ -414,9 +358,9 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 			walletOfSupplier.address,
 		];
 		let amounts = [
-			utils.toAmountToken("1", 2),
-			utils.toAmountToken("2", 2),
-			utils.toAmountToken("5", 2),
+			TokenHelper.toAmount("1", 2),
+			TokenHelper.toAmount("2", 2),
+			TokenHelper.toAmount("5", 2),
 		];
 		for (let i = 0; i < prepaidCards.length; ++i) {
 			assert((await prepaidCards[i].getOwners())[1] === Owners[i]);
@@ -432,7 +376,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 		let payloads = fakeDaicpxdToken.contract.methods
 			.transferAndCall(
 				prepaidCardManager.address,
-				utils.toAmountToken("8", 2),
+				TokenHelper.toAmount("8", 2),
 				web3.eth.abi.encodeParameters(
 					["address", "bytes"],
 					[
@@ -441,9 +385,9 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 							["uint256[]"],
 							[
 								[
-									utils.toAmountToken("1", 2).toString(),
-									utils.toAmountToken("2", 2).toString(),
-									utils.toAmountToken("5", 2).toString(),
+									TokenHelper.toAmount("1", 2).toString(),
+									TokenHelper.toAmount("2", 2).toString(),
+									TokenHelper.toAmount("5", 2).toString(),
 								],
 							]
 						),
@@ -452,7 +396,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 			)
 			.encodeABI();
 
-		const signature = await signer(
+		const signature = await signSafeTransaction(
 			fakeDaicpxdToken.address,
 			0,
 			payloads,
@@ -477,18 +421,30 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 			0,
 			ZERO_ADDRESS,
 			relayer,
-			signature,
-			{ from: relayer }
+			signature, {
+				from: relayer
+			}
 		);
 		let logs = tx.receipt.rawLogs
 			.map((rawLog) => {
 				if (rawLog.topics[0] === CREATE_PREPAID_CARD_TOPIC) {
 					const log = web3.eth.abi.decodeLog(
-						[
-							{ type: "address", name: "supplier" },
-							{ type: "address", name: "card" },
-							{ type: "address", name: "token" },
-							{ type: "uint256", name: "amount" },
+						[{
+								type: "address",
+								name: "supplier"
+							},
+							{
+								type: "address",
+								name: "card"
+							},
+							{
+								type: "address",
+								name: "token"
+							},
+							{
+								type: "uint256",
+								name: "amount"
+							},
 						],
 						rawLog.data,
 						rawLog.topics
@@ -508,44 +464,40 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 
 		assert.ok(
 			(await daicpxdToken.balanceOf(revenuePool.address)).toString() ==
-				utils.toAmountToken("0", 2).toString()
+			TokenHelper.toAmount("0", 2).toString()
 		);
 
 		assert.ok(
 			(
 				await daicpxdToken.balanceOf(prepaidCardManager.address)
-			).toString() == utils.toAmountToken("0", 2).toString()
+			).toString() == TokenHelper.toAmount("0", 2).toString()
 		);
 
-		assert.ok(
-			(await daicpxdToken.balanceOf(tally)).toString() ==
-				utils.toAmountToken("80", 2).toString()
-		);
 
 		assert.ok(
 			(await daicpxdToken.balanceOf(supplier)).toString() ==
-				utils.toAmountToken("0", 2).toString()
+			TokenHelper.toAmount("0", 2).toString()
 		);
 
 		assert.ok(
 			(
 				await daicpxdToken.balanceOf(walletOfSupplier.address)
-			).toString() == utils.toAmountToken("12", 2).toString()
+			).toString() == TokenHelper.toAmount("12", 2).toString()
 		);
 
 		assert.ok(
 			(await daicpxdToken.balanceOf(customer)).toString() ==
-				utils.toAmountToken("0", 2).toString()
+			TokenHelper.toAmount("0", 2).toString()
 		);
 
 		assert.ok(
 			(await daicpxdToken.balanceOf(merchant)).toString() ==
-				utils.toAmountToken("0", 2).toString()
+			TokenHelper.toAmount("0", 2).toString()
 		);
 
 		assert.ok(
 			(await daicpxdToken.balanceOf(relayer)).toString() ==
-				utils.toAmountToken("0", 2).toString()
+			TokenHelper.toAmount("0", 2).toString()
 		);
 
 		let Owners = [
@@ -553,11 +505,13 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 			walletOfSupplier.address,
 			walletOfSupplier.address,
 		];
+
 		let amounts = [
-			utils.toAmountToken("1", 2),
-			utils.toAmountToken("2", 2),
-			utils.toAmountToken("5", 2),
+			TokenHelper.toAmount("1", 2),
+			TokenHelper.toAmount("2", 2),
+			TokenHelper.toAmount("5", 2),
 		];
+
 		for (let i = 0; i < prepaidCards.length; ++i) {
 			assert((await prepaidCards[i].getOwners())[1] === Owners[i]);
 			assert(
@@ -569,8 +523,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 	});
 
 	it("Supplier sell card with 5 daicpxd (prepaidCards[2]) to customer", async () => {
-		let txs = [
-			{
+		let txs = [{
 				to: prepaidCards[2].address,
 				value: 0,
 				data: prepaidCards[2].contract.methods
@@ -606,7 +559,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 
 		let payloads = encodeMultiSendCall(txs, multiSend);
 
-		const signature = await signer(
+		const signature = await signSafeTransaction(
 			multiSend.address,
 			0,
 			payloads,
@@ -631,18 +584,31 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 			0,
 			ZERO_ADDRESS,
 			relayer,
-			signature,
-			{ from: relayer }
+			signature, {
+				from: relayer
+			}
 		);
+
 		let logs = tx.receipt.rawLogs
 			.map((rawLog) => {
 				if (rawLog.topics[0] === CREATE_PREPAID_CARD_TOPIC) {
 					const log = web3.eth.abi.decodeLog(
-						[
-							{ type: "address", name: "supplier" },
-							{ type: "address", name: "card" },
-							{ type: "address", name: "token" },
-							{ type: "uint256", name: "amount" },
+						[{
+								type: "address",
+								name: "supplier"
+							},
+							{
+								type: "address",
+								name: "card"
+							},
+							{
+								type: "address",
+								name: "token"
+							},
+							{
+								type: "uint256",
+								name: "amount"
+							},
 						],
 						rawLog.data,
 						rawLog.topics
@@ -657,44 +623,41 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 
 		assert.ok(
 			(await daicpxdToken.balanceOf(revenuePool.address)).toString() ==
-				utils.toAmountToken("0", 2).toString()
+			TokenHelper.toAmount("0", 2).toString()
 		);
 
 		assert.ok(
 			(
 				await daicpxdToken.balanceOf(prepaidCardManager.address)
-			).toString() == utils.toAmountToken("0", 2).toString()
+			).toString() == TokenHelper.toAmount("0", 2).toString()
 		);
 
-		assert.ok(
-			(await daicpxdToken.balanceOf(tally)).toString() ==
-				utils.toAmountToken("80", 2).toString()
-		);
+
 
 		assert.ok(
 			(await daicpxdToken.balanceOf(supplier)).toString() ==
-				utils.toAmountToken("0", 2).toString()
+			TokenHelper.toAmount("0", 2).toString()
 		);
 
 		assert.ok(
 			(
 				await daicpxdToken.balanceOf(walletOfSupplier.address)
-			).toString() == utils.toAmountToken("12", 2).toString()
+			).toString() == TokenHelper.toAmount("12", 2).toString()
 		);
 
 		assert.ok(
 			(await daicpxdToken.balanceOf(customer)).toString() ==
-				utils.toAmountToken("0", 2).toString()
+			TokenHelper.toAmount("0", 2).toString()
 		);
 
 		assert.ok(
 			(await daicpxdToken.balanceOf(merchant)).toString() ==
-				utils.toAmountToken("0", 2).toString()
+			TokenHelper.toAmount("0", 2).toString()
 		);
 
 		assert.ok(
 			(await daicpxdToken.balanceOf(relayer)).toString() ==
-				utils.toAmountToken("0", 2).toString()
+			TokenHelper.toAmount("0", 2).toString()
 		);
 
 		let Owners = [
@@ -703,10 +666,11 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 			customer,
 		];
 		let amounts = [
-			utils.toAmountToken("1", 2),
-			utils.toAmountToken("2", 2),
-			utils.toAmountToken("5", 2),
+			TokenHelper.toAmount("1", 2),
+			TokenHelper.toAmount("2", 2),
+			TokenHelper.toAmount("5", 2),
 		];
+
 		for (let i = 0; i < prepaidCards.length; ++i) {
 			assert((await prepaidCards[i].getOwners())[1] === Owners[i]);
 			assert(
@@ -716,6 +680,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 			);
 		}
 	});
+
 	it("Customer can not sell card with 5 daicpxd (prepaidCards[2]) to another customer", async () => {
 		let otherCustomer = merchant;
 
@@ -740,7 +705,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 			otherCustomer
 		);
 
-		const signature = await signer(
+		const signature = await signSafeTransaction(
 			prepaidCardManager.address,
 			0,
 			payloads.toString(),
@@ -765,8 +730,9 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 				await prepaidCardManager.appendPrepaidCardAdminSignature(
 					customer,
 					signature
-				),
-				{ from: relayer }
+				), {
+					from: relayer
+				}
 			);
 		} catch (err) {
 			canSellCard = false;
@@ -776,44 +742,40 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 
 		assert.ok(
 			(await daicpxdToken.balanceOf(revenuePool.address)).toString() ==
-				utils.toAmountToken("0", 2).toString()
+			TokenHelper.toAmount("0", 2).toString()
 		);
 
 		assert.ok(
 			(
 				await daicpxdToken.balanceOf(prepaidCardManager.address)
-			).toString() == utils.toAmountToken("0", 2).toString()
+			).toString() == TokenHelper.toAmount("0", 2).toString()
 		);
 
-		assert.ok(
-			(await daicpxdToken.balanceOf(tally)).toString() ==
-				utils.toAmountToken("80", 2).toString()
-		);
 
 		assert.ok(
 			(await daicpxdToken.balanceOf(supplier)).toString() ==
-				utils.toAmountToken("0", 2).toString()
+			TokenHelper.toAmount("0", 2).toString()
 		);
 
 		assert.ok(
 			(
 				await daicpxdToken.balanceOf(walletOfSupplier.address)
-			).toString() == utils.toAmountToken("12", 2).toString()
+			).toString() == TokenHelper.toAmount("12", 2).toString()
 		);
 
 		assert.ok(
 			(await daicpxdToken.balanceOf(customer)).toString() ==
-				utils.toAmountToken("0", 2).toString()
+			TokenHelper.toAmount("0", 2).toString()
 		);
 
 		assert.ok(
 			(await daicpxdToken.balanceOf(merchant)).toString() ==
-				utils.toAmountToken("0", 2).toString()
+			TokenHelper.toAmount("0", 2).toString()
 		);
 
 		assert.ok(
 			(await daicpxdToken.balanceOf(relayer)).toString() ==
-				utils.toAmountToken("0", 2).toString()
+			TokenHelper.toAmount("0", 2).toString()
 		);
 
 		let Owners = [
@@ -822,9 +784,9 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 			customer,
 		];
 		let amounts = [
-			utils.toAmountToken("1", 2),
-			utils.toAmountToken("2", 2),
-			utils.toAmountToken("5", 2),
+			TokenHelper.toAmount("1", 2),
+			TokenHelper.toAmount("2", 2),
+			TokenHelper.toAmount("5", 2),
 		];
 		for (let i = 0; i < prepaidCards.length; ++i) {
 			assert((await prepaidCards[i].getOwners())[1] === Owners[i]);

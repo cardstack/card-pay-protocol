@@ -1,6 +1,7 @@
 pragma solidity >=0.5.0 <0.7.0;
 
 import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
+import "@gnosis.pm/safe-contracts/contracts/proxies/GnosisSafeProxy.sol";
 import "@gnosis.pm/safe-contracts/contracts/proxies/GnosisSafeProxyFactory.sol";
 import "@gnosis.pm/safe-contracts/contracts/common/SignatureDecoder.sol";
 import "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
@@ -11,12 +12,15 @@ import "./token/IERC677.sol";
 import "./roles/TallyRole.sol";
 import "./roles/PayableToken.sol";
 
+
 contract PrepaidCardManager is TallyRole, PayableToken, SignatureDecoder {
     
     //setup(address[],uint256,address,bytes,address,address,uint256,address)
     bytes4 public constant SET_UP = 0xb63e800d;
     //swapOwner(address,address,address)
-    bytes4 public constant  SWAP_OWNER = 0xe318b52b;
+    bytes4 public constant SWAP_OWNER = 0xe318b52b;
+    //"execTransaction(address,uint256,bytes,uint8,uint256,uint256,uint256,address,address,bytes)"   // use uint8 <=> Enum.operation
+    bytes4 public constant EXEC_TRANSACTION = 0x6a761202;
 
     using SafeMath for uint256;
 
@@ -31,8 +35,7 @@ contract PrepaidCardManager is TallyRole, PayableToken, SignatureDecoder {
     address public gsProxyFactory;
     address public gsCreateAndAddModules;
     address public revenuePool;
-    address public cardModule;
-
+    
     mapping(address => address) suppliers;
 
     /**
@@ -174,20 +177,24 @@ contract PrepaidCardManager is TallyRole, PayableToken, SignatureDecoder {
         bytes memory data,
         bytes memory signatures
     ) private returns (bool) {
-        require(
-            GnosisSafe(card).execTransaction(
-                to,
-                0,
-                data,
-                Enum.Operation.Call,
-                0,
-                0,
-                0,
-                address(0),
-                address(0),
-                signatures
-            )
+
+        bytes memory payloads = abi.encodeWithSelector(
+            EXEC_TRANSACTION, 
+            to,
+            0,
+            data,
+            Enum.Operation.Call,
+            0,
+            0,
+            0,
+            address(0),
+            address(0),
+            signatures
         );
+
+        (bool success, ) = card.call(payloads);
+
+        require(success);
 
         return true;
     }
@@ -230,12 +237,11 @@ contract PrepaidCardManager is TallyRole, PayableToken, SignatureDecoder {
         require(suppliers[card] == from, "The card has been sold before");
 
         // Swap owner
-        // CARD_STACK_ADMIN_ADDRESS must be add before user address when crating card
         return
             abi.encodeWithSelector(
                 SWAP_OWNER,
                 address(this),
-                suppliers[card],
+                from,
                 to
             );
     }
