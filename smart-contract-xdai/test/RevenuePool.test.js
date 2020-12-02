@@ -6,6 +6,8 @@ const GnosisSafe = artifacts.require('GnosisSafe');
 
 const utils = require('./utils/general');
 
+const TokenHelper = require('./utils/helper').TokenHelper;
+
 contract('Test Revenue Pool contract', accounts => {
     let daicpxdToken, revenuePool, spendToken, fakeToken;
     let walletOfMerchant, lw, tally;
@@ -26,7 +28,10 @@ contract('Test Revenue Pool contract', accounts => {
         spendToken = await SPEND.new('SPEND Token', 'SPEND', [revenuePool.address]);
 
         // deploy and mint 10 daicpxd token for deployer as owner
-        daicpxdToken = await DAICPXD.new(10 * (10 ** 2));
+        daicpxdToken = await TokenHelper.deploy({
+			TokenABIs: DAICPXD,
+			args: ["DAI CPXD Token", "DAICPXD", 18, TokenHelper.amountOf(10)]
+		});
 
         // setup for revenue pool
         await revenuePool.setup(
@@ -36,7 +41,10 @@ contract('Test Revenue Pool contract', accounts => {
             [daicpxdToken.address]
         );
 
-        fakeToken = await DAICPXD.new(10 * (10 ** 2));
+        fakeToken = await TokenHelper.deploy({
+			TokenABIs: DAICPXD,
+			args: ["DAI CPXD Token", "DAICPXD", 18, TokenHelper.amountOf(10)]
+		});
 
         console.log('  Spend Token: ' + spendToken.address);
         console.log('  Daicpxd Token: ' + daicpxdToken.address)
@@ -91,19 +99,19 @@ contract('Test Revenue Pool contract', accounts => {
 
 
     it('pay 1 DAI CPXD token to pool and mint SPEND token for merchant wallet', async () => {
-        let amount = utils.toAmountToken('1', 2); // equal 1 * 10^2
+        let amount = TokenHelper.amountOf(1); // equal 1 * 10^2
         let data = web3.eth.abi.encodeParameters(['address', 'uint'], [lw.accounts[0], 0]);
 
         await daicpxdToken.transferAndCall(revenuePool.address, amount, data);
 
         let balanceOfMerchantSPEND = await spendToken.balanceOf(walletOfMerchant);
         let balanceCustomer = await daicpxdToken.balanceOf(accounts[0]);
-        assert.equal(balanceCustomer.toString(), '900');
+        assert.equal(balanceCustomer.toString(), TokenHelper.amountOf(9));
         assert.equal(balanceOfMerchantSPEND.toString(), '100');
     })
 
     it('redeem 1 DAI CPXD for merchant by tally', async () => {
-        let amount = '100';
+        let amount = TokenHelper.amountOf(1)
 
         await revenuePool.redeemRevenue(lw.accounts[0], 0, [daicpxdToken.address], [amount], {
             from: tally
@@ -112,12 +120,12 @@ contract('Test Revenue Pool contract', accounts => {
         let balanceOfMerchantDAICPXD = await daicpxdToken.balanceOf(walletOfMerchant);
         let numberSPEND = await spendToken.balanceOf(walletOfMerchant);
 
-        assert.equal(balanceOfMerchantDAICPXD.toString(), '100');
+        assert.equal(balanceOfMerchantDAICPXD.toString(), TokenHelper.amountOf(1));
         assert.equal(numberSPEND.toString(), '100');
     })
 
     it('pay 2 DAI CPXD token to pool and mint SPEND token for merchant wallet', async () => {
-        let amount = utils.toAmountToken('2', 2); // equal 2 * 10^18
+        let amount = TokenHelper.amountOf(2); // equal 2 * 10^18
         let data = web3.eth.abi.encodeParameters(['address', 'uint'], [lw.accounts[0], 0]);
 
         await daicpxdToken.transferAndCall(revenuePool.address, amount, data);
@@ -125,8 +133,8 @@ contract('Test Revenue Pool contract', accounts => {
         let balanceOfMerchantSPEND = await spendToken.balanceOf(walletOfMerchant);
         let balanceCustomer = await daicpxdToken.balanceOf(accounts[0]);
 
-        assert.equal(balanceCustomer.toString(), '700');
-        assert.equal(balanceOfMerchantSPEND.toString(), '300');0
+        assert.equal(balanceCustomer.toString(), TokenHelper.amountOf(7));
+        assert.equal(balanceOfMerchantSPEND.toString(), '300');
     })
 
     it('redeem 1 for merchant and sender is not tally', async () => {
@@ -145,7 +153,7 @@ contract('Test Revenue Pool contract', accounts => {
     it('pay 1 DAI CPXD and receive address is not merchant', async () => {
         let balanceBefore = await daicpxdToken.balanceOf(accounts[0]);
         let data = web3.eth.abi.encodeParameters(['address', 'uint'], [lw.accounts[2], 0]);
-        let amount = utils.toAmountToken(1, 2); // 1 DAI CPXD
+        let amount = TokenHelper.amountOf(1, 2); // 1 DAI CPXD
         try {
             await daicpxdToken.transferAndCall(revenuePool.address, amount, data);
             assert.ok(false);
@@ -161,7 +169,7 @@ contract('Test Revenue Pool contract', accounts => {
     it('pay 1 DAI CPXD but wallet index wrong', async () => {
         let balanceBefore = await daicpxdToken.balanceOf(accounts[0]);
         let data = web3.eth.abi.encodeParameters(['address', 'uint'], [lw.accounts[0], 10]);
-        let amount = utils.toAmountToken(1, 2); // 1 DAI CPXD
+        let amount = TokenHelper.amountOf(1, 2); // 1 DAI CPXD
         try {
             await daicpxdToken.transferAndCall(revenuePool.address, amount, data);
             assert.ok(false);
@@ -185,7 +193,7 @@ contract('Test Revenue Pool contract', accounts => {
     it("call transferAndCall from contract which not payable", async () => {
         try {
 
-            let amount = utils.toAmountToken('1', 2); // equal 1 * 10^18
+            let amount = TokenHelper.amountOf('1', 2); // equal 1 * 10^18
             let data = web3.eth.abi.encodeParameter('address', lw.accounts[0]);
 
             await fakeToken.transferAndCall(revenuePool.address, amount, data);
@@ -202,7 +210,7 @@ contract('Test Revenue Pool contract', accounts => {
     })
 
     it("pay for new wallet", async () => {
-        let amount = utils.toAmountToken('2', 2); // equal 2 * 10^2
+        let amount = TokenHelper.amountOf(2);
         let data = web3.eth.abi.encodeParameters(['address', 'uint'], [lw.accounts[0], 1]);
         let newWallet = await revenuePool.getMerchantWallet(lw.accounts[0], 1);
         await daicpxdToken.transferAndCall(revenuePool.address, amount, data);
@@ -210,7 +218,7 @@ contract('Test Revenue Pool contract', accounts => {
         let balanceOfMerchantSPEND = await spendToken.balanceOf(newWallet);
         let balanceCustomer = await daicpxdToken.balanceOf(accounts[0]);
 
-        assert.equal(balanceCustomer.toString(), '500');
+        assert.equal(balanceCustomer.toString(), TokenHelper.amountOf(5));
         assert.equal(balanceOfMerchantSPEND.toString(), '200');
     })
 

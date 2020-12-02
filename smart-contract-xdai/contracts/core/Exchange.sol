@@ -27,7 +27,7 @@ contract Exchange {
         pure
         returns (uint256)
     {
-        return amount;
+        return amount.mul(10**16);
     }
 
     /**
@@ -42,7 +42,7 @@ contract Exchange {
         pure
         returns (uint256)
     {   
-        return amount;
+        return amount.div(10**16);
     }
 
 }

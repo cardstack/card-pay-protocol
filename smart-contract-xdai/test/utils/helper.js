@@ -5,6 +5,7 @@ const {
     toBN
 } = require('web3-utils');
 
+const {signSafeTransaction} = require('./general')
 
 class TokenHelper {
 
@@ -16,54 +17,33 @@ class TokenHelper {
         TokenABIs,
         args
     }) {
-        let tokenHelper = new TokenHelper();
         let instance = await TokenABIs.new(...args);
-        tokenHelper.setUp({
-            contractToken: instance
-        });
         return instance;
     }
 
     static async isEqualBalance(token, address, amount) {
         return assert.strictEqual((await token.balanceOf(address)).toString(), amount.toString());
     }
-    
+
     async setUp({
         contractToken
     }) {
-        this.instance = contractToken;
-        this.decimals = await this.instance.decimals();
+        this.decimals = await contractToken.decimals();
     }
 
-    async load({
-        TokenABIs,
-        address
-    }) {
-        console.log("Hello")
-        this.instance = await TokenABIs.at(address);
-        this.decimals = await this.instance.decimals();
+    /**
+     * Convert from number token to token base unit.
+     * @param {number} _numberToken number token 
+     * @return token base unit of number token.
+     */
+    amountOf(_numberToken) {
+        return TokenHelper.amountOf(_numberToken, this.decimals);
     }
 
-    // toAmount(_number) {
-    //     return TokenHelper.toAmount(_number, this.decimals);
-    // }
-
-    static toAmount(_number, _decimals) {
+    static amountOf(_numberToken, _decimals = 18) {
         let dec = toBN("10").pow(toBN(_decimals));
-        let number = toBN(_number);
+        let number = toBN(_numberToken);
         return number.mul(dec);
-    }
-
-    async methodABI(methodName, args = {}) {
-        return await this.instance.contract.methods[methodName](...args).encodeABI();
-    }
-
-    getAddress() {
-        return this.instance.address;
-    }
-
-    getInstance() {
-        return this.instance;
     }
 
     async isEqualBalance(account, amount) {
@@ -72,19 +52,52 @@ class TokenHelper {
     }
 }
 
-class ContractHelper {
-    static prepageDataForCreateMutipleToken(account, amounts = []) {
+ContractHelper = {
+    prepageDataForCreateMutipleToken(account, amounts = []) {
         return AbiCoder.encodeParameters(
-            ["address", "bytes"], 
+            ["address", "bytes"],
             [
-                account, 
+                account,
                 AbiCoder.encodeParameter("uint256[]", amounts)
             ]
         )
+    },
+
+    async signAndSendSafeTransactionByRelayer(
+        safeTxData = {
+            to,
+            value,
+            data,
+            operation,
+            txGasEstimate,
+            baseGasEstimate,
+            gasPrice,
+            txGasToken,
+            refundReceiver
+        },
+        owner,
+        gnosisSafe,
+        relayer
+    ) {
+        let safeTxArr = Object.keys(safeTxData).map(key => safeTxData[key])
+        
+        let nonce = await gnosisSafe.nonce();
+        // sign data with nonce by owner and gnosisSafe
+        let signature = await signSafeTransaction(...safeTxArr, nonce, owner, gnosisSafe); 
+        
+        // compute txHash of transaction
+        let safeTxHash = await gnosisSafe.getTransactionHash(...safeTxArr, nonce);
+
+        // send transaction to network
+        let safeTx = await gnosisSafe.execTransaction(...safeTxArr, signature, {from : relayer});
+
+        return {safeTxHash, safeTx};
     }
 }
 
+
+
 module.exports = {
-    TokenHelper, 
+    TokenHelper,
     ContractHelper
 }
