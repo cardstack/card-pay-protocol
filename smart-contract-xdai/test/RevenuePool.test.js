@@ -9,6 +9,8 @@ const utils = require('./utils/general');
 const TokenHelper = require('./utils/helper').TokenHelper;
 
 contract('Test Revenue Pool contract', accounts => {
+    const tokenMeta = ["DAICPXD Token", "DAICPXD", 16]
+
     let daicpxdToken, revenuePool, spendToken, fakeToken;
     let walletOfMerchant, lw, tally;
     let offchainId;
@@ -30,7 +32,7 @@ contract('Test Revenue Pool contract', accounts => {
         // deploy and mint 10 daicpxd token for deployer as owner
         daicpxdToken = await TokenHelper.deploy({
 			TokenABIs: DAICPXD,
-			args: ["DAI CPXD Token", "DAICPXD", 18, TokenHelper.amountOf(10)]
+			args: [...tokenMeta, TokenHelper.amountOf(10)]
 		});
 
         // setup for revenue pool
@@ -43,7 +45,7 @@ contract('Test Revenue Pool contract', accounts => {
 
         fakeToken = await TokenHelper.deploy({
 			TokenABIs: DAICPXD,
-			args: ["DAI CPXD Token", "DAICPXD", 18, TokenHelper.amountOf(10)]
+			args: [...tokenMeta, TokenHelper.amountOf(10)]
 		});
 
         console.log('  Spend Token: ' + spendToken.address);

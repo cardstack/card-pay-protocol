@@ -21,6 +21,8 @@ function toAmountToken(amount, decimals = "18") {
 const CREATE_PREPAID_CARD_TOPIC = web3.utils.keccak256(
 	"CreatePrepaidCard(address,address,address,uint256)"
 );
+
+
 const EXECUTE_EVENT_FAILED = web3EthAbi.encodeEventSignature("ExecutionFailure(bytes32,uint256)");
 
 const EXECUTE_EVENT_SUCCESS = web3EthAbi.encodeEventSignature("ExecutionSuccess(bytes32,uint256)");

@@ -7,13 +7,11 @@ import "./IRevenuePool.sol";
 import "./token/IERC677.sol";
 import "./token/ISPEND.sol";
 import "./roles/TallyRole.sol";
-import "./roles/PayableToken.sol";
 import "./core/MerchantManager.sol";
 import "./core/Exchange.sol";
 
 contract RevenuePool is
     TallyRole,
-    PayableToken,
     MerchantManager,
     Exchange,
     IRevenuePool

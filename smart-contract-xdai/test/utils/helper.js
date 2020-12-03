@@ -5,7 +5,9 @@ const {
     toBN
 } = require('web3-utils');
 
-const {signSafeTransaction} = require('./general')
+const {
+    signSafeTransaction
+} = require('./general')
 
 class TokenHelper {
 
@@ -40,7 +42,7 @@ class TokenHelper {
         return TokenHelper.amountOf(_numberToken, this.decimals);
     }
 
-    static amountOf(_numberToken, _decimals = 18) {
+    static amountOf(_numberToken, _decimals = 16) {
         let dec = toBN("10").pow(toBN(_decimals));
         let number = toBN(_numberToken);
         return number.mul(dec);
@@ -53,7 +55,10 @@ class TokenHelper {
 }
 
 ContractHelper = {
-    prepageDataForCreateMutipleToken(account, amounts = []) {
+    prepageDataForCreateMutipleToken(account, amounts = null) {
+        if (!amounts)
+            return AbiCoder.encodeParameters(["address", "bytes"], [account, "0x"])
+
         return AbiCoder.encodeParameters(
             ["address", "bytes"],
             [
@@ -80,18 +85,23 @@ ContractHelper = {
         relayer
     ) {
         let safeTxArr = Object.keys(safeTxData).map(key => safeTxData[key])
-        
+
         let nonce = await gnosisSafe.nonce();
         // sign data with nonce by owner and gnosisSafe
-        let signature = await signSafeTransaction(...safeTxArr, nonce, owner, gnosisSafe); 
-        
+        let signature = await signSafeTransaction(...safeTxArr, nonce, owner, gnosisSafe);
+
         // compute txHash of transaction
         let safeTxHash = await gnosisSafe.getTransactionHash(...safeTxArr, nonce);
 
         // send transaction to network
-        let safeTx = await gnosisSafe.execTransaction(...safeTxArr, signature, {from : relayer});
+        let safeTx = await gnosisSafe.execTransaction(...safeTxArr, signature, {
+            from: relayer
+        });
 
-        return {safeTxHash, safeTx};
+        return {
+            safeTxHash,
+            safeTx
+        };
     }
 }
 

@@ -19,6 +19,7 @@ const {
 
 
 contract("Test contract by EOA", (accounts) => {
+    const tokenMeta = ["DAICPXD Token", "DAICPXD", 16]
 
     let daicpxdToken,
         revenuePool,
@@ -51,13 +52,13 @@ contract("Test contract by EOA", (accounts) => {
         // Deploy and mint 100 daicpxd token for deployer as owner
         daicpxdToken = await TokenHelper.deploy({
             TokenABIs: DAICPXD,
-            args: ["DAI CPXD Token", "DAICPXD", 18, TokenHelper.amountOf(100)]
+            args: [...tokenMeta, TokenHelper.amountOf(100)]
         });
 
         // Deploy and mint 100 daicpxd token for deployer as owner
         fakeDaicpxdToken = await TokenHelper.deploy({
             TokenABIs: DAICPXD,
-            args: ["DAI CPXD Token", "DAICPXD", 18, TokenHelper.amountOf(100)]
+            args: [...tokenMeta, TokenHelper.amountOf(100)]
         });
 
 
