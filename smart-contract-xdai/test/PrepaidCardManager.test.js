@@ -138,7 +138,8 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 				prepaidCardManager.address,
 				TokenHelper.amountOf(1),
 				ContractHelper.prepageDataForCreateMutipleToken(
-					walletOfSupplier.address
+					walletOfSupplier.address, 
+                    [TokenHelper.amountOf(1)]
 				)
 			)
 			.encodeABI();
@@ -182,7 +183,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 		
         await TokenHelper.isEqualBalance(daicpxdToken, prepaidCard[0].address, TokenHelper.amountOf(1));
 
-		await TokenHelper.isEqualBalance(daicpxdToken, walletOfSupplier.address, TokenHelper.amountOf(19).sub(paymentActual));
+		await TokenHelper.isEqualBalance(daicpxdToken, walletOfSupplier.address, toBN(TokenHelper.amountOf(19)).sub(paymentActual));
 
 	});
 
@@ -245,7 +246,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 		await TokenHelper.isEqualBalance(
 			daicpxdToken, 
 			walletOfSupplier.address,
-			oldWalletBalance.sub(payment).sub(TokenHelper.amountOf(8))
+			oldWalletBalance.sub(payment).sub(toBN(TokenHelper.amountOf(8)))
 		);
 
 		await TokenHelper.isEqualBalance(daicpxdToken, relayer, oldRelayerBalance.add(payment));

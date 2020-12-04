@@ -45,25 +45,22 @@ class TokenHelper {
     static amountOf(_numberToken, _decimals = 16) {
         let dec = toBN("10").pow(toBN(_decimals));
         let number = toBN(_numberToken);
-        return number.mul(dec);
+        return number.mul(dec).toString();
     }
 
     async isEqualBalance(account, amount) {
         let currentBanlance = await this.instance.balanceOf(account);
-        return currentBanlance.toString() === toBN(amount).toString();
+        return toBN(currentBanlance).toString() === toBN(amount).toString();
     }
 }
 
 ContractHelper = {
-    prepageDataForCreateMutipleToken(account, amounts = null) {
-        if (!amounts)
-            return AbiCoder.encodeParameters(["address", "bytes"], [account, "0x"])
-
+    prepageDataForCreateMutipleToken(account, amounts = []) {
         return AbiCoder.encodeParameters(
-            ["address", "bytes"],
+            ["address", "uint256[]"],
             [
                 account,
-                AbiCoder.encodeParameter("uint256[]", amounts)
+                amounts
             ]
         )
     },

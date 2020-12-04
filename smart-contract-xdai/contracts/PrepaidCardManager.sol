@@ -3,17 +3,15 @@ pragma solidity >=0.5.0 <0.7.0;
 import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 import "@gnosis.pm/safe-contracts/contracts/proxies/GnosisSafeProxy.sol";
 import "@gnosis.pm/safe-contracts/contracts/proxies/GnosisSafeProxyFactory.sol";
-import "@gnosis.pm/safe-contracts/contracts/common/SignatureDecoder.sol";
 import "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
-import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "./token/IERC677.sol";
 import "./roles/TallyRole.sol";
 import "./roles/PayableToken.sol";
+import "./core/Executor.sol";
 
-
-contract PrepaidCardManager is TallyRole, PayableToken, SignatureDecoder {
+contract PrepaidCardManager is TallyRole, PayableToken, SimpleExecutor {
     
     //setup(address[],uint256,address,bytes,address,address,uint256,address)
     bytes4 public constant SET_UP = 0xb63e800d;
@@ -129,25 +127,19 @@ contract PrepaidCardManager is TallyRole, PayableToken, SignatureDecoder {
      * @param supplier Supplier address
      * @param token Token address
      * @param amountReceived Amount to split
-     * @param payloads Payloads
+     * @param amountOfCard array which performing face value of card
      */
     function _createMultiplePrepaidCards(
         address supplier,
         address token,
         uint256 amountReceived,
-        bytes memory payloads
+        uint256[] memory amountOfCard
     ) private returns (bool) {
-        uint256[] memory cardAmounts = abi.decode(payloads, (uint256[]));
-
-        require(
-            cardAmounts.length > 0,
-            "number of card must be greater than 0"
-        );
-
         uint256 neededAmount = 0;
+        uint256 numberCard = amountOfCard.length; 
 
-        for (uint256 i = 0; i < cardAmounts.length; i++) {
-            neededAmount = neededAmount.add(cardAmounts[i]);
+        for (uint256 i = 0; i < numberCard; i++) {
+            neededAmount = neededAmount.add(amountOfCard[i]);
         }
 
         // TODO: should we handle the case when amount received > needed amount
@@ -157,8 +149,8 @@ contract PrepaidCardManager is TallyRole, PayableToken, SignatureDecoder {
             "your amount must be == sum of new cardAmounts"
         );
 
-        for (uint256 i = 0; i < cardAmounts.length; i++) {
-            _createPrepaidCard(supplier, token, cardAmounts[i]);
+        for (uint256 i = 0; i < numberCard; i++) {
+            _createPrepaidCard(supplier, token, amountOfCard[i]);
         }
 
         return true;
@@ -192,9 +184,8 @@ contract PrepaidCardManager is TallyRole, PayableToken, SignatureDecoder {
             signatures
         );
 
-        (bool success, ) = card.call(payloads);
+        require(executeCall(card, 0, payloads, gasleft()));
 
-        require(success);
 
         return true;
     }
@@ -339,30 +330,27 @@ contract PrepaidCardManager is TallyRole, PayableToken, SignatureDecoder {
         address from,
         uint256 amount,
         bytes calldata data
-    ) external onlyPayableToken() returns (bool) {
+    ) external onlyPayableToken returns (bool) {
         address supplier = address(0);
-        bytes memory payloads;
+        uint256[] memory amountOfCard;
 
         if (data.length > 2) {
-            (supplier, payloads) = abi.decode(data, (address, bytes));
+            (supplier, amountOfCard) = abi.decode(data, (address, uint256[]));
         }
 
         require(supplier != address(0), "Missing card owner's address");
 
-        if (payloads.length > 0) {
-            require(
-                _createMultiplePrepaidCards(
-                    supplier,
-                    _msgSender(),
-                    amount,
-                    payloads
-                )
-            );
-        } else {
-            require(
-                _createPrepaidCard(supplier, _msgSender(), amount) != address(0)
-            );
-        }
+        require(amountOfCard.length > 0);
+
+        require(
+            _createMultiplePrepaidCards(
+                supplier,
+                _msgSender(),
+                amount,
+                amountOfCard
+            )
+        );
+        
         return true;
     }
 }
