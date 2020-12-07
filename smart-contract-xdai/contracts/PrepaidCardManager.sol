@@ -17,8 +17,10 @@ contract PrepaidCardManager is TallyRole, PayableToken, SimpleExecutor {
     bytes4 public constant SET_UP = 0xb63e800d;
     //swapOwner(address,address,address)
     bytes4 public constant SWAP_OWNER = 0xe318b52b;
-    //"execTransaction(address,uint256,bytes,uint8,uint256,uint256,uint256,address,address,bytes)"   // use uint8 <=> Enum.operation
+    //execTransaction(address,uint256,bytes,uint8,uint256,uint256,uint256,address,address,bytes)   // use uint8 <=> Enum.operation
     bytes4 public constant EXEC_TRANSACTION = 0x6a761202;
+    //transferAndCall(address,uint256,bytes) 
+    bytes4 public constant TRANSER_AND_CALL = 0x4000aea0;
 
     using SafeMath for uint256;
 
@@ -28,6 +30,7 @@ contract PrepaidCardManager is TallyRole, PayableToken, SimpleExecutor {
         address token,
         uint256 amount
     );
+    
 
     address public gsMasterCopy;
     address public gsProxyFactory;
@@ -183,9 +186,8 @@ contract PrepaidCardManager is TallyRole, PayableToken, SimpleExecutor {
             address(0),
             signatures
         );
-
+        // should limit this gas or not ? 
         require(executeCall(card, 0, payloads, gasleft()));
-
 
         return true;
     }
@@ -320,6 +322,58 @@ contract PrepaidCardManager is TallyRole, PayableToken, SimpleExecutor {
         }
     }
 
+     /**
+     * @dev Pay token to merchant
+     * @param card Prepaid Card's address
+     * @param payableTokenAddr payable token address 
+     * @param merchant Merchant's address
+     * @param index index of Meschant'a wallet
+     * @param payment value to pay to merchant
+     * @param signatures Packed signature data ({bytes32 r}{bytes32 s}{uint8 v})
+     * TODO: should limit minimum price of merchant service. Attacker can spam our contract if price is to low. 
+     * TODO: relayer should check all information correctly before call this method
+     */
+    function payForMerchant(
+        address payable card,
+        address payableTokenAddr,
+        address merchant,
+        uint256 index,
+        uint256 payment,
+        bytes calldata signatures
+    ) external payable {
+        require(
+            _execTransaction(
+                card,
+                payableTokenAddr,
+                getPayData(payableTokenAddr, merchant, index, payment),
+                signatures
+            )
+        );
+    }
+
+    /**
+     * @dev Returns the bytes that are hashed to be signed by owners.
+     * @param token Token's address
+     * @param to Merchant's address
+     * @param index index of Meschant'a wallet
+     * @param value value to pay to merchant
+     */
+    function getPayData(
+        address token,
+        address to,
+        uint256 index,
+        uint256 value
+    ) public view returns (bytes memory) {
+        return
+            abi.encodeWithSelector(
+                TRANSER_AND_CALL,
+                revenuePool,
+                value,
+                abi.encode(to, index)
+            );
+    }
+
+
     /**
      * @dev onTokenTransfer(ERC677) - call when token send this contract.
      * @param from Supplier or Prepaid card address
@@ -353,4 +407,5 @@ contract PrepaidCardManager is TallyRole, PayableToken, SimpleExecutor {
         
         return true;
     }
+
 }

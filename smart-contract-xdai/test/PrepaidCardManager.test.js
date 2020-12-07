@@ -405,7 +405,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 							prepaidCards[2].address,
 							walletOfSupplier.address,
 							customer,
-							(await prepaidCards[2].nonce.call()).toNumber()
+							await prepaidCards[2].nonce()
 						)
 					)
 					.encodeABI(),
@@ -414,7 +414,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 				to: prepaidCardManager.address,
 				value: 0,
 				data: prepaidCardManager.contract.methods
-					.sellCard(
+                    .sellCard(
 						prepaidCards[2].address,
 						walletOfSupplier.address,
 						customer,
@@ -429,7 +429,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 					.encodeABI(),
 			},
 		];
-
+        
 		let payloads = encodeMultiSendCall(txs, multiSend);
 
 		let safeTxData = {
@@ -517,4 +517,43 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 		}
 	});
 
+    it("Payment case", async() => {
+        let data = await prepaidCardManager.getPayData(
+            daicpxdToken.address, 
+            merchant,
+            0,
+            TokenHelper.amountOf(1)
+        ) 
+        
+        let signature = await signSafeTransaction(
+            daicpxdToken.address, 
+            0, 
+            data, 
+            0, 
+            0, 
+            0,
+            0,
+            ZERO_ADDRESS, 
+            ZERO_ADDRESS, 
+            await prepaidCards[2].nonce(), 
+            customer, 
+            prepaidCards[2]
+        )
+        await prepaidCardManager.payForMerchant(
+            prepaidCards[2].address, 
+            daicpxdToken.address, 
+            merchant, 
+            0, 
+            TokenHelper.amountOf(1), 
+            await prepaidCardManager.appendPrepaidCardAdminSignature(
+                customer,
+                signature
+            ), 
+            {from: relayer}
+        )
+
+        await TokenHelper.isEqualBalance(daicpxdToken, revenuePool.address, TokenHelper.amountOf(1));
+        await TokenHelper.isEqualBalance(daicpxdToken, prepaidCards[2].address, TokenHelper.amountOf(4));
+    })
+        
 });
