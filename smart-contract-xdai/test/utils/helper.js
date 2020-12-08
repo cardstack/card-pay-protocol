@@ -9,48 +9,24 @@ const {
     signSafeTransaction
 } = require('./general')
 
-class TokenHelper {
+TokenHelper = {
 
-    constructor() {
-        this.decimals = 0;
-    }
-
-    static async deploy({
+    async deploy({
         TokenABIs,
         args
     }) {
         let instance = await TokenABIs.new(...args);
         return instance;
-    }
+    },
 
-    static async isEqualBalance(token, address, amount) {
+    async isEqualBalance(token, address, amount) {
         return assert.strictEqual((await token.balanceOf(address)).toString(), amount.toString());
-    }
+    },
 
-    async setUp({
-        contractToken
-    }) {
-        this.decimals = await contractToken.decimals();
-    }
-
-    /**
-     * Convert from number token to token base unit.
-     * @param {number} _numberToken number token 
-     * @return token base unit of number token.
-     */
-    amountOf(_numberToken) {
-        return TokenHelper.amountOf(_numberToken, this.decimals);
-    }
-
-    static amountOf(_numberToken, _decimals = 16) {
+    amountOf(_numberToken, _decimals = 16) {
         let dec = toBN("10").pow(toBN(_decimals));
         let number = toBN(_numberToken);
         return number.mul(dec).toString();
-    }
-
-    async isEqualBalance(account, amount) {
-        let currentBanlance = await this.instance.balanceOf(account);
-        return toBN(currentBanlance).toString() === toBN(amount).toString();
     }
 }
 
@@ -63,6 +39,16 @@ ContractHelper = {
                 amounts
             ]
         )
+    },
+    
+    preparePayment(merchant, walletIndex) {
+        return AbiCoder.encodeParameters(
+            [
+                "address","uint256"
+            ], 
+            [
+                merchant, walletIndex
+            ])
     },
 
     async signAndSendSafeTransactionByRelayer(

@@ -517,7 +517,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 		}
 	});
 
-    it("Payment case", async() => {
+    it("Customer payment for merchant", async() => {
         let data = await prepaidCardManager.getPayData(
             daicpxdToken.address, 
             merchant,

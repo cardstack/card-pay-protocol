@@ -10,8 +10,10 @@ import "./token/IERC677.sol";
 import "./roles/TallyRole.sol";
 import "./roles/PayableToken.sol";
 import "./core/Executor.sol";
+import "./core/Safe.sol";
 
-contract PrepaidCardManager is TallyRole, PayableToken, SimpleExecutor {
+
+contract PrepaidCardManager is TallyRole, PayableToken, SimpleExecutor, Safe{
     
     //setup(address[],uint256,address,bytes,address,address,uint256,address)
     bytes4 public constant SET_UP = 0xb63e800d;
@@ -56,10 +58,10 @@ contract PrepaidCardManager is TallyRole, PayableToken, SimpleExecutor {
     ) public onlyOwner {
         // setup tally user
         addTally(_tally);
-        gsMasterCopy = _gsMasterCopy;
-        gsProxyFactory = _gsProxyFactory;
+        
         revenuePool = _revenuePool;
 
+        Safe.setup(_gsMasterCopy, _gsProxyFactory);
         // set token list payable.
         for (uint256 i = 0; i < _payableTokens.length; i++) {
             addPayableToken(_payableTokens[i]);
@@ -94,24 +96,7 @@ contract PrepaidCardManager is TallyRole, PayableToken, SimpleExecutor {
         owners[0] = address(this);
         owners[1] = supplier;
 
-        bytes memory payloads = abi.encodeWithSelector(
-            SET_UP,
-            owners,
-            2,
-            address(0),
-            "0x",
-            address(0),
-            address(0),
-            0,
-            address(0)
-        );
-
-        address payable card = address(
-            GnosisSafeProxyFactory(gsProxyFactory).createProxy(
-                gsMasterCopy,
-                payloads
-            )
-        );
+        address card = createSafe(owners, 2); 
 
         require(card != address(0), "Could not create card");
 
@@ -167,7 +152,7 @@ contract PrepaidCardManager is TallyRole, PayableToken, SimpleExecutor {
      * @param signatures Packed signature data ({bytes32 r}{bytes32 s}{uint8 v})
      */
     function _execTransaction(
-        address payable card,
+        address card,
         address to,
         bytes memory data,
         bytes memory signatures
@@ -182,10 +167,11 @@ contract PrepaidCardManager is TallyRole, PayableToken, SimpleExecutor {
             0,
             0,
             0,
-            address(0),
-            address(0),
+            ZERO_ADDRESS,
+            ZERO_ADDRESS,
             signatures
         );
+
         // should limit this gas or not ? 
         require(executeCall(card, 0, payloads, gasleft()));
 

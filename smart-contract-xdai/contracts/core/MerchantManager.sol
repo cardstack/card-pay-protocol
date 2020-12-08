@@ -1,20 +1,14 @@
 pragma solidity ^0.5.17;
 
 import "@openzeppelin/contracts/utils/EnumerableSet.sol";
-import "@gnosis.pm/safe-contracts/contracts/proxies/GnosisSafeProxyFactory.sol";
 
+import "./Safe.sol";
 import "../roles/TallyRole.sol";
 
-contract MerchantManager is TallyRole {
+contract MerchantManager is TallyRole, Safe {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     event CreateMerchantWallet(address merchant, address wallet);
-
-    //setup(address[],uint256,address,bytes,address,address,uint256,address)
-    bytes4 internal constant SETUP_GNOSIS_SAFE = 0xb63e800d;
-
-    address internal gsMasterCopy;
-    address internal gsProxyFactory;
 
     struct Merchant {
         EnumerableSet.AddressSet wallets;
@@ -26,8 +20,7 @@ contract MerchantManager is TallyRole {
     mapping(address => Merchant) internal merchants;
 
     function setup(address _gsMasterCopy, address _gsProxyFactory) internal {
-        gsMasterCopy = _gsMasterCopy;
-        gsProxyFactory = _gsProxyFactory;
+        Safe.setup(_gsMasterCopy, _gsProxyFactory);
     }
 
     function isRegistered(address account) public view returns (bool) {
@@ -53,41 +46,11 @@ contract MerchantManager is TallyRole {
 
     }
 
-    function createGnosisSafeWallet(address walletOwner)
-        internal
-        returns (address)
-    {
-        address[] memory walletOwnerArr = new address[](1);
-        walletOwnerArr[0] = walletOwner;
-
-        bytes memory data = abi.encodeWithSelector(
-            SETUP_GNOSIS_SAFE,
-            walletOwnerArr,
-            1,
-            address(0),
-            "",
-            address(0),
-            address(0),
-            0,
-            address(0)
-        );
-
-        address gsWallet = address(
-            GnosisSafeProxyFactory(gsProxyFactory).createProxy(
-                gsMasterCopy,
-                data
-            )
-        );
-
-        require(gsWallet != address(0), "Create wallet failed.");
-        
-        return gsWallet;
-    }
-
     function createAndAddWallet(address merchantAddr) public onlyTally returns(bool) {
         require(isRegistered(merchantAddr), "Merchants not registered");
-
-        address gsWalletAddr = createGnosisSafeWallet(merchantAddr);
+        
+        
+        address gsWalletAddr = createSafe(merchantAddr);
         
         merchants[merchantAddr].wallets.add(gsWalletAddr);
 
