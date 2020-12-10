@@ -126,6 +126,20 @@ contract('Test Revenue Pool contract', accounts => {
         assert.equal(numberSPEND.toString(), '100');
     })
 
+    it('redeem with wrong data for merchant by tally', async () => {
+        let amount = TokenHelper.amountOf(1)
+        let isRevert = false;
+        try {
+            await revenuePool.redeemRevenue(lw.accounts[0], 0, [daicpxdToken.address], [], {
+                from: tally
+            });
+        } catch (err) {
+            isRevert = true;
+        }
+        
+        assert.ok(isRevert);
+    })
+
     it('pay 2 DAI CPXD token to pool and mint SPEND token for merchant wallet', async () => {
         let amount = TokenHelper.amountOf(2); // equal 2 * 10^18
         let data = web3.eth.abi.encodeParameters(['address', 'uint'], [lw.accounts[0], 0]);

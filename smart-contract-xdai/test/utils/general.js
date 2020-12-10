@@ -13,9 +13,8 @@ function fromDAICPXD2SPEND(amount, exchangeRate) {
 		.toString();
 }
 
-function toAmountToken(amount, decimals = "18") {
-	let dec = web3Utils.toBN("10").pow(web3Utils.toBN(decimals));
-	return web3Utils.toBN(amount).mul(dec);
+function padZero(addr, prefix = "") {
+    return prefix + '000000000000000000000000' + addr.replace('0x', '');
 }
 
 const CREATE_PREPAID_CARD_TOPIC = web3.utils.keccak256(
@@ -225,12 +224,12 @@ Object.assign(exports, {
 	EXECUTE_EVENT_SUCCESS,
 	EXECUTE_EVENT_META,
 	fromDAICPXD2SPEND,
-	toAmountToken,
 	encodeMultiSendCall,
 	signSafeTransaction,
 	encodeArray,
 	getGnosisSafeFromEventLog,
-	getParamsFromEvent
+	getParamsFromEvent, 
+    padZero
 });
 
 module.exports = exports;

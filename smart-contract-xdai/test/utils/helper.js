@@ -65,7 +65,8 @@ ContractHelper = {
         },
         owner,
         gnosisSafe,
-        relayer
+        relayer,
+        options = null,
     ) {
         let safeTxArr = Object.keys(safeTxData).map(key => safeTxData[key])
 
@@ -75,11 +76,18 @@ ContractHelper = {
 
         // compute txHash of transaction
         let safeTxHash = await gnosisSafe.getTransactionHash(...safeTxArr, nonce);
+        let safeTx;
+        if (!options) {
+            safeTx = await gnosisSafe.execTransaction(...safeTxArr, signature, {
+                from: relayer, 
+            });
+        } else {
+            safeTx = await gnosisSafe.execTransaction(...safeTxArr, signature, {
+                from: relayer, 
+                ...options
+            });
 
-        // send transaction to network
-        let safeTx = await gnosisSafe.execTransaction(...safeTxArr, signature, {
-            from: relayer
-        });
+        }
 
         return {
             safeTxHash,
