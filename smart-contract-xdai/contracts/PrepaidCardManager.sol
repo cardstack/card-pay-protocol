@@ -318,13 +318,15 @@ contract PrepaidCardManager is TallyRole, PayableToken, SimpleExecutor, Safe{
         uint256 index,
         uint256 payment,
         bytes calldata signatures
-    ) external payable {
+    ) external payable returns(bool) 
+    {
         execTransaction(
             card,
             payableTokenAddr,
             getPayData(payableTokenAddr, merchant, index, payment),
             signatures
         );
+        return true;
     }
 
     /**
