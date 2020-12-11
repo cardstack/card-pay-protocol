@@ -684,6 +684,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
             prepaidCards[2]
         )
         
+        let failed = false;
         try {
             await prepaidCardManager.payForMerchant(
                 prepaidCards[2].address, 
@@ -698,9 +699,10 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
                 {from: relayer}
             )
         } catch(err) {
-
+            failed = true;
         }
-
+        
+        assert.isTrue(failed);
         await TokenHelper.isEqualBalance(daicpxdToken, revenuePool.address, TokenHelper.amountOf(1));
         await TokenHelper.isEqualBalance(daicpxdToken, prepaidCards[2].address, TokenHelper.amountOf(4));
     })
