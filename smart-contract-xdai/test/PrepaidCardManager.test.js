@@ -642,6 +642,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
             customer, 
             prepaidCards[2]
         )
+
         await prepaidCardManager.payForMerchant(
             prepaidCards[2].address, 
             daicpxdToken.address, 
@@ -658,7 +659,52 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
         await TokenHelper.isEqualBalance(daicpxdToken, revenuePool.address, TokenHelper.amountOf(1));
         await TokenHelper.isEqualBalance(daicpxdToken, prepaidCards[2].address, TokenHelper.amountOf(4));
     })
-       
+    
+
+    it("Customer payment for merchant failed", async() => {
+        let data = await prepaidCardManager.getPayData(
+            daicpxdToken.address, 
+            merchant,
+            0,
+            TokenHelper.amountOf(10)
+        ) 
+        
+        let signature = await signSafeTransaction(
+            daicpxdToken.address, 
+            0, 
+            data, 
+            0, 
+            0, 
+            0,
+            0,
+            ZERO_ADDRESS, 
+            ZERO_ADDRESS, 
+            await prepaidCards[2].nonce(), 
+            customer, 
+            prepaidCards[2]
+        )
+        
+        try {
+            await prepaidCardManager.payForMerchant(
+                prepaidCards[2].address, 
+                daicpxdToken.address, 
+                merchant, 
+                0, 
+                TokenHelper.amountOf(10), 
+                await prepaidCardManager.appendPrepaidCardAdminSignature(
+                    customer,
+                    signature
+                ), 
+                {from: relayer}
+            )
+        } catch(err) {
+
+        }
+
+        await TokenHelper.isEqualBalance(daicpxdToken, revenuePool.address, TokenHelper.amountOf(1));
+        await TokenHelper.isEqualBalance(daicpxdToken, prepaidCards[2].address, TokenHelper.amountOf(4));
+    })
+
     it("Role test", async() => {
         let newTally = accounts[8]; 
         await prepaidCardManager.removeTally(tally);

@@ -7,11 +7,10 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "./token/IERC677.sol";
 import "./roles/TallyRole.sol";
 import "./roles/PayableToken.sol";
-import "./core/Executor.sol";
 import "./core/Safe.sol";
 
 
-contract PrepaidCardManager is TallyRole, PayableToken, SimpleExecutor, Safe{
+contract PrepaidCardManager is TallyRole, PayableToken, Safe{
     
     //swapOwner(address,address,address)
     bytes4 public constant SWAP_OWNER = 0xe318b52b;
@@ -146,28 +145,26 @@ contract PrepaidCardManager is TallyRole, PayableToken, SimpleExecutor, Safe{
      * @param signatures Packed signature data ({bytes32 r}{bytes32 s}{uint8 v})
      */
     function execTransaction(
-        address card,
+        address payable card,
         address to,
         bytes memory data,
         bytes memory signatures
     ) private returns (bool) {
-
-        bytes memory payloads = abi.encodeWithSelector(
-            EXEC_TRANSACTION, 
-            to,
-            0,
-            data,
-            Enum.Operation.Call,
-            0,
-            0,
-            0,
-            ZERO_ADDRESS,
-            ZERO_ADDRESS,
-            signatures
+        
+        require(
+            GnosisSafe(card).execTransaction(
+                to,
+                0,
+                data,
+                Enum.Operation.Call,
+                0,
+                0,
+                0,
+                address(0),
+                address(0),
+                signatures
+            )
         );
-
-        // should limit this gas or not ? 
-        require(executeCall(card, 0, payloads, gasleft()));
 
         return true;
     }
@@ -320,6 +317,7 @@ contract PrepaidCardManager is TallyRole, PayableToken, SimpleExecutor, Safe{
         bytes calldata signatures
     ) external payable returns(bool) 
     {
+        
         execTransaction(
             card,
             payableTokenAddr,
