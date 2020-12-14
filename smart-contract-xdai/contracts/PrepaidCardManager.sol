@@ -9,9 +9,8 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "./token/IERC677.sol";
 import "./roles/TallyRole.sol";
 import "./roles/PayableToken.sol";
-import "./core/Executor.sol";
 
-contract PrepaidCardManager is TallyRole, PayableToken, SimpleExecutor {
+contract PrepaidCardManager is TallyRole, PayableToken {
     
     //setup(address[],uint256,address,bytes,address,address,uint256,address)
     bytes4 public constant SET_UP = 0xb63e800d;
@@ -23,7 +22,7 @@ contract PrepaidCardManager is TallyRole, PayableToken, SimpleExecutor {
     using SafeMath for uint256;
 
     event CreatePrepaidCard(
-        address supplier,
+        address issuer,
         address card,
         address token,
         uint256 amount
@@ -34,7 +33,7 @@ contract PrepaidCardManager is TallyRole, PayableToken, SimpleExecutor {
     address public gsCreateAndAddModules;
     address public revenuePool;
     
-    mapping(address => address) suppliers;
+    mapping(address => address) internal issuers;
 
     /**
      * @dev Setup function sets initial storage of contract.
@@ -77,19 +76,19 @@ contract PrepaidCardManager is TallyRole, PayableToken, SimpleExecutor {
 
     /**
      * @dev Create Prepaid card
-     * @param supplier Supplier address
+     * @param issuer Supplier address
      * @param token Token address
      * @param amount Amount of Prepaid card
      * @return PrepaidCard address
      */
     function _createPrepaidCard(
-        address supplier,
+        address issuer,
         address token,
         uint256 amount
     ) private returns (address) {
         address[] memory owners = new address[](2);
         owners[0] = address(this);
-        owners[1] = supplier;
+        owners[1] = issuer;
 
         bytes memory payloads = abi.encodeWithSelector(
             SET_UP,
@@ -114,23 +113,23 @@ contract PrepaidCardManager is TallyRole, PayableToken, SimpleExecutor {
 
         require(IERC677(token).transfer(card, amount));
 
-        emit CreatePrepaidCard(supplier, card, token, amount);
+        emit CreatePrepaidCard(issuer, card, token, amount);
 
         // card was created
-        suppliers[card] = supplier;
+        issuers[card] = issuer;
 
         return card;
     }
 
     /**
      * @dev Split Prepaid card
-     * @param supplier Supplier address
+     * @param issuer Supplier address
      * @param token Token address
      * @param amountReceived Amount to split
      * @param amountOfCard array which performing face value of card
      */
     function _createMultiplePrepaidCards(
-        address supplier,
+        address issuer,
         address token,
         uint256 amountReceived,
         uint256[] memory amountOfCard
@@ -143,14 +142,14 @@ contract PrepaidCardManager is TallyRole, PayableToken, SimpleExecutor {
         }
 
         // TODO: should we handle the case when amount received > needed amount
-        //      (transfer the rest of token back to supplier) ?
+        //      (transfer the rest of token back to issuer) ?
         require(
             amountReceived == neededAmount,
             "your amount must be == sum of new cardAmounts"
         );
 
         for (uint256 i = 0; i < numberCard; i++) {
-            _createPrepaidCard(supplier, token, amountOfCard[i]);
+            _createPrepaidCard(issuer, token, amountOfCard[i]);
         }
 
         return true;
@@ -170,22 +169,20 @@ contract PrepaidCardManager is TallyRole, PayableToken, SimpleExecutor {
         bytes memory signatures
     ) private returns (bool) {
 
-        bytes memory payloads = abi.encodeWithSelector(
-            EXEC_TRANSACTION, 
-            to,
-            0,
-            data,
-            Enum.Operation.Call,
-            0,
-            0,
-            0,
-            address(0),
-            address(0),
-            signatures
+         require(
+            GnosisSafe(card).execTransaction(
+                to,
+                0,
+                data,
+                Enum.Operation.Call,
+                0,
+                0,
+                0,
+                address(0),
+                address(0),
+                signatures
+            )
         );
-
-        require(executeCall(card, 0, payloads, gasleft()));
-
 
         return true;
     }
@@ -225,7 +222,7 @@ contract PrepaidCardManager is TallyRole, PayableToken, SimpleExecutor {
         address to
     ) public view returns (bytes memory) {
         // Only sell 1 time
-        require(suppliers[card] == from, "The card has been sold before");
+        require(issuers[card] == from, "The card has been sold before");
 
         // Swap owner
         return
@@ -331,20 +328,20 @@ contract PrepaidCardManager is TallyRole, PayableToken, SimpleExecutor {
         uint256 amount,
         bytes calldata data
     ) external onlyPayableToken returns (bool) {
-        address supplier = address(0);
+        address issuer = address(0);
         uint256[] memory amountOfCard;
 
         if (data.length > 2) {
-            (supplier, amountOfCard) = abi.decode(data, (address, uint256[]));
+            (issuer, amountOfCard) = abi.decode(data, (address, uint256[]));
         }
 
-        require(supplier != address(0), "Missing card owner's address");
+        require(issuer != address(0), "Missing card owner's address");
 
         require(amountOfCard.length > 0);
 
         require(
             _createMultiplePrepaidCards(
-                supplier,
+                issuer,
                 _msgSender(),
                 amount,
                 amountOfCard
