@@ -42,6 +42,15 @@ class TokenHelper {
         return TokenHelper.amountOf(_numberToken, this.decimals);
     }
 
+
+  static  async   getBalance(token, account) 
+   {  
+        let currentBalance =  await token.balanceOf(account); 
+       
+        return  toBN(currentBalance).toString();
+    }
+ 
+
     static amountOf(_numberToken, _decimals = 16) {
         let dec = toBN("10").pow(toBN(_decimals));
         let number = toBN(_numberToken);
@@ -64,6 +73,7 @@ ContractHelper = {
             ]
         )
     },
+
 
     async signAndSendSafeTransactionByRelayer(
         safeTxData = {
