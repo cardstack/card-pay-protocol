@@ -19,6 +19,7 @@ const {
 	getParamsFromEvent,
 	getParamFromTxEvent,
 	getGnosisSafeFromEventLog, 
+    MERCHANT_CREATION,
     padZero
 } = require("./utils/general");
 
@@ -39,14 +40,14 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 		multiSend,
 		offChainId = "Id",
 		fakeDaicpxdToken;
-	let tally, supplier, customer, merchant, relayer, walletOfSupplier;
+	let tally, supplier, customer, merchantOwner, relayer, walletOfSupplier, merchant;
 
 	let prepaidCards = [];
 	before(async () => {
 		tally = accounts[0];
 		supplier = accounts[1];
 		customer = accounts[2];
-		merchant = accounts[3];
+		merchantOwner = accounts[3];
 		relayer = accounts[4];
 
 		let proxyFactory = await ProxyFactory.new();
@@ -120,7 +121,20 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 			[daicpxdToken.address]
 		);
 
-		await revenuePool.registerMerchant(merchant, offChainId);
+		let merchantTx = await revenuePool.registerMerchant(merchantOwner, offChainId);
+       
+        let merchantCreation = await getParamsFromEvent(merchantTx, MERCHANT_CREATION, 
+            [{
+                type: 'address', 
+                name: 'merchantOwner'
+            }, 
+                {type: 'address',
+                    name: 'merchant'
+                }
+            ]
+        );
+
+        merchant = merchantCreation[0]['merchant'];
 
 		await prepaidCardManager.setup(
 			tally,
@@ -624,7 +638,6 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
         let data = await prepaidCardManager.getPayData(
             daicpxdToken.address, 
             merchant,
-            0,
             TokenHelper.amountOf(1)
         ) 
         
@@ -647,7 +660,6 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
             prepaidCards[2].address, 
             daicpxdToken.address, 
             merchant, 
-            0, 
             TokenHelper.amountOf(1), 
             await prepaidCardManager.appendPrepaidCardAdminSignature(
                 customer,
@@ -665,7 +677,6 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
         let data = await prepaidCardManager.getPayData(
             daicpxdToken.address, 
             merchant,
-            0,
             TokenHelper.amountOf(10)
         ) 
         
@@ -690,7 +701,6 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
                 prepaidCards[2].address, 
                 daicpxdToken.address, 
                 merchant, 
-                0, 
                 TokenHelper.amountOf(10), 
                 await prepaidCardManager.appendPrepaidCardAdminSignature(
                     customer,

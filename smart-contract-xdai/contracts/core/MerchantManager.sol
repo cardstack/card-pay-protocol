@@ -8,12 +8,13 @@ import "../roles/TallyRole.sol";
 contract MerchantManager is TallyRole, Safe {
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    event CreateMerchantWallet(address merchant, address wallet);
+    event MerchantCreation(address merchantOwner, address merchant);
 
     struct Merchant {
-        EnumerableSet.AddressSet wallets;
-        string merchantId; // offchant id
-        bool registered;
+        bool resigter;
+        // offchant id
+        string merchantId;         
+        // mapping from token address to number token belongs of the merchant. 
         mapping(address => uint256) lockTotal;
     }
 
@@ -23,53 +24,28 @@ contract MerchantManager is TallyRole, Safe {
         Safe.setup(_gsMasterCopy, _gsProxyFactory);
     }
 
-    function isRegistered(address account) public view returns (bool) {
-        return merchants[account].registered;
+    function isMerchant(address merchantAddr) public view returns (bool) {
+        return merchants[merchantAddr].resigter;
     }
 
-    function registerMerchant(address merchantAddr, string calldata merchantId)
+    function registerMerchant(address merchantOwner, string calldata merchantId)
         external
         onlyTally
+        returns(address)
     {
         require(
-            merchantAddr != address(0),
+            merchantOwner != address(0),
             "Merchant address shouldn't zero address"
         );
 
-        require(!isRegistered(merchantAddr), "Merchants registered");
-
-        merchants[merchantAddr].registered = true;
-
-        merchants[merchantAddr].merchantId = merchantId;
-
-        createAndAddWallet(merchantAddr);
-
-    }
-
-    function createAndAddWallet(address merchantAddr) public onlyTally returns(bool) {
-        require(isRegistered(merchantAddr), "Merchants not registered");
+        address merchant = createSafe(merchantOwner);
+         
+        merchants[merchant].resigter = true; 
+        merchants[merchant].merchantId = merchantId;
         
-        
-        address gsWalletAddr = createSafe(merchantAddr);
-        
-        merchants[merchantAddr].wallets.add(gsWalletAddr);
+        emit MerchantCreation(merchantOwner, merchant);
 
-        emit CreateMerchantWallet(merchantAddr, gsWalletAddr);
-        return true;
+        return merchant;
     }
 
-    function getNumberWallet(address merchantAddr) public view returns(uint) {
-        return merchants[merchantAddr].wallets.values.length;
-    }
-    
-    function getMerchantWallet(address merchantAddr, uint256 walletIndex)
-        public
-        view
-        returns (address)
-    {
-        require(isRegistered(merchantAddr), "Merchants not registered");
-        require(walletIndex < getNumberWallet(merchantAddr), "Wrong wallet index");
-
-        return merchants[merchantAddr].wallets.get(walletIndex);
-    }
 }

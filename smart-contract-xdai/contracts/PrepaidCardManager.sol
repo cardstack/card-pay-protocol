@@ -302,7 +302,6 @@ contract PrepaidCardManager is TallyRole, PayableToken, Safe{
      * @param card Prepaid Card's address
      * @param payableTokenAddr payable token address 
      * @param merchant Merchant's address
-     * @param index index of Meschant'a wallet
      * @param payment value to pay to merchant
      * @param signatures Packed signature data ({bytes32 r}{bytes32 s}{uint8 v})
      * TODO: should limit minimum price of merchant service. Attacker can spam our contract if price is to low. 
@@ -312,18 +311,20 @@ contract PrepaidCardManager is TallyRole, PayableToken, Safe{
         address payable card,
         address payableTokenAddr,
         address merchant,
-        uint256 index,
         uint256 payment,
         bytes calldata signatures
-    ) external payable returns(bool) 
+    ) 
+        external 
+        returns(bool) 
     {
         
         execTransaction(
             card,
             payableTokenAddr,
-            getPayData(payableTokenAddr, merchant, index, payment),
+            getPayData(payableTokenAddr, merchant, payment),
             signatures
         );
+
         return true;
     }
 
@@ -331,13 +332,11 @@ contract PrepaidCardManager is TallyRole, PayableToken, Safe{
      * @dev Returns the bytes that are hashed to be signed by owners.
      * @param token Token's address
      * @param to Merchant's address
-     * @param index index of Meschant'a wallet
      * @param value value to pay to merchant
      */
     function getPayData(
         address token,
         address to,
-        uint256 index,
         uint256 value
     ) public view returns (bytes memory) {
         return
@@ -345,7 +344,7 @@ contract PrepaidCardManager is TallyRole, PayableToken, Safe{
                 TRANSER_AND_CALL,
                 revenuePool,
                 value,
-                abi.encode(to, index)
+                abi.encode(to)
             );
     }
 

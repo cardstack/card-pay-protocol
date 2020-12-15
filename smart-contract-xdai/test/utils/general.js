@@ -26,7 +26,11 @@ const EXECUTE_EVENT_FAILED = web3EthAbi.encodeEventSignature("ExecutionFailure(b
 
 const EXECUTE_EVENT_SUCCESS = web3EthAbi.encodeEventSignature("ExecutionSuccess(bytes32,uint256)");
 
+
+const MERCHANT_CREATION = web3EthAbi.encodeEventSignature("MerchantCreation(address,address)");
+
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+
 
 const EXECUTE_EVENT_META = [{
 	'type': 'bytes32',
@@ -229,7 +233,8 @@ Object.assign(exports, {
 	encodeArray,
 	getGnosisSafeFromEventLog,
 	getParamsFromEvent, 
-    padZero
+    padZero, 
+    MERCHANT_CREATION
 });
 
 module.exports = exports;

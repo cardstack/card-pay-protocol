@@ -12,7 +12,7 @@ contract('Test Revenue Pool contract', accounts => {
     const tokenMeta = ["DAICPXD Token", "DAICPXD", 16]
 
     let daicpxdToken, revenuePool, spendToken, fakeToken;
-    let walletOfMerchant, lw, tally;
+    let lw, tally, merchant;
     let offchainId;
 
     before(async () => {
@@ -55,23 +55,23 @@ contract('Test Revenue Pool contract', accounts => {
     })
 
     it('merchant resigter by tally', async () => {
-        await revenuePool.registerMerchant(lw.accounts[0], offchainId, {
+        let tx = await revenuePool.registerMerchant(lw.accounts[0], offchainId, {
             from: tally
         });
-        walletOfMerchant = await revenuePool.getMerchantWallet(lw.accounts[0], 0);
-        assert.ok(true, "The merchant should be created.");
-    })
+        
+        let merchantCreation = await utils.getParamsFromEvent(tx, utils.MERCHANT_CREATION, 
+            [{
+                type: 'address', 
+                name: 'merchantOwner'
+            }, 
+                {type: 'address',
+                    name: 'merchant'
+                }
+            ]
+        );
 
-    it('merchant resigter by tally but merchant registered', async () => {
-        try {
-            await revenuePool.registerMerchant(lw.accounts[0], offchainId, {
-                from: tally
-            });
-            assert.ok(false, "Should not register merchant");
-        } catch (err) {
-            assert.ok(true);
-            assert.equal(err.reason, "Merchants registered");
-        }
+        merchant = merchantCreation[0]['merchant'];
+        assert.isTrue(await revenuePool.isMerchant(merchant), "The merchant should be created.");
     })
 
     it('merchant resigter by tally but merchant address is zero', async () => {
@@ -102,25 +102,25 @@ contract('Test Revenue Pool contract', accounts => {
 
     it('pay 1 DAI CPXD token to pool and mint SPEND token for merchant wallet', async () => {
         let amount = TokenHelper.amountOf(1); // equal 1 * 10^2
-        let data = web3.eth.abi.encodeParameters(['address', 'uint'], [lw.accounts[0], 0]);
+        let data = web3.eth.abi.encodeParameters(['address'], [merchant]);
 
         await daicpxdToken.transferAndCall(revenuePool.address, amount, data);
 
-        let balanceOfMerchantSPEND = await spendToken.balanceOf(walletOfMerchant);
+        let balanceOfMerchantSPEND = await spendToken.balanceOf(merchant);
         let balanceCustomer = await daicpxdToken.balanceOf(accounts[0]);
         assert.equal(balanceCustomer.toString(), TokenHelper.amountOf(9));
         assert.equal(balanceOfMerchantSPEND.toString(), '100');
     })
 
     it('redeem 1 DAI CPXD for merchant by tally', async () => {
-        let amount = TokenHelper.amountOf(1)
+        let amount = TokenHelper.amountOf(1);
 
-        await revenuePool.redeemRevenue(lw.accounts[0], 0, [daicpxdToken.address], [amount], {
+        await revenuePool.redeemRevenue(merchant, [daicpxdToken.address], [amount], {
             from: tally
         });
 
-        let balanceOfMerchantDAICPXD = await daicpxdToken.balanceOf(walletOfMerchant);
-        let numberSPEND = await spendToken.balanceOf(walletOfMerchant);
+        let balanceOfMerchantDAICPXD = await daicpxdToken.balanceOf(merchant);
+        let numberSPEND = await spendToken.balanceOf(merchant);
 
         assert.equal(balanceOfMerchantDAICPXD.toString(), TokenHelper.amountOf(1));
         assert.equal(numberSPEND.toString(), '100');
@@ -130,7 +130,7 @@ contract('Test Revenue Pool contract', accounts => {
         let amount = TokenHelper.amountOf(1)
         let isRevert = false;
         try {
-            await revenuePool.redeemRevenue(lw.accounts[0], 0, [daicpxdToken.address], [], {
+            await revenuePool.redeemRevenue(merchant, [daicpxdToken.address], [], {
                 from: tally
             });
         } catch (err) {
@@ -142,11 +142,13 @@ contract('Test Revenue Pool contract', accounts => {
 
     it('pay 2 DAI CPXD token to pool and mint SPEND token for merchant wallet', async () => {
         let amount = TokenHelper.amountOf(2); // equal 2 * 10^18
-        let data = web3.eth.abi.encodeParameters(['address', 'uint'], [lw.accounts[0], 0]);
+        let data = web3.eth.abi.encodeParameters(['address'], [
+            merchant
+        ]);
 
         await daicpxdToken.transferAndCall(revenuePool.address, amount, data);
 
-        let balanceOfMerchantSPEND = await spendToken.balanceOf(walletOfMerchant);
+        let balanceOfMerchantSPEND = await spendToken.balanceOf(merchant);
         let balanceCustomer = await daicpxdToken.balanceOf(accounts[0]);
 
         assert.equal(balanceCustomer.toString(), TokenHelper.amountOf(7));
@@ -156,7 +158,7 @@ contract('Test Revenue Pool contract', accounts => {
     it('redeem 1 for merchant and sender is not tally', async () => {
         let amount = '1';
         try {
-            await revenuePool.redeemRevenue(lw.accounts[0], 0, [daicpxdToken.address], [amount], {
+            await revenuePool.redeemRevenue(merchant, [daicpxdToken.address], [amount], {
                 from: accounts[2]
             });
             assert.ok(false, "Dont allow for do this.");
@@ -174,23 +176,8 @@ contract('Test Revenue Pool contract', accounts => {
             await daicpxdToken.transferAndCall(revenuePool.address, amount, data);
             assert.ok(false);
         } catch (err) {
-            assert.equal(err.reason, "Merchants not registered");
+            assert.equal(err.reason, "merchant not exist");
             assert.ok(true);
-        }
-
-        let balanceAfter = await daicpxdToken.balanceOf(accounts[0]);
-        assert.equal(balanceAfter.toString(), balanceBefore.toString());
-    })
-
-    it('pay 1 DAI CPXD but wallet index wrong', async () => {
-        let balanceBefore = await daicpxdToken.balanceOf(accounts[0]);
-        let data = web3.eth.abi.encodeParameters(['address', 'uint'], [lw.accounts[0], 10]);
-        let amount = TokenHelper.amountOf(1, 2); // 1 DAI CPXD
-        try {
-            await daicpxdToken.transferAndCall(revenuePool.address, amount, data);
-            assert.ok(false);
-        } catch (err) {
-            assert.equal(err.reason, "Wrong wallet index");
         }
 
         let balanceAfter = await daicpxdToken.balanceOf(accounts[0]);
@@ -219,33 +206,6 @@ contract('Test Revenue Pool contract', accounts => {
         }
     })
 
-    it("add more wallet for merchant", async () => {
-        await revenuePool.createAndAddWallet(lw.accounts[0]);
-        await revenuePool.getMerchantWallet(lw.accounts[0], 1);
-        assert.ok(true, "Should create new wallet and add to merchant record");
-    })
-
-    it("pay for new wallet", async () => {
-        let amount = TokenHelper.amountOf(2);
-        let data = web3.eth.abi.encodeParameters(['address', 'uint'], [lw.accounts[0], 1]);
-        let newWallet = await revenuePool.getMerchantWallet(lw.accounts[0], 1);
-        await daicpxdToken.transferAndCall(revenuePool.address, amount, data);
-
-        let balanceOfMerchantSPEND = await spendToken.balanceOf(newWallet);
-        let balanceCustomer = await daicpxdToken.balanceOf(accounts[0]);
-
-        assert.equal(balanceCustomer.toString(), TokenHelper.amountOf(5));
-        assert.equal(balanceOfMerchantSPEND.toString(), '200');
-    })
-
-    it("add more wallet for account not is merchant", async () => {
-        try {
-            await revenuePool.createAndAddWallet(lw.accounts[7]);
-            assert.ok(false, "Should not create new wallet and add to merchant record");
-        } catch (err) {
-            assert.equal(err.reason, "Merchants not registered")
-        }
-    })
 
     it("set up wrong data", async () => {
         try {
