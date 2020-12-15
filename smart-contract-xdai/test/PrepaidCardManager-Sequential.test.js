@@ -290,7 +290,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 
 
 
-     it('lets try getting the nonce and transactionHash from a different wallet', async () => {
+     it('Issuer Creates a new Wallet ', async () => {
 
 		let amountBefore = await daicpxdToken.balanceOf(walletOfSupplier1.address);
 
