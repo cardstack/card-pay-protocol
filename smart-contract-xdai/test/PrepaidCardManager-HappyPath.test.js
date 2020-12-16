@@ -147,12 +147,23 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 			)
 			.encodeABI();
 
+		let gasEstimate = await daicpxdToken.contract.methods
+			.transferAndCall(
+				prepaidCardManager.address,
+				TokenHelper.amountOf(8),
+				ContractHelper.prepageDataForCreateMutipleToken(
+					walletOfSupplier.address,
+					amounts
+				)
+			)
+			.estimateGas();
+
 		let safeTxData = {
 			to: daicpxdToken.address,
 			value: 0,
 			data: payloads,
 			operation: 0,
-			txGasEstimate: 1000000,
+			txGasEstimate: gasEstimate,
 			baseGasEstimate: 0,
 			gasPrice: 1000000000,
 			txGasToken: daicpxdToken.address,
@@ -213,7 +224,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 							prepaidCards[2].address,
 							walletOfSupplier.address,
 							customer,
-							(await prepaidCards[2].nonce.call()).toNumber()
+							await prepaidCards[2].nonce.call()
 						)
 					)
 					.encodeABI(),

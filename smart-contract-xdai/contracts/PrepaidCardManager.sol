@@ -18,6 +18,9 @@ contract PrepaidCardManager is TallyRole, PayableToken {
     bytes4 public constant SWAP_OWNER = 0xe318b52b;
     //"execTransaction(address,uint256,bytes,uint8,uint256,uint256,uint256,address,address,bytes)"   // use uint8 <=> Enum.operation
     bytes4 public constant EXEC_TRANSACTION = 0x6a761202;
+    
+    uint256 public maximumFaceValue;
+    uint256 public minimumFaceValue;
 
     using SafeMath for uint256;
 
@@ -33,7 +36,13 @@ contract PrepaidCardManager is TallyRole, PayableToken {
     address public gsCreateAndAddModules;
     address public revenuePool;
     
-    mapping(address => address) internal issuers;
+    
+    struct CardDetail {
+        address issuer; 
+        address issuerToken;
+    }
+
+    mapping(address => CardDetail) public cardDetails;
 
     /**
      * @dev Setup function sets initial storage of contract.
@@ -116,9 +125,18 @@ contract PrepaidCardManager is TallyRole, PayableToken {
         emit CreatePrepaidCard(issuer, card, token, amount);
 
         // card was created
-        issuers[card] = issuer;
+        cardDetails[card].issuer = issuer;
+        cardDetails[card].issuerToken = token;
 
         return card;
+    }
+    
+    function insideRange(uint number, uint _minimumFaceValue, uint _maximumFaceValue, uint decimals) 
+        public 
+        pure 
+        returns(bool) 
+    {
+        return (number >= _minimumFaceValue.mul(10 ** decimals)) && (number <= _maximumFaceValue.mul(10 ** decimals));
     }
 
     /**
@@ -222,7 +240,7 @@ contract PrepaidCardManager is TallyRole, PayableToken {
         address to
     ) public view returns (bytes memory) {
         // Only sell 1 time
-        require(issuers[card] == from, "The card has been sold before");
+        require(cardDetails[card].issuer == from, "The card has been sold before");
 
         // Swap owner
         return
@@ -350,4 +368,5 @@ contract PrepaidCardManager is TallyRole, PayableToken {
         
         return true;
     }
+
 }
