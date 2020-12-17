@@ -1,4 +1,4 @@
-pragma solidity ^0.5.17;
+pragma solidity 0.5.17;
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../roles/PayableToken.sol";
@@ -29,7 +29,7 @@ contract Exchange is PayableToken {
         pure
         returns (uint256)
     {
-        return amount.mul(10**14);
+        return amount.mul(10**16);
     }
 
     /**
@@ -44,7 +44,7 @@ contract Exchange is PayableToken {
         pure
         returns (uint256)
     {   
-        return amount.div(10**14);
+        return amount.div(10**16);
     }
 
 }

@@ -28,7 +28,7 @@ const {
 
 
 contract("Test Prepaid Card Manager contract", (accounts) => {
-	const tokenMeta = ["DAICPXD Token", "DAICPXD", 16]
+	const tokenMeta = ["DAICPXD Token", "DAICPXD", 18]
 
 	let daicpxdToken,
 		revenuePool,
@@ -286,6 +286,47 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 		await TokenHelper.isEqualBalance(daicpxdToken, relayer, oldRelayerBalance.add(payment));
 	});
 
+	it("Issure create card with value less than 1 token", async() => {
+		let amountBefore = await daicpxdToken.balanceOf(walletOfIssuer.address);
+
+		let payloads = daicpxdToken.contract.methods
+			.transferAndCall(
+				prepaidCardManager.address,
+				TokenHelper.amountOf(0),
+				ContractHelper.prepageDataForCreateMutipleToken(walletOfIssuer.address, [TokenHelper.amountOf(0)])
+			).encodeABI();
+
+		let safeTxData = {
+			to: daicpxdToken.address,
+			value: 0,
+			data: payloads,
+			operation: 0,
+			txGasEstimate: 1000000,
+			baseGasEstimate: 0,
+			gasPrice: 1000000000,
+			txGasToken: daicpxdToken.address,
+			refundReceive: relayer
+		}
+
+		let {
+			safeTxHash,
+			safeTx
+		} = await ContractHelper.signAndSendSafeTransactionByRelayer(
+			safeTxData,
+			issuer,
+			walletOfIssuer,
+			relayer
+		)
+
+
+		let executeFailed = getParamsFromEvent(safeTx, EXECUTE_EVENT_FAILED, EXECUTE_EVENT_META);
+		assert.ok(Array.isArray(executeFailed) && executeFailed.length > 0)
+		assert.deepEqual(safeTxHash.toString(), executeFailed[0]['txHash']);
+		
+		let payment = toBN(executeFailed[0]['payment']);
+
+		await TokenHelper.isEqualBalance(daicpxdToken, walletOfIssuer.address, amountBefore.sub(payment));
+	})
 	it("Issuer create multi Prepaid Card fail when amount > issuer's balance", async () => {
 
 		let oldWalletBalance = await daicpxdToken.balanceOf(walletOfIssuer.address);

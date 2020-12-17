@@ -1,4 +1,4 @@
-pragma solidity ^0.5.17;
+pragma solidity 0.5.17;
 
 import "@openzeppelin/contracts/utils/EnumerableSet.sol";
 import "@gnosis.pm/safe-contracts/contracts/proxies/GnosisSafeProxyFactory.sol";

@@ -37,7 +37,7 @@ const {
 
 contract("Test Prepaid Card Manager contract", (accounts) => {
 
-	const tokenMeta = ["DAICPXD Token", "DAICPXD", 16]
+	const tokenMeta = ["DAICPXD Token", "DAICPXD", 18]
 
 	let daicpxdToken,
 		revenuePool,

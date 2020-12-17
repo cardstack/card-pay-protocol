@@ -1,4 +1,4 @@
-pragma solidity >=0.5.0 <0.7.0;
+pragma solidity 0.5.17;
 
 import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 import "@gnosis.pm/safe-contracts/contracts/proxies/GnosisSafeProxy.sol";
@@ -19,8 +19,7 @@ contract PrepaidCardManager is TallyRole, PayableToken {
     //"execTransaction(address,uint256,bytes,uint8,uint256,uint256,uint256,address,address,bytes)"   // use uint8 <=> Enum.operation
     bytes4 public constant EXEC_TRANSACTION = 0x6a761202;
     
-    uint256 public maximumFaceValue;
-    uint256 public minimumFaceValue;
+    uint256 public constant MINIMUM_CARD_VALUE = 10 ** 18; 
 
     using SafeMath for uint256;
 
@@ -95,6 +94,8 @@ contract PrepaidCardManager is TallyRole, PayableToken {
         address token,
         uint256 amount
     ) private returns (address) {
+        require(amount >= MINIMUM_CARD_VALUE, "Your card amount very small.");
+
         address[] memory owners = new address[](2);
         owners[0] = address(this);
         owners[1] = issuer;
@@ -131,13 +132,7 @@ contract PrepaidCardManager is TallyRole, PayableToken {
         return card;
     }
     
-    function insideRange(uint number, uint _minimumFaceValue, uint _maximumFaceValue, uint decimals) 
-        public 
-        pure 
-        returns(bool) 
-    {
-        return (number >= _minimumFaceValue.mul(10 ** decimals)) && (number <= _maximumFaceValue.mul(10 ** decimals));
-    }
+  
 
     /**
      * @dev Split Prepaid card

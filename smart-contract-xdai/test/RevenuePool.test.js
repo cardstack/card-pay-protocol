@@ -9,7 +9,7 @@ const utils = require('./utils/general');
 const TokenHelper = require('./utils/helper').TokenHelper;
 
 contract('Test Revenue Pool contract', accounts => {
-    const tokenMeta = ["DAICPXD Token", "DAICPXD", 16]
+    const tokenMeta = ["DAICPXD Token", "DAICPXD", 18]
 
     let daicpxdToken, revenuePool, spendToken, fakeToken;
     let walletOfMerchant, lw, tally;

@@ -19,7 +19,7 @@ const {
 
 
 contract("Test contract by EOA", (accounts) => {
-    const tokenMeta = ["DAICPXD Token", "DAICPXD", 16]
+    const tokenMeta = ["DAICPXD Token", "DAICPXD", 18]
 
     let daicpxdToken,
         revenuePool,
