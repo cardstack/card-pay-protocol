@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "compile-contracts": "./node_modules/.bin/truffle compile",
-    "test": "./node_modules/.bin/truffle test", 
+    "recompile": "rm -rf build && npm run compile-contracts",
+    "test": "./node_modules/.bin/truffle test",
     "test:coverage": "./node_modules/.bin/truffle run coverage"
   },
   "repository": {
@@ -27,6 +28,7 @@
     "eth-lightwallet": "^4.0.0",
     "truffle": "^5.1.51",
     "truffle-hdwallet-provider": "^1.0.17",
+    "web3-eth-abi": "^1.3.0",
     "web3-utils": "^1.3.0"
   },
   "devDependencies": {

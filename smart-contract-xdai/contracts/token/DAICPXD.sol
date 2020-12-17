@@ -1,7 +1,7 @@
-pragma solidity ^0.5.17;
+pragma solidity 0.5.17;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20Detailed.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20Mintable.sol"; 
+import "@openzeppelin/contracts/token/ERC20/ERC20Mintable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20Burnable.sol";
 import "./ERC677TransferReceiver.sol";
 import "./IERC677.sol";
@@ -10,17 +10,31 @@ import "./IERC677.sol";
  * @dev reference from https://github.com/smartcontractkit/LinkToken
  */
 contract DAICPXD is IERC677, ERC20Detailed, ERC20Mintable, ERC20Burnable {
-
-    constructor(uint initialSupply) ERC20Detailed("DAI CPXD Token", "DAI CPXD", 2) public {
+    
+    constructor(
+        string memory _name,
+        string memory _symbol,
+        uint8 _decimals,
+        uint256 initialSupply
+    ) public ERC20Detailed(_name, _symbol, _decimals) {
         _mint(msg.sender, initialSupply);
     }
 
-    function contractFallBack(address _from, address _to, uint256 _value, bytes memory _data) private {
+    function contractFallBack(
+        address _from,
+        address _to,
+        uint256 _value,
+        bytes memory _data
+    ) private {
         ERC677TransferReceiver receiver = ERC677TransferReceiver(_to);
         receiver.onTokenTransfer(_from, _value, _data);
     }
-    
-    function transferAndCall(address _to, uint _value, bytes memory _data) public returns (bool) {
+
+    function transferAndCall(
+        address _to,
+        uint256 _value,
+        bytes memory _data
+    ) public returns (bool) {
         bool result = super.transfer(_to, _value);
         if (!result) return false;
 
@@ -31,7 +45,7 @@ contract DAICPXD is IERC677, ERC20Detailed, ERC20Mintable, ERC20Burnable {
         }
 
         return true;
-    }   
+    }
 
     /**
      * @dev use util from openzeppelin contract
@@ -41,9 +55,12 @@ contract DAICPXD is IERC677, ERC20Detailed, ERC20Mintable, ERC20Burnable {
         // and 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470 is returned
         // for accounts without code, i.e. `keccak256('')`
         bytes32 codehash;
+
         bytes32 accountHash = 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470;
         // solhint-disable-next-line no-inline-assembly
-        assembly { codehash := extcodehash(account) }
+        assembly {
+            codehash := extcodehash(account)
+        }
         return (codehash != accountHash && codehash != 0x0);
-    } 
+    }
 }

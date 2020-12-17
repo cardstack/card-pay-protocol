@@ -1,4 +1,4 @@
-pragma solidity ^0.5.17;
+pragma solidity 0.5.17;
 
 import "./ISPEND.sol";
 import "@openzeppelin/contracts/ownership/Ownable.sol";

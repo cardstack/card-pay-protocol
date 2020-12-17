@@ -4,9 +4,15 @@
 
 - node 12
 - solidity 0.5.x
-
+- ganache-cli >= 6.12.1
 
 ## Build
+
+Install ganache-cli(only one time).
+
+```sh
+npm i -g ganache-cli
+```
 
 ```sh
 npm install
@@ -19,6 +25,14 @@ npm run compile-contracts
 ```
 
 ## Run test
+
+Start ganache-cli first.
+
+```sh
+ganache-cli -p 7777 -k istanbul
+```
+
+Run tests
 
 ```sh
 npm run test

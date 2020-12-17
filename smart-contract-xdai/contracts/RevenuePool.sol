@@ -1,4 +1,4 @@
-pragma solidity ^0.5.17;
+pragma solidity 0.5.17;
 
 import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
@@ -7,16 +7,13 @@ import "./IRevenuePool.sol";
 import "./token/IERC677.sol";
 import "./token/ISPEND.sol";
 import "./roles/TallyRole.sol";
-import "./roles/PayableToken.sol";
 import "./core/MerchantManager.sol";
 import "./core/Exchange.sol";
 
 contract RevenuePool is
     TallyRole,
-    PayableToken,
     MerchantManager,
-    Exchange,
-    IRevenuePool
+    Exchange
 {
     using SafeMath for uint256;
 
