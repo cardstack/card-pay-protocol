@@ -9,7 +9,7 @@ const utils = require('./utils/general');
 const TokenHelper = require('./utils/helper').TokenHelper;
 
 contract('Test Revenue Pool contract', accounts => {
-    const tokenMeta = ["DAICPXD Token", "DAICPXD", 16]
+    const tokenMeta = ["DAICPXD Token", "DAICPXD", 18]
 
     let daicpxdToken, revenuePool, spendToken, fakeToken;
     let lw, tally, merchant;
@@ -171,7 +171,7 @@ contract('Test Revenue Pool contract', accounts => {
     it('pay 1 DAI CPXD and receive address is not merchant', async () => {
         let balanceBefore = await daicpxdToken.balanceOf(accounts[0]);
         let data = web3.eth.abi.encodeParameters(['address', 'uint'], [lw.accounts[2], 0]);
-        let amount = TokenHelper.amountOf(1, 2); // 1 DAI CPXD
+        let amount = TokenHelper.amountOf(1); // 1 DAI CPXD
         try {
             await daicpxdToken.transferAndCall(revenuePool.address, amount, data);
             assert.ok(false);

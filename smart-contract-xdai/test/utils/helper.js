@@ -23,7 +23,7 @@ TokenHelper = {
         return assert.strictEqual((await token.balanceOf(address)).toString(), amount.toString());
     },
 
-    amountOf(_numberToken, _decimals = 16) {
+    amountOf(_numberToken, _decimals = 18) {
         let dec = toBN("10").pow(toBN(_decimals));
         let number = toBN(_numberToken);
         return number.mul(dec).toString();

@@ -29,7 +29,7 @@ contract Exchange is PayableToken {
         pure
         returns (uint256)
     {
-        return amount.mul(10**14);
+        return amount.mul(10**16);
     }
 
     /**
@@ -44,7 +44,7 @@ contract Exchange is PayableToken {
         pure
         returns (uint256)
     {   
-        return amount.div(10**14);
+        return amount.div(10**16);
     }
 
 }
