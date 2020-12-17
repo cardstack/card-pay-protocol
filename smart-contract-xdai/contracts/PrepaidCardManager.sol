@@ -19,7 +19,8 @@ contract PrepaidCardManager is TallyRole, PayableToken {
     //"execTransaction(address,uint256,bytes,uint8,uint256,uint256,uint256,address,address,bytes)"   // use uint8 <=> Enum.operation
     bytes4 public constant EXEC_TRANSACTION = 0x6a761202;
     
-    uint256 public constant MINIMUM_CARD_VALUE = 10 ** 18; 
+    uint256 public constant MINIMUM_CARD_VALUE = 10 ** 18; // 1 token 
+    uint256 public constant MAXIMUM_CARD_VALUE = 50 * (10 ** 18); // 50 token
 
     using SafeMath for uint256;
 
@@ -94,7 +95,6 @@ contract PrepaidCardManager is TallyRole, PayableToken {
         address token,
         uint256 amount
     ) private returns (address) {
-        require(amount >= MINIMUM_CARD_VALUE, "Your card amount very small.");
 
         address[] memory owners = new address[](2);
         owners[0] = address(this);
@@ -151,6 +151,11 @@ contract PrepaidCardManager is TallyRole, PayableToken {
         uint256 numberCard = amountOfCard.length; 
 
         for (uint256 i = 0; i < numberCard; i++) {
+            require(
+                (amountOfCard[i] >= MINIMUM_CARD_VALUE) 
+                && (amountOfCard[i] <= MAXIMUM_CARD_VALUE),
+                "Your card amount too big or too small."
+            );
             neededAmount = neededAmount.add(amountOfCard[i]);
         }
 
