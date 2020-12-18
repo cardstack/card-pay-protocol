@@ -19,7 +19,7 @@ const {
 
 
 contract("Test contract by EOA", (accounts) => {
-    const tokenMeta = ["DAICPXD Token", "DAICPXD", 16]
+    const tokenMeta = ["DAICPXD Token", "DAICPXD", 18]
 
     let daicpxdToken,
         revenuePool,
@@ -100,7 +100,7 @@ contract("Test contract by EOA", (accounts) => {
 
         let amounts = [1, 2, 10].map(amount => TokenHelper.amountOf(amount));
 
-        let data = ContractHelper.prepageDataForCreateMutipleToken(supplierEOA, amounts);
+        let data = ContractHelper.prepareDataForCreateMutipleToken(supplierEOA, amounts);
 
         let tx = await daicpxdToken.transferAndCall(prepaidCardManager.address, TokenHelper.amountOf(13), data, {
             from: supplierEOA
@@ -123,7 +123,7 @@ contract("Test contract by EOA", (accounts) => {
         try {
             let amounts = [1, 2, 3].map(amount => TokenHelper.amountOf(amount));
 
-            let data = ContractHelper.prepageDataForCreateMutipleToken(supplierEOA, amounts);
+            let data = ContractHelper.prepareDataForCreateMutipleToken(supplierEOA, amounts);
 
             let tx = await daicpxdToken.transferAndCall(prepaidCardManager.address, TokenHelper.amountOf(10), data, {
                 from: supplierEOA
@@ -134,12 +134,11 @@ contract("Test contract by EOA", (accounts) => {
         }
     })
 
-
     it('Create muliple card by EOA account failed because your amount must be == sum of new cardAmounts', async () => {
         try {
             let amounts = [1, 2, 9].map(amount => TokenHelper.amountOf(amount));
 
-            let data = ContractHelper.prepageDataForCreateMutipleToken(supplierEOA, amounts)
+            let data = ContractHelper.prepareDataForCreateMutipleToken(supplierEOA, amounts)
 
             let tx = await daicpxdToken.transferAndCall(prepaidCardManager.address, TokenHelper.amountOf(6), data, {
                 from: supplierEOA

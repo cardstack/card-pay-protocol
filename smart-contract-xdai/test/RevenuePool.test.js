@@ -60,11 +60,13 @@ contract('Test Revenue Pool contract', accounts => {
         });
         
         let merchantCreation = await utils.getParamsFromEvent(tx, utils.MERCHANT_CREATION, 
-            [{
-                type: 'address', 
-                name: 'merchantOwner'
-            }, 
-                {type: 'address',
+            [
+                {
+                    type: 'address', 
+                    name: 'merchantOwner'
+                }, 
+                {
+                    type: 'address',
                     name: 'merchant'
                 }
             ]
@@ -75,33 +77,36 @@ contract('Test Revenue Pool contract', accounts => {
     })
 
     it('merchant resigter by tally but merchant address is zero', async () => {
+        let failed = false;
         try {
             await revenuePool.registerMerchant(utils.Address0, offchainId, {
                 from: tally
             });
-            assert.ok(false, "Should not register merchant");
         } catch (err) {
-            assert.ok(true);
+            failed = true;
             assert.equal(err.reason, "Merchant address shouldn't zero address");
         }
+        assert.isTrue(failed, "Should regsiter merchant with account zero");
     })
 
 
     it('merchant resigter not by tally', async () => {
+        let failed = false;
         try {
             await revenuePool.registerMerchant(lw.accounts[0], offchainId, {
                 from: accounts[2]
             });
             walletOfMerchant = await revenuePool.getMerchantWallet(lw.accounts[0]);
-            assert.ok(false, "The merchant shouldn't be created.");
         } catch (err) {
             assert.equal(err.reason, "Tally: caller is not the tally");
+            failed = true;
         }
+        assert.isTrue(failed, "The merchant shouldn't be created.");
     })
 
 
     it('pay 1 DAI CPXD token to pool and mint SPEND token for merchant wallet', async () => {
-        let amount = TokenHelper.amountOf(1); // equal 1 * 10^2
+        let amount = TokenHelper.amountOf(1); 
         let data = web3.eth.abi.encodeParameters(['address'], [merchant]);
 
         await daicpxdToken.transferAndCall(revenuePool.address, amount, data);
@@ -170,7 +175,8 @@ contract('Test Revenue Pool contract', accounts => {
 
     it('pay 1 DAI CPXD and receive address is not merchant', async () => {
         let balanceBefore = await daicpxdToken.balanceOf(accounts[0]);
-        let data = web3.eth.abi.encodeParameters(['address', 'uint'], [lw.accounts[2], 0]);
+        //lw.accounts[1] is not merchant.
+        let data = web3.eth.abi.encodeParameters(['address'], [lw.accounts[1]]);
         let amount = TokenHelper.amountOf(1); // 1 DAI CPXD
         try {
             await daicpxdToken.transferAndCall(revenuePool.address, amount, data);
@@ -196,7 +202,7 @@ contract('Test Revenue Pool contract', accounts => {
     it("call transferAndCall from contract which not payable", async () => {
         try {
 
-            let amount = TokenHelper.amountOf('1', 2); // equal 1 * 10^18
+            let amount = TokenHelper.amountOf('1'); // equal 1 * 10^18
             let data = web3.eth.abi.encodeParameter('address', lw.accounts[0]);
 
             await fakeToken.transferAndCall(revenuePool.address, amount, data);

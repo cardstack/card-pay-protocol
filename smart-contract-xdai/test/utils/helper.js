@@ -9,7 +9,7 @@ const {
     signSafeTransaction
 } = require('./general')
 
-TokenHelper = {
+const TokenHelper = {
 
     async deploy({
         TokenABIs,
@@ -23,6 +23,13 @@ TokenHelper = {
         return assert.strictEqual((await token.balanceOf(address)).toString(), amount.toString());
     },
 
+
+    async getBalance(token, account) {
+        let currentBalance = await token.balanceOf(account);
+        return toBN(currentBalance).toString();
+    },
+
+
     amountOf(_numberToken, _decimals = 18) {
         let dec = toBN("10").pow(toBN(_decimals));
         let number = toBN(_numberToken);
@@ -30,8 +37,8 @@ TokenHelper = {
     }
 }
 
-ContractHelper = {
-    prepageDataForCreateMutipleToken(account, amounts = []) {
+const ContractHelper = {
+    prepareDataForCreateMutipleToken(account, amounts = []) {
         return AbiCoder.encodeParameters(
             ["address", "uint256[]"],
             [
@@ -40,16 +47,17 @@ ContractHelper = {
             ]
         )
     },
-    
+
     preparePayment(merchant, walletIndex) {
         return AbiCoder.encodeParameters(
             [
-                "address","uint256"
-            ], 
+                "address", "uint256"
+            ],
             [
                 merchant, walletIndex
             ])
     },
+
 
     async signAndSendSafeTransactionByRelayer(
         safeTxData = {
@@ -79,11 +87,11 @@ ContractHelper = {
         let safeTx;
         if (!options) {
             safeTx = await gnosisSafe.execTransaction(...safeTxArr, signature, {
-                from: relayer, 
+                from: relayer,
             });
         } else {
             safeTx = await gnosisSafe.execTransaction(...safeTxArr, signature, {
-                from: relayer, 
+                from: relayer,
                 ...options
             });
 
@@ -95,7 +103,6 @@ ContractHelper = {
         };
     }
 }
-
 
 
 module.exports = {

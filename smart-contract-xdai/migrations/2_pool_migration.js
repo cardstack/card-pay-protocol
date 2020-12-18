@@ -17,5 +17,4 @@ module.exports = async function (deployer) {
         spend.address, 
         [process.env.PAYABLE_TOKEN]
     ) 
-    
 };

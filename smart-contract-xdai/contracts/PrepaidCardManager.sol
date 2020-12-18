@@ -1,4 +1,4 @@
-pragma solidity >=0.5.0 <0.7.0;
+pragma solidity 0.5.17;
 
 import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 import "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
@@ -18,11 +18,14 @@ contract PrepaidCardManager is TallyRole, PayableToken, Safe{
     bytes4 public constant EXEC_TRANSACTION = 0x6a761202;
     //transferAndCall(address,uint256,bytes) 
     bytes4 public constant TRANSER_AND_CALL = 0x4000aea0;
+    
+    uint256 public constant MINIMUM_CARD_VALUE = 10 ** 18; // 1 token 
+    uint256 public constant MAXIMUM_CARD_VALUE = 50 * (10 ** 18); // 50 token
 
     using SafeMath for uint256;
 
     event CreatePrepaidCard(
-        address supplier,
+        address issuer,
         address card,
         address token,
         uint256 amount
@@ -34,7 +37,13 @@ contract PrepaidCardManager is TallyRole, PayableToken, Safe{
     address public gsCreateAndAddModules;
     address public revenuePool;
     
-    mapping(address => address) public suppliers;
+    
+    struct CardDetail {
+        address issuer; 
+        address issuerToken;
+    }
+
+    mapping(address => CardDetail) public cardDetails;
 
     /**
      * @dev Setup function sets initial storage of contract.
@@ -77,41 +86,45 @@ contract PrepaidCardManager is TallyRole, PayableToken, Safe{
 
     /**
      * @dev Create Prepaid card
-     * @param supplier Supplier address
+     * @param issuer Supplier address
      * @param token Token address
      * @param amount Amount of Prepaid card
      * @return PrepaidCard address
      */
-    function createPrepaidCard(
-        address supplier,
+    function createPrepaidCard( 
+        address issuer,
         address token,
         uint256 amount
     ) private returns (address) {
+
         address[] memory owners = new address[](2);
         owners[0] = address(this);
-        owners[1] = supplier;
+        owners[1] = issuer;
 
         address card = createSafe(owners, 2); 
 
         IERC677(token).transfer(card, amount);
 
-        emit CreatePrepaidCard(supplier, card, token, amount);
+        emit CreatePrepaidCard(issuer, card, token, amount);
 
         // card was created
-        suppliers[card] = supplier;
+        cardDetails[card].issuer = issuer;
+        cardDetails[card].issuerToken = token;
 
         return card;
     }
+    
+  
 
     /**
      * @dev Split Prepaid card
-     * @param supplier Supplier address
+     * @param issuer Supplier address
      * @param token Token address
      * @param amountReceived Amount to split
      * @param amountOfCard array which performing face value of card
      */
     function createMultiplePrepaidCards(
-        address supplier,
+        address issuer,
         address token,
         uint256 amountReceived,
         uint256[] memory amountOfCard
@@ -120,18 +133,23 @@ contract PrepaidCardManager is TallyRole, PayableToken, Safe{
         uint256 numberCard = amountOfCard.length; 
 
         for (uint256 i = 0; i < numberCard; i++) {
+            require(
+                (amountOfCard[i] >= MINIMUM_CARD_VALUE) 
+                && (amountOfCard[i] <= MAXIMUM_CARD_VALUE),
+                "Your card amount too big or too small."
+            );
             neededAmount = neededAmount.add(amountOfCard[i]);
         }
 
         // TODO: should we handle the case when amount received > needed amount
-        //      (transfer the rest of token back to supplier) ?
+        //      (transfer the rest of token back to issuer) ?
         require(
             amountReceived == neededAmount,
             "your amount must be == sum of new cardAmounts"
         );
 
         for (uint256 i = 0; i < numberCard; i++) {
-            createPrepaidCard(supplier, token, amountOfCard[i]);
+            createPrepaidCard(issuer, token, amountOfCard[i]);
         }
 
         return true;
@@ -183,7 +201,7 @@ contract PrepaidCardManager is TallyRole, PayableToken, Safe{
         bytes calldata signatures
     ) external payable {
         // Only sell 1 time
-        require(suppliers[card] == from, "The card has been sold before");
+        require(cardDetails[card].issuer == from, "The card has been sold before");
 
         execTransaction(
             card,

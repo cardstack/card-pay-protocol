@@ -6,13 +6,6 @@ const GnosisSafe = artifacts.require("gnosisSafe");
 
 exports = Object.assign({}, gnosisUtils);
 
-function fromDAICPXD2SPEND(amount, exchangeRate) {
-	return web3Utils
-		.toWei(web3Utils.toBN(amount))
-		.mul(web3Utils.toBN(exchangeRate))
-		.toString();
-}
-
 function padZero(addr, prefix = "") {
     return prefix + '000000000000000000000000' + addr.replace('0x', '');
 }
@@ -186,15 +179,6 @@ async function signSafeTransaction(
 	return signatureBytes;
 };
 
-
-function encodeArray(amounts = [], decimals = 18) {
-	return web3EthAbi.encodeParameter(
-		"uint256[]",
-		amounts.map(amount => toAmountToken(Number(amount).toString(), decimals))
-	)
-}
-
-
 async function getGnosisSafeFromEventLog(tx) {
 	let logsData = getParamsFromEvent(tx, CREATE_PREPAID_CARD_TOPIC, CREATE_PREPAID_CARD_META);
 	let cards = [];
@@ -227,10 +211,8 @@ Object.assign(exports, {
 	EXECUTE_EVENT_FAILED,
 	EXECUTE_EVENT_SUCCESS,
 	EXECUTE_EVENT_META,
-	fromDAICPXD2SPEND,
 	encodeMultiSendCall,
 	signSafeTransaction,
-	encodeArray,
 	getGnosisSafeFromEventLog,
 	getParamsFromEvent, 
     padZero, 

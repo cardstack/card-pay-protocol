@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "compile-contracts": "./node_modules/.bin/truffle compile",
+    "recompile": "rm -rf build && npm run compile-contracts",
     "test": "./node_modules/.bin/truffle test",
     "test:coverage": "./node_modules/.bin/truffle run coverage"
   },
