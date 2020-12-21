@@ -20,25 +20,26 @@ const TokenHelper = {
     },
 
     async isEqualBalance(token, address, amount) {
-        return assert.strictEqual((await token.balanceOf(address)).toString(), amount.toString());
+        let balance = await token.balanceOf(address); 
+        return assert.strictEqual(balance.toString(), amount.toString());
     },
 
 
     async getBalance(token, account) {
         let currentBalance = await token.balanceOf(account);
-        return toBN(currentBalance).toString();
+        return toBN(currentBalance);
     },
 
 
     amountOf(_numberToken, _decimals = 18) {
         let dec = toBN("10").pow(toBN(_decimals));
         let number = toBN(_numberToken);
-        return number.mul(dec).toString();
+        return number.mul(dec);
     }
 }
 
 const ContractHelper = {
-    prepareDataForCreateMutipleToken(account, amounts = []) {
+    encodeCreateCardsData(account, amounts = []) {
         return AbiCoder.encodeParameters(
             ["address", "uint256[]"],
             [
@@ -47,17 +48,6 @@ const ContractHelper = {
             ]
         )
     },
-
-    preparePayment(merchant, walletIndex) {
-        return AbiCoder.encodeParameters(
-            [
-                "address", "uint256"
-            ],
-            [
-                merchant, walletIndex
-            ])
-    },
-
 
     async signAndSendSafeTransactionByRelayer(
         safeTxData = {

@@ -100,13 +100,13 @@ contract("Test contract by EOA", (accounts) => {
 
         let amounts = [1, 2, 10].map(amount => TokenHelper.amountOf(amount));
 
-        let data = ContractHelper.prepareDataForCreateMutipleToken(supplierEOA, amounts);
+        let data = ContractHelper.encodeCreateCardsData(supplierEOA, amounts);
 
         let tx = await daicpxdToken.transferAndCall(prepaidCardManager.address, TokenHelper.amountOf(13), data, {
             from: supplierEOA
         });
 
-        cards = await getGnosisSafeFromEventLog(tx, CREATE_PREPAID_CARD_TOPIC);
+        cards = await getGnosisSafeFromEventLog(tx, prepaidCardManager.address);
 
         assert.equal(cards.length, 3);
 
@@ -123,7 +123,7 @@ contract("Test contract by EOA", (accounts) => {
         try {
             let amounts = [1, 2, 3].map(amount => TokenHelper.amountOf(amount));
 
-            let data = ContractHelper.prepareDataForCreateMutipleToken(supplierEOA, amounts);
+            let data = ContractHelper.encodeCreateCardsData(supplierEOA, amounts);
 
             let tx = await daicpxdToken.transferAndCall(prepaidCardManager.address, TokenHelper.amountOf(10), data, {
                 from: supplierEOA
@@ -138,7 +138,7 @@ contract("Test contract by EOA", (accounts) => {
         try {
             let amounts = [1, 2, 9].map(amount => TokenHelper.amountOf(amount));
 
-            let data = ContractHelper.prepareDataForCreateMutipleToken(supplierEOA, amounts)
+            let data = ContractHelper.encodeCreateCardsData(supplierEOA, amounts)
 
             let tx = await daicpxdToken.transferAndCall(prepaidCardManager.address, TokenHelper.amountOf(6), data, {
                 from: supplierEOA

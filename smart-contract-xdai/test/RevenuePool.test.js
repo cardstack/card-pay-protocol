@@ -5,6 +5,7 @@ const ProxyFactory = artifacts.require('GnosisSafeProxyFactory');
 const GnosisSafe = artifacts.require('GnosisSafe');
 
 const utils = require('./utils/general');
+const eventABIs = require('./utils/constant/eventABIs');
 
 const TokenHelper = require('./utils/helper').TokenHelper;
 
@@ -59,18 +60,7 @@ contract('Test Revenue Pool contract', accounts => {
             from: tally
         });
         
-        let merchantCreation = await utils.getParamsFromEvent(tx, utils.MERCHANT_CREATION, 
-            [
-                {
-                    type: 'address', 
-                    name: 'merchantOwner'
-                }, 
-                {
-                    type: 'address',
-                    name: 'merchant'
-                }
-            ]
-        );
+        let merchantCreation = await utils.getParamsFromEvent(tx, eventABIs.MERCHANT_CREATION, revenuePool.address);
 
         merchant = merchantCreation[0]['merchant'];
         assert.isTrue(await revenuePool.isMerchant(merchant), "The merchant should be created.");
@@ -79,7 +69,7 @@ contract('Test Revenue Pool contract', accounts => {
     it('merchant resigter by tally but merchant address is zero', async () => {
         let failed = false;
         try {
-            await revenuePool.registerMerchant(utils.Address0, offchainId, {
+            await revenuePool.registerMerchant(utils.ZERO_ADDRESS, offchainId, {
                 from: tally
             });
         } catch (err) {
