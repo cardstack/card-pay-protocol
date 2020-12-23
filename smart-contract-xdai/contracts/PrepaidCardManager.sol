@@ -51,6 +51,7 @@ contract PrepaidCardManager is TallyRole, PayableToken, SignatureDecoder {
         address _gsMasterCopy,
         address _gsProxyFactory,
         address _revenuePool,
+        address _tokenManager,
         address[] memory _payableTokens
     ) public onlyOwner {
         // setup tally user
@@ -58,7 +59,8 @@ contract PrepaidCardManager is TallyRole, PayableToken, SignatureDecoder {
         gsMasterCopy = _gsMasterCopy;
         gsProxyFactory = _gsProxyFactory;
         revenuePool = _revenuePool;
-
+        
+        PayableToken(_tokenManager);
         // set token list payable.
         for (uint256 i = 0; i < _payableTokens.length; i++) {
             addPayableToken(_payableTokens[i]);

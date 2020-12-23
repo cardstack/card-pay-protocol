@@ -8,6 +8,11 @@ contract PayableToken is Ownable {
 
     EnumerableSet.AddressSet internal payableTokens;
 
+    address public tokenManager;
+    constructor(address _tokenManager) internal {
+        tokenManager = _tokenManager;
+    }
+
     /**
      * @dev Throws if called by any account other than the admin.
      */
@@ -27,7 +32,8 @@ contract PayableToken is Ownable {
         _;
     }
 
-    function addPayableToken(address _token) public onlyOwner returns (bool) {
+    function addPayableToken(address _token) public returns (bool) {
+        require(_msgSender() == tokenManager);
         return _addPayableToken(_token);
     }
 
@@ -38,9 +44,9 @@ contract PayableToken is Ownable {
 
     function removePayableToken(address _token)
         public
-        onlyOwner
         returns (bool)
     {
+        require(_msgSender() == tokenManager);
         return _removePayableToken(_token);
     }
 

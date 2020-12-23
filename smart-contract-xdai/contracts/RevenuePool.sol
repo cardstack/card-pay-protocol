@@ -34,8 +34,8 @@ contract RevenuePool is
         uint256 amount
     );
 
-    address private spendToken;
-
+    address public spendToken;
+    address public tokenManager;
     /**
      * @dev set up revenue pool
      * @param _tally tally account - have admin permission.
@@ -46,6 +46,7 @@ contract RevenuePool is
      */
     function setup(
         address _tally,
+        address _tokenManager,
         address _gsMasterCopy,
         address _gsProxyFactory,
         address _spendToken,
@@ -53,6 +54,7 @@ contract RevenuePool is
     ) public onlyOwner {
         // setup tally user
         addTally(_tally);
+        PayableToken(_tokenManager);
         // setup gnosis safe address
         MerchantManager.setup(_gsMasterCopy, _gsProxyFactory);
 
