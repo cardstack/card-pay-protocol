@@ -9,7 +9,8 @@ const MultiSend = artifacts.require("MultiSend");
 const {
     getGnosisSafeFromEventLog,
     CREATE_PREPAID_CARD_TOPIC,
-    encodeMultiSendCall
+    encodeMultiSendCall, 
+    ZERO_ADDRESS
 } = require('./utils/general');
 
 const {
@@ -78,6 +79,7 @@ contract("Test contract by EOA", (accounts) => {
         // Setup for revenue pool
         await revenuePool.setup(
             tally,
+            ZERO_ADDRESS,
             gnosisSafeMasterCopy.address,
             proxyFactory.address,
             spendToken.address,
@@ -88,6 +90,7 @@ contract("Test contract by EOA", (accounts) => {
 
         await prepaidCardManager.setup(
             tally,
+            ZERO_ADDRESS,
             gnosisSafeMasterCopy.address,
             proxyFactory.address,
             revenuePool.address,

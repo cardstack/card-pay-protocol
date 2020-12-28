@@ -35,10 +35,11 @@ contract RevenuePool is
     );
 
     address public spendToken;
-    address public tokenManager;
+
     /**
      * @dev set up revenue pool
-     * @param _tally tally account - have admin permission.
+     * @param _tally tally admin
+     * @param _tokenManager token manager
      * @param _gsMasterCopy is masterCopy address
      * @param _gsProxyFactory is gnosis proxy factory address.
      * @param _spendToken SPEND token address.
@@ -52,16 +53,16 @@ contract RevenuePool is
         address _spendToken,
         address[] memory _payableTokens
     ) public onlyOwner {
+        _addTally(_tally);
         // setup tally user
-        addTally(_tally);
-        PayableToken(_tokenManager);
+        PayableToken.setTokenManager(_tokenManager);
         // setup gnosis safe address
         MerchantManager.setup(_gsMasterCopy, _gsProxyFactory);
 
         spendToken = _spendToken;
         // set token list payable.
         for (uint256 i = 0; i < _payableTokens.length; i++) {
-            addPayableToken(_payableTokens[i]);
+            _addPayableToken(_payableTokens[i]);
         }
     }
 
@@ -159,7 +160,11 @@ contract RevenuePool is
         uint256 walletIndex,
         address[] calldata payableTokens,
         uint256[] calldata amounts
-    ) external onlyTally returns (bool) {
+    ) 
+        external 
+        onlyTallys 
+        returns (bool) 
+    {
         uint256 numberKindOfToken = payableTokens.length;
 
         require(numberKindOfToken == amounts.length);

@@ -122,6 +122,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 		// Setup for revenue pool
 		await revenuePool.setup(
 			tally,
+			ZERO_ADDRESS,
 			gnosisSafeMasterCopy.address,
 			proxyFactory.address,
 			spendToken.address,
@@ -132,6 +133,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 
 		await prepaidCardManager.setup(
 			tally,
+			ZERO_ADDRESS,
 			gnosisSafeMasterCopy.address,
 			proxyFactory.address,
 			revenuePool.address,

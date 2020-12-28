@@ -36,7 +36,7 @@ contract MerchantManager is TallyRole {
 
     function registerMerchant(address merchantAddr, string calldata merchantId)
         external
-        onlyTally
+        onlyTallys
     {
         require(
             merchantAddr != address(0),
@@ -84,7 +84,7 @@ contract MerchantManager is TallyRole {
         return gsWallet;
     }
 
-    function createAndAddWallet(address merchantAddr) public onlyTally returns(bool) {
+    function createAndAddWallet(address merchantAddr) public onlyTallys returns(bool) {
         require(isRegistered(merchantAddr), "Merchants not registered");
 
         address gsWalletAddr = createGnosisSafeWallet(merchantAddr);

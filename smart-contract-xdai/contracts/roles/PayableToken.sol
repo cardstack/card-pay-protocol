@@ -9,16 +9,17 @@ contract PayableToken is Ownable {
     EnumerableSet.AddressSet internal payableTokens;
 
     address public tokenManager;
-    constructor(address _tokenManager) internal {
+
+    function setTokenManager(address _tokenManager) internal {
         tokenManager = _tokenManager;
     }
 
     /**
-     * @dev Throws if called by any account other than the admin.
+     * @dev Throws if called by any account other than the payable token.
      */
     modifier onlyPayableToken() {
         require(
-            payableTokens.contains(_msgSender()),
+            payableTokens.contains(msg.sender),
             "Guard: Token is not support payable by contract."
         );
         _;
@@ -32,8 +33,19 @@ contract PayableToken is Ownable {
         _;
     }
 
-    function addPayableToken(address _token) public returns (bool) {
-        require(_msgSender() == tokenManager);
+    modifier onlyTokenManager() {
+        require(
+            _msgSender() == tokenManager,
+            "Guard: Action support only token manager"
+        );
+        _;
+    }
+
+    function addPayableToken(address _token)
+        public
+        onlyTokenManager
+        returns (bool)
+    {
         return _addPayableToken(_token);
     }
 
@@ -44,9 +56,9 @@ contract PayableToken is Ownable {
 
     function removePayableToken(address _token)
         public
+        onlyTokenManager
         returns (bool)
     {
-        require(_msgSender() == tokenManager);
         return _removePayableToken(_token);
     }
 

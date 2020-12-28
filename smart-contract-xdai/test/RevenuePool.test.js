@@ -31,6 +31,7 @@ contract('Test Revenue Pool contract', accounts => {
         // setup for revenue pool
         await revenuePool.setup(
             tally,
+            utils.ZERO_ADDRESS,
             gnosisSafeMasterCopy.address, proxyFactory.address,
             spendToken.address,
             [daicpxdToken.address]

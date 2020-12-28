@@ -58,7 +58,12 @@ module.exports = {
       },
       network_id: 4,
     },
-
+    xdai: {
+      provider: function() {
+        return new HDWalletProvider(process.env.MNEMONIC, "https://rpc.xdaichain.com/");
+      }, 
+      network_id: 100
+    }, 
     development: {
 	    host: "127.0.0.1",     // Localhost (default: none)
 	    port: 7777,            // Standard Ethereum port (default: none)

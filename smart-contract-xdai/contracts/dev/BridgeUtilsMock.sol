@@ -18,7 +18,7 @@ contract BridgeUtilsMock {
     }
 
     /// @dev registerSupplier
-    function registerSupplier(address ownerAddr) external returns (bool) {
-        return true;
+    function registerSupplier(address ownerAddr) external returns (address) {
+        return msg.sender;
     }
 }

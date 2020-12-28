@@ -11,7 +11,7 @@ contract TallyRole is Ownable {
     /**
      * @dev Throws if called by any account other than the tally.
      */
-    modifier onlyTally() {
+    modifier onlyTallys() {
         require(tally.contains(_msgSender()), "Tally: caller is not the tally");
         _;
     }

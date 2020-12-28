@@ -41,6 +41,7 @@ contract PrepaidCardManager is TallyRole, PayableToken, SignatureDecoder {
     /**
      * @dev Setup function sets initial storage of contract.
      * @param _tally Tally address
+     * @param _tokenManager token manager
      * @param _gsMasterCopy Gnosis safe Master Copy address
      * @param _gsProxyFactory Gnosis safe Proxy Factory address
      * @param _revenuePool Revenue Pool address
@@ -48,10 +49,10 @@ contract PrepaidCardManager is TallyRole, PayableToken, SignatureDecoder {
      */
     function setup(
         address _tally,
+        address _tokenManager,
         address _gsMasterCopy,
         address _gsProxyFactory,
         address _revenuePool,
-        address _tokenManager,
         address[] memory _payableTokens
     ) public onlyOwner {
         // setup tally user
@@ -59,11 +60,12 @@ contract PrepaidCardManager is TallyRole, PayableToken, SignatureDecoder {
         gsMasterCopy = _gsMasterCopy;
         gsProxyFactory = _gsProxyFactory;
         revenuePool = _revenuePool;
+
+        PayableToken.setTokenManager(_tokenManager);
         
-        PayableToken(_tokenManager);
         // set token list payable.
         for (uint256 i = 0; i < _payableTokens.length; i++) {
-            addPayableToken(_payableTokens[i]);
+            _addPayableToken(_payableTokens[i]);
         }
     }
 
@@ -73,7 +75,7 @@ contract PrepaidCardManager is TallyRole, PayableToken, SignatureDecoder {
      */
     function addPayableTokenByTally(address _token)
         public
-        onlyTally
+        onlyTallys
         returns (bool)
     {
         return _addPayableToken(_token);
