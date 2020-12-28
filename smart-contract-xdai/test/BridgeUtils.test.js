@@ -59,7 +59,7 @@ contract("Bridge utils contract", async (accounts) => {
         )
     })
 
-    it("deploy safe for new supplier", async () => {
+    it("register new supplier - deploy a safe and store it's address", async () => {
         let account = accounts[2];
         let summary = await instance.registerSupplier(account, { from: mediatorBridgeMock });
 
@@ -68,9 +68,11 @@ contract("Bridge utils contract", async (accounts) => {
 
         let onwers = await gnosisSafe.getOwners();
         assert.equal(onwers.toString(), [account].toString());
+        let supplier = await instance.suppliers(wallet);
+        assert.isTrue(supplier['registered'], true);
     })
 
-    it("update safe supplier", async () => {
+    it("update supplier's profile - called by supplier ", async () => {
         let gnosisSafe = await GnosisMaster.at(wallet);
         let payload = instance.contract.methods.updateSupplier("Bob", "https://www.bob.com").encodeABI();
         let sigs = "0x000000000000000000000000" + accounts[2].replace('0x', '') + "0000000000000000000000000000000000000000000000000000000000000000" + "01"
