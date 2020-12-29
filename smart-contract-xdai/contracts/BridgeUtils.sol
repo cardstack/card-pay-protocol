@@ -78,7 +78,7 @@ contract BridgeUtils is Safe, Ownable{
     ) external returns (bool) {
         address supplierAddr = msg.sender;
 
-        require(suppliers[supplierAddr].registered, "suppliers is invalid.");
+        require(suppliers[supplierAddr].registered, "Suppliers is invalid.");
 
         suppliers[supplierAddr].brandName = brandName;
         suppliers[supplierAddr].brandProfileUrl = brandProfileUrl;
