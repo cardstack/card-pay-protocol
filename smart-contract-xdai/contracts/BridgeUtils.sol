@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/ownership/Ownable.sol";
 
 contract BridgeUtils is Safe, Ownable{
     event SupplierWallet(address onwer, address wallet);
+    event UpdateToken(address token);
 
     struct Supplier {
         bool registered;
@@ -27,7 +28,7 @@ contract BridgeUtils is Safe, Ownable{
     modifier onlyBridgeMediator() {
         require(
             msg.sender == bridgeMediator,
-            "Guard: Action support only bridge mediator"
+            "Guard: Action supported only by the bridge mediator"
         );
         _;
     }
@@ -58,7 +59,7 @@ contract BridgeUtils is Safe, Ownable{
         // update payable token for token
         PayableToken(revenuePool).addPayableToken(tokenAddr);
         PayableToken(prepaidCardManager).addPayableToken(tokenAddr);
-
+        emit UpdateToken(tokenAddr);
         return true;
     }
 
@@ -78,7 +79,7 @@ contract BridgeUtils is Safe, Ownable{
     ) external returns (bool) {
         address supplierAddr = msg.sender;
 
-        require(suppliers[supplierAddr].registered, "Suppliers is invalid.");
+        require(suppliers[supplierAddr].registered, "Supplier is invalid.");
 
         suppliers[supplierAddr].brandName = brandName;
         suppliers[supplierAddr].brandProfileUrl = brandProfileUrl;

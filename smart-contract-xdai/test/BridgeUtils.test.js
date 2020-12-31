@@ -80,7 +80,7 @@ contract("Bridge utils contract", async (accounts) => {
             summary = await bridgeUtils.registerSupplier(account, { from: accounts[3] });
         } catch (err) {
             failed = true; 
-            assert.equal(err.reason, "Guard: Action support only bridge mediator");
+            assert.equal(err.reason, "Guard: Action supported only by the bridge mediator");
         }
 
         assert.isTrue(failed);
@@ -121,11 +121,10 @@ contract("Bridge utils contract", async (accounts) => {
             
         } catch(err) {
             failed = true;
-            assert.equal(err.reason, "Suppliers is invalid.");
+            assert.equal(err.reason, "Supplier is invalid.");
         }
 
         assert.isTrue(failed);
     })
 
-    it("")
 })
