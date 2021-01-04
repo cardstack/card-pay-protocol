@@ -92,6 +92,7 @@ contract RevenuePool is
         bytes calldata data
     ) external onlyPayableToken() returns (bool) {
 
+        // decode and get merchant address from the data
         (address merchantAddr) = abi.decode(data, (address));
 
         handlePayment(merchantAddr, _msgSender(), amount);
@@ -101,12 +102,12 @@ contract RevenuePool is
     }
 
     /**
-     * @dev merchant redeem
+     * @dev merchant claim token
      * @param merchantAddr address of merchant
      * @param payableToken address of payable token
      * @param amount amount in payable token
      */
-    function _redeemRevenue(
+    function _claimToken(
         address merchantAddr,
         address payableToken,
         uint256 amount
@@ -130,22 +131,22 @@ contract RevenuePool is
     }
 
      /**
-     * @dev merchant redeem, only tally account can call this method
+     * @dev merchant claim token to their wallets, only tally account can call this method
      * @param merchantAddr address of merchant
      * @param payableTokens array address of payable token
      * @param amounts array amount in payable token
      */
-    function redeemRevenue(
+    function claimTokens(
         address merchantAddr,
         address[] calldata payableTokens,
         uint256[] calldata amounts
     ) external onlyTally returns (bool) {
-        uint256 numberKindOfToken = payableTokens.length;
+        uint256 totalType = payableTokens.length;
 
-        require(numberKindOfToken == amounts.length);
+        require(totalType == amounts.length);
 
-        for (uint256 index = 0; index < numberKindOfToken; index = index + 1) {
-            _redeemRevenue(
+        for (uint256 index = 0; index < totalType; index = index + 1) {
+            _claimToken(
                 merchantAddr,
                 payableTokens[index],
                 amounts[index]

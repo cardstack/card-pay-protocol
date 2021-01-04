@@ -107,10 +107,10 @@ contract('Test Revenue Pool contract', accounts => {
         assert.equal(balanceOfMerchantSPEND.toString(), '100');
     })
 
-    it('redeem 1 DAI CPXD for merchant by tally', async () => {
+    it('claim 1 DAI CPXD for merchant by tally', async () => {
         let amount = TokenHelper.amountOf(1);
 
-        await revenuePool.redeemRevenue(merchant, [daicpxdToken.address], [amount], {
+        await revenuePool.claimTokens(merchant, [daicpxdToken.address], [amount], {
             from: tally
         });
 
@@ -121,11 +121,11 @@ contract('Test Revenue Pool contract', accounts => {
         assert.equal(numberSPEND.toString(), '100');
     })
 
-    it('redeem with wrong data for merchant by tally', async () => {
+    it('claim with wrong data for merchant by tally', async () => {
         let amount = TokenHelper.amountOf(1)
         let isRevert = false;
         try {
-            await revenuePool.redeemRevenue(merchant, [daicpxdToken.address], [], {
+            await revenuePool.claimTokens(merchant, [daicpxdToken.address], [], {
                 from: tally
             });
         } catch (err) {
@@ -150,10 +150,10 @@ contract('Test Revenue Pool contract', accounts => {
         assert.equal(balanceOfMerchantSPEND.toString(), '300');
     })
 
-    it('redeem 1 for merchant and sender is not tally', async () => {
+    it('claim 1 for merchant and sender is not tally', async () => {
         let amount = '1';
         try {
-            await revenuePool.redeemRevenue(merchant, [daicpxdToken.address], [amount], {
+            await revenuePool.claimTokens(merchant, [daicpxdToken.address], [amount], {
                 from: accounts[2]
             });
             assert.ok(false, "Dont allow for do this.");
