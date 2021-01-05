@@ -16,7 +16,7 @@ contract RevenuePool is
 {
     using SafeMath for uint256;
 
-    event Redeem(
+    event Claim(
         address merchantAddr,
         address payableToken,
         uint256 amount
@@ -111,7 +111,7 @@ contract RevenuePool is
         address merchantAddr,
         address payableToken,
         uint256 amount
-    ) internal verifyPayableToken(payableToken) returns (bool) {
+    ) internal onlyPayableTokens(payableToken) returns (bool) {
 
         // ensure enough token for redeem
         uint256 lockTotal = merchants[merchantAddr].lockTotal[payableToken];
@@ -126,7 +126,7 @@ contract RevenuePool is
         // transfer payable token from revenue pool to merchant wallet address
         IERC677(payableToken).transfer(merchantAddr, amount);
 
-        emit Redeem(merchantAddr, payableToken, amount);
+        emit Claim(merchantAddr, payableToken, amount);
         return true;
     }
 
