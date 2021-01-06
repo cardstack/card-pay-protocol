@@ -78,17 +78,17 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 			await proxyFactory.createProxy(
 				gnosisSafeMasterCopy.address,
 				gnosisSafeMasterCopy.contract.methods
-				.setup(
-					[supplier],
-					1,
-					ZERO_ADDRESS,
-					"0x",
-					ZERO_ADDRESS,
-					ZERO_ADDRESS,
-					0,
-					ZERO_ADDRESS
-				)
-				.encodeABI()
+					.setup(
+						[supplier],
+						1,
+						ZERO_ADDRESS,
+						"0x",
+						ZERO_ADDRESS,
+						ZERO_ADDRESS,
+						0,
+						ZERO_ADDRESS
+					)
+					.encodeABI()
 			),
 			"ProxyCreation",
 			"proxy",
@@ -101,16 +101,16 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 		await daicpxdToken.transfer(
 			walletOfSupplier.address,
 			TokenHelper.toAmount(20, 2), {
-				from: tally,
-			}
+			from: tally,
+		}
 		);
 
 		// Transfer 20 daicpxd to supplier's wallet
 		await fakeDaicpxdToken.transfer(
 			walletOfSupplier.address,
 			TokenHelper.toAmount(20, 2), {
-				from: tally,
-			}
+			from: tally,
+		}
 		);
 
 		await daicpxdToken.transfer(supplierEOA, TokenHelper.toAmount('20', 2), {
@@ -149,8 +149,8 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 				prepaidCardManager.address,
 				TokenHelper.toAmount("8", 2),
 				ContractHelper.prepageDataForCreateMutipleToken(
-						walletOfSupplier.address,
-						amounts
+					walletOfSupplier.address,
+					amounts
 				)
 			)
 			.encodeABI();
@@ -181,11 +181,11 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 			ZERO_ADDRESS,
 			relayer,
 			signature, {
-				from: relayer
-			}
+			from: relayer
+		}
 		);
 
-		 
+
 		prepaidCards = await getGnosisSafeFromEventLog(tx);
 
 		assert.ok(prepaidCards.length === 3, "Create 3 prepaid card");
@@ -205,7 +205,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 	it("Supplier Create multi Prepaid Card fail when amount > supplier's balance", async () => {
 
 		let amounts = [10, 20, 80].map(amount => TokenHelper.toAmount(amount, 2));
-		
+
 		let payloads = daicpxdToken.contract.methods
 			.transferAndCall(
 				prepaidCardManager.address,
@@ -231,7 +231,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 			supplier,
 			walletOfSupplier
 		);
-		
+
 		let txHash = await walletOfSupplier.getTransactionHash(
 			daicpxdToken.address,
 			0,
@@ -256,17 +256,17 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 			ZERO_ADDRESS,
 			relayer,
 			signature, {
-				from: relayer
-			}
+			from: relayer
+		}
 		);
-		
+
 		let executeFailed = getParamsFromEvent(tx, EXECUTE_EVENT_FAILED, EXECUTE_EVENT_META);
 		assert.equal(txHash.toString(), executeFailed[0]['txHash'].toString());
 
 		let successPrepaidCards = await getGnosisSafeFromEventLog(tx);
 		assert.equal(successPrepaidCards.length, 0);
-		
-		TokenHelper.isEqualBalance(daicpxdToken, walletOfSupplier.address, TokenHelper.toAmount(12,2))
+
+		TokenHelper.isEqualBalance(daicpxdToken, walletOfSupplier.address, TokenHelper.toAmount(12, 2))
 	});
 
 	it('supplier create number card is zero', async () => {
@@ -317,8 +317,8 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 			ZERO_ADDRESS,
 			relayer,
 			signature, {
-				from: relayer
-			}
+			from: relayer
+		}
 		);
 
 		let executeFailed = getParamsFromEvent(tx, EXECUTE_EVENT_FAILED, EXECUTE_EVENT_META);
@@ -380,51 +380,51 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 			ZERO_ADDRESS,
 			relayer,
 			signature, {
-				from: relayer
-			}
+			from: relayer
+		}
 		);
 		let executeFailed = getParamsFromEvent(tx, EXECUTE_EVENT_FAILED, EXECUTE_EVENT_META);
 		assert.equal(txHash.toString(), executeFailed[0]['txHash'].toString());
 
 		let successPrepaidCards = await getGnosisSafeFromEventLog(tx);
 		assert.equal(successPrepaidCards.length, 0);
-		
-		TokenHelper.isEqualBalance(daicpxdToken, walletOfSupplier.address, TokenHelper.toAmount(12,2))
+
+		TokenHelper.isEqualBalance(daicpxdToken, walletOfSupplier.address, TokenHelper.toAmount(12, 2))
 	});
 
 	it("Supplier sell card with 5 daicpxd (prepaidCards[2]) to customer", async () => {
 		let txs = [{
-				to: prepaidCards[2].address,
-				value: 0,
-				data: prepaidCards[2].contract.methods
-					.approveHash(
-						await prepaidCardManager.getSellCardHash(
-							prepaidCards[2].address,
-							walletOfSupplier.address,
-							customer,
-							(await prepaidCards[2].nonce.call()).toNumber()
-						)
-					)
-					.encodeABI(),
-			},
-			{
-				to: prepaidCardManager.address,
-				value: 0,
-				data: prepaidCardManager.contract.methods
-					.sellCard(
+			to: prepaidCards[2].address,
+			value: 0,
+			data: prepaidCards[2].contract.methods
+				.approveHash(
+					await prepaidCardManager.getSellCardHash(
 						prepaidCards[2].address,
 						walletOfSupplier.address,
 						customer,
-						await prepaidCardManager.appendPrepaidCardAdminSignature(
-							walletOfSupplier.address,
-							`0x000000000000000000000000${walletOfSupplier.address.replace(
-								"0x",
-								""
-							)}000000000000000000000000000000000000000000000000000000000000000001`
-						)
+						(await prepaidCards[2].nonce.call()).toNumber()
 					)
-					.encodeABI(),
-			},
+				)
+				.encodeABI(),
+		},
+		{
+			to: prepaidCardManager.address,
+			value: 0,
+			data: prepaidCardManager.contract.methods
+				.sellCard(
+					prepaidCards[2].address,
+					walletOfSupplier.address,
+					customer,
+					await prepaidCardManager.appendPrepaidCardAdminSignature(
+						walletOfSupplier.address,
+						`0x000000000000000000000000${walletOfSupplier.address.replace(
+							"0x",
+							""
+						)}000000000000000000000000000000000000000000000000000000000000000001`
+					)
+				)
+				.encodeABI(),
+		},
 		];
 
 		let payloads = encodeMultiSendCall(txs, multiSend);
@@ -468,15 +468,15 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 			ZERO_ADDRESS,
 			relayer,
 			signature, {
-				from: relayer
-			}
+			from: relayer
+		}
 		);
-		
-		
-		let executeSuccess= getParamsFromEvent(tx, EXECUTE_EVENT_SUCCESS, EXECUTE_EVENT_META);
+
+
+		let executeSuccess = getParamsFromEvent(tx, EXECUTE_EVENT_SUCCESS, EXECUTE_EVENT_META);
 		assert.equal(txHash.toString(), executeSuccess[executeSuccess.length - 1]['txHash'].toString());
-		
-		assert.isTrue(await prepaidCards[2].isOwner(customer)); 
+
+		assert.isTrue(await prepaidCards[2].isOwner(customer));
 		TokenHelper.isEqualBalance(daicpxdToken, prepaidCards[2].address, TokenHelper.toAmount(5, 2));
 	});
 
@@ -530,8 +530,8 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 					customer,
 					signature
 				), {
-					from: relayer
-				}
+				from: relayer
+			}
 			);
 		} catch (err) {
 			canSellCard = false;
@@ -541,4 +541,95 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 
 	});
 
+	it("split card", async () => {
+
+
+		let txs = [{
+			to: prepaidCards[0].address,
+			value: 0,
+			data: prepaidCards[0].contract.methods
+				.approveHash(
+					await prepaidCardManager.getSplitCardHash(
+						prepaidCards[0].address,
+						walletOfSupplier.address,
+						daicpxdToken.address,
+						[1, 1],
+						await prepaidCards[0].nonce()
+					)
+				)
+				.encodeABI(),
+		},
+		{
+			to: prepaidCardManager.address,
+			value: 0,
+			data: prepaidCardManager.contract.methods
+				.splitCard(
+					prepaidCards[0].address,
+					walletOfSupplier.address,
+					daicpxdToken.address,
+					[1, 1],
+					await prepaidCardManager.appendPrepaidCardAdminSignature(
+						walletOfSupplier.address,
+						`0x000000000000000000000000${walletOfSupplier.address.replace(
+							"0x",
+							""
+						)}000000000000000000000000000000000000000000000000000000000000000001`
+					)
+				)
+				.encodeABI(),
+		},
+		];
+
+		let payloads = encodeMultiSendCall(txs, multiSend);
+
+		const signature = await signSafeTransaction(
+			multiSend.address,
+			0,
+			payloads,
+			1,
+			0,
+			0,
+			0,
+			ZERO_ADDRESS,
+			ZERO_ADDRESS,
+			await walletOfSupplier.nonce.call(),
+			supplier,
+			walletOfSupplier
+		);
+
+		let txHash = await walletOfSupplier.getTransactionHash(
+			multiSend.address,
+			0,
+			payloads,
+			1,
+			0,
+			0,
+			0,
+			ZERO_ADDRESS,
+			ZERO_ADDRESS,
+			await walletOfSupplier.nonce.call()
+		);
+
+		let tx = await walletOfSupplier.execTransaction(
+			multiSend.address,
+			0,
+			payloads,
+			1,
+			0,
+			0,
+			0,
+			ZERO_ADDRESS,
+			ZERO_ADDRESS,
+			signature
+		);
+		
+		let executeSuccess = getParamsFromEvent(tx, EXECUTE_EVENT_SUCCESS, EXECUTE_EVENT_META);
+		assert.equal(txHash.toString(), executeSuccess[1]['txHash'].toString());
+
+		let successPrepaidCards = await getGnosisSafeFromEventLog(tx);
+		assert.equal(successPrepaidCards.length, 2);
+		
+		assert.isTrue(await successPrepaidCards[0].isOwner(walletOfSupplier.address));
+		assert.isTrue(await successPrepaidCards[1].isOwner(walletOfSupplier.address));
+	})
 });
