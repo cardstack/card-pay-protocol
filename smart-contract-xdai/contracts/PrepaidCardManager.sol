@@ -100,24 +100,26 @@ contract PrepaidCardManager is TallyRole, PayableToken {
         owners[0] = address(this);
         owners[1] = issuer;
 
-        bytes memory payloads = abi.encodeWithSelector(
-            SET_UP,
-            owners,
-            2,
-            address(0),
-            "0x",
-            address(0),
-            address(0),
-            0,
-            address(0)
-        );
+        bytes memory payloads =
+            abi.encodeWithSelector(
+                SET_UP,
+                owners,
+                2,
+                address(0),
+                "0x",
+                address(0),
+                address(0),
+                0,
+                address(0)
+            );
 
-        address payable card = address(
-            GnosisSafeProxyFactory(gsProxyFactory).createProxy(
-                gsMasterCopy,
-                payloads
-            )
-        );
+        address payable card =
+            address(
+                GnosisSafeProxyFactory(gsProxyFactory).createProxy(
+                    gsMasterCopy,
+                    payloads
+                )
+            );
 
         require(card != address(0), "Could not create card");
 
@@ -243,13 +245,7 @@ contract PrepaidCardManager is TallyRole, PayableToken {
         require(cardDetails[card].issuer == from, "The card has been sold before");
 
         // Swap owner
-        return
-            abi.encodeWithSelector(
-                SWAP_OWNER,
-                address(this),
-                from,
-                to
-            );
+        return abi.encodeWithSelector(SWAP_OWNER, address(this), from, to);
     }
 
     /**
@@ -338,7 +334,7 @@ contract PrepaidCardManager is TallyRole, PayableToken {
     /**
      * @dev onTokenTransfer(ERC677) - call when token send this contract.
      * @param from Supplier or Prepaid card address
-     * @param amount number token them pay.
+     * @param amount number token them transfer.
      * @param data data encoded
      */
     function onTokenTransfer(
@@ -369,4 +365,54 @@ contract PrepaidCardManager is TallyRole, PayableToken {
         return true;
     }
 
+    /**
+     * @dev Returns the bytes that are hashed to be signed by owners.
+     * @param cardAddr address of prepaid card
+     * @param subCardAmount Array of new card's amount
+     */
+    function getSplitCardData(address cardAddr, uint256[] memory subCardAmount)
+        public
+        view
+        returns (bytes memory)
+    {
+        uint256 total = 0;
+
+        for (uint256 i = 0; i < subCardAmount.length; i++) {
+            total = total.add(subCardAmount[i]);
+        }
+
+        // Transfer token to this contract and call _createMultiplePrepaidCards
+        return
+            abi.encodeWithSignature(
+                "transferAndCall(address,uint256,bytes)",
+                address(this),
+                total,
+                abi.encode(cardAddr, abi.encode(subCardAmount))
+            );
+    }
+
+    /**
+     * @dev Split Current Prepaid Card into Multiple Cards
+     * @param card Prepaid Card's address
+     * @param from Owner of card
+     * @param token Token's address
+     * @param cardAmounts Array of new card's amount
+     * @param signatures Packed signature data ({bytes32 r}{bytes32 s}{uint8 v})
+     */
+    function splitCurrentPrepaidCardIntoMultipleCards(
+        address payable card,
+        address from,
+        address token,
+        uint256[] calldata cardAmounts,
+        bytes calldata signatures
+    ) external payable {
+        require(
+            _execTransaction(
+                card,
+                token,
+                getSplitCardData(from, cardAmounts),
+                signatures
+            )
+        );
+    }
 }

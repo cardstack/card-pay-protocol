@@ -592,4 +592,5 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 		}
 	});
 
+	
 });
