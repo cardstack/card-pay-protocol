@@ -367,10 +367,10 @@ contract PrepaidCardManager is TallyRole, PayableToken {
 
     /**
      * @dev Returns the bytes that are hashed to be signed by owners.
-     * @param cardAddr address of prepaid card
+     * @param cardOwner owner of prepaid card
      * @param subCardAmount Array of new card's amount
      */
-    function getSplitCardData(address cardAddr, uint256[] memory subCardAmount)
+    function getSplitCardData(address cardOwner, uint256[] memory subCardAmount)
         public
         view
         returns (bytes memory)
@@ -387,7 +387,7 @@ contract PrepaidCardManager is TallyRole, PayableToken {
                 "transferAndCall(address,uint256,bytes)",
                 address(this),
                 total,
-                abi.encode(cardAddr, abi.encode(subCardAmount))
+                abi.encode(cardOwner, abi.encode(subCardAmount))
             );
     }
 
@@ -399,7 +399,7 @@ contract PrepaidCardManager is TallyRole, PayableToken {
      * @param cardAmounts Array of new card's amount
      * @param signatures Packed signature data ({bytes32 r}{bytes32 s}{uint8 v})
      */
-    function splitCurrentPrepaidCardIntoMultipleCards(
+    function splitCard(
         address payable card,
         address from,
         address token,
@@ -414,5 +414,27 @@ contract PrepaidCardManager is TallyRole, PayableToken {
                 signatures
             )
         );
+    }
+
+    function getSplitCardHash(
+        address payable card,
+        address from,
+        address token,
+        uint256[] memory cardAmounts,
+        uint256 _nonce
+    ) public view returns (bytes32) {
+        return
+            GnosisSafe(card).getTransactionHash(
+                token,
+                0,
+                getSplitCardData(from, cardAmounts),
+                Enum.Operation.Call,
+                0,
+                0,
+                0,
+                address(0),
+                address(0),
+                _nonce
+            );
     }
 }
