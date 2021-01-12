@@ -153,11 +153,11 @@ contract PrepaidCardManager is TallyRole, PayableToken {
         uint256 numberCard = amountOfCard.length; 
 
         for (uint256 i = 0; i < numberCard; i++) {
-            require(
-                (amountOfCard[i] >= MINIMUM_CARD_VALUE) 
-                && (amountOfCard[i] <= MAXIMUM_CARD_VALUE),
-                "Your card amount too big or too small."
-            );
+            // require(
+            //     (amountOfCard[i] >= MINIMUM_CARD_VALUE) 
+            //     && (amountOfCard[i] <= MAXIMUM_CARD_VALUE),
+            //     "Your card amount too big or too small."
+            // );
             neededAmount = neededAmount.add(amountOfCard[i]);
         }
 
@@ -365,6 +365,28 @@ contract PrepaidCardManager is TallyRole, PayableToken {
         return true;
     }
 
+    function getSplitCardHash(
+        address payable card,
+        address from,
+        address token,
+        uint256[] memory cardAmounts,
+        uint256 _nonce
+    ) public view returns (bytes32) {
+        return
+            GnosisSafe(card).getTransactionHash(
+                token,
+                0,
+                getSplitCardData(from, cardAmounts),
+                Enum.Operation.Call,
+                0,
+                0,
+                0,
+                address(0),
+                address(0),
+                _nonce
+            );
+    }
+
     /**
      * @dev Returns the bytes that are hashed to be signed by owners.
      * @param cardOwner owner of prepaid card
@@ -416,25 +438,4 @@ contract PrepaidCardManager is TallyRole, PayableToken {
         );
     }
 
-    function getSplitCardHash(
-        address payable card,
-        address from,
-        address token,
-        uint256[] memory cardAmounts,
-        uint256 _nonce
-    ) public view returns (bytes32) {
-        return
-            GnosisSafe(card).getTransactionHash(
-                token,
-                0,
-                getSplitCardData(from, cardAmounts),
-                Enum.Operation.Call,
-                0,
-                0,
-                0,
-                address(0),
-                address(0),
-                _nonce
-            );
-    }
 }

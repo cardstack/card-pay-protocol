@@ -592,19 +592,18 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 	});
 
 	it("split card", async () => {
-
-
+		console.log((await prepaidCards[2].nonce()).toString())
 		let txs = [{
-			to: prepaidCards[0].address,
+			to: prepaidCards[1].address,
 			value: 0,
-			data: prepaidCards[0].contract.methods
+			data: prepaidCards[1].contract.methods
 				.approveHash(
 					await prepaidCardManager.getSplitCardHash(
-						prepaidCards[0].address,
+						prepaidCards[1].address,
 						walletOfIssuer.address,
 						daicpxdToken.address,
-						[1, 1],
-						await prepaidCards[0].nonce()
+						[TokenHelper.amountOf(1).toString() ,TokenHelper.amountOf(1).toString()],
+						(await prepaidCards[1].nonce.call()).toNumber()
 					)
 				)
 				.encodeABI(),
@@ -614,10 +613,10 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 			value: 0,
 			data: prepaidCardManager.contract.methods
 				.splitCard(
-					prepaidCards[0].address,
+					prepaidCards[1].address,
 					walletOfIssuer.address,
 					daicpxdToken.address,
-					[1, 1],
+					[TokenHelper.amountOf(1).toString(), TokenHelper.amountOf(1).toString()],
 					await prepaidCardManager.appendPrepaidCardAdminSignature(
 						walletOfIssuer.address,
 						`0x000000000000000000000000${walletOfIssuer.address.replace(
@@ -674,6 +673,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 		);
 		
 		let executeSuccess = getParamsFromEvent(tx, EXECUTE_EVENT_SUCCESS, EXECUTE_EVENT_META);
+
 		assert.equal(txHash.toString(), executeSuccess[0]['txHash'].toString());
 
 		let successPrepaidCards = await getGnosisSafeFromEventLog(tx);
