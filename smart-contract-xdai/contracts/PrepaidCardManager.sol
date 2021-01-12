@@ -153,11 +153,11 @@ contract PrepaidCardManager is TallyRole, PayableToken {
         uint256 numberCard = amountOfCard.length; 
 
         for (uint256 i = 0; i < numberCard; i++) {
-            // require(
-            //     (amountOfCard[i] >= MINIMUM_CARD_VALUE) 
-            //     && (amountOfCard[i] <= MAXIMUM_CARD_VALUE),
-            //     "Your card amount too big or too small."
-            // );
+            require(
+                (amountOfCard[i] >= MINIMUM_CARD_VALUE) 
+                && (amountOfCard[i] <= MAXIMUM_CARD_VALUE),
+                "Your card amount too big or too small."
+            );
             neededAmount = neededAmount.add(amountOfCard[i]);
         }
 
@@ -342,16 +342,12 @@ contract PrepaidCardManager is TallyRole, PayableToken {
         uint256 amount,
         bytes calldata data
     ) external onlyPayableToken returns (bool) {
-        address issuer = address(0);
+        address issuer;
         uint256[] memory amountOfCard;
 
-        if (data.length > 2) {
-            (issuer, amountOfCard) = abi.decode(data, (address, uint256[]));
-        }
+        (issuer, amountOfCard) = abi.decode(data, (address, uint256[]));
 
-        require(issuer != address(0), "Missing card owner's address");
-
-        require(amountOfCard.length > 0);
+        require(issuer != address(0) && amountOfCard.length > 0, "Prepaid card data invalid");
 
         require(
             _createMultiplePrepaidCards(
@@ -409,7 +405,7 @@ contract PrepaidCardManager is TallyRole, PayableToken {
                 "transferAndCall(address,uint256,bytes)",
                 address(this),
                 total,
-                abi.encode(cardOwner, abi.encode(subCardAmount))
+                abi.encode(cardOwner, subCardAmount)
             );
     }
 
@@ -437,5 +433,4 @@ contract PrepaidCardManager is TallyRole, PayableToken {
             )
         );
     }
-
 }
