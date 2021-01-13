@@ -11,16 +11,17 @@ import "./roles/TallyRole.sol";
 import "./roles/PayableToken.sol";
 
 contract PrepaidCardManager is TallyRole, PayableToken {
-    
     //setup(address[],uint256,address,bytes,address,address,uint256,address)
     bytes4 public constant SET_UP = 0xb63e800d;
     //swapOwner(address,address,address)
     bytes4 public constant SWAP_OWNER = 0xe318b52b;
     //"execTransaction(address,uint256,bytes,uint8,uint256,uint256,uint256,address,address,bytes)"   // use uint8 <=> Enum.operation
     bytes4 public constant EXEC_TRANSACTION = 0x6a761202;
-    
-    uint256 public constant MINIMUM_CARD_VALUE = 10 ** 18; // 1 token 
-    uint256 public constant MAXIMUM_CARD_VALUE = 50 * (10 ** 18); // 50 token
+
+    // uint256 public constant MINIMUM_CARD_VALUE = 10**18; // 1 token
+    // uint256 public constant MAXIMUM_CARD_VALUE = 50 * (10**18); // 50 token
+
+    uint8 public constant MAXIMUM_NUMBER_OF_CARD = 15;
 
     using SafeMath for uint256;
 
@@ -35,10 +36,12 @@ contract PrepaidCardManager is TallyRole, PayableToken {
     address public gsProxyFactory;
     address public gsCreateAndAddModules;
     address public revenuePool;
-    
-    
+
+    uint256 internal max_value; 
+    uint256 internal min_value;
+
     struct CardDetail {
-        address issuer; 
+        address issuer;
         address issuerToken;
     }
 
@@ -71,6 +74,22 @@ contract PrepaidCardManager is TallyRole, PayableToken {
         }
     }
 
+    function getMaxTokenAllowed() public view returns(uint256) {
+        return max_value;
+    } 
+
+    function getMinTokenAllowed() public view returns(uint256) {
+        return min_value;
+    }
+
+    function setMinTokenAllowed(uint256 _minValue) public onlyTally {
+        min_value = _minValue; 
+    }
+
+    function setMaxTokenAllowed(uint256 _maxValue) public onlyTally {
+        max_value = _maxValue;
+    }
+
     /**
      * @dev Add new payable token
      * @param _token Token address
@@ -95,7 +114,6 @@ contract PrepaidCardManager is TallyRole, PayableToken {
         address token,
         uint256 amount
     ) private returns (address) {
-
         address[] memory owners = new address[](2);
         owners[0] = address(this);
         owners[1] = issuer;
@@ -133,8 +151,13 @@ contract PrepaidCardManager is TallyRole, PayableToken {
 
         return card;
     }
-    
-  
+
+    function successNumberToken(address token, uint256 amount) public view returns(bool) {
+        uint256 minimumAmount = min_value * (10**18);
+        uint256 maximumAmount = max_value * (10**18);
+
+        return (minimumAmount <= amount && amount <= maximumAmount);
+    }
 
     /**
      * @dev Split Prepaid card
@@ -150,12 +173,16 @@ contract PrepaidCardManager is TallyRole, PayableToken {
         uint256[] memory amountOfCard
     ) private returns (bool) {
         uint256 neededAmount = 0;
-        uint256 numberCard = amountOfCard.length; 
+        uint256 numberCard = amountOfCard.length;
+
+        require(
+            numberCard <= MAXIMUM_NUMBER_OF_CARD,
+            "Not allowed create more than MAXIMUM_NUMBER_OF_CARD"
+        );
 
         for (uint256 i = 0; i < numberCard; i++) {
             require(
-                (amountOfCard[i] >= MINIMUM_CARD_VALUE) 
-                && (amountOfCard[i] <= MAXIMUM_CARD_VALUE),
+                successNumberToken(token, amountOfCard[i]),
                 "Your card amount too big or too small."
             );
             neededAmount = neededAmount.add(amountOfCard[i]);
@@ -188,8 +215,7 @@ contract PrepaidCardManager is TallyRole, PayableToken {
         bytes memory data,
         bytes memory signatures
     ) private returns (bool) {
-
-         require(
+        require(
             GnosisSafe(card).execTransaction(
                 to,
                 0,
@@ -242,7 +268,10 @@ contract PrepaidCardManager is TallyRole, PayableToken {
         address to
     ) public view returns (bytes memory) {
         // Only sell 1 time
-        require(cardDetails[card].issuer == from, "The card has been sold before");
+        require(
+            cardDetails[card].issuer == from,
+            "The card has been sold before"
+        );
 
         // Swap owner
         return abi.encodeWithSelector(SWAP_OWNER, address(this), from, to);
@@ -347,7 +376,10 @@ contract PrepaidCardManager is TallyRole, PayableToken {
 
         (issuer, amountOfCard) = abi.decode(data, (address, uint256[]));
 
-        require(issuer != address(0) && amountOfCard.length > 0, "Prepaid card data invalid");
+        require(
+            issuer != address(0) && amountOfCard.length > 0,
+            "Prepaid card data invalid"
+        );
 
         require(
             _createMultiplePrepaidCards(
@@ -357,7 +389,7 @@ contract PrepaidCardManager is TallyRole, PayableToken {
                 amountOfCard
             )
         );
-        
+
         return true;
     }
 

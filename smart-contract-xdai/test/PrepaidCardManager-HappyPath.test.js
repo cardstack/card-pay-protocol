@@ -127,7 +127,9 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 			revenuePool.address,
 			[daicpxdToken.address]
 		);
-
+		await prepaidCardManager.setMinTokenAllowed(1); 
+		await prepaidCardManager.setMaxTokenAllowed(50);
+		
 		prepaidCardManagerSignature = await prepaidCardManager.getContractSignature();
 	});
 

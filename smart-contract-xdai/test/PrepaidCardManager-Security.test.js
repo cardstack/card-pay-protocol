@@ -233,7 +233,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 		)
 
 
-				walletOfSupplier_zero_balance= await getParamFromTxEvent(
+		walletOfSupplier_zero_balance= await getParamFromTxEvent(
 			await proxyFactory.createProxy(
 				gnosisSafeMasterCopy.address,
 				gnosisSafeMasterCopy.contract.methods

@@ -94,6 +94,9 @@ contract("Test contract by EOA", (accounts) => {
             revenuePool.address,
             [daicpxdToken.address]
         );
+        await prepaidCardManager.setMinTokenAllowed(1); 
+        await prepaidCardManager.setMaxTokenAllowed(50);
+        
     })
 
     it("Create muliple card by EOA account", async () => {

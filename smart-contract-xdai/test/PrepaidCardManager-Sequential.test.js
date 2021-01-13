@@ -135,7 +135,9 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 		);
 
 		// setup the card manager
-        prepaidCardManager = await PrepaidCardManager.new();
+		prepaidCardManager = await PrepaidCardManager.new();
+		await prepaidCardManager.setMinTokenAllowed(1); 
+		await prepaidCardManager.setMaxTokenAllowed(50);
 		await prepaidCardManager.setup(
 			tally,
 			gnosisSafeMasterCopy.address,
