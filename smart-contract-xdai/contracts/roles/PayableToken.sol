@@ -19,7 +19,7 @@ contract PayableToken is Ownable {
         _;
     }
 
-    modifier verifyPayableToken(address _token) {
+    modifier onlyPayableTokens(address _token) {
         require(
             payableTokens.contains(_token),
             "Guard: Token is not support payable by contract."

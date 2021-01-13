@@ -33,6 +33,7 @@ const {
 	TokenHelper,
 	ContractHelper
 } = require('./utils/helper');
+const eventABIs = require('./utils/constant/eventABIs');
 
 
 contract("Test Prepaid Card Manager contract", (accounts) => {
@@ -299,7 +300,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 				prepaidCardManager.address,
 				TokenHelper.amountOf(7),
 				// using wallet of supplyer 1
-				ContractHelper.prepageDataForCreateMutipleToken(walletOfSupplier2.address, [])
+				ContractHelper.encodeCreateCardsData(walletOfSupplier2.address, [])
 			).encodeABI();
 
 
@@ -351,7 +352,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 			.transferAndCall(
 				prepaidCardManager.address,
 				TokenHelper.amountOf(7),
-				ContractHelper.prepageDataForCreateMutipleToken(walletOfSupplier2.address, [])
+				ContractHelper.encodeCreateCardsData(walletOfSupplier2.address, [7])
 			).encodeABI();
 
 			let safeTxData = {
@@ -382,7 +383,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
             from: relayer
         });
 
-		let executeFailed = getParamsFromEvent(safeTx, EXECUTE_EVENT_FAILED, EXECUTE_EVENT_META);
+		let executeFailed = getParamsFromEvent(safeTx, eventABIs.EXECUTION_FAILURE, walletOfSupplier2);
 		
 
 		// we should not have been able to use a false relayer.
@@ -406,7 +407,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 	// 		.transferAndCall(
 	// 			prepaidCardManager.address,
 	// 			TokenHelper.amountOf(1),
-	// 			ContractHelper.prepageDataForCreateMutipleToken(
+	// 			ContractHelper.prepareDataForCreateMutipleToken(
 	// 				walletOfSupplier.address, 
  //                    [TokenHelper.amountOf(1)]
 	// 			)
@@ -465,7 +466,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 	// 		.transferAndCall(
 	// 			prepaidCardManager.address,
 	// 			TokenHelper.amountOf(8),
-	// 			ContractHelper.prepageDataForCreateMutipleToken(
+	// 			ContractHelper.prepareDataForCreateMutipleToken(
 	// 				walletOfSupplier.address,
 	// 				amounts
 	// 			)
@@ -531,7 +532,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 	// 		.transferAndCall(
 	// 			prepaidCardManager.address,
 	// 			TokenHelper.amountOf(80),
-	// 			ContractHelper.prepageDataForCreateMutipleToken(
+	// 			ContractHelper.prepareDataForCreateMutipleToken(
 	// 				walletOfSupplier.address,
 	// 				amounts
 	// 			)
@@ -579,7 +580,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 	// 		.transferAndCall(
 	// 			prepaidCardManager.address,
 	// 			TokenHelper.amountOf(7),
-	// 			ContractHelper.prepageDataForCreateMutipleToken(walletOfSupplier.address, [])
+	// 			ContractHelper.prepareDataForCreateMutipleToken(walletOfSupplier.address, [])
 	// 		).encodeABI();
 
 	// 	let safeTxData = {
@@ -624,7 +625,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 	// 		.transferAndCall(
 	// 			prepaidCardManager.address,
 	// 			TokenHelper.amountOf(8),
-	// 			ContractHelper.prepageDataForCreateMutipleToken(
+	// 			ContractHelper.prepareDataForCreateMutipleToken(
 	// 				walletOfSupplier.address,
 	// 				amounts
 	// 			)

@@ -1,23 +1,23 @@
 pragma solidity 0.5.17;
 
 import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
-import "@gnosis.pm/safe-contracts/contracts/proxies/GnosisSafeProxy.sol";
-import "@gnosis.pm/safe-contracts/contracts/proxies/GnosisSafeProxyFactory.sol";
 import "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "./token/IERC677.sol";
 import "./roles/TallyRole.sol";
 import "./roles/PayableToken.sol";
+import "./core/Safe.sol";
 
-contract PrepaidCardManager is TallyRole, PayableToken {
+
+contract PrepaidCardManager is TallyRole, PayableToken, Safe{
     
-    //setup(address[],uint256,address,bytes,address,address,uint256,address)
-    bytes4 public constant SET_UP = 0xb63e800d;
     //swapOwner(address,address,address)
     bytes4 public constant SWAP_OWNER = 0xe318b52b;
-    //"execTransaction(address,uint256,bytes,uint8,uint256,uint256,uint256,address,address,bytes)"   // use uint8 <=> Enum.operation
+    //execTransaction(address,uint256,bytes,uint8,uint256,uint256,uint256,address,address,bytes)   // use uint8 <=> Enum.operation
     bytes4 public constant EXEC_TRANSACTION = 0x6a761202;
+    //transferAndCall(address,uint256,bytes) 
+    bytes4 public constant TRANSER_AND_CALL = 0x4000aea0;
     
     uint256 public constant MINIMUM_CARD_VALUE = 10 ** 18; // 1 token 
     uint256 public constant MAXIMUM_CARD_VALUE = 50 * (10 ** 18); // 50 token
@@ -30,6 +30,7 @@ contract PrepaidCardManager is TallyRole, PayableToken {
         address token,
         uint256 amount
     );
+    
 
     address public gsMasterCopy;
     address public gsProxyFactory;
@@ -61,10 +62,10 @@ contract PrepaidCardManager is TallyRole, PayableToken {
     ) public onlyOwner {
         // setup tally user
         addTally(_tally);
-        gsMasterCopy = _gsMasterCopy;
-        gsProxyFactory = _gsProxyFactory;
+        
         revenuePool = _revenuePool;
 
+        Safe.setup(_gsMasterCopy, _gsProxyFactory);
         // set token list payable.
         for (uint256 i = 0; i < _payableTokens.length; i++) {
             addPayableToken(_payableTokens[i]);
@@ -90,7 +91,7 @@ contract PrepaidCardManager is TallyRole, PayableToken {
      * @param amount Amount of Prepaid card
      * @return PrepaidCard address
      */
-    function _createPrepaidCard(
+    function createPrepaidCard( 
         address issuer,
         address token,
         uint256 amount
@@ -100,28 +101,9 @@ contract PrepaidCardManager is TallyRole, PayableToken {
         owners[0] = address(this);
         owners[1] = issuer;
 
-        bytes memory payloads = abi.encodeWithSelector(
-            SET_UP,
-            owners,
-            2,
-            address(0),
-            "0x",
-            address(0),
-            address(0),
-            0,
-            address(0)
-        );
+        address card = createSafe(owners, 2); 
 
-        address payable card = address(
-            GnosisSafeProxyFactory(gsProxyFactory).createProxy(
-                gsMasterCopy,
-                payloads
-            )
-        );
-
-        require(card != address(0), "Could not create card");
-
-        require(IERC677(token).transfer(card, amount));
+        IERC677(token).transfer(card, amount);
 
         emit CreatePrepaidCard(issuer, card, token, amount);
 
@@ -141,7 +123,7 @@ contract PrepaidCardManager is TallyRole, PayableToken {
      * @param amountReceived Amount to split
      * @param amountOfCard array which performing face value of card
      */
-    function _createMultiplePrepaidCards(
+    function createMultiplePrepaidCards(
         address issuer,
         address token,
         uint256 amountReceived,
@@ -167,7 +149,7 @@ contract PrepaidCardManager is TallyRole, PayableToken {
         );
 
         for (uint256 i = 0; i < numberCard; i++) {
-            _createPrepaidCard(issuer, token, amountOfCard[i]);
+            createPrepaidCard(issuer, token, amountOfCard[i]);
         }
 
         return true;
@@ -180,14 +162,14 @@ contract PrepaidCardManager is TallyRole, PayableToken {
      * @param data Data payload of Safe transaction
      * @param signatures Packed signature data ({bytes32 r}{bytes32 s}{uint8 v})
      */
-    function _execTransaction(
+    function execTransaction(
         address payable card,
         address to,
         bytes memory data,
         bytes memory signatures
     ) private returns (bool) {
-
-         require(
+        
+        require(
             GnosisSafe(card).execTransaction(
                 to,
                 0,
@@ -218,30 +200,26 @@ contract PrepaidCardManager is TallyRole, PayableToken {
         address to,
         bytes calldata signatures
     ) external payable {
-        require(
-            _execTransaction(
-                card,
-                card,
-                getSellCardData(card, from, to),
-                signatures
-            )
+        // Only sell 1 time
+        require(cardDetails[card].issuer == from, "The card has been sold before");
+
+        execTransaction(
+            card,
+            card,
+            getSellCardData(from, to),
+            signatures
         );
     }
 
     /**
      * @dev Returns the bytes that are hashed to be signed by owners
-     * @param card Prepaid Card's address
      * @param from Ower of card
      * @param to Customer's address
      */
     function getSellCardData(
-        address payable card,
         address from,
         address to
     ) public view returns (bytes memory) {
-        // Only sell 1 time
-        require(cardDetails[card].issuer == from, "The card has been sold before");
-
         // Swap owner
         return
             abi.encodeWithSelector(
@@ -257,26 +235,26 @@ contract PrepaidCardManager is TallyRole, PayableToken {
      * @param card Prepaid Card's address
      * @param from Ower of card
      * @param to Customer's address
-     * @param _nonce Transaction nonce
+     * @param nonce Transaction nonce
      */
     function getSellCardHash(
         address payable card,
         address from,
         address to,
-        uint256 _nonce
+        uint256 nonce
     ) public view returns (bytes32) {
         return
             GnosisSafe(card).getTransactionHash(
                 card,
                 0,
-                getSellCardData(card, from, to),
+                getSellCardData(from, to),
                 Enum.Operation.Call,
                 0,
                 0,
                 0,
                 address(0),
                 address(0),
-                _nonce
+                nonce
             );
     }
 
@@ -286,6 +264,7 @@ contract PrepaidCardManager is TallyRole, PayableToken {
      * s = ignored
      * r = contract address with padding to 32 bytes
      * {32-bytes r}{32-bytes s}{1-byte signature type}
+     * Should use it offchain ? 
      */
     function getContractSignature()
         public
@@ -306,6 +285,7 @@ contract PrepaidCardManager is TallyRole, PayableToken {
      * @dev append owner's signature with Prepaid Card Admin's Signature
      * @param owner Owner's address
      * @param signature Owner's signature
+     * Should use it offchain ? 
      */
     function appendPrepaidCardAdminSignature(
         address owner,
@@ -335,6 +315,58 @@ contract PrepaidCardManager is TallyRole, PayableToken {
         }
     }
 
+     /**
+     * @dev Pay token to merchant
+     * @param card Prepaid Card's address
+     * @param payableTokenAddr payable token address 
+     * @param merchant Merchant's address
+     * @param payment value to pay to merchant
+     * @param signatures Packed signature data ({bytes32 r}{bytes32 s}{uint8 v})
+     * TODO: should limit minimum price of merchant service. Attacker can spam our contract if price is to low. 
+     * TODO: relayer should check all information correctly before call this method
+     */
+    function payForMerchant(
+        address payable card,
+        address payableTokenAddr,
+        address merchant,
+        uint256 payment,
+        bytes calldata signatures
+    ) 
+        external 
+        returns(bool) 
+    {
+        
+        execTransaction(
+            card,
+            payableTokenAddr,
+            getPayData(payableTokenAddr, merchant, payment),
+            signatures
+        );
+
+        return true;
+    }
+
+    /**
+     * @dev Returns the bytes that are hashed to be signed by owners.
+     * @param token Token's address
+     * @param to Merchant's address
+     * @param value value to pay to merchant
+     */
+    function getPayData(
+        address token,
+        address to,
+        uint256 value
+    ) public view returns (bytes memory) {
+        return
+            abi.encodeWithSelector(
+                TRANSER_AND_CALL,
+                revenuePool,
+                value,
+                abi.encode(to)
+            );
+    }
+
+
     /**
      * @dev onTokenTransfer(ERC677) - call when token send this contract.
      * @param from Supplier or Prepaid card address
@@ -346,20 +378,16 @@ contract PrepaidCardManager is TallyRole, PayableToken {
         uint256 amount,
         bytes calldata data
     ) external onlyPayableToken returns (bool) {
-        address issuer = address(0);
+        address supplier;
         uint256[] memory amountOfCard;
 
-        if (data.length > 2) {
-            (issuer, amountOfCard) = abi.decode(data, (address, uint256[]));
-        }
+        (supplier, amountOfCard) = abi.decode(data, (address, uint256[]));
 
-        require(issuer != address(0), "Missing card owner's address");
-
-        require(amountOfCard.length > 0);
+        require(supplier != address(0) && amountOfCard.length > 0, "Prepaid card data invalid");
 
         require(
-            _createMultiplePrepaidCards(
-                issuer,
+            createMultiplePrepaidCards(
+                supplier,
                 _msgSender(),
                 amount,
                 amountOfCard

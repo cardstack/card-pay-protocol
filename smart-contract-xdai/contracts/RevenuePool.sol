@@ -3,7 +3,6 @@ pragma solidity 0.5.17;
 import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-import "./IRevenuePool.sol";
 import "./token/IERC677.sol";
 import "./token/ISPEND.sol";
 import "./roles/TallyRole.sol";
@@ -17,21 +16,19 @@ contract RevenuePool is
 {
     using SafeMath for uint256;
 
-    event Redeem(
+    event Claim(
         address merchantAddr,
-        uint256 walletIndex,
         address payableToken,
         uint256 amount
     );
     event Payment(
         address prepaidCardArr,
         address merchantAddr,
-        uint256 walletIndex,
         address payableToken,
         uint256 amount
     );
 
-    address private spendToken;
+    address public spendToken;
 
     /**
      * @dev set up revenue pool
@@ -63,24 +60,21 @@ contract RevenuePool is
     /**
      * @dev mint SPEND for merchant wallet when customer pay token for them.
      * @param merchantAddr merchant account address
-     * @param walletIndex wallet index of merchant
      * @param payableToken payableToken contract address
      * @param amount amount in payableToken
      */
-    function _pay(
+    function handlePayment(
         address merchantAddr,
-        uint256 walletIndex,
         address payableToken,
         uint256 amount
     ) internal returns (bool) {
-        address merchantWallet = getMerchantWallet(merchantAddr, walletIndex);
-
+        require(isMerchant(merchantAddr), "merchant not exist");
         uint256 lockTotal = merchants[merchantAddr].lockTotal[payableToken];
         merchants[merchantAddr].lockTotal[payableToken] = lockTotal.add(amount);
 
         uint256 amountSPEND = convertToSpend(payableToken, amount);
 
-        ISPEND(spendToken).mint(merchantWallet, amountSPEND);
+        ISPEND(spendToken).mint(merchantAddr, amountSPEND);
 
         return true;
     }
@@ -98,32 +92,26 @@ contract RevenuePool is
         bytes calldata data
     ) external onlyPayableToken() returns (bool) {
 
-        (address merchantAddr, uint256 walletIndex) = abi.decode(
-            data,
-            (address, uint256)
-        );
+        // decode and get merchant address from the data
+        (address merchantAddr) = abi.decode(data, (address));
 
-        _pay(merchantAddr, walletIndex, _msgSender(), amount);
+        handlePayment(merchantAddr, _msgSender(), amount);
 
-        emit Payment(from, merchantAddr, walletIndex, _msgSender(), amount);
+        emit Payment(from, merchantAddr, _msgSender(), amount);
         return true;
     }
 
     /**
-     * @dev merchant redeem
+     * @dev merchant claim token
      * @param merchantAddr address of merchant
-     * @param walletIndex wallet index of merchant
      * @param payableToken address of payable token
      * @param amount amount in payable token
      */
-    function _redeemRevenue(
+    function _claimToken(
         address merchantAddr,
-        uint256 walletIndex,
         address payableToken,
         uint256 amount
-    ) internal verifyPayableToken(payableToken) returns (bool) {
-        // get merchant wallet by merchant Address and wallet index
-        address merchantWallet = getMerchantWallet(merchantAddr, walletIndex);
+    ) internal onlyPayableTokens(payableToken) returns (bool) {
 
         // ensure enough token for redeem
         uint256 lockTotal = merchants[merchantAddr].lockTotal[payableToken];
@@ -136,33 +124,30 @@ contract RevenuePool is
         merchants[merchantAddr].lockTotal[payableToken] = lockTotal;
 
         // transfer payable token from revenue pool to merchant wallet address
-        IERC677(payableToken).transfer(merchantWallet, amount);
+        IERC677(payableToken).transfer(merchantAddr, amount);
 
-        emit Redeem(merchantAddr, walletIndex, payableToken, amount);
+        emit Claim(merchantAddr, payableToken, amount);
         return true;
     }
 
      /**
-     * @dev merchant redeem, only tally account can call this method
+     * @dev merchant claim token to their wallets, only tally account can call this method
      * @param merchantAddr address of merchant
-     * @param walletIndex wallet index of merchant
      * @param payableTokens array address of payable token
      * @param amounts array amount in payable token
      */
-    function redeemRevenue(
+    function claimTokens(
         address merchantAddr,
-        uint256 walletIndex,
         address[] calldata payableTokens,
         uint256[] calldata amounts
     ) external onlyTally returns (bool) {
-        uint256 numberKindOfToken = payableTokens.length;
+        uint256 totalType = payableTokens.length;
 
-        require(numberKindOfToken == amounts.length);
+        require(totalType == amounts.length);
 
-        for (uint256 index = 0; index < numberKindOfToken; index = index + 1) {
-            _redeemRevenue(
+        for (uint256 index = 0; index < totalType; index = index + 1) {
+            _claimToken(
                 merchantAddr,
-                walletIndex,
                 payableTokens[index],
                 amounts[index]
             );

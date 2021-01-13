@@ -27,12 +27,13 @@ const {
 	getParamFromTxEvent,
 	getGnosisSafeFromEventLog
 } = require("./utils/general");
- 
+
 
 const {
 	TokenHelper,
 	ContractHelper
 } = require('./utils/helper');
+const eventABIs = require('./utils/constant/eventABIs');
 
 
 contract("Test Prepaid Card Manager contract", (accounts) => {
@@ -49,23 +50,23 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 		proxyFactory,
 		gnosisSafeMasterCopy,
 		/// addresses 
-	    tally, 
-	    supplier1, 
-	    supplier2, 
-	    customer, 
-	    merchant1,
-	    merchant2,
-	    merchant3,
-	    merchant4,
-	    merchant5, 
-	    relayer,
-	    walletOfSupplier1,
-	    walletOfSupplier2,
-	    walletOfSupplier_zero_balance;
-	    
-	    
+		tally,
+		supplier1,
+		supplier2,
+		customer,
+		merchant1,
+		merchant2,
+		merchant3,
+		merchant4,
+		merchant5,
+		relayer,
+		walletOfSupplier1,
+		walletOfSupplier2,
+		walletOfSupplier_zero_balance;
 
-	   let prepaidCards = [];
+
+
+	let prepaidCards = [];
 
 
 
@@ -83,17 +84,10 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 		merchant2 = accounts[7];
 		merchant3 = accounts[8];
 		merchant4 = accounts[9];
-		 
-
-		 proxyFactory = await ProxyFactory.new();
-		 gnosisSafeMasterCopy = await GnosisSafe.new();
-
-	
-	 
 
 
-	 
-
+		proxyFactory = await ProxyFactory.new();
+		gnosisSafeMasterCopy = await GnosisSafe.new();
 
 		// Deploy and mint 500 daicpxd token for deployer as owner
 		daicpxdToken = await TokenHelper.deploy({
@@ -109,23 +103,23 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 		});
 
 
-		  
-         let balance =  await TokenHelper.getBalance(fakeDaicpxdToken,fakeDaicpxdToken.address); 
-            console.log("AAA " +balance)  ;
 
-      
+		let balance = await TokenHelper.getBalance(fakeDaicpxdToken, fakeDaicpxdToken.address);
+		console.log("AAA " + balance);
 
-        // setup MultiSend
-        multiSend = await MultiSend.new();
-		
-        // setup the revenue pool 
-        revenuePool = await RevenuePool.new();
 
-        // create spend token
+
+		// setup MultiSend
+		multiSend = await MultiSend.new();
+
+		// setup the revenue pool 
+		revenuePool = await RevenuePool.new();
+
+		// create spend token
 		spendToken = await SPEND.new("SPEND Token", "SPEND", [
 			revenuePool.address,
 		]);
-	
+
 		await revenuePool.setup(
 			tally,
 			gnosisSafeMasterCopy.address,
@@ -135,7 +129,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 		);
 
 		// setup the card manager
-        prepaidCardManager = await PrepaidCardManager.new();
+		prepaidCardManager = await PrepaidCardManager.new();
 		await prepaidCardManager.setup(
 			tally,
 			gnosisSafeMasterCopy.address,
@@ -143,32 +137,32 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 			revenuePool.address,
 			[daicpxdToken.address]
 		);
-		
 
-	 
-        // fetch the signiture
+
+
+		// fetch the signiture
 		prepaidCardManagerSignature = await prepaidCardManager.getContractSignature();
 
 		//register the first merchant
 
-		 await revenuePool.registerMerchant(merchant1, offChainId);
+		await revenuePool.registerMerchant(merchant1, offChainId);
 
 
-		 		walletOfSupplier1 = await getParamFromTxEvent(
+		walletOfSupplier1 = await getParamFromTxEvent(
 			await proxyFactory.createProxy(
 				gnosisSafeMasterCopy.address,
 				gnosisSafeMasterCopy.contract.methods
-				.setup(
-					[supplier1],
-					1,
-					ZERO_ADDRESS,
-					"0x",
-					ZERO_ADDRESS,
-					ZERO_ADDRESS,
-					0,
-					ZERO_ADDRESS
-				)
-				.encodeABI()
+					.setup(
+						[supplier1],
+						1,
+						ZERO_ADDRESS,
+						"0x",
+						ZERO_ADDRESS,
+						ZERO_ADDRESS,
+						0,
+						ZERO_ADDRESS
+					)
+					.encodeABI()
 			),
 			"ProxyCreation",
 			"proxy",
@@ -181,33 +175,33 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 		await daicpxdToken.transfer(
 			walletOfSupplier1.address,
 			TokenHelper.amountOf(20), {
-				from: tally,
-			}
+			from: tally,
+		}
 		);
- 
+
 		// Transfer 20 daicpxd to supplier's wallet
 		await fakeDaicpxdToken.transfer(
 			walletOfSupplier1.address,
 			TokenHelper.amountOf(20), {
-				from: tally,
-			}
+			from: tally,
+		}
 		)
 
-		 walletOfSupplier2 = await getParamFromTxEvent(
+		walletOfSupplier2 = await getParamFromTxEvent(
 			await proxyFactory.createProxy(
 				gnosisSafeMasterCopy.address,
 				gnosisSafeMasterCopy.contract.methods
-				.setup(
-					[supplier1],
-					1,
-					ZERO_ADDRESS,
-					"0x",
-					ZERO_ADDRESS,
-					ZERO_ADDRESS,
-					0,
-					ZERO_ADDRESS
-				)
-				.encodeABI()
+					.setup(
+						[supplier1],
+						1,
+						ZERO_ADDRESS,
+						"0x",
+						ZERO_ADDRESS,
+						ZERO_ADDRESS,
+						0,
+						ZERO_ADDRESS
+					)
+					.encodeABI()
 			),
 			"ProxyCreation",
 			"proxy",
@@ -220,34 +214,34 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 		await daicpxdToken.transfer(
 			walletOfSupplier2.address,
 			TokenHelper.amountOf(20), {
-				from: tally,
-			}
+			from: tally,
+		}
 		);
- 
+
 		// Transfer 20 daicpxd to supplier's wallet
 		await fakeDaicpxdToken.transfer(
 			walletOfSupplier2.address,
 			TokenHelper.amountOf(20), {
-				from: tally,
-			}
+			from: tally,
+		}
 		)
 
 
-				walletOfSupplier_zero_balance= await getParamFromTxEvent(
+		walletOfSupplier_zero_balance = await getParamFromTxEvent(
 			await proxyFactory.createProxy(
 				gnosisSafeMasterCopy.address,
 				gnosisSafeMasterCopy.contract.methods
-				.setup(
-					[supplier1],
-					1,
-					ZERO_ADDRESS,
-					"0x",
-					ZERO_ADDRESS,
-					ZERO_ADDRESS,
-					0,
-					ZERO_ADDRESS
-				)
-				.encodeABI()
+					.setup(
+						[supplier1],
+						1,
+						ZERO_ADDRESS,
+						"0x",
+						ZERO_ADDRESS,
+						ZERO_ADDRESS,
+						0,
+						ZERO_ADDRESS
+					)
+					.encodeABI()
 			),
 			"ProxyCreation",
 			"proxy",
@@ -256,14 +250,14 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 			"create Gnosis Safe Proxy"
 		);
 
-				// Transfer 20 daicpxd to supplier's wallet
+		// Transfer 20 daicpxd to supplier's wallet
 		// await daicpxdToken.transfer(
 		// 	walletOfSupplier_zero_balance.address,
 		// 	TokenHelper.amountOf(20), {
 		// 		from: tally,
 		// 	}
 		// );
- 
+
 		// // Transfer 20 daicpxd to supplier's wallet
 		// await fakeDaicpxdToken.transfer(
 		// 	walletOfSupplier_zero_balance.address,
@@ -275,22 +269,21 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 
 	});
 
- 
 
 
 
-    beforeEach(async function () 
-    {
 
- 
-
- 
-        
-    })
+	beforeEach(async function () {
 
 
 
-     it('lets try getting the nonce and transactionHash from a different wallet', async () => {
+
+
+	})
+
+
+
+	it('lets try getting the nonce and transactionHash from a different wallet', async () => {
 
 		let amountBefore = await daicpxdToken.balanceOf(walletOfSupplier1.address);
 
@@ -299,7 +292,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 				prepaidCardManager.address,
 				TokenHelper.amountOf(7),
 				// using wallet of supplyer 1
-				ContractHelper.prepageDataForCreateMutipleToken(walletOfSupplier2.address, [])
+				ContractHelper.encodeCreateCardsData(walletOfSupplier2.address, [])
 			).encodeABI();
 
 
@@ -318,43 +311,39 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 
 		let safeTxArr = Object.keys(safeTxData).map(key => safeTxData[key])
 
-        let nonce = await walletOfSupplier1.nonce();
-        // sign data with nonce by owner and gnosisSafe
-        let signature = await signSafeTransaction(...safeTxArr, nonce, supplier2, walletOfSupplier1);
+		let nonce = await walletOfSupplier1.nonce();
+		// sign data with nonce by owner and gnosisSafe
+		let signature = await signSafeTransaction(...safeTxArr, nonce, supplier2, walletOfSupplier1);
 
-        // compute txHash of transaction
-        let safeTxHash = await walletOfSupplier1.getTransactionHash(...safeTxArr, nonce);
- 	try {
+		// compute txHash of transaction
+		let safeTxHash = await walletOfSupplier1.getTransactionHash(...safeTxArr, nonce);
+		try {
 
- 		  let safeTx = await walletOfSupplier2.execTransaction(...safeTxArr, signature, {
-            from: relayer
-        });
-			  
+			let safeTx = await walletOfSupplier2.execTransaction(...safeTxArr, signature, {
+				from: relayer
+			});
+
 		} catch (err) {
-            assert.equal(err.reason, "Invalid owner provided");
+			assert.equal(err.reason, "Invalid owner provided");
 		}
-        // send transaction to network
-      
+		// send transaction to network
 
- 
-
-  
-    })
+	})
 
 
-     it('lets try putting a phony address as the relayer address', async () => {
+	it('lets try putting a phony address as the relayer address', async () => {
 
 
-     
-      
+
+
 		let payloads = daicpxdToken.contract.methods
 			.transferAndCall(
 				prepaidCardManager.address,
 				TokenHelper.amountOf(7),
-				ContractHelper.prepageDataForCreateMutipleToken(walletOfSupplier2.address, [])
+				ContractHelper.encodeCreateCardsData(walletOfSupplier2.address, [7])
 			).encodeABI();
 
-			let safeTxData = {
+		let safeTxData = {
 			to: daicpxdToken.address,
 			value: 0,
 			data: payloads,
@@ -370,35 +359,35 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 
 		let safeTxArr = Object.keys(safeTxData).map(key => safeTxData[key])
 
-        let nonce = await walletOfSupplier2.nonce();
-        // sign data with nonce by owner and gnosisSafe
-        let signature = await signSafeTransaction(...safeTxArr, nonce, supplier1, walletOfSupplier2);
+		let nonce = await walletOfSupplier2.nonce();
+		// sign data with nonce by owner and gnosisSafe
+		let signature = await signSafeTransaction(...safeTxArr, nonce, supplier1, walletOfSupplier2);
 
-        // compute txHash of transaction
-        let safeTxHash = await walletOfSupplier2.getTransactionHash(...safeTxArr, nonce);
+		// compute txHash of transaction
+		let safeTxHash = await walletOfSupplier2.getTransactionHash(...safeTxArr, nonce);
 
-        // send transaction to network
-        let safeTx = await walletOfSupplier2.execTransaction(...safeTxArr, signature, {
-            from: relayer
-        });
+		// send transaction to network
+		let safeTx = await walletOfSupplier2.execTransaction(...safeTxArr, signature, {
+			from: relayer
+		});
 
-		let executeFailed = getParamsFromEvent(safeTx, EXECUTE_EVENT_FAILED, EXECUTE_EVENT_META);
-		
+		let executeFailed = getParamsFromEvent(safeTx, eventABIs.EXECUTION_FAILURE, walletOfSupplier2.address);
+
 
 		// we should not have been able to use a false relayer.
 
 		let relayerBalance = await daicpxdToken.balanceOf(false_relayer)
 		console.log('RELAYER BALQNCE' + relayerBalance);
 
-		 assert(false);
-    })
-
-    
+		assert(false);
+	})
 
 
- 
 
-       
+
+
+
+
 
 	// it("Supplier create prepaid card have amount = 1 token DAI CPXD ", async () => {
 
@@ -406,9 +395,9 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 	// 		.transferAndCall(
 	// 			prepaidCardManager.address,
 	// 			TokenHelper.amountOf(1),
-	// 			ContractHelper.prepageDataForCreateMutipleToken(
+	// 			ContractHelper.prepareDataForCreateMutipleToken(
 	// 				walletOfSupplier.address, 
- //                    [TokenHelper.amountOf(1)]
+	//                    [TokenHelper.amountOf(1)]
 	// 			)
 	// 		)
 	// 		.encodeABI();
@@ -449,8 +438,8 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 
 	// 	assert.equal(prepaidCard.length, 1, "Should create a new card(gnosis safe).");
 	// 	assert.isTrue(await prepaidCard[0].isOwner(walletOfSupplier.address))
-		
- //        await TokenHelper.isEqualBalance(daicpxdToken, prepaidCard[0].address, TokenHelper.amountOf(1));
+
+	//        await TokenHelper.isEqualBalance(daicpxdToken, prepaidCard[0].address, TokenHelper.amountOf(1));
 
 	// 	await TokenHelper.isEqualBalance(daicpxdToken, walletOfSupplier.address, toBN(TokenHelper.amountOf(19)).sub(paymentActual));
 
@@ -465,7 +454,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 	// 		.transferAndCall(
 	// 			prepaidCardManager.address,
 	// 			TokenHelper.amountOf(8),
-	// 			ContractHelper.prepageDataForCreateMutipleToken(
+	// 			ContractHelper.prepareDataForCreateMutipleToken(
 	// 				walletOfSupplier.address,
 	// 				amounts
 	// 			)
@@ -531,7 +520,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 	// 		.transferAndCall(
 	// 			prepaidCardManager.address,
 	// 			TokenHelper.amountOf(80),
-	// 			ContractHelper.prepageDataForCreateMutipleToken(
+	// 			ContractHelper.prepareDataForCreateMutipleToken(
 	// 				walletOfSupplier.address,
 	// 				amounts
 	// 			)
@@ -563,7 +552,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 
 	// 	let executeFailed = getParamsFromEvent(safeTx, EXECUTE_EVENT_FAILED, EXECUTE_EVENT_META);
 	// 	assert.equal(safeTxHash.toString(), executeFailed[0]['txHash'].toString());
-		
+
 	// 	let successPrepaidCards = await getGnosisSafeFromEventLog(safeTx);
 	// 	assert.equal(successPrepaidCards.length, 0);
 
@@ -579,7 +568,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 	// 		.transferAndCall(
 	// 			prepaidCardManager.address,
 	// 			TokenHelper.amountOf(7),
-	// 			ContractHelper.prepageDataForCreateMutipleToken(walletOfSupplier.address, [])
+	// 			ContractHelper.prepareDataForCreateMutipleToken(walletOfSupplier.address, [])
 	// 		).encodeABI();
 
 	// 	let safeTxData = {
@@ -608,7 +597,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 	// 	let executeFailed = getParamsFromEvent(safeTx, EXECUTE_EVENT_FAILED, EXECUTE_EVENT_META);
 	// 	assert.ok(Array.isArray(executeFailed) && executeFailed.length > 0)
 	// 	assert.deepEqual(safeTxHash.toString(), executeFailed[0]['txHash']);
-		
+
 	// 	let payment = toBN(executeFailed[0]['payment']);
 
 	// 	await TokenHelper.isEqualBalance(daicpxdToken, walletOfSupplier.address, amountBefore.sub(payment));
@@ -624,7 +613,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 	// 		.transferAndCall(
 	// 			prepaidCardManager.address,
 	// 			TokenHelper.amountOf(8),
-	// 			ContractHelper.prepageDataForCreateMutipleToken(
+	// 			ContractHelper.prepareDataForCreateMutipleToken(
 	// 				walletOfSupplier.address,
 	// 				amounts
 	// 			)
@@ -658,7 +647,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 
 	// 	// let successPrepaidCards = await getGnosisSafeFromEventLog(safeTx);
 	// 	// assert.equal(successPrepaidCards.length, 0);
-		
+
 	// 	let payment = toBN(executeFailed[0]['payment']);
 	// 	await TokenHelper.isEqualBalance(daicpxdToken, walletOfSupplier.address, oldWalletBalance.sub(payment));
 	// 	await TokenHelper.isEqualBalance(daicpxdToken, relayer, oldRelayerBalance.add(payment));
@@ -735,7 +724,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 	// 	let payloads;
 
 	// 	let canGetSellCardData = true;
-        
+
 	// 	try {
 	// 		payloads = await prepaidCardManager.getSellCardData(
 	// 			prepaidCards[2].address,
@@ -782,7 +771,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 	// 			}
 	// 		);
 	// 	} catch (err) {
- //            assert.equal(err.reason, "The card has been sold before")
+	//            assert.equal(err.reason, "The card has been sold before")
 	// 	}
 	// });
 

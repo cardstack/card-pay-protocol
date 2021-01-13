@@ -8,12 +8,6 @@
 
 ## Build
 
-Install ganache-cli(only one time).
-
-```sh
-npm i -g ganache-cli
-```
-
 ```sh
 npm install
 ```
@@ -25,12 +19,6 @@ npm run compile-contracts
 ```
 
 ## Run test
-
-Start ganache-cli first.
-
-```sh
-ganache-cli -p 7777 -k istanbul
-```
 
 Run tests
 
@@ -97,5 +85,21 @@ Responsible for:
 
 - Receipt the token by customer prepaid card when they pay for merchant and lock token in revenue pool.
 
-- Redeem token for the merchant when the merchant wants to redeem.
+- Claim token by the merchant.
+
+### PrepaidCardManager
+**[PrepaidCardManager.sol](./contracts/PrepaidCardManager.sol)**
+
+Responsible for:
+
+- Customer use card pay for merchant.
+
+- Create new card by issuers. 
+
+- Transfer card from issuers to customers. 
+
+
+## Flow payment. 
+
+
 
