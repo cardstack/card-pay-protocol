@@ -99,3 +99,29 @@ Responsible for:
 
 - Redeem token for the merchant when the merchant wants to redeem.
 
+### xDai Contract address
+
+Deployed by `0x2E687A2fa5eC9D8080156E0B52f7f054eC191d79`
+
+#### Address table
+
+|Contract|Address|
+|--------|-------|
+|Revenue pool|0xABc52fA2691fe0BfE66c4CeA321EF91550e6950f|
+|PrepaidCardManager|0xfc487529B501e1fd554A8b1BF8AC2b0961783477|
+|BridgeUtils|0x00e842bB0c4FDd3a2061ffC07299Bbdc7b40Fe39|
+|ERC677Token|0xA18a5F3F8A3069e712f0611749639845EA10dAE8|
+|SPEND| 0xcb5254d9b5f52D9b15692C18d415B31d2C46CbdF|
+
+
+### Rinkeby Contract address
+
+Deployed by `0xFf0A8d6240F6B44820fFaB7C2683Ff64a5b16D21`
+
+|Contract|Address|
+|--------|-------|
+|Revenue pool|0x67262d47a3c92528EE5EF826b4be56c43cb75c43|
+|PrepaidCardManager|0x75619C7070dF5329031761d4db6E092fb0083921|
+|BridgeUtils|0x8D7C8D278253D96Dcfae8C84feb0267caBEE89fA|
+|ERC677Token|0x1deb16008cc7bf2be3e02ad8f98fdc0f97e51358|
+|SPEND| 0x935aB896777bEaae460a8AE876406b8c2a7173c2|
