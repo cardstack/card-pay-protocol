@@ -71,4 +71,41 @@ contract('Test SPEND contract', accounts => {
             assert.equal(error.reason, "ERC20: burn amount exceeds balance");
         }
     })
+    
+    it("Mint for zero address", async() => {
+        let revered = false; 
+
+        try {
+            await instance.mint("0x0000000000000000000000000000000000000000", 10); 
+        } catch(error) {
+            revered = true;
+            assert.equal(error.reason, "ERC20: mint to the zero address");
+        }
+
+        assert.isTrue(revered)
+    })
+
+    it("Burn for zero address", async() => {
+        let revered = false; 
+
+        try {
+            await instance.burn("0x0000000000000000000000000000000000000000", 10); 
+        } catch(error) {
+            revered = true;
+            assert.equal(error.reason, "ERC20: burn from the zero address");
+        }
+
+        assert.isTrue(revered)
+    })
+
+    it("Role test", async() => {
+        let newMinter = accounts[8]; 
+        await instance.removeMinter(accounts[0]);
+        
+        await instance.addMinter(newMinter);
+
+        let currentMinters = await instance.getMinters()
+        assert.deepEqual([newMinter], currentMinters);
+    })       
+
 })
