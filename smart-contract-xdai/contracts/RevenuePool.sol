@@ -8,11 +8,13 @@ import "./token/ISPEND.sol";
 import "./roles/TallyRole.sol";
 import "./core/MerchantManager.sol";
 import "./core/Exchange.sol";
+import "./interfaces/IRevenuePool.sol";
 
 contract RevenuePool is
     TallyRole,
     MerchantManager,
-    Exchange
+    Exchange, 
+    IRevenuePool
 {
     using SafeMath for uint256;
 

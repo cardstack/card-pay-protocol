@@ -9,7 +9,7 @@ import "./IERC677.sol";
 /**
  * @dev reference from https://github.com/smartcontractkit/LinkToken
  */
-contract DAICPXD is IERC677, ERC20Detailed, ERC20Mintable, ERC20Burnable {
+contract ERC677Token is IERC677, ERC20Detailed, ERC20Mintable, ERC20Burnable {
     
     constructor(
         string memory _name,

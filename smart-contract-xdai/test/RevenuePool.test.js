@@ -1,4 +1,4 @@
-const DAICPXD = artifacts.require('DAICPXD.sol');
+const DAICPXD = artifacts.require('ERC677Token.sol');
 const RevenuePool = artifacts.require('RevenuePool.sol');
 const SPEND = artifacts.require('SPEND.sol');
 const ProxyFactory = artifacts.require('GnosisSafeProxyFactory');

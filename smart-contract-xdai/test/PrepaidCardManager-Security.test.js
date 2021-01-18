@@ -8,7 +8,7 @@ const abi = require('ethereumjs-abi')
 
 const PrepaidCardManager = artifacts.require("PrepaidCardManager");
 const RevenuePool = artifacts.require("RevenuePool.sol");
-const DAICPXD = artifacts.require("DAICPXD.sol");
+const DAICPXD = artifacts.require("ERC677Token.sol");
 const SPEND = artifacts.require("SPEND.sol");
 const ProxyFactory = artifacts.require("GnosisSafeProxyFactory");
 const GnosisSafe = artifacts.require("gnosisSafe");
