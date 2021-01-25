@@ -75,10 +75,10 @@ contract("Test contract by EOA", (accounts) => {
             gnosisSafeMasterCopy.address,
             proxyFactory.address,
             revenuePool.address,
-            [daicpxdToken.address]
+            [daicpxdToken.address],
+            100, 500000
         );
-        await prepaidCardManager.setMinTokenAllowed(1); 
-        await prepaidCardManager.setMaxTokenAllowed(50);
+     
         
     })
 
@@ -120,7 +120,7 @@ contract("Test contract by EOA", (accounts) => {
         }
     })
 
-    it('Create muliple card by EOA account failed because your amount must be == sum of new cardAmounts', async () => {
+    it('Create muliple card by EOA account failed because not enough token', async () => {
         try {
             let amounts = [1, 2, 9].map(amount => toTokenUnit(amount));
 
@@ -131,7 +131,7 @@ contract("Test contract by EOA", (accounts) => {
             });
             assert.ok(false, "Should failed");
         } catch (err) {
-            assert.equal(err.reason, "your amount must be == sum of new cardAmounts");
+            assert.equal(err.reason, "Not enough token");
         }
     })
 

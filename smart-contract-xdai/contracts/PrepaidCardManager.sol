@@ -9,6 +9,7 @@ import "./roles/TallyRole.sol";
 import "./roles/PayableToken.sol";
 import "./core/Safe.sol";
 import "./interfaces/IPrepaidCardManager.sol";
+import "./RevenuePool.sol";
 
 contract PrepaidCardManager is
     TallyRole,
@@ -31,8 +32,8 @@ contract PrepaidCardManager is
 
     address public revenuePool;
 
-    uint256 internal max_value;
-    uint256 internal min_value;
+    uint256 internal maxAmount;
+    uint256 internal minAmount;
 
     mapping(address => CardDetail) public cardDetails;
 
@@ -49,7 +50,8 @@ contract PrepaidCardManager is
         address _gsMasterCopy,
         address _gsProxyFactory,
         address _revenuePool,
-        address[] memory _payableTokens
+        address[] memory _payableTokens, 
+        uint256 _minAmount, uint _maxAmount
     ) public onlyOwner {
         // setup tally user
         _addTally(_tally);
@@ -61,22 +63,25 @@ contract PrepaidCardManager is
         for (uint256 i = 0; i < _payableTokens.length; i++) {
             _addPayableToken(_payableTokens[i]);
         }
+        // set limit of amount.
+        minAmount = _minAmount; 
+        maxAmount = _maxAmount;
     }
 
-    function getMaxTokenAllowed() public view returns (uint256) {
-        return max_value;
+    function getMinimumAmount() public view returns (uint256) {
+        return minAmount;
     }
 
-    function getMinTokenAllowed() public view returns (uint256) {
-        return min_value;
+    function getMaximumAmount() public view returns (uint256) {
+        return maxAmount;
     }
 
-    function setMinTokenAllowed(uint256 _minValue) public onlyTally {
-        min_value = _minValue;
+    function updateMininumAmount(uint256 _minValue) public onlyTally {
+        minAmount = _minValue;
     }
 
-    function setMaxTokenAllowed(uint256 _maxValue) public onlyTally {
-        max_value = _maxValue;
+    function updateMaxinumAmount(uint256 _maxValue) public onlyTally {
+        maxAmount = _maxValue;
     }
 
     /**
@@ -109,15 +114,17 @@ contract PrepaidCardManager is
         return card;
     }
 
-    function successNumberToken(address token, uint256 amount)
+    /**
+     * @dev check amount of card want to create.
+     * convert amount to spend and check.
+     */
+    function isValidAmount(address token, uint256 amount)
         public
         view
         returns (bool)
     {
-        uint256 minimumAmount = min_value * (10**18);
-        uint256 maximumAmount = max_value * (10**18);
-
-        return (minimumAmount <= amount && amount <= maximumAmount);
+        uint256 amountInSPEND = RevenuePool(revenuePool).convertToSpend(token, amount);
+        return (minAmount <= amountInSPEND && amountInSPEND <= maxAmount);
     }
 
     /**
@@ -143,8 +150,8 @@ contract PrepaidCardManager is
 
         for (uint256 i = 0; i < numberCard; i++) {
             require(
-                successNumberToken(token, amountOfCard[i]),
-                "Your card amount too big or too small."
+                isValidAmount(token, amountOfCard[i]),
+                "Amount invalid."
             );
             neededAmount = neededAmount.add(amountOfCard[i]);
         }
@@ -153,7 +160,7 @@ contract PrepaidCardManager is
         //      (transfer the rest of token back to issuer) ?
         require(
             amountReceived == neededAmount,
-            "your amount must be == sum of new cardAmounts"
+            "Not enough token"
         );
 
         for (uint256 i = 0; i < numberCard; i++) {
@@ -238,7 +245,7 @@ contract PrepaidCardManager is
         // Only sell 1 time
         require(
             cardDetails[prepaidCard].issuer == depot,
-            "The card has been sold before"
+            "The card has been sold"
         );
 
         return

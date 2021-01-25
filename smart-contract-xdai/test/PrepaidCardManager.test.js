@@ -23,24 +23,18 @@ const {
 	toTokenUnit,
 	shouldSameBalance,
 	encodeCreateCardsData,
-	signAndSendSafeTransaction,
-	packExecutionData
+	signAndSendSafeTransaction
 } = require('./utils/helper');
 
 const { expect, TOKEN_DETAIL_DATA, toBN } = require('./setup');
 
 contract("Test Prepaid Card Manager contract", (accounts) => {
 
-	let daicpxdToken,
-		revenuePool,
-		spendToken,
-		cardManager,
-		multiSend,
-		offChainId = "Id",
-		fakeDaicpxdToken,
-		gnosisSafeMasterCopy,
-		proxyFactory;
-	let tally, issuer, customer, merchant, relayer, depot;
+	let MINIMUN_AMOUNT, MAXIMUM_AMOUNT;
+	let revenuePool, spendToken, cardManager, multiSend;
+	let daicpxdToken, fakeDaicpxdToken;
+	let gnosisSafeMasterCopy, proxyFactory;
+	let tally, issuer, customer, merchant, relayer, depot, offChainId = "Id"
 
 	let prepaidCards = [];
 
@@ -65,21 +59,14 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 		fakeDaicpxdToken = await ERC677Token.new(...TOKEN_DETAIL_DATA);
 		await fakeDaicpxdToken.mint(accounts[0], toTokenUnit(1000));
 
+		let gnosisData = gnosisSafeMasterCopy.contract.methods
+			.setup([issuer], 1, ZERO_ADDRESS, "0x", ZERO_ADDRESS, ZERO_ADDRESS, 0,ZERO_ADDRESS)
+			.encodeABI()
+		
 		depot = await getParamFromTxEvent(
 			await proxyFactory.createProxy(
 				gnosisSafeMasterCopy.address,
-				gnosisSafeMasterCopy.contract.methods
-					.setup(
-						[issuer],
-						1,
-						ZERO_ADDRESS,
-						"0x",
-						ZERO_ADDRESS,
-						ZERO_ADDRESS,
-						0,
-						ZERO_ADDRESS
-					)
-					.encodeABI()
+				gnosisData
 			),
 			"ProxyCreation",
 			"proxy",
@@ -87,6 +74,9 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 			GnosisSafe,
 			"create Gnosis Safe Proxy"
 		);
+
+		MINIMUN_AMOUNT = 100 // in spend <=> 1 USD 
+		MAXIMUM_AMOUNT = 500000 // in spend <=>  5000 USD
 	})
 
 	describe('#Setup contract (setup method)', () => {
@@ -111,12 +101,9 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 				gnosisSafeMasterCopy.address,
 				proxyFactory.address,
 				revenuePool.address,
-				[daicpxdToken.address]
+				[daicpxdToken.address],
+				MINIMUN_AMOUNT, MAXIMUM_AMOUNT
 			);
-
-			await cardManager.setMinTokenAllowed(1, { from: tally });
-			await cardManager.setMaxTokenAllowed(50, { from: tally });
-
 		});
 
 		it("should initialized parameters", async () => {
@@ -125,7 +112,10 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 			expect(await cardManager.gnosisProxyFactory()).to.deep.equal(proxyFactory.address);
 			expect(await cardManager.revenuePool()).to.deep.equal(revenuePool.address);
 			expect(await cardManager.getTokens()).to.deep.equal([daicpxdToken.address]);
+			expect(await cardManager.getMinimumAmount()).to.a.bignumber.equal(toBN(MINIMUN_AMOUNT));
+			expect(await cardManager.getMaximumAmount()).to.a.bignumber.equal(toBN(MAXIMUM_AMOUNT));
 		})
+
 	})
 
 	describe('#Create signature method', () => {
@@ -162,12 +152,12 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 			walletAmount = toTokenUnit(100);
 		})
 
-		beforeEach(async() => {
+		beforeEach(async () => {
 			// mint 100 token for depot
 			await daicpxdToken.mint(depot.address, walletAmount);
 		});
 
-		afterEach(async() => {
+		afterEach(async () => {
 			// burn all token in depot wallet
 			let balance = await daicpxdToken.balanceOf(depot.address);
 			let data = daicpxdToken.contract.methods.burn(balance).encodeABI();
@@ -183,9 +173,9 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 				depot,
 				relayer
 			);
-			
+
 			// burn all token in relayer wallet
-			await daicpxdToken.burn(await daicpxdToken.balanceOf(relayer), {from : relayer});
+			await daicpxdToken.burn(await daicpxdToken.balanceOf(relayer), { from: relayer });
 		})
 
 		it("should create prepaid card with balance is 1 token", async () => {

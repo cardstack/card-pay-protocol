@@ -10,6 +10,8 @@ module.exports = async function (deployer) {
         process.env.GNOSIS_SAFE_MASTER_COPY,
         process.env.GNOSIS_SAFE_FACTORY,
         pool.address,
-        process.env.PAYABLE_TOKEN.split(' ')
+        process.env.PAYABLE_TOKEN.split(' '), 
+        process.env.MINIMUM_AMOUNT, 
+        process.env.MAXIMUM_AMOUNT
     );
 }

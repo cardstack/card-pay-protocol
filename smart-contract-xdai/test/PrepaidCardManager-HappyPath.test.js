@@ -111,10 +111,10 @@ contract("Test Prepaid Card Manager contract happy", (accounts) => {
 			gnosisSafeMasterCopy.address,
 			proxyFactory.address,
 			revenuePool.address,
-			[daicpxdToken.address]
+			[daicpxdToken.address], 
+			100,
+			500000
 		);
-		await prepaidCardManager.setMinTokenAllowed(1); 
-		await prepaidCardManager.setMaxTokenAllowed(50);
 		
 		prepaidCardManagerSignature = await prepaidCardManager.getContractSignature();
 	});

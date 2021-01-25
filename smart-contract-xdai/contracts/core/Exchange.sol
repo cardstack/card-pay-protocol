@@ -38,7 +38,7 @@ contract Exchange is PayableToken {
      * @param payableTokenAddr address of payableToken
      * @param amount amount in payableToken
      * @return amount
-    * TODO:  should use current exchange rate from chainlink
+     * TODO:  should use current exchange rate from chainlink
      */
     function convertToSpend(address payableTokenAddr, uint256 amount)
         public
