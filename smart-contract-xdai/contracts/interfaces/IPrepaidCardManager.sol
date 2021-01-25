@@ -1,6 +1,17 @@
 pragma solidity 0.5.17;
 
 interface IPrepaidCardManager {
+    struct CardDetail {
+        address issuer;
+        address issueToken;
+    }
+    event CreatePrepaidCard(
+        address issuer,
+        address card,
+        address token,
+        uint256 amount
+    );
+     
     function onTokenTransfer(
         address from,
         uint256 amount,
@@ -8,25 +19,25 @@ interface IPrepaidCardManager {
     ) external returns (bool);
 
     function payForMerchant(
-        address payable card,
+        address payable prepaidCardAddr,
         address payableTokenAddr,
         address merchant,
-        uint256 payment,
-        bytes calldata signatures
+        uint256 paymentAmount,
+        bytes calldata customerSignatures
     ) external returns (bool);
 
     function sellCard(
-        address payable card,
-        address from,
-        address to,
-        bytes calldata signatures
+        address payable prepaidCardAddr,
+        address depotAddr,
+        address buyer,
+        bytes calldata sellerSignature
     ) external payable returns (bool);
 
     function splitCard(
-        address payable card,
-        address from,
-        address token,
-        uint256[] calldata cardAmounts,
-        bytes calldata signatures
+        address payable prepaidCardAddr,
+        address depotAddr,
+        address issueToken,
+        uint256[] calldata subCardAmounts,
+        bytes calldata issuerSignatures
     ) external payable returns(bool);
 }

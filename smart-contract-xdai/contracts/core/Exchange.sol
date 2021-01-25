@@ -15,7 +15,7 @@ contract Exchange is PayableToken {
      * @return exchange rate
      * TODO: should use current exchange rate from chainlink
      */
-    function exchangeRateOf(address _token) internal pure returns (uint256) {
+    function exchangeRateOf(address _token) public view returns (uint256) {
         return 100;
     }
 

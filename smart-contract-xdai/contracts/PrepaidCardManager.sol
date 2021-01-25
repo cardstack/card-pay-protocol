@@ -16,13 +16,8 @@ contract PrepaidCardManager is
     Safe,
     IPrepaidCardManager
 {
-    //swapOwner(address,address,address)
-    bytes4 public constant SWAP_OWNER = 0xe318b52b;
-    //execTransaction(address,uint256,bytes,uint8,uint256,uint256,uint256,address,address,bytes)   // use uint8 <=> Enum.operation
-    bytes4 public constant EXEC_TRANSACTION = 0x6a761202;
-
+    bytes4 public constant SWAP_OWNER = 0xe318b52b;   //swapOwner(address,address,address)
     bytes4 public constant TRANSER_AND_CALL = 0x4000aea0; //transferAndCall(address,uint256,bytes)
-
     uint8 public constant MAXIMUM_NUMBER_OF_CARD = 15;
 
     using SafeMath for uint256;
@@ -34,18 +29,10 @@ contract PrepaidCardManager is
         uint256 amount
     );
 
-    address public gsMasterCopy;
-    address public gsProxyFactory;
-    address public gsCreateAndAddModules;
     address public revenuePool;
 
     uint256 internal max_value;
     uint256 internal min_value;
-
-    struct CardDetail {
-        address issuer;
-        address issuerToken;
-    }
 
     mapping(address => CardDetail) public cardDetails;
 
@@ -65,14 +52,14 @@ contract PrepaidCardManager is
         address[] memory _payableTokens
     ) public onlyOwner {
         // setup tally user
-        addTally(_tally);
+        _addTally(_tally);
 
         revenuePool = _revenuePool;
 
         Safe.setup(_gsMasterCopy, _gsProxyFactory);
         // set token list payable.
         for (uint256 i = 0; i < _payableTokens.length; i++) {
-            addPayableToken(_payableTokens[i]);
+            _addPayableToken(_payableTokens[i]);
         }
     }
 
@@ -93,43 +80,32 @@ contract PrepaidCardManager is
     }
 
     /**
-     * @dev Add new payable token
-     * @param _token Token address
-     */
-    function addPayableTokenByTally(address _token)
-        public
-        onlyTally
-        returns (bool)
-    {
-        return _addPayableToken(_token);
-    }
-
-    /**
      * @dev Create Prepaid card
-     * @param issuer Supplier address
-     * @param token Token address
-     * @param amount Amount of Prepaid card
+     * @param depot depot address
+     * @param token token address
+     * @param amount amount of prepaid card
      * @return PrepaidCard address
      */
     function createPrepaidCard(
-        address issuer,
+        address depot,
         address token,
         uint256 amount
     ) private returns (address) {
         address[] memory owners = new address[](2);
+
         owners[0] = address(this);
-        owners[1] = issuer;
+        owners[1] = depot;
 
         address card = createSafe(owners, 2);
 
         IERC677(token).transfer(card, amount);
 
-        emit CreatePrepaidCard(issuer, card, token, amount);
-
         // card was created
-        cardDetails[card].issuer = issuer;
-        cardDetails[card].issuerToken = token;
+        cardDetails[card].issuer = depot;
+        cardDetails[card].issueToken = token;
 
+        emit CreatePrepaidCard(depot, card, token, amount);
+        
         return card;
     }
 
@@ -146,13 +122,13 @@ contract PrepaidCardManager is
 
     /**
      * @dev Split Prepaid card
-     * @param tokenRepository Supplier address
+     * @param depot Supplier address
      * @param token Token address
      * @param amountReceived Amount to split
      * @param amountOfCard array which performing face value of card
      */
     function createMultiplePrepaidCards(
-        address tokenRepository,
+        address depot,
         address token,
         uint256 amountReceived,
         uint256[] memory amountOfCard
@@ -181,14 +157,14 @@ contract PrepaidCardManager is
         );
 
         for (uint256 i = 0; i < numberCard; i++) {
-            createPrepaidCard(tokenRepository, token, amountOfCard[i]);
+            createPrepaidCard(depot, token, amountOfCard[i]);
         }
 
         return true;
     }
 
     /**
-     * @dev Exec Prepaid Card
+     * @dev adapter execTransaction for prepaid card(gnosis safe)
      * @param card Prepaid Card's address
      * @param to Destination address of Safe transaction
      * @param data Data payload of Safe transaction
@@ -219,25 +195,59 @@ contract PrepaidCardManager is
     }
 
     /**
-     * @dev Sell Card
+     * @dev adapt getExecTransactionHash of gnosis safe
      * @param card Prepaid Card's address
-     * @param from Ower of card
-     * @param to Customer's address
-     * @param signatures Packed signature data ({bytes32 r}{bytes32 s}{uint8 v})
+     * @param to Destination address of Safe transaction
+     * @param data Data payload of Safe transaction
+     * @param nonce Packed signature data ({bytes32 r}{bytes32 s}{uint8 v})
+     */
+    function getTransactionHash(
+        address payable card,
+        address to,
+        bytes memory data,
+        uint256 nonce
+    ) public view returns (bytes32) {
+        return
+            GnosisSafe(card).getTransactionHash(
+                to,
+                0,
+                data,
+                Enum.Operation.Call,
+                0,
+                0,
+                0,
+                address(0),
+                address(0),
+                nonce
+            );
+    }
+
+    /**
+     * @dev sell card for customer
+     * @param prepaidCard Prepaid Card's address
+     * @param depot depot issue card
+     * @param customer Customer's address
+     * @param issuerSignatures Packed signature data ({bytes32 r}{bytes32 s}{uint8 v})
      */
     function sellCard(
-        address payable card,
-        address from,
-        address to,
-        bytes calldata signatures
-    ) external payable returns(bool){
+        address payable prepaidCard,
+        address depot,
+        address customer,
+        bytes calldata issuerSignatures
+    ) external payable returns (bool) {
         // Only sell 1 time
         require(
-            cardDetails[card].issuer == from,
+            cardDetails[prepaidCard].issuer == depot,
             "The card has been sold before"
         );
 
-        return execTransaction(card, card, getSellCardData(from, to), signatures);
+        return
+            execTransaction(
+                prepaidCard,
+                prepaidCard,
+                getSellCardData(depot, customer),
+                issuerSignatures
+            );
     }
 
     /**
@@ -256,28 +266,22 @@ contract PrepaidCardManager is
 
     /**
      * @dev Returns the bytes that are hashed to be signed by owners
-     * @param card Prepaid Card's address
-     * @param from Ower of card
-     * @param to Customer's address
+     * @param prepaidCard Prepaid Card's address
+     * @param depot depot issue card
+     * @param customer Customer's address
      * @param nonce Transaction nonce
      */
     function getSellCardHash(
-        address payable card,
-        address from,
-        address to,
+        address payable prepaidCard,
+        address depot,
+        address customer,
         uint256 nonce
     ) public view returns (bytes32) {
         return
-            GnosisSafe(card).getTransactionHash(
-                card,
-                0,
-                getSellCardData(from, to),
-                Enum.Operation.Call,
-                0,
-                0,
-                0,
-                address(0),
-                address(0),
+            getTransactionHash(
+                prepaidCard,
+                prepaidCard,
+                getSellCardData(depot, customer),
                 nonce
             );
     }
@@ -341,48 +345,47 @@ contract PrepaidCardManager is
 
     /**
      * @dev Pay token to merchant
-     * @param card Prepaid Card's address
+     * @param prepaidCard Prepaid Card's address
      * @param payableTokenAddr payable token address
      * @param merchant Merchant's address
-     * @param payment value to pay to merchant
+     * @param amount value to pay to merchant
      * @param signatures Packed signature data ({bytes32 r}{bytes32 s}{uint8 v})
      * TODO: should limit minimum price of merchant service. Attacker can spam our contract if price is to low.
      * TODO: relayer should check all information correctly before call this method
      */
     function payForMerchant(
-        address payable card,
+        address payable prepaidCard,
         address payableTokenAddr,
         address merchant,
-        uint256 payment,
+        uint256 amount,
         bytes calldata signatures
     ) external returns (bool) {
-        execTransaction(
-            card,
-            payableTokenAddr,
-            getPayData(payableTokenAddr, merchant, payment),
-            signatures
-        );
-
-        return true;
+        return
+            execTransaction(
+                prepaidCard,
+                payableTokenAddr,
+                getPayData(payableTokenAddr, merchant, amount),
+                signatures
+            );
     }
 
     /**
      * @dev Returns the bytes that are hashed to be signed by owners.
-     * @param token Token's address
-     * @param to Merchant's address
-     * @param value value to pay to merchant
+     * @param token Token merchant
+     * @param merchant Merchant's address
+     * @param amount amount need pay to merchant
      */
-    function getPayData(
-        address token,
-        address to,
-        uint256 value
-    ) public view returns (bytes memory) {
+    function getPayData(address token, address merchant, uint256 amount)
+        public
+        view
+        returns (bytes memory)
+    {
         return
             abi.encodeWithSelector(
                 TRANSER_AND_CALL,
                 revenuePool,
-                value,
-                abi.encode(to)
+                amount,
+                abi.encode(merchant)
             );
     }
 
@@ -397,46 +400,39 @@ contract PrepaidCardManager is
         uint256 amount,
         bytes calldata data
     ) external onlyPayableToken returns (bool) {
-        address supplier;
-        uint256[] memory amountOfCard;
-
-        (supplier, amountOfCard) = abi.decode(data, (address, uint256[]));
+        (address depot, uint256[] memory cardAmounts) =
+            abi.decode(data, (address, uint256[]));
 
         require(
-            supplier != address(0) && amountOfCard.length > 0,
+            depot != address(0) && cardAmounts.length > 0,
             "Prepaid card data invalid"
         );
 
-        require(
-            createMultiplePrepaidCards(
-                supplier,
-                _msgSender(),
-                amount,
-                amountOfCard
-            )
+        createMultiplePrepaidCards(
+            depot,
+            _msgSender(),
+            amount,
+            cardAmounts
         );
 
         return true;
     }
 
+    /**
+     * @dev Get split card hash
+     */
     function getSplitCardHash(
         address payable card,
-        address from,
+        address depot,
         address token,
         uint256[] memory cardAmounts,
         uint256 _nonce
     ) public view returns (bytes32) {
         return
-            GnosisSafe(card).getTransactionHash(
+            getTransactionHash(
+                card,
                 token,
-                0,
-                getSplitCardData(from, cardAmounts),
-                Enum.Operation.Call,
-                0,
-                0,
-                0,
-                address(0),
-                address(0),
+                getSplitCardData(depot, cardAmounts),
                 _nonce
             );
     }
@@ -469,24 +465,24 @@ contract PrepaidCardManager is
 
     /**
      * @dev Split Current Prepaid Card into Multiple Cards
-     * @param card Prepaid Card's address
-     * @param tokenRepository Owner of card
+     * @param prepaidCard Prepaid Card's address
+     * @param depot Owner of card
      * @param issueToken Token's address
      * @param cardAmounts Array of new card's amount
      * @param signatures Packed signature data ({bytes32 r}{bytes32 s}{uint8 v})
      */
     function splitCard(
-        address payable card,
-        address tokenRepository,
+        address payable prepaidCard,
+        address depot,
         address issueToken,
         uint256[] calldata cardAmounts,
         bytes calldata signatures
-    ) external payable returns(bool) {
+    ) external payable returns (bool) {
         return
             execTransaction(
-                card,
+                prepaidCard,
                 issueToken,
-                getSplitCardData(tokenRepository, cardAmounts),
+                getSplitCardData(depot, cardAmounts),
                 signatures
             );
     }
