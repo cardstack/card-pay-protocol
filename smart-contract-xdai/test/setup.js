@@ -7,8 +7,6 @@ const chaiExclude = require('chai-exclude');
 const BN = require('bn.js');
 
 // Enable and inject BN dependency
-const { toTokenUnit } = require('./utils/helper')
-
 const { toBN, toChecksumAddress } = require("web3-utils");
 
 // import web3 utils function
@@ -27,7 +25,7 @@ const expect = chai.expect;
 
 exports.expect = expect;
 
-// set up token detail data
+// token detail 
 const TOKEN_DETAIL_DATA = ["DAICPXD Token", "DAICPXD", 18];
 
 exports.TOKEN_DETAIL_DATA = TOKEN_DETAIL_DATA;

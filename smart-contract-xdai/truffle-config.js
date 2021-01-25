@@ -46,23 +46,29 @@ module.exports = {
     // options below to some value.
     //
     poa: {
-      provider: function() {
+      provider: function () {
         return new HDWalletProvider(process.env.MNEMONIC, "https://sokol.poa.network")
       },
       network_id: 77,
     },
-    
+
     rinkeby: {
-      provider: function() { 
-       return new HDWalletProvider(process.env.MNEMONIC, "https://rinkeby.infura.io/v3/" + process.env.INFURA_API_KEY);
+      provider: function () {
+        return new HDWalletProvider(process.env.MNEMONIC, "https://rinkeby.infura.io/v3/" + process.env.INFURA_API_KEY);
       },
       network_id: 4,
     },
-
+    xdai: {
+      provider: function () {
+        return new HDWalletProvider(process.env.MNEMONIC, "https://rpc.xdaichain.com/");
+      },
+      gasPrice: 1000000000,
+      network_id: 100
+    },
     ganache: {
-	    host: "127.0.0.1",     // Localhost (default: none)
-	    port: 8545,            // Standard Ethereum port (default: none)
-	    network_id: "*",       // Any network (default: none)
+      host: "127.0.0.1",     // Localhost (default: none)
+      port: 8545,            // Standard Ethereum port (default: none)
+      network_id: "*",       // Any network (default: none)
     },
 
     // Another network with more advanced options...

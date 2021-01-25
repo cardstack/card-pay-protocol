@@ -163,10 +163,12 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 		})
 
 		beforeEach(async() => {
+			// mint 100 token for depot
 			await daicpxdToken.mint(depot.address, walletAmount);
 		});
 
 		afterEach(async() => {
+			// burn all token in depot wallet
 			let balance = await daicpxdToken.balanceOf(depot.address);
 			let data = daicpxdToken.contract.methods.burn(balance).encodeABI();
 
@@ -181,7 +183,8 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 				depot,
 				relayer
 			);
-
+			
+			// burn all token in relayer wallet
 			await daicpxdToken.burn(await daicpxdToken.balanceOf(relayer), {from : relayer});
 		})
 
@@ -261,8 +264,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 					cardManager.address,
 					toTokenUnit(8),
 					createCardData
-				)
-				.encodeABI();
+				).encodeABI();
 
 			let gasEstimate = await daicpxdToken.contract.methods.
 				transferAndCall(

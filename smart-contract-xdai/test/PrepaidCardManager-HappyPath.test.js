@@ -29,7 +29,7 @@ const {
 
 
 
-contract("Test Prepaid Card Manager contract", (accounts) => {
+contract("Test Prepaid Card Manager contract happy", (accounts) => {
 	let daicpxdToken,
 		revenuePool,
 		spendToken,
