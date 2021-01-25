@@ -1,15 +1,19 @@
 pragma solidity 0.5.17;
 
 interface IRevenuePool {
-    event Claim(address merchantAddr, address payableToken, uint256 amount);
 
-    event Payment(
+    event MerchantClaim(
+        address merchantAddr,
+        address payableToken,
+        uint256 amount
+    );
+    
+    event CustomerPayment(
         address prepaidCardArr,
         address merchantAddr,
         address payableToken,
         uint256 amount
     );
-
     /**
      * @dev onTokenTransfer(ERC677) - call when token receive pool.
      * we will exchange receive token to SPEND token and mint it for the wallet of merchant.

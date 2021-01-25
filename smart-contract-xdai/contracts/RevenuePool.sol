@@ -18,18 +18,6 @@ contract RevenuePool is
 {
     using SafeMath for uint256;
 
-    event Claim(
-        address merchantAddr,
-        address payableToken,
-        uint256 amount
-    );
-    event Payment(
-        address prepaidCardArr,
-        address merchantAddr,
-        address payableToken,
-        uint256 amount
-    );
-
     address public spendToken;
 
     /**
@@ -92,14 +80,14 @@ contract RevenuePool is
         address from,
         uint256 amount,
         bytes calldata data
-    ) external onlyPayableToken() returns (bool) {
+    ) external isValidToken returns (bool) {
 
         // decode and get merchant address from the data
         (address merchantAddr) = abi.decode(data, (address));
 
         handlePayment(merchantAddr, _msgSender(), amount);
 
-        emit Payment(from, merchantAddr, _msgSender(), amount);
+        emit CustomerPayment(from, merchantAddr, _msgSender(), amount);
         return true;
     }
 
@@ -113,11 +101,11 @@ contract RevenuePool is
         address merchantAddr,
         address payableToken,
         uint256 amount
-    ) internal onlyPayableTokens(payableToken) returns (bool) {
+    ) internal isValidTokenAddress(payableToken) returns (bool) {
 
         // ensure enough token for redeem
         uint256 lockTotal = merchants[merchantAddr].lockTotal[payableToken];
-        require(amount <= lockTotal, "Don't enough token for redeem");
+        require(amount <= lockTotal, "Not enough token for redeem");
 
         // unlock token of merchant
         lockTotal = lockTotal.sub(amount);
@@ -128,7 +116,7 @@ contract RevenuePool is
         // transfer payable token from revenue pool to merchant wallet address
         IERC677(payableToken).transfer(merchantAddr, amount);
 
-        emit Claim(merchantAddr, payableToken, amount);
+        emit MerchantClaim(merchantAddr, payableToken, amount);
         return true;
     }
 
@@ -147,6 +135,7 @@ contract RevenuePool is
 
         require(totalType == amounts.length);
 
+        // TODO: should allow user create multi card from array like this ?
         for (uint256 index = 0; index < totalType; index = index + 1) {
             _claimToken(
                 merchantAddr,

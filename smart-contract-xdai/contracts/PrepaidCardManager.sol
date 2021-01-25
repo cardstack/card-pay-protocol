@@ -406,7 +406,7 @@ contract PrepaidCardManager is
         address from,
         uint256 amount,
         bytes calldata data
-    ) external onlyPayableToken returns (bool) {
+    ) external isValidToken returns (bool) {
         (address depot, uint256[] memory cardAmounts) =
             abi.decode(data, (address, uint256[]));
 
