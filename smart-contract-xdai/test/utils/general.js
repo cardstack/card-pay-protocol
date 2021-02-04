@@ -1,57 +1,24 @@
-const web3Utils = require("web3-utils");
 const gnosisUtils = require("@gnosis.pm/safe-contracts/test/utils/general");
 const web3EthAbi = require('web3-eth-abi');
 const GnosisSafe = artifacts.require("gnosisSafe");
-
+const eventABIs = require('./constant/eventABIs.js');
 
 exports = Object.assign({}, gnosisUtils);
 
-const CREATE_PREPAID_CARD_TOPIC = web3.utils.keccak256(
-	"CreatePrepaidCard(address,address,address,uint256)"
-);
-
-
-const EXECUTE_EVENT_FAILED = web3EthAbi.encodeEventSignature("ExecutionFailure(bytes32,uint256)");
-
-const EXECUTE_EVENT_SUCCESS = web3EthAbi.encodeEventSignature("ExecutionSuccess(bytes32,uint256)");
+function padZero(addr, prefix = "") {
+	return prefix + '000000000000000000000000' + addr.replace('0x', '');
+}
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
-
-const EXECUTE_EVENT_META = [{
-	'type': 'bytes32',
-	'name': 'txHash'
-}, {
-	'type': 'uint256',
-	'name': 'payment'
-}]
-
-const CREATE_PREPAID_CARD_META = [{
-		type: "address",
-		name: "supplier"
-	},
-	{
-		type: "address",
-		name: "card"
-	},
-	{
-		type: "address",
-		name: "token"
-	},
-	{
-		type: "uint256",
-		name: "amount"
-	},
-];
-
 
 const signTypedData = async function (account, data) {
 	return new Promise(function (resolve, reject) {
 		web3.currentProvider.send({
-				jsonrpc: "2.0",
-				method: "eth_signTypedData",
-				params: [account, data],
-				id: new Date().getTime(),
-			},
+			jsonrpc: "2.0",
+			method: "eth_signTypedData",
+			params: [account, data],
+			id: new Date().getTime(),
+		},
 			function (err, response) {
 				if (err) {
 					return reject(err);
@@ -65,15 +32,15 @@ const signTypedData = async function (account, data) {
 const encodeMultiSendCall = (txs, multiSend) => {
 	const joinedTxs = txs
 		.map((tx) => [
-			web3.eth.abi.encodeParameter("uint8", 0).slice(-2),
-			web3.eth.abi.encodeParameter("address", tx.to).slice(-40),
-			web3.eth.abi.encodeParameter("uint256", tx.value).slice(-64),
-			web3.eth.abi
-			.encodeParameter(
-				"uint256",
-				web3.utils.hexToBytes(tx.data).length
-			)
-			.slice(-64),
+			web3EthAbi.encodeParameter("uint8", 0).slice(-2),
+			web3EthAbi.encodeParameter("address", tx.to).slice(-40),
+			web3EthAbi.encodeParameter("uint256", tx.value).slice(-64),
+			web3EthAbi
+				.encodeParameter(
+					"uint256",
+					web3.utils.hexToBytes(tx.data).length
+				)
+				.slice(-64),
 			tx.data.replace(/^0x/, ""),
 		].join(""))
 		.join("");
@@ -101,12 +68,15 @@ async function signSafeTransaction(
 ) {
 	const typedData = {
 		types: {
-			EIP712Domain: [{
-				type: "address",
-				name: "verifyingContract"
-			}],
+			EIP712Domain: [
+				{
+					type: "address",
+					name: "verifyingContract"
+				}
+			],
 			// "SafeTx(address to,uint256 value,bytes data,uint8 operation,uint256 safeTxGas,uint256 baseGas,uint256 gasPrice,address gasToken,address refundReceiver,uint256 nonce)"
-			SafeTx: [{
+			SafeTx: [
+				{
 					type: "address",
 					name: "to"
 				},
@@ -171,42 +141,39 @@ async function signSafeTransaction(
 	return signatureBytes;
 };
 
-async function getGnosisSafeFromEventLog(tx) {
-	let logsData = getParamsFromEvent(tx, CREATE_PREPAID_CARD_TOPIC, CREATE_PREPAID_CARD_META);
-	let cards = [];
-	for (let i = 0; i < logsData.length; ++i) {
-		const prepaidCard = await GnosisSafe.at(logsData[i].card);
-		cards.push(prepaidCard);
-	}
-	return cards;
+function getGnosisSafeFromEventLog(receipt, prepaidCardManagerAddr) {
+	let cards = getParamsFromEvent(
+		receipt,
+		eventABIs.CREATE_PREPAID_CARD,
+		prepaidCardManagerAddr
+	)
+		.map(async createCardLog => await GnosisSafe.at(createCardLog.card));
+	return Promise.all(cards);
 }
 
 
+function isEventMatching(log, topic, address) {
+	return (log.topics[0] === topic && log.address === address);
+}
 
-function getParamsFromEvent(tx, topic, decodeMetadata) {
-	let eventParams = tx.receipt.rawLogs
-		.filter(rawLog => (rawLog.topics[0] === topic))
-		.map((rawLog) => {
-			let eventParam = web3.eth.abi.decodeLog(
-				decodeMetadata,
-				rawLog.data,
-				rawLog.topics
-			);
-			return eventParam;
-		})
+function getParamsFromEvent(safeResult, event, address) {
+	let eventParams = safeResult.receipt.rawLogs
+		.filter(log => isEventMatching(log, event.topic, address))
+		.map(log => web3EthAbi.decodeLog(
+			event.abis,
+			log.data,
+			log.topics
+		));
 	return eventParams;
 }
 
 Object.assign(exports, {
-	CREATE_PREPAID_CARD_TOPIC,
 	ZERO_ADDRESS,
-	EXECUTE_EVENT_FAILED,
-	EXECUTE_EVENT_SUCCESS,
-	EXECUTE_EVENT_META,
 	encodeMultiSendCall,
 	signSafeTransaction,
 	getGnosisSafeFromEventLog,
-	getParamsFromEvent
+	getParamsFromEvent,
+	padZero
 });
 
 module.exports = exports;

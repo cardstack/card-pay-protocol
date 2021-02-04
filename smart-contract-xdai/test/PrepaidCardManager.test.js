@@ -7,19 +7,18 @@ const GnosisSafe = artifacts.require("gnosisSafe");
 const MultiSend = artifacts.require("MultiSend");
 
 
-const { toBN, toHex } = require("web3-utils");
+const { toBN } = require("web3-utils");
+const eventABIs = require("./utils/constant/eventABIs");
+
 const {
 	signSafeTransaction,
 	encodeMultiSendCall,
 	ZERO_ADDRESS,
-	EXECUTE_EVENT_FAILED,
-	EXECUTE_EVENT_SUCCESS,
-	EXECUTE_EVENT_META,
 	getParamsFromEvent,
 	getParamFromTxEvent,
-	getGnosisSafeFromEventLog
+	getGnosisSafeFromEventLog, 
+    padZero
 } = require("./utils/general");
-
 
 const {
 	TokenHelper,
@@ -40,11 +39,12 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 	let tally, issuer, customer, merchant, relayer, walletOfIssuer;
 
 	let prepaidCards = [];
+
 	before(async () => {
 		tally = accounts[0];
 		issuer = accounts[1];
 		customer = accounts[2];
-		merchant = accounts[3];
+		merchantOwner = accounts[3];
 		relayer = accounts[4];
 
 		let proxyFactory = await ProxyFactory.new();
@@ -118,7 +118,11 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 			[daicpxdToken.address]
 		);
 
-		await revenuePool.registerMerchant(merchant, offChainId);
+		let merchantTx = await revenuePool.registerMerchant(merchantOwner, offChainId);
+       
+        let merchantCreation = await getParamsFromEvent(merchantTx, eventABIs.MERCHANT_CREATION, revenuePool.address);
+		
+        merchant = merchantCreation[0]['merchant'];
 
 		await prepaidCardManager.setup(
 			tally,
@@ -130,14 +134,42 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 
 		prepaidCardManagerSignature = await prepaidCardManager.getContractSignature();
 	});
+    
+    it("Test signature view method", async () => {
+        let contractSignature = await prepaidCardManager.getContractSignature(); 
+        let actual = padZero(prepaidCardManager.address,"0x") + padZero(ZERO_ADDRESS) + "01";
+        assert.equal(contractSignature.toLowerCase(), actual.toLowerCase());
 
-	it("Issuer create prepaid card have amount = 1 token DAI CPXD ", async () => {
+        let mockSign = padZero(customer, "0x") + padZero(ZERO_ADDRESS) + "01";
+        let signature = await prepaidCardManager.appendPrepaidCardAdminSignature(ZERO_ADDRESS, mockSign);
+        
+        let actualSignature =  mockSign + actual.replace("0x", "");
+        assert.equal(signature.toLowerCase(), actualSignature.toLowerCase());
+
+
+        signature = await prepaidCardManager.appendPrepaidCardAdminSignature("0xffffffffffffffffffffffffffffffffffffffff", mockSign);
+        
+        actualSignature = actual + mockSign.replace("0x", "");
+        assert.equal(signature.toLowerCase(), actualSignature.toLowerCase());
+
+
+        let reverted = false; 
+        try {
+            signature = await prepaidCardManager.appendPrepaidCardAdminSignature(customer, mockSign + "01");
+        } catch(err) {
+            reverted = true;
+        }
+
+        assert.isTrue(reverted);
+    })
+
+	it("Issuer create prepaid card have amount = 1 token DAI CPXD", async () => {
         
 		let payloads = daicpxdToken.contract.methods
 			.transferAndCall(
 				prepaidCardManager.address,
 				TokenHelper.amountOf(1),
-				ContractHelper.prepageDataForCreateMutipleToken(
+				ContractHelper.encodeCreateCardsData(
 					walletOfIssuer.address, 
                     [TokenHelper.amountOf(1)]
 				)
@@ -148,7 +180,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 			transferAndCall(
 				prepaidCardManager.address,
 				TokenHelper.amountOf(1),
-				ContractHelper.prepageDataForCreateMutipleToken(
+				ContractHelper.encodeCreateCardsData(
 					walletOfIssuer.address, 
                     [TokenHelper.amountOf(1)]
 				)
@@ -176,20 +208,22 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 			walletOfIssuer,
 			relayer
 		)
+	
+		let executeSuccess = getParamsFromEvent(safeTx, eventABIs.EXECUTION_SUCCESS, walletOfIssuer.address);
 
-		let executeSuccess = getParamsFromEvent(safeTx, EXECUTE_EVENT_SUCCESS, EXECUTE_EVENT_META);
 		assert.equal(
 			safeTxHash.toString(),
-			executeSuccess[executeSuccess.length - 1]['txHash'].toString(),
+			executeSuccess[0]['txHash'].toString(),
 			"The event execute success should exist."
 		);
 
-		let paymentActual = toBN(executeSuccess[executeSuccess.length - 1]['payment'])
-	    await TokenHelper.isEqualBalance(daicpxdToken, relayer, paymentActual.toString());
+		let paymentActual = toBN(executeSuccess[0]['payment']);
 
-		let prepaidCard = await getGnosisSafeFromEventLog(safeTx);
-
-		assert.equal(prepaidCard.length, 1, "Should create a new card(gnosis safe).");
+		await TokenHelper.isEqualBalance(daicpxdToken, relayer, paymentActual.toString());
+		
+		let prepaidCard = await getGnosisSafeFromEventLog(safeTx, prepaidCardManager.address);
+	
+		assert.equal(prepaidCard.length, 1, "Should create a new card(gnosis safe)");
 		assert.isTrue(await prepaidCard[0].isOwner(walletOfIssuer.address))
         
         let cardDetail = await prepaidCardManager.cardDetails(prepaidCard[0].address);
@@ -197,10 +231,8 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
         assert.equal(walletOfIssuer.address, cardDetail.issuer); 
         assert.equal(daicpxdToken.address, cardDetail.issuerToken)
 
-        //assert.equal(daicpxdToken.address, )
         await TokenHelper.isEqualBalance(daicpxdToken, prepaidCard[0].address, TokenHelper.amountOf(1));
-
-		await TokenHelper.isEqualBalance(daicpxdToken, walletOfIssuer.address, toBN(TokenHelper.amountOf(19)).sub(paymentActual));
+		await TokenHelper.isEqualBalance(daicpxdToken, walletOfIssuer.address, TokenHelper.amountOf(19).sub(paymentActual));
 
 	});
 
@@ -213,7 +245,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 			.transferAndCall(
 				prepaidCardManager.address,
 				TokenHelper.amountOf(8),
-				ContractHelper.prepageDataForCreateMutipleToken(
+				ContractHelper.encodeCreateCardsData(
 					walletOfIssuer.address,
 					amounts
 				)
@@ -224,7 +256,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 			transferAndCall(
 				prepaidCardManager.address,
 				TokenHelper.amountOf(8),
-				ContractHelper.prepageDataForCreateMutipleToken(
+				ContractHelper.encodeCreateCardsData(
 					walletOfIssuer.address, 
                     amounts
 				)
@@ -251,13 +283,14 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 			walletOfIssuer,
 			relayer
 		)
+		
+		prepaidCards = await getGnosisSafeFromEventLog(safeTx, prepaidCardManager.address);
 
-		prepaidCards = await getGnosisSafeFromEventLog(safeTx);
+		let executeSuccess = getParamsFromEvent(safeTx, eventABIs.EXECUTION_SUCCESS, walletOfIssuer.address);
 
-		let executeSuccess = getParamsFromEvent(safeTx, EXECUTE_EVENT_SUCCESS, EXECUTE_EVENT_META);
 		assert.equal(
 			safeTxHash.toString(),
-			executeSuccess[executeSuccess.length - 1]['txHash'].toString(),
+			executeSuccess[0]['txHash'].toString(),
 			"The event execute success should exist."
 		);
 
@@ -275,7 +308,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 			TokenHelper.isEqualBalance(daicpxdToken, prepaidCard.address, amounts[index]);
 		})
 
-		let payment = toBN(executeSuccess[executeSuccess.length - 1]['payment']);
+		let payment = toBN(executeSuccess[0]['payment']);
 
 		await TokenHelper.isEqualBalance(
 			daicpxdToken, 
@@ -293,7 +326,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 			.transferAndCall(
 				prepaidCardManager.address,
 				TokenHelper.amountOf(0),
-				ContractHelper.prepageDataForCreateMutipleToken(walletOfIssuer.address, [TokenHelper.amountOf(0)])
+				ContractHelper.encodeCreateCardsData(walletOfIssuer.address, [TokenHelper.amountOf(0)])
 			).encodeABI();
 
 		let safeTxData = {
@@ -319,7 +352,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 		)
 
 
-		let executeFailed = getParamsFromEvent(safeTx, EXECUTE_EVENT_FAILED, EXECUTE_EVENT_META);
+		let executeFailed = getParamsFromEvent(safeTx, eventABIs.EXECUTION_FAILURE, walletOfIssuer.address);
 		assert.ok(Array.isArray(executeFailed) && executeFailed.length > 0)
 		assert.deepEqual(safeTxHash.toString(), executeFailed[0]['txHash']);
 		
@@ -337,7 +370,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 			.transferAndCall(
 				prepaidCardManager.address,
 				TokenHelper.amountOf(80),
-				ContractHelper.prepageDataForCreateMutipleToken(
+				ContractHelper.encodeCreateCardsData(
 					walletOfIssuer.address,
 					amounts
 				)
@@ -367,7 +400,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 		)
 
 
-		let executeFailed = getParamsFromEvent(safeTx, EXECUTE_EVENT_FAILED, EXECUTE_EVENT_META);
+		let executeFailed = getParamsFromEvent(safeTx, eventABIs.EXECUTION_FAILURE, walletOfIssuer.address);
 		assert.equal(safeTxHash.toString(), executeFailed[0]['txHash'].toString());
 		
 		let successPrepaidCards = await getGnosisSafeFromEventLog(safeTx);
@@ -385,7 +418,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 			.transferAndCall(
 				prepaidCardManager.address,
 				TokenHelper.amountOf(7),
-				ContractHelper.prepageDataForCreateMutipleToken(walletOfIssuer.address, [])
+				ContractHelper.encodeCreateCardsData(walletOfIssuer.address, [])
 			).encodeABI();
 
 		let safeTxData = {
@@ -411,7 +444,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 		)
 
 
-		let executeFailed = getParamsFromEvent(safeTx, EXECUTE_EVENT_FAILED, EXECUTE_EVENT_META);
+		let executeFailed = getParamsFromEvent(safeTx, eventABIs.EXECUTION_FAILURE, walletOfIssuer.address);
 		assert.ok(Array.isArray(executeFailed) && executeFailed.length > 0)
 		assert.deepEqual(safeTxHash.toString(), executeFailed[0]['txHash']);
 		
@@ -430,7 +463,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 			.transferAndCall(
 				prepaidCardManager.address,
 				TokenHelper.amountOf(8),
-				ContractHelper.prepageDataForCreateMutipleToken(
+				ContractHelper.encodeCreateCardsData(
 					walletOfIssuer.address,
 					amounts
 				)
@@ -459,7 +492,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 			relayer
 		)
 
-		let executeFailed = getParamsFromEvent(safeTx, EXECUTE_EVENT_FAILED, EXECUTE_EVENT_META);
+		let executeFailed = getParamsFromEvent(safeTx, eventABIs.EXECUTION_FAILURE, walletOfIssuer.address);
 		assert.equal(safeTxHash.toString(), executeFailed[0]['txHash'].toString());
 
 		// let successPrepaidCards = await getGnosisSafeFromEventLog(safeTx);
@@ -480,7 +513,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 							prepaidCards[2].address,
 							walletOfIssuer.address,
 							customer,
-							await prepaidCards[2].nonce.call()
+							await prepaidCards[2].nonce()
 						)
 					)
 					.encodeABI(),
@@ -489,7 +522,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 				to: prepaidCardManager.address,
 				value: 0,
 				data: prepaidCardManager.contract.methods
-					.sellCard(
+                    .sellCard(
 						prepaidCards[2].address,
 						walletOfIssuer.address,
 						customer,
@@ -504,7 +537,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 					.encodeABI(),
 			},
 		];
-
+        
 		let payloads = encodeMultiSendCall(txs, multiSend);
 
 		let safeTxData = {
@@ -529,8 +562,8 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 			relayer
 		)
 
-		let executeSuccess = getParamsFromEvent(safeTx, EXECUTE_EVENT_SUCCESS, EXECUTE_EVENT_META);
-		assert.equal(safeTxHash.toString(), executeSuccess[executeSuccess.length - 1]['txHash'].toString());
+		let executeSuccess = getParamsFromEvent(safeTx, eventABIs.EXECUTION_SUCCESS, walletOfIssuer.address);
+		assert.equal(safeTxHash.toString(), executeSuccess[0]['txHash'].toString());
 		assert.isTrue(await prepaidCards[2].isOwner(customer));
 		await TokenHelper.isEqualBalance(daicpxdToken, prepaidCards[2].address, TokenHelper.amountOf(5));
 	});
@@ -538,27 +571,11 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 	it("Customer can not sell card with 5 daicpxd (prepaidCards[2]) to another customer", async () => {
 		let otherCustomer = merchant;
 
-		let payloads;
-
-		let canGetSellCardData = true;
-        
-		try {
-			payloads = await prepaidCardManager.getSellCardData(
-				prepaidCards[2].address,
-				customer,
-				otherCustomer
-			);
-		} catch (err) {
-			canGetSellCardData = false;
-		}
-
-		assert(canGetSellCardData === false, "Can not getSellCardData");
-
-		payloads = prepaidCards[2].contract.methods.swapOwner(
+		let payloads = prepaidCards[2].contract.methods.swapOwner(
 			prepaidCardManager.address,
 			customer,
 			otherCustomer
-		);
+		).encodeABI();
 
 		const signature = await signSafeTransaction(
 			prepaidCardManager.address,
@@ -592,4 +609,108 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 		}
 	});
 
+    it("Customer payment for merchant", async() => {
+        let data = await prepaidCardManager.getPayData(
+            daicpxdToken.address, 
+            merchant,
+            TokenHelper.amountOf(1)
+        ) 
+        
+        let signature = await signSafeTransaction(
+            daicpxdToken.address, 
+            0, 
+            data, 
+            0, 
+            0, 
+            0,
+            0,
+            ZERO_ADDRESS, 
+            ZERO_ADDRESS, 
+            await prepaidCards[2].nonce(), 
+            customer, 
+            prepaidCards[2]
+        )
+
+        await prepaidCardManager.payForMerchant(
+            prepaidCards[2].address, 
+            daicpxdToken.address, 
+            merchant, 
+            TokenHelper.amountOf(1), 
+            await prepaidCardManager.appendPrepaidCardAdminSignature(
+                customer,
+                signature
+            ), 
+            {from: relayer}
+        )
+
+        await TokenHelper.isEqualBalance(daicpxdToken, revenuePool.address, TokenHelper.amountOf(1));
+        await TokenHelper.isEqualBalance(daicpxdToken, prepaidCards[2].address, TokenHelper.amountOf(4));
+    })
+    
+
+    it("Customer payment for merchant failed", async() => {
+        let data = await prepaidCardManager.getPayData(
+            daicpxdToken.address, 
+            merchant,
+            TokenHelper.amountOf(10)
+        ) 
+        
+        let signature = await signSafeTransaction(
+            daicpxdToken.address, 
+            0, 
+            data, 
+            0, 
+            0, 
+            0,
+            0,
+            ZERO_ADDRESS, 
+            ZERO_ADDRESS, 
+            await prepaidCards[2].nonce(), 
+            customer, 
+            prepaidCards[2]
+        )
+        
+        let failed = false;
+        try {
+            await prepaidCardManager.payForMerchant(
+                prepaidCards[2].address, 
+                daicpxdToken.address, 
+                merchant, 
+                TokenHelper.amountOf(10), 
+                await prepaidCardManager.appendPrepaidCardAdminSignature(
+                    customer,
+                    signature
+                ), 
+                {from: relayer}
+            )
+        } catch(err) {
+            failed = true;
+        }
+        
+        assert.isTrue(failed);
+        await TokenHelper.isEqualBalance(daicpxdToken, revenuePool.address, TokenHelper.amountOf(1));
+        await TokenHelper.isEqualBalance(daicpxdToken, prepaidCards[2].address, TokenHelper.amountOf(4));
+    })
+
+    it("Role test", async() => {
+        let newTally = accounts[8]; 
+        await prepaidCardManager.removeTally(tally);
+        
+        await prepaidCardManager.addTally(newTally);
+
+        let currentTallyList = await prepaidCardManager.getTallys()
+        assert.deepEqual([newTally], currentTallyList);
+    })        
+
+    it("Payable token add and remove", async() => {
+        let mockPayableTokenAddr = accounts[9];
+        
+        await prepaidCardManager.addPayableToken(mockPayableTokenAddr);
+
+        await prepaidCardManager.removePayableToken(daicpxdToken.address); 
+
+        let currentPayableTokens = await prepaidCardManager.getTokens();
+
+        assert.deepEqual([mockPayableTokenAddr], currentPayableTokens);
+    })
 });

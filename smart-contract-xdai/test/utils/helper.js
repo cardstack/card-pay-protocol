@@ -9,62 +9,37 @@ const {
     signSafeTransaction
 } = require('./general')
 
-class TokenHelper {
+const TokenHelper = {
 
-    constructor() {
-        this.decimals = 0;
-    }
-
-    static async deploy({
+    async deploy({
         TokenABIs,
         args
     }) {
         let instance = await TokenABIs.new(...args);
         return instance;
-    }
+    },
 
-    static async isEqualBalance(token, address, amount) {
-        return assert.strictEqual((await token.balanceOf(address)).toString(), amount.toString());
-    }
-
-    async setUp({
-        contractToken
-    }) {
-        this.decimals = await contractToken.decimals();
-    }
-
-    /**
-     * Convert from number token to token base unit.
-     * @param {number} _numberToken number token 
-     * @return token base unit of number token.
-     */
-    amountOf(_numberToken) {
-        return TokenHelper.amountOf(_numberToken, this.decimals);
-    }
+    async isEqualBalance(token, address, amount) {
+        let balance = await token.balanceOf(address); 
+        return assert.strictEqual(balance.toString(), amount.toString());
+    },
 
 
-  static  async   getBalance(token, account) 
-   {  
-        let currentBalance =  await token.balanceOf(account); 
-       
-        return  toBN(currentBalance).toString();
-    }
- 
+    async getBalance(token, account) {
+        let currentBalance = await token.balanceOf(account);
+        return toBN(currentBalance);
+    },
 
-    static amountOf(_numberToken, _decimals = 18) {
+
+    amountOf(_numberToken, _decimals = 18) {
         let dec = toBN("10").pow(toBN(_decimals));
         let number = toBN(_numberToken);
-        return number.mul(dec).toString();
-    }
-
-    async isEqualBalance(account, amount) {
-        let currentBanlance = await this.instance.balanceOf(account);
-        return toBN(currentBanlance).toString() === toBN(amount).toString();
+        return number.mul(dec);
     }
 }
 
-ContractHelper = {
-    prepageDataForCreateMutipleToken(account, amounts = []) {
+const ContractHelper = {
+    encodeCreateCardsData(account, amounts = []) {
         return AbiCoder.encodeParameters(
             ["address", "uint256[]"],
             [
@@ -73,7 +48,6 @@ ContractHelper = {
             ]
         )
     },
-
 
     async signAndSendSafeTransactionByRelayer(
         safeTxData = {
@@ -89,7 +63,8 @@ ContractHelper = {
         },
         owner,
         gnosisSafe,
-        relayer
+        relayer,
+        options = null,
     ) {
         let safeTxArr = Object.keys(safeTxData).map(key => safeTxData[key])
 
@@ -99,11 +74,18 @@ ContractHelper = {
 
         // compute txHash of transaction
         let safeTxHash = await gnosisSafe.getTransactionHash(...safeTxArr, nonce);
+        let safeTx;
+        if (!options) {
+            safeTx = await gnosisSafe.execTransaction(...safeTxArr, signature, {
+                from: relayer,
+            });
+        } else {
+            safeTx = await gnosisSafe.execTransaction(...safeTxArr, signature, {
+                from: relayer,
+                ...options
+            });
 
-        // send transaction to network
-        let safeTx = await gnosisSafe.execTransaction(...safeTxArr, signature, {
-            from: relayer
-        });
+        }
 
         return {
             safeTxHash,
@@ -111,7 +93,6 @@ ContractHelper = {
         };
     }
 }
-
 
 
 module.exports = {
