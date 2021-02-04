@@ -1,5 +1,4 @@
 node_modules
-.env
 build
 package-lock.json
 coverage.json
