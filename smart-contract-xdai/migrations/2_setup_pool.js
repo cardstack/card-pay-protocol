@@ -1,9 +1,13 @@
 const RevenuePool = artifacts.require("RevenuePool");
 const SPEND = artifacts.require('SPEND');
 
-module.exports = async function(deployer) {
+module.exports = async function(deployer, network, account) {
 
-    let pool = await RevenuePool.deployed();    
+    if (network == "ganache")  
+        return;
+
+    let pool = await RevenuePool.deployed();
+
     await deployer.deploy(SPEND, "SPEND Token", "SPEND", [
         pool.address,
     ]);

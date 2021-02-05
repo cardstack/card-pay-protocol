@@ -1,7 +1,9 @@
 const PrepaidCardManager = artifacts.require("PrepaidCardManager");
 const RevenuePool = artifacts.require("RevenuePool");
 
-module.exports = async function (deployer) {
+module.exports = async function (deployer, network, account) {
+    if (network == "ganache")
+        return;
     let prepaidCardManager = await PrepaidCardManager.deployed();
     let pool = await RevenuePool.deployed();
 

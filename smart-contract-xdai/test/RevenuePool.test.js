@@ -132,7 +132,7 @@ contract('Test Revenue Pool contract', accounts => {
             let amount = toTokenUnit(1); // 1 DAI CPXD
 
             await daicpxdToken.transferAndCall(revenuePool.address, amount, data)
-                .should.be.rejectedWith(Error, "merchant not exist");
+                .should.be.rejectedWith(Error, "Invalid merchant");
 
             await shouldSameBalance(daicpxdToken, accounts[0], balanceBefore);
         })
@@ -155,7 +155,7 @@ contract('Test Revenue Pool contract', accounts => {
         it('claim 1 DAI CPXD for merchant by tally', async () => {
             let amount = toTokenUnit(1);
 
-            await revenuePool.claimTokens(merchant, [daicpxdToken.address], [amount], {
+            await revenuePool.claimToken(merchant, daicpxdToken.address, amount, {
                 from: tally
             }).should.be.fulfilled;
 
@@ -164,14 +164,14 @@ contract('Test Revenue Pool contract', accounts => {
         })
 
         it('claim with wrong data for merchant by tally', async () => {
-            await revenuePool.claimTokens(merchant, [daicpxdToken.address], [], {
+            await revenuePool.claimToken(merchant, daicpxdToken.address, [], {
                 from: tally
             }).should.be.rejected;
         })
 
         it('claim 1 for merchant and sender is not tally', async () => {
             let amount = toTokenUnit(1);
-            await revenuePool.claimTokens(merchant, [daicpxdToken.address], [amount], {
+            await revenuePool.claimToken(merchant, daicpxdToken.address, amount, {
                 from: accounts[2]
             }).should.be.rejected;
         })

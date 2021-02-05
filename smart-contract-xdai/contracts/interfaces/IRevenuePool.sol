@@ -30,12 +30,12 @@ interface IRevenuePool {
     /**
      * @dev merchant claim token to their wallets, only tally account can call this method
      * @param merchantAddr address of merchant
-     * @param payableTokens array address of payable token
-     * @param amounts array amount in payable token
+     * @param payableToken address of payable token
+     * @param amount amount in payable token
      */
-    function claimTokens(
+    function claimToken(
         address merchantAddr,
-        address[] calldata payableTokens,
-        uint256[] calldata amounts
+        address payableToken,
+        uint256 amount
     ) external returns (bool);
 }

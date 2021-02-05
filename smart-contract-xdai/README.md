@@ -101,26 +101,40 @@ Responsible for:
 
 ## Flow payment. 
 
+### Deployment 
 
-### Addresses table
+Deploy to rinkeby 
 
-#### xDai Contract address
+```
+npm run deploy-rinkeby
+```
 
-Deployed by `0x2E687A2fa5eC9D8080156E0B52f7f054eC191d79`
+Deploy to xdai
 
-|Contract|Address|
-|--------|-------|
-|Revenue pool|0xf29e21D91A3B9C523D5e4e685e531284375E193a|
-|PrepaidCardManager|0x07b32b79a4D885a3C4b9b0DdF26F311e9A091291|
-|SPEND| 0x0482aA5C196276D8e0B76f8Fc019110f5a67F76d|
+```
+npm run deploy-xdai
+```
 
+Output show in json format and it's also save in folder `address_book/<branch-name>.json`.
 
-#### Rinkeby Contract address
+*Don't forget check the .env file before you deploy new contract.*
 
-Deployed by `0x2E687A2fa5eC9D8080156E0B52f7f054eC191d79`
+### Env config 
 
-|Contract|Address|
-|--------|-------|
-|Revenue pool|0x1183dc24D1cFea8A493296B621EF934C65ce7c55|
-|PrepaidCardManager|0xE6646133B0dcd96500536B960b8BBc5AC50b095a|
-|SPEND| 0x9BEe99cD9dc66B0D431D1e891F88e349F1646a4a|
+```
+INFURA_API_KEY=<infura id>
+MNEMONIC=<your seed>
+
+TALLY=<tally address>
+
+GNOSIS_SAFE_FACTORY=0x76E2cFc1F5Fa8F6a5b3fC4c8F4788F0116861F9B
+GNOSIS_SAFE_MASTER_COPY=0x34CfAC646f301356fAa8B21e94227e3583Fe3F5F
+
+PAYABLE_TOKEN= <list payable token, seperated by space>
+#PAYABLE_TOKEN=0x1455c8331da57C6C6DfE3B4076Eb6381E136d0Be 0xd5eeD8cc6dDA145cf92bF586b9687201318260e2
+
+// mininum amount of card when we create a new card. (in SPEND)
+MINIMUM_AMOUNT=100 
+// maxinum amount of card when we create a new card. (in SPEND)
+MAXIMUM_AMOUNT=500000
+```
