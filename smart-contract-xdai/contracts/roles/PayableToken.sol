@@ -9,9 +9,9 @@ contract PayableToken is Ownable {
     EnumerableSet.AddressSet internal payableTokens;
 
     /**
-     * @dev Throws if called by any account other than the admin.
+     * @dev Throws if called by any token contract not inside payable token list.
      */
-    modifier onlyPayableToken() {
+    modifier isValidToken() {
         require(
             payableTokens.contains(_msgSender()),
             "Guard: Token is not support payable by contract."
@@ -19,7 +19,7 @@ contract PayableToken is Ownable {
         _;
     }
 
-    modifier onlyPayableTokens(address _token) {
+    modifier isValidTokenAddress(address _token) {
         require(
             payableTokens.contains(_token),
             "Guard: Token is not support payable by contract."

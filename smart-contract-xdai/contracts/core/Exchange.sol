@@ -1,4 +1,5 @@
 pragma solidity 0.5.17;
+
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../roles/PayableToken.sol";
@@ -14,7 +15,7 @@ contract Exchange is PayableToken {
      * @return exchange rate
      * TODO: should use current exchange rate from chainlink
      */
-    function exchangeRateOf(address _token) internal pure returns (uint256) {
+    function exchangeRateOf(address _token) public view returns (uint256) {
         return 100;
     }
 
@@ -25,8 +26,8 @@ contract Exchange is PayableToken {
      * TODO: should use current exchange rate from chainlink
      */
     function convertToPayableToken(address payableTokenAddr, uint256 amount)
-        internal
-        pure
+        public
+        view
         returns (uint256)
     {
         return amount.mul(10**16);
@@ -37,11 +38,11 @@ contract Exchange is PayableToken {
      * @param payableTokenAddr address of payableToken
      * @param amount amount in payableToken
      * @return amount
-    * TODO:  should use current exchange rate from chainlink
+     * TODO:  should use current exchange rate from chainlink
      */
     function convertToSpend(address payableTokenAddr, uint256 amount)
-        internal
-        pure
+        public
+        view
         returns (uint256)
     {   
         return amount.div(10**16);
