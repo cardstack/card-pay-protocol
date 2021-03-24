@@ -3,7 +3,7 @@ const RevenuePool = artifacts.require("RevenuePool.sol");
 const DAICPXD = artifacts.require("DAICPXD.sol");
 const SPEND = artifacts.require("SPEND.sol");
 const ProxyFactory = artifacts.require("GnosisSafeProxyFactory");
-const GnosisSafe = artifacts.require("gnosisSafe");
+const GnosisSafe = artifacts.require("GnosisSafe");
 const MultiSend = artifacts.require("MultiSend");
 
 
