@@ -35,7 +35,11 @@ const TokenHelper = {
         let dec = toBN("10").pow(toBN(_decimals));
         let number = toBN(_numberToken);
         return number.mul(dec);
-    }
+    },
+
+    async getTotalSupply(token) {
+        return token.totalSupply()
+    },
 }
 
 const ContractHelper = {
