@@ -4,6 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "deploy:poa": "truffle migrate --network=poa --reset",
+    "deploy:rinkeby": "truffle migrate --network=rinkeby --reset",
     "compile-contracts": "./node_modules/.bin/truffle compile",
     "recompile": "rm -rf build && npm run compile-contracts",
     "test": "./test.sh",
