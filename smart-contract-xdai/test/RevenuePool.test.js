@@ -55,7 +55,7 @@ contract('Test Revenue Pool contract', accounts => {
         console.log('\n');
     })
 
-    it('merchant resigter by tally', async () => {
+    it('merchant register by tally', async () => {
         let tx = await revenuePool.registerMerchant(lw.accounts[0], offchainId, {
             from: tally
         });
@@ -66,7 +66,7 @@ contract('Test Revenue Pool contract', accounts => {
         assert.isTrue(await revenuePool.isMerchant(merchant), "The merchant should be created.");
     })
 
-    it('merchant resigter by tally but merchant address is zero', async () => {
+    it('merchant register by tally but merchant address is zero', async () => {
         let failed = false;
         try {
             await revenuePool.registerMerchant(utils.ZERO_ADDRESS, offchainId, {
@@ -80,7 +80,7 @@ contract('Test Revenue Pool contract', accounts => {
     })
 
 
-    it('merchant resigter not by tally', async () => {
+    it('merchant register not by tally', async () => {
         let failed = false;
         try {
             await revenuePool.registerMerchant(lw.accounts[0], offchainId, {
