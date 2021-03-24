@@ -74,7 +74,6 @@ contract('Test Revenue Pool contract', accounts => {
         })
 
         it('merchant register by tally but merchant address is zero', async () => {
-        it('merchant register by tally but merchant address is zero', async () => {
             await revenuePool.registerMerchant(utils.ZERO_ADDRESS, offchainId, {
                 from: tally
             }).should.be.rejectedWith(Error, "Merchant address shouldn't zero address");
