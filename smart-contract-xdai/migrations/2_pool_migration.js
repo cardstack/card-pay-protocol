@@ -3,7 +3,7 @@ const RevenuePool = artifacts.require("RevenuePool");
 const SPEND = artifacts.require("SPEND");
 
 module.exports = async function (deployer) {
-    //deployer.deploy(DAICPXD, "DAI CPXD Token", "DAICPXD", 16, '1000000000000000000000000')
+    deployer.deploy(DAICPXD, "DAI CPXD Token", "DAICPXD", 18, '1000000000000000000000000')
     await deployer.deploy(RevenuePool);
     let pool = await RevenuePool.deployed()
 
