@@ -11,7 +11,6 @@
     "test": "./test.sh",
     "test:coverage": "./node_modules/.bin/truffle run coverage",
     "test:revenue": "./node_modules/.bin/truffle test ./test/RevenuePool.test.js",
-    "test:coverage": "./node_modules/.bin/truffle run coverage",
     "deploy-rinkeby": "./node_modules/.bin/truffle migrate -f 1 --to 3 --network rinkeby",
     "deploy-xdai": "./node_modules/.bin/truffle migrate -f 1 --to 3 --network xdai"
   },
