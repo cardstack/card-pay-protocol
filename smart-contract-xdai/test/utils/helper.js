@@ -50,15 +50,15 @@ function packExecutionData({
 
 exports.packExecutionData = packExecutionData;
 
-    amountOf(_numberToken, _decimals = 18) {
-        let dec = toBN("10").pow(toBN(_decimals));
-        let number = toBN(_numberToken);
-        return number.mul(dec);
-    },
+exports.amountOf = (_numberToken, _decimals = 18) =>{
+    let dec = toBN("10").pow(toBN(_decimals));
+    let number = toBN(_numberToken);
+    return number.mul(dec);
+}
 
-    async getTotalSupply(token) {
-        return token.totalSupply()
-    },
+exports.getTotalSupply =async (token) => {
+    return token.totalSupply()
+}
 exports.encodeCreateCardsData = function (account, amounts = []) {
     return AbiCoder.encodeParameters(
         ["address", "uint256[]"],
