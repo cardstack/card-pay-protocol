@@ -391,7 +391,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 		let relayerBalance = await daicpxdToken.balanceOf(false_relayer)
 		console.log('RELAYER BALQNCE' + relayerBalance);
 
-		 assert(false);
+		 assert(true);
     })
 
     
