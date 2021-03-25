@@ -64,7 +64,7 @@ contract('Test Revenue Pool contract', accounts => {
     })
 
     describe("#Create merchant", () => {
-        it('merchant resigter by tally', async () => {
+        it('merchant register by tally', async () => {
             let tx = await revenuePool.registerMerchant(lw.accounts[0], offchainId, {
                 from: tally
             }).should.be.fulfilled;
