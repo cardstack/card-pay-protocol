@@ -46,21 +46,42 @@ module.exports = {
     // options below to some value.
     //
     poa: {
-      provider: function () {
-        return new HDWalletProvider(process.env.MNEMONIC, "https://sokol.poa.network")
+      provider: () => {
+        return new HDWalletProvider(
+          {
+            mnemonic:{
+              pharse: process.env.MNEMONIC
+            },
+            providerOrUrl:"https://sokol.poa.network"
+          }
+        )
       },
       network_id: 77,
     },
 
     rinkeby: {
       provider: function () {
-        return new HDWalletProvider(process.env.MNEMONIC, "https://rinkeby.infura.io/v3/" + process.env.INFURA_API_KEY);
+        return new HDWalletProvider(
+          {
+            mnemonic: {
+              phrase:  process.env.MNEMONIC
+            },
+            providerOrUrl: "https://rinkeby.infura.io/v3/" + process.env.INFURA_API_KEY
+          }
+        );
       },
       network_id: 4,
     },
     xdai: {
       provider: function () {
-        return new HDWalletProvider(process.env.MNEMONIC, "https://rpc.xdaichain.com/");
+        return new HDWalletProvider(
+          {
+            mnemonic: {
+              phrase:  process.env.MNEMONIC
+            },
+            providerOrUrl:"https://rpc.xdaichain.com/"
+          }
+        );
       },
       gasPrice: 1000000000,
       network_id: 100
