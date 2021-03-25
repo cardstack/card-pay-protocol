@@ -4,13 +4,12 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "deploy:poa": "truffle migrate --network=poa --reset",
-    "deploy:rinkeby": "truffle migrate --network=rinkeby --reset",
     "compile-contracts": "./node_modules/.bin/truffle compile",
     "recompile": "rm -rf build && npm run compile-contracts",
     "test": "./test.sh",
     "test:coverage": "./node_modules/.bin/truffle run coverage",
     "test:revenue": "./node_modules/.bin/truffle test ./test/RevenuePool.test.js",
+    "deploy:sokol": "./node_modules/.bin/truffle migrate -f 1 --to 3 --network=poa --reset",
     "deploy:rinkeby": "./node_modules/.bin/truffle migrate -f 1 --to 3 --network rinkeby",
     "deploy:xdai": "./node_modules/.bin/truffle migrate -f 1 --to 3 --network xdai"
   },
