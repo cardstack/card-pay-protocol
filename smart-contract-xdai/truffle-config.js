@@ -50,7 +50,7 @@ module.exports = {
         return new HDWalletProvider(
           {
             mnemonic:{
-              pharse: process.env.MNEMONIC
+              phrase: process.env.MNEMONIC
             },
             providerOrUrl:"https://sokol.poa.network"
           }
