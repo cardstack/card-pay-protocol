@@ -10,7 +10,6 @@
     "test:coverage": "./node_modules/.bin/truffle run coverage",
     "test:revenue": "./node_modules/.bin/truffle test ./test/RevenuePool.test.js",
     "deploy:sokol": "./node_modules/.bin/truffle migrate -f 1 --to 3 --network=sokol --reset",
-    "deploy:rinkeby": "./node_modules/.bin/truffle migrate -f 1 --to 3 --network rinkeby",
     "deploy:xdai": "./node_modules/.bin/truffle migrate -f 1 --to 3 --network xdai"
   },
   "repository": {
@@ -36,6 +35,7 @@
     "ganache-cli": "^6.12.1",
     "mocha": "^8.2.1",
     "pify": "^5.0.0",
+    "solc": "0.5.17",
     "truffle": "^5.1.51",
     "web3-eth-abi": "^1.3.0",
     "web3-utils": "^1.3.0"
