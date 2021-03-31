@@ -1,36 +1,35 @@
 const PrepaidCardManager = artifacts.require("PrepaidCardManager");
 const RevenuePool = artifacts.require("RevenuePool.sol");
-const DAICPXD = artifacts.require("DAICPXD.sol");
+const ERC677Token = artifacts.require("ERC677Token.sol");
 const SPEND = artifacts.require("SPEND.sol");
 const ProxyFactory = artifacts.require("GnosisSafeProxyFactory");
-const GnosisSafe = artifacts.require("gnosisSafe");
+const GnosisSafe = artifacts.require("GnosisSafe");
 const MultiSend = artifacts.require("MultiSend");
 
 
-const { toBN, toHex } = require("web3-utils");
+const { expect, TOKEN_DETAIL_DATA, toBN } = require('./setup');
+
 const eventABIs = require("./utils/constant/eventABIs");
 const {
-	signSafeTransaction,
 	encodeMultiSendCall,
 	ZERO_ADDRESS,
-	EXECUTE_EVENT_FAILED,
-	EXECUTE_EVENT_SUCCESS,
-	EXECUTE_EVENT_META,
 	getParamsFromEvent,
 	getParamFromTxEvent,
-	getGnosisSafeFromEventLog
+	getGnosisSafeFromEventLog, 
 } = require("./utils/general");
 
+ 
 
 const {
-	TokenHelper,
-	ContractHelper
+	toTokenUnit,
+	encodeCreateCardsData,
+	signAndSendSafeTransaction,
+	shouldSameBalance
 } = require('./utils/helper');
 
 
-contract("Test Prepaid Card Manager contract", (accounts) => {
-	const tokenMeta = ["DAICPXD Token", "DAICPXD", 18]
 
+contract("Test Prepaid Card Manager contract happy", (accounts) => {
 	let daicpxdToken,
 		revenuePool,
 		spendToken,
@@ -57,17 +56,12 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 		]);
 
 		// Deploy and mint 100 daicpxd token for deployer as owner
-		daicpxdToken = await TokenHelper.deploy({
-			TokenABIs: DAICPXD,
-			args: [...tokenMeta, TokenHelper.amountOf(100)]
-		});
-
+		daicpxdToken = await ERC677Token.new(...TOKEN_DETAIL_DATA)
+		await daicpxdToken.mint(accounts[0], toTokenUnit(1000));
 		// Deploy and mint 100 daicpxd token for deployer as owner
-		fakeDaicpxdToken = await TokenHelper.deploy({
-			TokenABIs: DAICPXD,
-			args: [...tokenMeta, TokenHelper.amountOf(100)]
-		});
-
+		fakeDaicpxdToken = await ERC677Token.new(...TOKEN_DETAIL_DATA)
+		await fakeDaicpxdToken.mint(accounts[0], toTokenUnit(1000));
+	
 		walletOfIssuer = await getParamFromTxEvent(
 			await proxyFactory.createProxy(
 				gnosisSafeMasterCopy.address,
@@ -92,20 +86,11 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 		);
 
 		// Transfer 20 daicpxd to issuer's wallet
-		await daicpxdToken.transfer(
-			walletOfIssuer.address,
-			TokenHelper.amountOf(20), {
-				from: tally,
-			}
-		);
+		await daicpxdToken.mint(walletOfIssuer.address, toTokenUnit(20));
+
  
 		// Transfer 20 daicpxd to issuer's wallet
-		await fakeDaicpxdToken.transfer(
-			walletOfIssuer.address,
-			TokenHelper.amountOf(20), {
-				from: tally,
-			}
-		);
+		await fakeDaicpxdToken.mint(walletOfIssuer.address, toTokenUnit(20));
 
 
 		prepaidCardManager = await PrepaidCardManager.new();
@@ -126,22 +111,24 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 			gnosisSafeMasterCopy.address,
 			proxyFactory.address,
 			revenuePool.address,
-			[daicpxdToken.address]
+			[daicpxdToken.address], 
+			100,
+			500000
 		);
-
+		
 		prepaidCardManagerSignature = await prepaidCardManager.getContractSignature();
 	});
 
 	it("#1 Shows issuer Creating Cards ", async () => {
 		let oldWalletBalance = await daicpxdToken.balanceOf(walletOfIssuer.address);
 		let oldRelayerBalance = await daicpxdToken.balanceOf(relayer)
-		let amounts = [1, 2, 5].map(amount => TokenHelper.amountOf(amount));
+		let amounts = [1, 2, 5].map(amount => toTokenUnit(amount));
 
 		let payloads = daicpxdToken.contract.methods
 			.transferAndCall(
 				prepaidCardManager.address,
-				TokenHelper.amountOf(8),
-				ContractHelper.encodeCreateCardsData(
+				toTokenUnit(8),
+				encodeCreateCardsData(
 					walletOfIssuer.address,
 					amounts
 				)
@@ -151,8 +138,8 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 		let gasEstimate = await daicpxdToken.contract.methods
 			.transferAndCall(
 				prepaidCardManager.address,
-				TokenHelper.amountOf(8),
-				ContractHelper.encodeCreateCardsData(
+				toTokenUnit(8),
+				encodeCreateCardsData(
 					walletOfIssuer.address,
 					amounts
 				)
@@ -174,7 +161,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 		let {
 			safeTxHash,
 			safeTx
-		} = await ContractHelper.signAndSendSafeTransactionByRelayer(
+		} = await signAndSendSafeTransaction(
 			safeTxData,
 			issuer,
 			walletOfIssuer,
@@ -196,17 +183,17 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 		prepaidCards.forEach(async function (prepaidCard, index) {
 			assert.isTrue(await prepaidCard.isOwner(walletOfIssuer.address))
 			assert.isTrue(await prepaidCard.isOwner(prepaidCardManager.address))
-			TokenHelper.isEqualBalance(daicpxdToken, prepaidCard.address, amounts[index]);
+			shouldSameBalance(daicpxdToken, prepaidCard.address, amounts[index]);
 		})
 
 		let payment = toBN(executeSuccess[executeSuccess.length - 1]['payment']);
-		await TokenHelper.isEqualBalance(
+		await shouldSameBalance(
 			daicpxdToken, 
 			walletOfIssuer.address,
-			oldWalletBalance.sub(payment).sub(toBN(TokenHelper.amountOf(8)))
+			oldWalletBalance.sub(payment).sub(toBN(toTokenUnit(8)))
 		);
 
-		await TokenHelper.isEqualBalance(daicpxdToken, relayer, oldRelayerBalance.add(payment));
+		await shouldSameBalance(daicpxdToken, relayer, oldRelayerBalance.add(payment));
 	});
 
 
@@ -262,7 +249,7 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 		let {
 			safeTxHash,
 			safeTx
-		} = await ContractHelper.signAndSendSafeTransactionByRelayer(
+		} = await signAndSendSafeTransaction(
 			safeTxData,
 			issuer,
 			walletOfIssuer,
@@ -272,6 +259,6 @@ contract("Test Prepaid Card Manager contract", (accounts) => {
 		let executeSuccess = getParamsFromEvent(safeTx, eventABIs.EXECUTION_SUCCESS, walletOfIssuer.address);
 		assert.equal(safeTxHash.toString(), executeSuccess[executeSuccess.length - 1]['txHash'].toString());
 		assert.isTrue(await prepaidCards[2].isOwner(customer));
-		await TokenHelper.isEqualBalance(daicpxdToken, prepaidCards[2].address, TokenHelper.amountOf(5));
+		await shouldSameBalance(daicpxdToken, prepaidCards[2].address, toTokenUnit(5));
 	});
 });

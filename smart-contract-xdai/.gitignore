@@ -1,4 +1,6 @@
-node_modules
+.env
+.env_xdai
+address_book
 build
 package-lock.json
 coverage.json

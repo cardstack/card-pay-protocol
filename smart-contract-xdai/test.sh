@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+echo "Run at $(date)"
 # Exit script as soon as a command fails.
 set -o errexit
 node_modules/.bin/truffle version

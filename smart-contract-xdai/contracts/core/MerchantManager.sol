@@ -11,7 +11,7 @@ contract MerchantManager is TallyRole, Safe {
     event MerchantCreation(address merchantOwner, address merchant);
 
     struct Merchant {
-        bool resigter;
+        bool register;
         // offchant id
         string merchantId;         
         // mapping from token address to number token belongs of the merchant. 
@@ -25,7 +25,7 @@ contract MerchantManager is TallyRole, Safe {
     }
 
     function isMerchant(address merchantAddr) public view returns (bool) {
-        return merchants[merchantAddr].resigter;
+        return merchants[merchantAddr].register;
     }
 
     function registerMerchant(address merchantOwner, string calldata merchantId)
@@ -40,7 +40,7 @@ contract MerchantManager is TallyRole, Safe {
 
         address merchant = createSafe(merchantOwner);
          
-        merchants[merchant].resigter = true; 
+        merchants[merchant].register = true; 
         merchants[merchant].merchantId = merchantId;
         
         emit MerchantCreation(merchantOwner, merchant);

@@ -101,5 +101,40 @@ Responsible for:
 
 ## Flow payment. 
 
+### Deployment 
 
+Deploy to rinkeby 
 
+```
+npm run deploy-rinkeby
+```
+
+Deploy to xdai
+
+```
+npm run deploy-xdai
+```
+
+Output show in json format and it's also save in folder `address_book/<branch-name>.json`.
+
+*Don't forget check the .env file before you deploy new contract.*
+
+### Env config 
+
+```
+INFURA_API_KEY=<infura id>
+MNEMONIC=<your seed>
+
+TALLY=<tally address>
+
+GNOSIS_SAFE_FACTORY=0x76E2cFc1F5Fa8F6a5b3fC4c8F4788F0116861F9B
+GNOSIS_SAFE_MASTER_COPY=0x34CfAC646f301356fAa8B21e94227e3583Fe3F5F
+
+PAYABLE_TOKEN= <list payable token, seperated by space>
+#PAYABLE_TOKEN=0x1455c8331da57C6C6DfE3B4076Eb6381E136d0Be 0xd5eeD8cc6dDA145cf92bF586b9687201318260e2
+
+// mininum amount of card when we create a new card. (in SPEND)
+MINIMUM_AMOUNT=100 
+// maxinum amount of card when we create a new card. (in SPEND)
+MAXIMUM_AMOUNT=500000
+```

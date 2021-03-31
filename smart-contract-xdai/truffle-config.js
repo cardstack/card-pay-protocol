@@ -25,7 +25,7 @@
 // const mnemonic = fs.readFileSync(".secret").toString().trim();
 
 require('dotenv').config();
-const HDWalletProvider = require("truffle-hdwallet-provider");
+const HDWalletProvider = require("@truffle/hdwallet-provider");
 
 module.exports = {
   /**
@@ -45,24 +45,51 @@ module.exports = {
     // tab if you use this network and you must also set the `host`, `port` and `network_id`
     // options below to some value.
     //
-    poa: {
-      provider: function() {
-        return new HDWalletProvider(process.env.MNEMONIC, "https://sokol.poa.network")
+    sokol: {
+      provider: () => {
+        return new HDWalletProvider(
+          {
+            mnemonic:{
+              pharse: process.env.MNEMONIC
+            },
+            providerOrUrl:"https://sokol.poa.network"
+          }
+        )
       },
       network_id: 77,
     },
-    
+
     rinkeby: {
-      provider: function() { 
-       return new HDWalletProvider(process.env.MNEMONIC, "https://rinkeby.infura.io/v3/" + process.env.INFURA_API_KEY);
+      provider: function () {
+        return new HDWalletProvider(
+          {
+            mnemonic: {
+              phrase:  process.env.MNEMONIC
+            },
+            providerOrUrl: "https://rinkeby.infura.io/v3/" + process.env.INFURA_API_KEY
+          }
+        );
       },
       network_id: 4,
     },
-
+    xdai: {
+      provider: function () {
+        return new HDWalletProvider(
+          {
+            mnemonic: {
+              phrase:  process.env.MNEMONIC
+            },
+            providerOrUrl:"https://rpc.xdaichain.com/"
+          }
+        );
+      },
+      gasPrice: 1000000000,
+      network_id: 100
+    },
     ganache: {
-	    host: "127.0.0.1",     // Localhost (default: none)
-	    port: 8545,            // Standard Ethereum port (default: none)
-	    network_id: "*",       // Any network (default: none)
+      host: "127.0.0.1",     // Localhost (default: none)
+      port: 8545,            // Standard Ethereum port (default: none)
+      network_id: "*",       // Any network (default: none)
     },
 
     // Another network with more advanced options...
@@ -107,7 +134,7 @@ module.exports = {
   // Configure your compilers
   compilers: {
     solc: {
-      version: "^0.5.17",    // Fetch exact version from solc-bin (default: truffle's version)
+      version: "0.5.17",    // Fetch exact version from solc-bin (default: truffle's version)
       // docker: true,        // Use "0.5.1" you've installed locally with docker (default: false)
       // settings: {          // See the solidity docs for advice about optimization and evmVersion
       //  optimizer: {

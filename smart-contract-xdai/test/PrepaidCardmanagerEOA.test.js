@@ -1,31 +1,29 @@
 const PrepaidCardManager = artifacts.require("PrepaidCardManager");
 const RevenuePool = artifacts.require("RevenuePool.sol");
-const DAICPXD = artifacts.require("DAICPXD.sol");
+const ERC677Token = artifacts.require("ERC677Token.sol");
 const SPEND = artifacts.require("SPEND.sol");
 const ProxyFactory = artifacts.require("GnosisSafeProxyFactory");
-const GnosisSafe = artifacts.require("gnosisSafe");
+const GnosisSafe = artifacts.require("GnosisSafe");
 const MultiSend = artifacts.require("MultiSend");
 
 const {
     getGnosisSafeFromEventLog,
-    CREATE_PREPAID_CARD_TOPIC,
-    encodeMultiSendCall
 } = require('./utils/general');
 
 const {
-    TokenHelper,
-    ContractHelper
+    toTokenUnit,
+    encodeCreateCardsData,
+    shouldSameBalance
 } = require("./utils/helper");
 
+const { expect, TOKEN_DETAIL_DATA } = require('./setup');
 
 contract("Test contract by EOA", (accounts) => {
-    const tokenMeta = ["DAICPXD Token", "DAICPXD", 18]
 
     let daicpxdToken,
         revenuePool,
         spendToken,
         prepaidCardManager,
-        multiSend,
         offChainId = "Id",
         fakeDaicpxdToken;
     let tally, customer, merchant, relayer, supplierEOA;
@@ -50,29 +48,14 @@ contract("Test contract by EOA", (accounts) => {
         ]);
 
         // Deploy and mint 100 daicpxd token for deployer as owner
-        daicpxdToken = await TokenHelper.deploy({
-            TokenABIs: DAICPXD,
-            args: [...tokenMeta, TokenHelper.amountOf(100)]
-        });
-
+        daicpxdToken = await ERC677Token.new(...TOKEN_DETAIL_DATA)
+        await daicpxdToken.mint(supplierEOA, toTokenUnit(20));
         // Deploy and mint 100 daicpxd token for deployer as owner
-        fakeDaicpxdToken = await TokenHelper.deploy({
-            TokenABIs: DAICPXD,
-            args: [...tokenMeta, TokenHelper.amountOf(100)]
-        });
+        fakeDaicpxdToken = await ERC677Token.new(...TOKEN_DETAIL_DATA)
+        await fakeDaicpxdToken.mint(supplierEOA, toTokenUnit(20));
 
 
-        // Transfer 20 daicpxd to supplier's wallet
-        await fakeDaicpxdToken.transfer(
-            supplierEOA,
-            TokenHelper.amountOf(20), {
-                from: tally,
-            }
-        );
-
-        await daicpxdToken.transfer(supplierEOA, TokenHelper.amountOf(20), {
-            from: tally
-        });
+     
 
         prepaidCardManager = await PrepaidCardManager.new();
 
@@ -92,17 +75,20 @@ contract("Test contract by EOA", (accounts) => {
             gnosisSafeMasterCopy.address,
             proxyFactory.address,
             revenuePool.address,
-            [daicpxdToken.address]
+            [daicpxdToken.address],
+            100, 500000
         );
+     
+        
     })
 
     it("Create muliple card by EOA account", async () => {
 
-        let amounts = [1, 2, 10].map(amount => TokenHelper.amountOf(amount));
+        let amounts = [1, 2, 10].map(amount => toTokenUnit(amount));
 
-        let data = ContractHelper.encodeCreateCardsData(supplierEOA, amounts);
+        let data = encodeCreateCardsData(supplierEOA, amounts);
 
-        let tx = await daicpxdToken.transferAndCall(prepaidCardManager.address, TokenHelper.amountOf(13), data, {
+        let tx = await daicpxdToken.transferAndCall(prepaidCardManager.address, toTokenUnit(13), data, {
             from: supplierEOA
         });
 
@@ -113,19 +99,19 @@ contract("Test contract by EOA", (accounts) => {
         for (let i = 0; i < cards.length; ++i) {
             let card = cards[i];
             assert.ok(await card.isOwner(supplierEOA));
-            await TokenHelper.isEqualBalance(daicpxdToken, card.address, amounts[i])
+            await shouldSameBalance(daicpxdToken, card.address, amounts[i])
         }
 
-        await TokenHelper.isEqualBalance(daicpxdToken, supplierEOA, TokenHelper.amountOf(7));
+        await shouldSameBalance(daicpxdToken, supplierEOA, toTokenUnit(7));
     })
 
     it('Create muliple card by EOA account failed because not enough token', async () => {
         try {
-            let amounts = [1, 2, 3].map(amount => TokenHelper.amountOf(amount));
+            let amounts = [1, 2, 3].map(amount => toTokenUnit(amount));
 
-            let data = ContractHelper.encodeCreateCardsData(supplierEOA, amounts);
+            let data = encodeCreateCardsData(supplierEOA, amounts);
 
-            let tx = await daicpxdToken.transferAndCall(prepaidCardManager.address, TokenHelper.amountOf(10), data, {
+            let tx = await daicpxdToken.transferAndCall(prepaidCardManager.address, toTokenUnit(10), data, {
                 from: supplierEOA
             });
             assert.ok(false, "Should failed");
@@ -134,18 +120,18 @@ contract("Test contract by EOA", (accounts) => {
         }
     })
 
-    it('Create muliple card by EOA account failed because your amount must be == sum of new cardAmounts', async () => {
+    it('Create muliple card by EOA account failed because not enough token', async () => {
         try {
-            let amounts = [1, 2, 9].map(amount => TokenHelper.amountOf(amount));
+            let amounts = [1, 2, 9].map(amount => toTokenUnit(amount));
 
-            let data = ContractHelper.encodeCreateCardsData(supplierEOA, amounts)
+            let data = encodeCreateCardsData(supplierEOA, amounts)
 
-            let tx = await daicpxdToken.transferAndCall(prepaidCardManager.address, TokenHelper.amountOf(6), data, {
+            let tx = await daicpxdToken.transferAndCall(prepaidCardManager.address, toTokenUnit(6), data, {
                 from: supplierEOA
             });
             assert.ok(false, "Should failed");
         } catch (err) {
-            assert.equal(err.reason, "your amount must be == sum of new cardAmounts");
+            assert.equal(err.reason, "Not enough token");
         }
     })
 

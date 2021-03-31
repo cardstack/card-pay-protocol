@@ -9,16 +9,13 @@ import "./IERC677.sol";
 /**
  * @dev reference from https://github.com/smartcontractkit/LinkToken
  */
-contract DAICPXD is IERC677, ERC20Detailed, ERC20Mintable, ERC20Burnable {
+contract ERC677Token is IERC677, ERC20Detailed, ERC20Mintable, ERC20Burnable {
     
     constructor(
         string memory _name,
         string memory _symbol,
-        uint8 _decimals,
-        uint256 initialSupply
-    ) public ERC20Detailed(_name, _symbol, _decimals) {
-        _mint(msg.sender, initialSupply);
-    }
+        uint8 _decimals
+    ) public ERC20Detailed(_name, _symbol, _decimals) {}
 
     function contractFallBack(
         address _from,

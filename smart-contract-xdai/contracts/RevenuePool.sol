@@ -8,25 +8,10 @@ import "./token/ISPEND.sol";
 import "./roles/TallyRole.sol";
 import "./core/MerchantManager.sol";
 import "./core/Exchange.sol";
+import "./interfaces/IRevenuePool.sol";
 
-contract RevenuePool is
-    TallyRole,
-    MerchantManager,
-    Exchange
-{
+contract RevenuePool is TallyRole, MerchantManager, Exchange, IRevenuePool {
     using SafeMath for uint256;
-
-    event Claim(
-        address merchantAddr,
-        address payableToken,
-        uint256 amount
-    );
-    event Payment(
-        address prepaidCardArr,
-        address merchantAddr,
-        address payableToken,
-        uint256 amount
-    );
 
     address public spendToken;
 
@@ -68,7 +53,8 @@ contract RevenuePool is
         address payableToken,
         uint256 amount
     ) internal returns (bool) {
-        require(isMerchant(merchantAddr), "merchant not exist");
+        require(isMerchant(merchantAddr), "Invalid merchant");
+
         uint256 lockTotal = merchants[merchantAddr].lockTotal[payableToken];
         merchants[merchantAddr].lockTotal[payableToken] = lockTotal.add(amount);
 
@@ -90,14 +76,13 @@ contract RevenuePool is
         address from,
         uint256 amount,
         bytes calldata data
-    ) external onlyPayableToken() returns (bool) {
-
+    ) external isValidToken returns (bool) {
         // decode and get merchant address from the data
-        (address merchantAddr) = abi.decode(data, (address));
+        address merchantAddr = abi.decode(data, (address));
 
         handlePayment(merchantAddr, _msgSender(), amount);
 
-        emit Payment(from, merchantAddr, _msgSender(), amount);
+        emit CustomerPayment(from, merchantAddr, _msgSender(), amount);
         return true;
     }
 
@@ -111,11 +96,10 @@ contract RevenuePool is
         address merchantAddr,
         address payableToken,
         uint256 amount
-    ) internal onlyPayableTokens(payableToken) returns (bool) {
-
+    ) internal isValidTokenAddress(payableToken) returns (bool) {
         // ensure enough token for redeem
         uint256 lockTotal = merchants[merchantAddr].lockTotal[payableToken];
-        require(amount <= lockTotal, "Don't enough token for redeem");
+        require(amount <= lockTotal, "Insufficient funds");
 
         // unlock token of merchant
         lockTotal = lockTotal.sub(amount);
@@ -126,33 +110,21 @@ contract RevenuePool is
         // transfer payable token from revenue pool to merchant wallet address
         IERC677(payableToken).transfer(merchantAddr, amount);
 
-        emit Claim(merchantAddr, payableToken, amount);
+        emit MerchantClaim(merchantAddr, payableToken, amount);
         return true;
     }
 
-     /**
-     * @dev merchant claim token to their wallets, only tally account can call this method
+    /**
+     * @dev merchant claim token to their wallet, only tally account can call this method
      * @param merchantAddr address of merchant
-     * @param payableTokens array address of payable token
-     * @param amounts array amount in payable token
+     * @param payableToken address of payable token
+     * @param amount amount in payable token
      */
-    function claimTokens(
+    function claimToken(
         address merchantAddr,
-        address[] calldata payableTokens,
-        uint256[] calldata amounts
+        address payableToken,
+        uint256 amount
     ) external onlyTally returns (bool) {
-        uint256 totalType = payableTokens.length;
-
-        require(totalType == amounts.length);
-
-        for (uint256 index = 0; index < totalType; index = index + 1) {
-            _claimToken(
-                merchantAddr,
-                payableTokens[index],
-                amounts[index]
-            );
-        }
-
-        return true;
+        return _claimToken(merchantAddr, payableToken, amount);
     }
 }
