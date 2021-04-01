@@ -1,4 +1,16 @@
-# Card Protocol Layer 2 Contracts
+# Card Protocol Contracts
+The project hosts the contracts that comprise the Card Protocol. This includes the Prepaid Card Manager, Revenue Pool, SPEND token, and L2 Payment Token (e.g. DAI-CPXD).
+
+## About the Card Protocol
+TODO
+### Prepaid Card Manager
+TODO
+### Revenue Pool
+TODO
+### L2 Payment Token
+TODO
+### SPEND Token
+TODO
 
 ## Deployment
 We use a mnemonic held in AWS Secret Manager to manage our contract's key pair. You can use the online mnemonic tool to determine the address and private key based on the given mnemonic. https://iancoleman.io/bip39/
