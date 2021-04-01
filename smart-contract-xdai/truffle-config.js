@@ -24,7 +24,7 @@
 // const fs = require('fs');
 // const mnemonic = fs.readFileSync(".secret").toString().trim();
 
-require('dotenv').config();
+require("dotenv").config();
 const HDWalletProvider = require("@truffle/hdwallet-provider");
 
 module.exports = {
@@ -47,35 +47,32 @@ module.exports = {
     //
     sokol: {
       provider: () => {
-        return new HDWalletProvider(
-          {
-            mnemonic:{
-              phrase: process.env.MNEMONIC
-            },
-            providerOrUrl:"https://sokol.poa.network"
-          }
-        )
+        return new HDWalletProvider({
+          mnemonic: {
+            phrase: process.env.MNEMONIC,
+          },
+          providerOrUrl: "https://sokol.poa.network",
+        });
       },
       network_id: 77,
+      skipDryRun: true,
     },
     xdai: {
       provider: function () {
-        return new HDWalletProvider(
-          {
-            mnemonic: {
-              phrase:  process.env.MNEMONIC
-            },
-            providerOrUrl:"https://rpc.xdaichain.com/"
-          }
-        );
+        return new HDWalletProvider({
+          mnemonic: {
+            phrase: process.env.MNEMONIC,
+          },
+          providerOrUrl: "https://rpc.xdaichain.com/",
+        });
       },
       gasPrice: 1000000000,
-      network_id: 100
+      network_id: 100,
     },
     ganache: {
-      host: "127.0.0.1",     // Localhost (default: none)
-      port: 8545,            // Standard Ethereum port (default: none)
-      network_id: "*",       // Any network (default: none)
+      host: "127.0.0.1", // Localhost (default: none)
+      port: 8545, // Standard Ethereum port (default: none)
+      network_id: "*", // Any network (default: none)
     },
   },
 
@@ -84,16 +81,17 @@ module.exports = {
   // Set default mocha options here, use special reporters etc.
   mocha: {
     enableTimeouts: false,
-    reporter: 'eth-gas-reporter',
+    reporter: "eth-gas-reporter",
     reporterOptions: {
-      currency: "USD"
-    }
+      currency: "USD",
+    },
   },
 
   // Configure your compilers
   compilers: {
     solc: {
-      version: "0.5.17",    // Fetch exact version from solc-bin (default: truffle's version)
+      version: "0.5.17", // Fetch exact version from solc-bin (default: truffle's version)
     },
   },
+  plugins: ["truffle-source-verify"],
 };

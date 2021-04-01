@@ -9,8 +9,10 @@
     "test": "./test.sh",
     "test:coverage": "./node_modules/.bin/truffle run coverage",
     "test:revenue": "./node_modules/.bin/truffle test ./test/RevenuePool.test.js",
-    "deploy:sokol": "./node_modules/.bin/truffle migrate -f 1 --to 3 --network=sokol --reset",
-    "deploy:xdai": "./node_modules/.bin/truffle migrate -f 1 --to 3 --network xdai"
+    "deploy:sokol": "./node_modules/.bin/truffle migrate -f --network=sokol --reset",
+    "deploy:xdai": "./node_modules/.bin/truffle migrate -f --network xdai",
+    "verify:sokol": "truffle run blockscout ERC677Token SPEND RevenuePool PrepaidCardManager --network sokol --license UNLICENSED",
+    "verify:xdai": "truffle run blockscout ERC677Token SPEND RevenuePool PrepaidCardManager --network xdai --license UNLICENSED"
   },
   "repository": {
     "type": "git",
@@ -27,7 +29,7 @@
     "@gnosis.pm/mock-contract": "github:gnosis/mock-contract#sol_0_5_0",
     "@gnosis.pm/safe-contracts": "^1.2.0",
     "@openzeppelin/contracts": "^2.5.1",
-    "@truffle/hdwallet-provider": "^1.2.1",
+    "@truffle/hdwallet-provider": "1.2.1",
     "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
     "dotenv": "^8.2.0",
@@ -44,6 +46,8 @@
     "chai-bn": "^0.2.1",
     "chai-exclude": "^2.0.2",
     "eth-gas-reporter": "^0.2.19",
-    "solidity-coverage": "^0.7.11"
+    "prettier": "^2.2.1",
+    "solidity-coverage": "^0.7.11",
+    "truffle-source-verify": "^0.0.6"
   }
 }
