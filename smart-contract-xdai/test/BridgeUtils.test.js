@@ -19,7 +19,6 @@ contract("Bridge utils contract", async (accounts) => {
 
     await pool.setup(
       tallyAdmin,
-      bridgeUtils.address,
       gnosisMaster.address,
       gnosisFactory.address,
       utils.Address0,
@@ -28,13 +27,17 @@ contract("Bridge utils contract", async (accounts) => {
 
     prepaidCardManager = await PrepaidCardManager.new();
 
+    const MINIMUM_AMOUNT = process.env.MINIMUM_AMOUNT ?? 100;
+    const MAXIMUM_AMOUNT = process.env.MAXIMUM_AMOUNT ?? 100000 * 100;
+
     await prepaidCardManager.setup(
       tallyAdmin,
-      bridgeUtils.address,
       gnosisMaster.address,
       gnosisFactory.address,
       pool.address,
-      []
+      [],
+      MINIMUM_AMOUNT,
+      MAXIMUM_AMOUNT
     );
     await bridgeUtils.setUp(
       pool.address,
