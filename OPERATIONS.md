@@ -42,7 +42,30 @@ In order to update contracts with the "owner" account, you will need to add the 
 ## L2 Tokens (DAI-CPXD, DAI-CPSK)
 The Card Protocol makes use of our own set of layer 2 tokens which are used to purchase prepaid cards. At the time of this writing the layer 2 tokens supported are `DAI-CPXD` in xDai network and `DAI-CPSK` in the Sokol test network. More layer 2 tokens will likely be added in the future. When bridging layer 1 tokens to layer 2, our token bridge contract deposits the bridged layer 2 tokens in a gnosis safe called the "depot", which the user can then use to make gasless purchases of prepaid card. For testing purposes, though, it will be useful to mint the layer 2 tokens directly to an EOA for the purposes of testing.
 
+### Add Minter
+The owner of the L2 token contract is allowed to add addresses that are allowed to mint this token.
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the L2 token contract (we keep a record of the deployed contracts at `smart-contract-xdai/addresses-{network}.json`) by entering the token contract address in the blockscout search field.
+2. Select the "Write Contract" tab
+3. Click on the "Connect to Metamask" tab
+4. Select the Card Protocol Owner for the correct network in metamask
+5. Locate the "Add Minter" row and add the address of a new minter.
+6. Click on the "Write" button of the "Add Minter" row.
+7. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
+8. After the transaction has completed, you can confirm the minter was added by clicking on the "Read Contract" tab and enter the newly added minter's address in the "isMinter" row, and clicking on the "Query" button.
+
+### Renounce Minter
+The owner of the L2 token contract is allowed to renounce addresses that are allowed to mint this token.
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the L2 token contract (we keep a record of the deployed contracts at `smart-contract-xdai/addresses-{network}.json`) by entering the token contract address in the blockscout search field.
+2. Select the "Write Contract" tab
+3. Click on the "Connect to Metamask" tab
+4. Select the Card Protocol Owner for the correct network in metamask
+5. Locate the "Renounce Minter" row and add the address of the minter to renounce.
+6. Click on the "Write" button of the "Renounce Minter" row.
+7. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
+8. After the transaction has completed, you can confirm the minter was renounced by clicking on the "Read Contract" tab and enter the renounced minter's address in the "isMinter" row, and clicking on the "Query" button.
+
 ### Minting L2 Tokens
+The owner of the L2 contract as well as any addresses that have been added as "minters" are allowed to mint this token.
 1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the L2 token contract whose tokens you wish to mint (we keep a record of the deployed contracts at `smart-contract-xdai/addresses-{network}.json`) by entering the token contract address in the blockscout search field.
 2. Select the "Write Contract" tab
 3. Click on the "Connect to Metamask" tab
@@ -52,4 +75,4 @@ The Card Protocol makes use of our own set of layer 2 tokens which are used to p
 7. In the "Mint" row, enter the amount of tokens to min _in units of wei_. You can use this handy wei converter here https://eth-converter.com/. Enter the amount of tokens you with to transfer as units of "Ether", and the converter will display the corresponding amount in wei.
 8. Click on the "Write" button in the "Mint" row.
 9. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
-10. After the transaction has completed, you can confirm the balance by clicking on the "Read Contract" tab, and enter the recipient's address in the "balanceOf" row, and clicking on the "Query" button. The value displayed will be in units of wei. Feel free to use the converter to see the balance in units of "ether".
+10. After the transaction has completed, you can confirm the balance by clicking on the "Read Contract" tab and enter the recipient's address in the "balanceOf" row, and clicking on the "Query" button. The value displayed will be in units of wei. Feel free to use the converter to see the balance in units of "ether".
