@@ -16,14 +16,14 @@ module.exports = async function (_, network) {
   let pool = await RevenuePool.deployed();
   let spend = await SPEND.deployed();
   let l2Token = await L2Token.deployed();
-  let bridgeUtils = await BriidgeUtils.deployed();
+  let bridgeUtils = await BridgeUtils.deployed();
 
   let addresses = {
     RevenuePool: pool.address,
     PrepaidCardManager: prepaidCardManager.address,
     SPEND: spend.address,
     ERC677Token: l2Token.address,
-    BridgeUtils: bridgeUtils,
+    BridgeUtils: bridgeUtils.address,
   };
   fs.writeFileSync(
     join(__dirname, `../addresses-${network}.json`),
