@@ -1,4 +1,4 @@
-+pragma solidity 0.5.17;
+pragma solidity 0.5.17;
 
 import "./core/Safe.sol";
 import "./roles/PayableToken.sol";
