@@ -24,7 +24,7 @@ This document describes various operations procedures for the on-going maintenan
     - [Remove Tally](#remove-tally)
     - [Register Merchant](#register-merchant)
   - [Relay](#relay)
-    - [Setup Spender](#setup-spender)
+    - [Setup Payer](#setup-payer)
   - [Token Bridge](#token-bridge)
 
 
@@ -246,8 +246,26 @@ The `registerMerchant` function adds the address of a merchant in the revenue po
 10. After the transaction has completed, you can confirm the merchant was registered was added by setting the merchant's address in the isMerchant field and clicking on the "Query" button.
 
 ## Relay
+The relay is a server that is responsible for relying gnosis transactions to the blockchain from a web service. A key feature of the relay is that it pays for the gas of the transactions that it relays to the blockchain.
 
-### Setup Spender
+### Setup Payer
+In order to setup the relay, a gas payer must be designated for the relay. This is an EOA that is funded with a suitable amount of native network coins to handle paying for gas within the card protocol in L2.
+1. Login to AWS and go to the Secrets Manager. Locate the `{env}_card_protocol_payer_mnemonic` secret and reveal the secret value.
+2. In an incognito window go to the URL: https://iancoleman.io/bip39/
+3. Air gap your computer: unplug *all* peripherals, *turn off* your WIFI. Make sure your computer screen is not visible to any other people or cameras.
+4. Copy the mnemonic from the secrets manager into the BIP39 Mnemonic field.
+5. Select "Coin" of "ETH Ethereum"
+6. In the middle panel, select the "BIP44" Derivation Path tab.
+7. The private key is in the first row of the Derived Addresses panel in the "Private Key" column, copy this value to a scratch text buffer (don't save it)
+8. The address is the in the first row of the Derived Addresses panel in the "Address" column, copy this value to a scratch text buffer (don't save it)
+9. Close the incognito window that has the private key.
+10. You may now reconnect peripherals and turn your WIFI back on.
+11. Set the private key for the payer in AWS `{env}_SAFE_TX_SENDER_PRIVATE_KEY` AWS Secrets Manager
+12. Set the private key for the payer in AWS `{env}_SAFE_FUNDER_PRIVATE_KEY` AWS Secrets Manager
+13. Transfer a significant amount of network native coins to the address of the gas payer.
+14. Delete and close the scratch text docs that were acting as your copy-paste buffer
+15. Taint the terraform EBS volumes and EC2 instances for the relayer and redeploy the relay service from terraform.
+16. Navigate to the relay service for the environment and confirm that the /api/v1/about/ information reflects the address of the payer that you just setup.
 
 ## Token Bridge
 TODO
