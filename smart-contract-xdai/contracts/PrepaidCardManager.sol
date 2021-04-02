@@ -51,7 +51,8 @@ contract PrepaidCardManager is
         address _gsProxyFactory,
         address _revenuePool,
         address[] memory _payableTokens, 
-        uint256 _minAmount, uint _maxAmount
+        uint256 _minAmount,
+        uint _maxAmount
     ) public onlyOwner {
         // setup tally user
         _addTally(_tally);
