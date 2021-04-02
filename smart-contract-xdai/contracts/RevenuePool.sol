@@ -108,6 +108,7 @@ contract RevenuePool is TallyRole, MerchantManager, Exchange, IRevenuePool {
         merchants[merchantAddr].lockTotal[payableToken] = lockTotal;
 
         // transfer payable token from revenue pool to merchant wallet address
+        // WARNING THIS IS AN UNTRUSTED TRANSFER! filed as issue CS-536
         IERC677(payableToken).transfer(merchantAddr, amount);
 
         emit MerchantClaim(merchantAddr, payableToken, amount);

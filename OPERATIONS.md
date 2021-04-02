@@ -25,6 +25,7 @@ This document describes various operations procedures for the on-going maintenan
     - [Register Merchant](#register-merchant)
   - [Relay](#relay)
     - [Setup Spender](#setup-spender)
+  - [Token Bridge](#token-bridge)
 
 
 ## Configuring Metamask
@@ -108,7 +109,7 @@ The Prepaid Card Manager is responsible for creating Prepaid Cards and cosigning
 
 ### Setup
 The `setup` function of the prepaid card manager allows us to configure some basic aspects of how this contract functions including:
-- setting an array of Tally contract addresses (these are addresses that are allowed to redeem SPEND tokens)
+- setting an array of Tally contract addresses (these are addresses that are allowed to invoke the redeem SPEND function on the revenue pool contract)
 - setting the Gnosis safe master copy address
 - setting the Gnosis safe factory address
 - setting the revenue pool contract address
@@ -121,7 +122,7 @@ The `setup` function of the prepaid card manager allows us to configure some bas
 3. Click on the "Connect to Metamask" tab
 4. Select the Card Protocol Owner for the correct network in metamask
 5. Locate the "Setup" row and enter all the values (from above) that you wish to set for the PrepaidCardManager. If you wish to retain the current value, then use the "Read Contract" tab to look up the current value for any of the settings above.
-8. Click on the "Write" button in the "Mint" row.
+8. Click on the "Write" button in the "Setup" row.
 9. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
 10. After the transaction has completed, you can confirm the setup configuration by clicking on the "Read Contract" tab and reviewing all the fields that pertain to the setup parameters.
 
@@ -170,19 +171,83 @@ The `updateMaximumAmount` function changes the maximum face value in units of SP
 10. After the transaction has completed, you can confirm the maximum amount was set by clicking on the "Read Contract" tab and looking at "getMaximumAmount" amount value.
 
 ## Revenue Pool
+The Revenue pool collects the L2 tokens used to pay merchants, and mints SPEND tokens that the merchants can redeem against the funds collected in the revenue pool.
 
 ### Setup
+The `setup` function of the revenue pool allows us to configure some basic aspects of how this contract functions including:
+- setting an array of Tally contract addresses (these are addresses that are allowed to invoke the redeem SPEND function on the revenue pool contract)
+- setting the Gnosis safe master copy address
+- setting the Gnosis safe factory address
+- setting the SPEND token contract address
+- setting an array of L2 tokens that are accepted by the revenue pool
+
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the RevenuePool contract (we keep a record of the deployed contracts at `smart-contract-xdai/addresses-{network}.json`) by entering the contract address in the blockscout search field.
+2. Select the "Write Contract" tab
+3. Click on the "Connect to Metamask" tab
+4. Select the Card Protocol Owner for the correct network in metamask
+5. Locate the "Setup" row and enter all the values (from above) that you wish to set for the RevenuePool. If you wish to retain the current value, then use the "Read Contract" tab to look up the current value for any of the settings above.
+8. Click on the "Write" button in the "Setup" row.
+9. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
+10. After the transaction has completed, you can confirm the setup configuration by clicking on the "Read Contract" tab and reviewing all the fields that pertain to the setup parameters.
 
 ### Add Payable Token
+The `addPayableToken` function allows the revenue pool to accept a new L2 token address to be used as payment to a merchant.
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the RevenuePool contract (we keep a record of the deployed contracts at `smart-contract-xdai/addresses-{network}.json`) by entering the contract address in the blockscout search field.
+2. Select the "Write Contract" tab
+3. Click on the "Connect to Metamask" tab
+4. Select the Card Protocol Owner for the correct network in metamask
+5. Locate the "addPayableToken" row and enter the address for the L2 token that you wish to add as a payable token
+6. Click on the "Write" button in the "addPayableToken" row.
+9. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
+10. After the transaction has completed, you can confirm the payable token was added by clicking on the "Read Contract" tab and looking at the "getTokens" row.
 
 ### Remove Payable Token
+The `removePayableToken` function allows the revenue pool to no longer accept an L2 token address to be used as payment to a merchant.
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the RevenuePool contract (we keep a record of the deployed contracts at `smart-contract-xdai/addresses-{network}.json`) by entering the contract address in the blockscout search field.
+2. Select the "Write Contract" tab
+3. Click on the "Connect to Metamask" tab
+4. Select the Card Protocol Owner for the correct network in metamask
+5. Locate the "removePayableToken" row and enter the address for the L2 token that you wish to remove as a payable token
+6. Click on the "Write" button in the "removePayableToken" row.
+9. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
+10. After the transaction has completed, you can confirm the payable token was removed by clicking on the "Read Contract" tab and looking at the "getTokens" row.
 
 ### Add Tally
+The `addTally` function adds an address that is permitted to call a function to redeem SPEND tokens on behalf of a merchant from the revenue pool.
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the RevenuePool contract (we keep a record of the deployed contracts at `smart-contract-xdai/addresses-{network}.json`) by entering the contract address in the blockscout search field.
+2. Select the "Write Contract" tab
+3. Click on the "Connect to Metamask" tab
+4. Select the Card Protocol Owner for the correct network in metamask
+5. Locate the "addTally" row and enter the address that is permitted to call the `claimToken()` function
+6. Click on the "Write" button in the "addTally" row.
+9. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
+10. After the transaction has completed, you can confirm the tally address was added by clicking on the "Read Contract" tab and looking at the "getTallys" row.
 
 ### Remove Tally
+The `removeTally` function removes an address that is permitted to call a function to redeem SPEND tokens on behalf of a merchant from the revenue pool.
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the RevenuePool contract (we keep a record of the deployed contracts at `smart-contract-xdai/addresses-{network}.json`) by entering the contract address in the blockscout search field.
+2. Select the "Write Contract" tab
+3. Click on the "Connect to Metamask" tab
+4. Select the Card Protocol Owner for the correct network in metamask
+5. Locate the "removeTally" row and enter the address that is no longer permitted to call the `claimToken()` function
+6. Click on the "Write" button in the "removeTally" row.
+9. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
+10. After the transaction has completed, you can confirm the tally address was removed by clicking on the "Read Contract" tab and looking at the "getTallys" row.
 
 ### Register Merchant
+The `registerMerchant` function adds the address of a merchant in the revenue pool that is permitted to accept payment with prepaid card as well as is able to redeem SPEND tokens from the revenue pool.
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the RevenuePool contract (we keep a record of the deployed contracts at `smart-contract-xdai/addresses-{network}.json`) by entering the contract address in the blockscout search field.
+2. Select the "Write Contract" tab
+3. Click on the "Connect to Metamask" tab
+4. Select the Card Protocol Owner for the correct network in metamask
+5. Locate the "registerMerchant" row and enter the merchant's address
+6. Click on the "Write" button in the "registerMerchant" row.
+9. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
+10. After the transaction has completed, you can confirm the merchant was registered was added by setting the merchant's address in the isMerchant field and clicking on the "Query" button.
 
 ## Relay
 
 ### Setup Spender
+
+## Token Bridge
+TODO
