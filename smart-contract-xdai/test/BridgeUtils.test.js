@@ -11,6 +11,7 @@ contract("Bridge utils contract", async (accounts) => {
   before(async () => {
     let tallyAdmin = accounts[0];
     mediatorBridgeMock = accounts[1];
+    tokenMock = accounts[2];
     bridgeUtils = await BridgeUtils.new(tallyAdmin);
     pool = await RevenuePool.new();
 
@@ -50,8 +51,6 @@ contract("Bridge utils contract", async (accounts) => {
   });
 
   it("set up a new token", async () => {
-    let tokenMock = accounts[2];
-
     await bridgeUtils.updateToken(tokenMock, { from: mediatorBridgeMock });
 
     let payableToken = await pool.getTokens();
