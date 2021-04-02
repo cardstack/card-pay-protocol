@@ -1,6 +1,22 @@
 # Card Protocol Operations
 This document describes various operations procedures for the on-going maintenance necessary for the Card Protocol, as well as procedures to aid in testing the Card Protocol. Many of these operations require "owner" access in order to execute. We'll use BlockScout and Metamask to perform these operations steps.
 
+  - [Configuring Metamask](#configuring-metamask)
+    - [Adding Sokol Network](#adding-sokol-network)
+    - [Adding xDai Network](#adding-xdai-network)
+    - [Owner private key](#owner-private-key)
+  - [L2 Tokens (DAI-CPXD, DAI-CPSK)](#l2-tokens-dai-cpxd-dai-cpsk)
+    - [Add Minter](#add-minter)
+    - [Renounce Minter](#renounce-minter)
+    - [Minting L2 Tokens](#minting-l2-tokens)
+  - [Prepaid Card Manager](#prepaid-card-manager)
+    - [Setup](#setup)
+    - [Add Payable Token](#add-payable-token)
+    - [Remove Payable Token](#remove-payable-token)
+    - [Update Minimum Amount](#update-minimum-amount)
+    - [Update Maximum Amount](#update-maximum-amount)
+  - [Revenue Pool](#revenue-pool)
+
 ## Configuring Metamask
 In order to update contracts with the "owner" account, you will need to add the owner's wallet to your Metamask. Metamask does not come preconfigured with the xDai nor Sokol network, so you'll need to add it if you haven't already. Download and install the "Metamask" Chrome extension. Make sure to set a challenging password that you won't forget.
 
@@ -142,3 +158,5 @@ The `updateMaximumAmount` function changes the maximum face value in units of SP
 6. Click on the "Write" button in the "updateMaximumAmount" row.
 9. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
 10. After the transaction has completed, you can confirm the maximum amount was set by clicking on the "Read Contract" tab and looking at "getMaximumAmount" amount value.
+
+## Revenue Pool
