@@ -6,7 +6,7 @@ const GnosisMaster = artifacts.require("GnosisSafe");
 
 const utils = require("./utils/general");
 
-const { expect, TOKEN_DETAIL_DATA } = require("./setup");
+require("./setup");
 
 contract("Bridge utils contract", async (accounts) => {
   let bridgeUtils, pool, prepaidCardManager;
