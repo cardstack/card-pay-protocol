@@ -39,7 +39,8 @@ contract("Bridge utils contract", async (accounts) => {
       MINIMUM_AMOUNT,
       MAXIMUM_AMOUNT
     );
-    await bridgeUtils.setUp(
+
+    await bridgeUtils.setup(
       pool.address,
       prepaidCardManager.address,
       gnosisMaster.address,

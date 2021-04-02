@@ -39,7 +39,7 @@ contract BridgeUtils is Safe, Ownable{
 
     /// TODO: need permission for do this action
     /// @dev only tallyAdmin can call it.
-    function setUp(
+    function setup(
         address _revenuePool,
         address _prepaidCardManager,
         address _gsMasterCopy,
