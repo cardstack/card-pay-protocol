@@ -70,7 +70,7 @@ contract("Bridge utils contract", async (accounts) => {
     let onwers = await gnosisSafe.getOwners();
     assert.equal(onwers.toString(), [account].toString());
     let supplier = await bridgeUtils.suppliers(wallet);
-    assert.isTrue(supplier["registered"], true);
+    assert.isTrue(supplier["registered"]);
   });
 
   it("try resigter supplier by other account", async () => {
