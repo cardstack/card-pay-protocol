@@ -1,6 +1,7 @@
 # Card Protocol Operations
 This document describes various operations procedures for the on-going maintenance necessary for the Card Protocol, as well as procedures to aid in testing the Card Protocol. Many of these operations require "owner" access in order to execute. We'll use BlockScout and Metamask to perform these operations steps.
 
+- [Card Protocol Operations](#card-protocol-operations)
   - [Configuring Metamask](#configuring-metamask)
     - [Adding Sokol Network](#adding-sokol-network)
     - [Adding xDai Network](#adding-xdai-network)
@@ -16,6 +17,15 @@ This document describes various operations procedures for the on-going maintenan
     - [Update Minimum Amount](#update-minimum-amount)
     - [Update Maximum Amount](#update-maximum-amount)
   - [Revenue Pool](#revenue-pool)
+    - [Setup](#setup-1)
+    - [Add Payable Token](#add-payable-token-1)
+    - [Remove Payable Token](#remove-payable-token-1)
+    - [Add Tally](#add-tally)
+    - [Remove Tally](#remove-tally)
+    - [Register Merchant](#register-merchant)
+  - [Relay](#relay)
+    - [Setup Spender](#setup-spender)
+
 
 ## Configuring Metamask
 In order to update contracts with the "owner" account, you will need to add the owner's wallet to your Metamask. Metamask does not come preconfigured with the xDai nor Sokol network, so you'll need to add it if you haven't already. Download and install the "Metamask" Chrome extension. Make sure to set a challenging password that you won't forget.
@@ -160,3 +170,19 @@ The `updateMaximumAmount` function changes the maximum face value in units of SP
 10. After the transaction has completed, you can confirm the maximum amount was set by clicking on the "Read Contract" tab and looking at "getMaximumAmount" amount value.
 
 ## Revenue Pool
+
+### Setup
+
+### Add Payable Token
+
+### Remove Payable Token
+
+### Add Tally
+
+### Remove Tally
+
+### Register Merchant
+
+## Relay
+
+### Setup Spender
