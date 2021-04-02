@@ -5,6 +5,9 @@ const GnosisFactory = artifacts.require("GnosisSafeProxyFactory");
 const GnosisMaster = artifacts.require("GnosisSafe");
 
 const utils = require("./utils/general");
+
+const { expect, TOKEN_DETAIL_DATA } = require("./setup");
+
 contract("Bridge utils contract", async (accounts) => {
   let bridgeUtils, pool, prepaidCardManager;
   let mediatorBridgeMock, wallet;
@@ -50,7 +53,7 @@ contract("Bridge utils contract", async (accounts) => {
     );
   });
 
-  it("set up a new token", async () => {
+  it("add new token to bridg" + "e", async () => {
     await bridgeUtils.updateToken(tokenMock, { from: mediatorBridgeMock });
 
     let payableToken = await pool.getTokens();
@@ -58,9 +61,9 @@ contract("Bridge utils contract", async (accounts) => {
     assert.equal(payableToken.toString(), [tokenMock].toString());
   });
 
-  it("register new supplier - deploy a safe and store it's address", async () => {
-    let account = accounts[2];
-    let summary = await bridgeUtils.registerSupplier(account, {
+  it("register new supplier", async () => {
+    let newSupplier = accounts[2];
+    let summary = await bridgeUtils.registerSupplier(newSupplier, {
       from: mediatorBridgeMock,
     });
 
@@ -68,28 +71,22 @@ contract("Bridge utils contract", async (accounts) => {
     let gnosisSafe = await GnosisMaster.at(wallet);
 
     let onwers = await gnosisSafe.getOwners();
-    assert.equal(onwers.toString(), [account].toString());
+    assert.equal(onwers.toString(), [newSupplier].toString());
     let supplier = await bridgeUtils.suppliers(wallet);
     assert.isTrue(supplier["registered"]);
   });
 
-  it("try resigter supplier by other account", async () => {
-    let failed = false;
-
-    try {
-      let account = accounts[2];
-      summary = await bridgeUtils.registerSupplier(account, {
-        from: accounts[3],
-      });
-    } catch (err) {
-      failed = true;
-      assert.equal(
-        err.reason,
+  it("try register supplier by non-mediator account", async () => {
+    let newSupplier = accounts[2];
+    let notMediatorOfBridge = accounts[3];
+    await bridgeUtils
+      .registerSupplier(newSupplier, {
+        from: notMediatorOfBridge,
+      })
+      .should.be.rejectedWith(
+        Error,
         "Guard: Action supported only by the bridge mediator"
       );
-    }
-
-    assert.isTrue(failed);
   });
 
   it("update supplier's profile - called by supplier ", async () => {
@@ -119,23 +116,17 @@ contract("Bridge utils contract", async (accounts) => {
 
     let supplier = await bridgeUtils.suppliers(wallet);
 
-    assert.isTrue(supplier["registered"], true);
+    assert.isTrue(supplier["registered"]);
     assert.equal(supplier["brandName"], "Zion");
     assert.equal(supplier["brandProfileUrl"], "https://www.zion.com");
   });
 
   it("update invalid supplier", async () => {
     let invalidSupplier = accounts[3];
-    let failed = false;
-    try {
-      await bridgeUtils.updateSupplier("Babylon", "https://www.Babylon.com", {
+    await bridgeUtils
+      .updateSupplier("Babylon", "https://www.Babylon.com", {
         from: invalidSupplier,
-      });
-    } catch (err) {
-      failed = true;
-      assert.equal(err.reason, "Supplier is invalid.");
-    }
-
-    assert.isTrue(failed);
+      })
+      .should.be.rejectedWith(Error, "Supplier is invalid");
   });
 });
