@@ -27,7 +27,7 @@ contract PayableToken is Ownable {
         _;
     }
 
-    function addPayableToken(address _token) public onlyOwner returns (bool) {
+    function addPayableToken(address _token) public returns (bool) {
         return _addPayableToken(_token);
     }
 
