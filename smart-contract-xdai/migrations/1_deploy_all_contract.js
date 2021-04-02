@@ -1,6 +1,7 @@
 const PrepaidCardManager = artifacts.require("PrepaidCardManager");
 const RevenuePool = artifacts.require("RevenuePool");
 const L2Token = artifacts.require("ERC677Token");
+const BridgeUtils = artifacts.require("BridgeUtils");
 
 const tokenData = {
   "sokol-fork": {
@@ -38,6 +39,7 @@ module.exports = async function (deployer, network) {
     deployer.deploy(L2Token, ...TOKEN_DETAIL_DATA),
     deployer.deploy(PrepaidCardManager),
     deployer.deploy(RevenuePool),
+    deployer.deploy(BridgeUtils),
   ]);
   let l2Token = await L2Token.deployed();
   let prepaidCardManager = await PrepaidCardManager.deployed();
