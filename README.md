@@ -73,3 +73,6 @@ We use a mnemonic held in AWS Secret Manager to manage our contract's key pair. 
 5. **Memorialize Contract Locations**
 
    The contract addresses are saved in a `addresses-{network}.json` file. In order to memorialize our current card protocol addresses, commit and push the new/updated `addresses-{network}.json` file`.
+
+## Testing
+TODO
