@@ -9,7 +9,6 @@ const GNOSIS_SAFE_FACTORY =
   process.env.GNOSIS_SAFE_FACTORY ??
   `0x76E2cFc1F5Fa8F6a5b3fC4c8F4788F0116861F9B`;
 const BRIDGE_MEDIATOR = process.env.BRIDGE_MEDIATOR;
-const RevenuePool = artifacts.require("RevenuePool");
 
 module.exports = async function (_, network) {
   if (network === "ganache") {
