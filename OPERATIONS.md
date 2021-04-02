@@ -69,10 +69,76 @@ The owner of the L2 contract as well as any addresses that have been added as "m
 1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the L2 token contract whose tokens you wish to mint (we keep a record of the deployed contracts at `smart-contract-xdai/addresses-{network}.json`) by entering the token contract address in the blockscout search field.
 2. Select the "Write Contract" tab
 3. Click on the "Connect to Metamask" tab
-4. Select the Card Protocol Owner for the correct network in metamask
+4. Select the Card Protocol Owner or approved minter address for the correct network in metamask
 5. Locate the "Mint" row, it is most likely row 7.
 6. In the "Mint" row, enter the address that will receive the L2 tokens
 7. In the "Mint" row, enter the amount of tokens to min _in units of wei_. You can use this handy wei converter here https://eth-converter.com/. Enter the amount of tokens you with to transfer as units of "Ether", and the converter will display the corresponding amount in wei.
 8. Click on the "Write" button in the "Mint" row.
 9. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
 10. After the transaction has completed, you can confirm the balance by clicking on the "Read Contract" tab and enter the recipient's address in the "balanceOf" row, and clicking on the "Query" button. The value displayed will be in units of wei. Feel free to use the converter to see the balance in units of "ether".
+
+## Prepaid Card Manager
+The Prepaid Card Manager is responsible for creating Prepaid Cards and cosigning transactions that originate from the prepaid card. This may include paying merchants, splitting prepaid cards, or transferring prepaid card ownership.
+
+### Setup
+The `setup` function of the prepaid card manager allows us to configure some basic aspects of how this contract functions including:
+- setting an array of Tally contract addresses (these are addresses that are allowed to redeem SPEND tokens)
+- setting the Gnosis safe master copy address
+- setting the Gnosis safe factory address
+- setting the revenue pool contract address
+- setting an array of L2 tokens that are accepted by the prepaid card manager
+- setting the minimum face value of newly created prepaid cards (in units of SPEND tokens)
+- setting the maximum face value of newly created prepaid cards (in units of SPEND tokens)
+
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the PrepaidCardManager contract (we keep a record of the deployed contracts at `smart-contract-xdai/addresses-{network}.json`) by entering the contract address in the blockscout search field.
+2. Select the "Write Contract" tab
+3. Click on the "Connect to Metamask" tab
+4. Select the Card Protocol Owner for the correct network in metamask
+5. Locate the "Setup" row and enter all the values (from above) that you wish to set for the PrepaidCardManager. If you wish to retain the current value, then use the "Read Contract" tab to look up the current value for any of the settings above.
+8. Click on the "Write" button in the "Mint" row.
+9. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
+10. After the transaction has completed, you can confirm the setup configuration by clicking on the "Read Contract" tab and reviewing all the fields that pertain to the setup parameters.
+
+### Add Payable Token
+The `addPayableToken` function allows the prepaid card manager to accept a new L2 token address to be used for creating a prepaid card.
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the PrepaidCardManager contract (we keep a record of the deployed contracts at `smart-contract-xdai/addresses-{network}.json`) by entering the contract address in the blockscout search field.
+2. Select the "Write Contract" tab
+3. Click on the "Connect to Metamask" tab
+4. Select the Card Protocol Owner for the correct network in metamask
+5. Locate the "addPayableToken" row and enter the address for the L2 token that you wish to add as a payable token
+6. Click on the "Write" button in the "addPayableToken" row.
+9. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
+10. After the transaction has completed, you can confirm the payable token was added by clicking on the "Read Contract" tab and looking at the "getTokens" row.
+
+### Remove Payable Token
+The `removePayableToken` function allows the prepaid card manager to no longer accept an L2 token address as a token that can be used to create a prepaid card.
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the PrepaidCardManager contract (we keep a record of the deployed contracts at `smart-contract-xdai/addresses-{network}.json`) by entering the contract address in the blockscout search field.
+2. Select the "Write Contract" tab
+3. Click on the "Connect to Metamask" tab
+4. Select the Card Protocol Owner for the correct network in metamask
+5. Locate the "removePayableToken" row and enter the address for the L2 token that you wish to remove as a payable token
+6. Click on the "Write" button in the "removePayableToken" row.
+9. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
+10. After the transaction has completed, you can confirm the payable token was removed by clicking on the "Read Contract" tab and looking at the "getTokens" row.
+
+### Update Minimum Amount
+The `updateMinimumAmount` function changes the minimum face value in units of SPEND tokens that a prepaid card is allowed to be created with.
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the PrepaidCardManager contract (we keep a record of the deployed contracts at `smart-contract-xdai/addresses-{network}.json`) by entering the contract address in the blockscout search field.
+2. Select the "Write Contract" tab
+3. Click on the "Connect to Metamask" tab
+4. Select the Card Protocol Owner for the correct network in metamask
+5. Locate the "updateMinimumAmount" row and enter the minimum value in SPEND tokens (no wei conversion necessary) that a prepaid card can be created with.
+6. Click on the "Write" button in the "updateMinimumAmount" row.
+9. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
+10. After the transaction has completed, you can confirm the minimum amount was set by clicking on the "Read Contract" tab and looking at "getMinimumAmount" amount value.
+
+### Update Maximum Amount
+The `updateMaximumAmount` function changes the maximum face value in units of SPEND tokens that a prepaid card is allowed to be created with.
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the PrepaidCardManager contract (we keep a record of the deployed contracts at `smart-contract-xdai/addresses-{network}.json`) by entering the contract address in the blockscout search field.
+2. Select the "Write Contract" tab
+3. Click on the "Connect to Metamask" tab
+4. Select the Card Protocol Owner for the correct network in metamask
+5. Locate the "updateMaximumAmount" row and enter the maximum value in SPEND tokens (no wei conversion necessary) that a prepaid card can be created with.
+6. Click on the "Write" button in the "updateMaximumAmount" row.
+9. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
+10. After the transaction has completed, you can confirm the maximum amount was set by clicking on the "Read Contract" tab and looking at "getMaximumAmount" amount value.
