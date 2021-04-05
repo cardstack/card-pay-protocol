@@ -7,7 +7,6 @@
   "license": "MIT",
   "private": true,
   "workspaces": [
-    "gnosis-safe-react",
     "smart-contract-xdai"
   ],
   "resolutions": {
