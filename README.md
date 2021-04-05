@@ -1,3 +1,4 @@
+![main status](https://github.com/cardstack/card-protocol-xdai/actions/workflows/main.yml/badge.svg)
 # Card Protocol Contracts
 The project hosts the contracts that comprise the Card Protocol. This includes the Prepaid Card Manager, Revenue Pool, SPEND token, and L2 Payment Token (e.g. DAI-CPXD).
 
