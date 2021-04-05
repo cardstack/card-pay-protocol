@@ -267,5 +267,21 @@ In order to setup the relay, a gas payer must be designated for the relay. This 
 15. Taint the terraform EBS volumes and EC2 instances for the relayer and redeploy the relay service from terraform.
 16. Navigate to the relay service for the environment and confirm that the /api/v1/about/ information reflects the address of the payer that you just setup.
 
-## Token Bridge
-TODO
+## Token Bridge 
+The token bridge is responsible for transfer token ownership between two chains. Within this repo, the only relevant contract is Bridge Utils. Bridge Utils is a utility contract (not the bridge contract) that exist on HOME (dai) network.
+
+### updateToken
+Adds both a payable token (such as DAICPXD) to the revenue pool and the prepaid card manager. This enables the token to be paid to revenue pool for purchase of prepaid card and spends to be deducted from a prepaid card credit. Only a tally admin can execute this. 
+
+### updateSupplier 
+Updates details of supplier, namely brandName and brandProfileUrl
+
+### registerSupplier 
+Register a new supplier. A suppliers (a gnosis safe) role  is to provide tokens from L1 to be bridged to L2 . The supplier is a gnosis safe.
+
+### isRegistered  
+Checks if a supplier is registered.
+
+
+
+
