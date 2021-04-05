@@ -1,7 +1,6 @@
 .env
 .env_xdai
 address_book
-addresses-*.json
 build
 package-lock.json
 coverage.json
