@@ -277,7 +277,7 @@ Adds both a payable token (such as DAICPXD) to the revenue pool and the prepaid 
 Updates details of supplier, namely brandName and brandProfileUrl
 
 ### registerSupplier 
-Register a new supplier. A suppliers (a gnosis safe) role  is to provide tokens from L1 to be bridged to L2 . The supplier is a gnosis safe.
+Register a new supplier. A suppliers (a gnosis safe) role  is to provide tokens from L1 to be bridged to L2. A supplier is a supplier of L1 tokens and prepaid cards (the two is bridged), the act of registering suggest that the person will issue prepaid cards. The supplier is a gnosis safe. 
 
 ### isRegistered  
 Checks if a supplier is registered.
