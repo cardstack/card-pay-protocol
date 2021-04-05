@@ -107,7 +107,9 @@ contract RevenuePool is TallyRole, MerchantManager, Exchange, IRevenuePool {
         // update new lockTotal
         merchants[merchantAddr].lockTotal[payableToken] = lockTotal;
 
-        // transfer payable token from revenue pool to merchant wallet address
+        // transfer payable token from revenue pool to merchant address. The
+        // merchant address is actually a gnosis safe contract, created by
+        // registerMerchant(), so this is a trusted contract transfer
         IERC677(payableToken).transfer(merchantAddr, amount);
 
         emit MerchantClaim(merchantAddr, payableToken, amount);
