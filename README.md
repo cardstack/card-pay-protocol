@@ -19,7 +19,7 @@ The following prerequisites are required for this project:
 - NodeJS ver 14+
 - Yarn
 
-## Build
+## Building
 To build this project execute:
 ```
 yarn install
