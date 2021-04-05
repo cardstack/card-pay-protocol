@@ -5,7 +5,7 @@ import "./roles/PayableToken.sol";
 import "@openzeppelin/contracts/ownership/Ownable.sol";
 
 contract BridgeUtils is Safe, Ownable{
-    event SupplierWallet(address onwer, address wallet);
+    event SupplierWallet(address owner, address wallet);
     event UpdateToken(address token);
 
     struct Supplier {
