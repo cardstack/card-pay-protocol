@@ -18,7 +18,7 @@ jobs:
         run: yarn install
 
       - name: Test
-        run: cd ./smart-contract-xdai && ./node_modules/.bin/truffle test
+        run: cd ./smart-contract-xdai && yarn test
 
   coverage:
     runs-on: ubuntu-latest
@@ -30,7 +30,7 @@ jobs:
         run: yarn install
 
       - name: Generate coverage report
-        run: cd ./smart-contract-xdai && ./node_modules/.bin/truffle run coverage
+        run: cd ./smart-contract-xdai && yarn test:coverage
 
       - name: Very Good Coverage
         uses: VeryGoodOpenSource/very_good_coverage@v1.1.1
