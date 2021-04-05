@@ -84,6 +84,7 @@ module.exports = {
     reporter: "eth-gas-reporter",
     reporterOptions: {
       currency: "USD",
+      blockLimit: 12000000,
     },
   },
 
