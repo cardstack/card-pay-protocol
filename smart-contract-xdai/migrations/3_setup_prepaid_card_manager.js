@@ -2,7 +2,11 @@ const PrepaidCardManager = artifacts.require("PrepaidCardManager");
 const RevenuePool = artifacts.require("RevenuePool");
 const L2Token = artifacts.require("ERC677Token");
 
-const { GNOSIS_SAFE_MASTER_COPY, GNOSIS_SAFE_FACTORY } = require("./constants");
+const {
+  GNOSIS_SAFE_MASTER_COPY,
+  GNOSIS_SAFE_FACTORY,
+  TALLY,
+} = require("./constants");
 
 const MINIMUM_AMOUNT = process.env.MINIMUM_AMOUNT ?? 100; //minimum face value (in SPEND) for new prepaid card
 const MAXIMUM_AMOUNT = process.env.MAXIMUM_AMOUNT ?? 100000 * 100; //maximum face value (in SPEND) for new prepaid card
