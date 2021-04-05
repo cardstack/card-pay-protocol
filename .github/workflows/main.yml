@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  # Triggers the workflow on push or pull request events but only for the main branch
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2-beta
+
+      - name: Build
+        run: yarn install
+
+      - name: Test
+        run: cd ./smart-contract-xdai && yarn test
+
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2-beta
+
+      - name: Build
+        run: yarn install
+
+      - name: Generate coverage report
+        run: cd ./smart-contract-xdai && yarn test:coverage
+
+      - name: Very Good Coverage
+        uses: VeryGoodOpenSource/very_good_coverage@v1.1.1
+        with:
+          path: "./smart-contract-xdai/coverage/lcov.info"
+          # TODO temporarily lowering this just to get some kind of testing into
+          # the main branch. We'll raise this to 100% as part of finishing
+          # Linear CS-516
+          min_coverage: 95

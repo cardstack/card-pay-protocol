@@ -7,7 +7,9 @@
   "license": "MIT",
   "private": true,
   "workspaces": [
-    "gnosis-safe-react",
     "smart-contract-xdai"
-  ]
+  ],
+  "resolutions": {
+    "bitcore-lib": "8.1.1"
+  }
 }
