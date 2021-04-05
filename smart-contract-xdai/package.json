@@ -11,8 +11,8 @@
     "test:revenue": "./node_modules/.bin/truffle test --network=ganache ./test/RevenuePool.test.js",
     "deploy:sokol": "./node_modules/.bin/truffle migrate --network=sokol --reset",
     "deploy:xdai": "./node_modules/.bin/truffle migrate  --network xdai",
-    "verify:sokol": "truffle run blockscout ERC677Token SPEND RevenuePool PrepaidCardManager --network sokol --license UNLICENSED",
-    "verify:xdai": "truffle run blockscout ERC677Token SPEND RevenuePool PrepaidCardManager --network xdai --license UNLICENSED"
+    "verify:sokol": "truffle run blockscout ERC677Token SPEND RevenuePool PrepaidCardManager BridgeUtils--network sokol --license UNLICENSED",
+    "verify:xdai": "truffle run blockscout ERC677Token SPEND RevenuePool PrepaidCardManager BridgeUtils --network xdai --license UNLICENSED"
   },
   "repository": {
     "type": "git",
