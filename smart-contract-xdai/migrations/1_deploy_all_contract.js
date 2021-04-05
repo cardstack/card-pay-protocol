@@ -23,6 +23,14 @@ const tokenData = {
     symbol: "DAICPXD",
     name: "DAICPXD Token",
   },
+  test: {
+    symbol: "DAICPXD",
+    name: "DAICPXD Token",
+  },
+  soliditycoverage: {
+    symbol: "DAICPXD",
+    name: "DAICPXD Token",
+  },
 };
 
 module.exports = async function (deployer, network) {

@@ -16,7 +16,7 @@ const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const TALLY = process.env.TALLY ?? ZERO_ADDRESS;
 
 module.exports = async function (_, network) {
-  if (network === "ganache") {
+  if (["ganache", "test", "soliditycoverage"].includes(network)) {
     return;
   }
 
