@@ -19,3 +19,19 @@ jobs:
 
       - name: Test
         run: cd ./smart-contract-xdai && ./node_modules/.bin/truffle test
+
+  coverage:
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2-beta
+
+      - name: Build
+        run: yarn install
+
+      - name: Generate coverage report
+        run: cd ./smart-contract-xdai && ./node_modules/.bin/truffle run coverage
+
+      - name: Very Good Coverage
+        uses: VeryGoodOpenSource/very_good_coverage@v1.1.1
+        with:
+          path: "./smart-contract-xdai/coverage/lcov.info"
