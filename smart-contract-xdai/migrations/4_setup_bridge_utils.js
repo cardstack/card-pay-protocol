@@ -11,6 +11,10 @@ module.exports = async function (_, network) {
   if (network === "ganache") {
     return;
   }
+  if (!BRIDGE_MEDIATOR) {
+    throw new Error("Bridge Mediator is missing in your env file");
+  }
+
   let bridgeUtils = await BridgeUtils.deployed();
   let pool = await RevenuePool.deployed();
   let prepaidCardManager = await PrepaidCardManager.deployed();
