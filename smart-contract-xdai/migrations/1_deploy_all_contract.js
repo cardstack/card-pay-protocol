@@ -2,7 +2,7 @@ const PrepaidCardManager = artifacts.require("PrepaidCardManager");
 const RevenuePool = artifacts.require("RevenuePool");
 const L2Token = artifacts.require("ERC677Token");
 const BridgeUtils = artifacts.require("BridgeUtils");
-const TALLY = process.env.TALLY ?? ZERO_ADDRESS;
+const { TALLY } = require("./constants");
 
 const tokenData = {
   "sokol-fork": {
