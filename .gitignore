@@ -4,3 +4,11 @@ node_modules
 bin
 addresses-test.json
 .coverage*
+.env
+.env_xdai
+address_book
+build
+package-lock.json
+coverage.json
+coverage
+scripts

@@ -2,7 +2,7 @@ const { assert } = require("chai");
 
 const SPEND = artifacts.require("SPEND");
 
-contract("SPEND contract", (accounts) => {
+contract("SPEND", (accounts) => {
   let instance;
   let owner, alice, bob;
   before(async () => {

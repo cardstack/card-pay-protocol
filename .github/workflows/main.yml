@@ -35,7 +35,7 @@ jobs:
       - name: Very Good Coverage
         uses: VeryGoodOpenSource/very_good_coverage@v1.1.1
         with:
-          path: "./smart-contract-xdai/coverage/lcov.info"
+          path: "./coverage/lcov.info"
           # TODO temporarily lowering this just to get some kind of testing into
           # the main branch. We'll raise this to 100% as part of finishing
           # Linear CS-516

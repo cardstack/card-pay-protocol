@@ -6,7 +6,7 @@ const ProxyFactory = artifacts.require("GnosisSafeProxyFactory");
 const GnosisSafe = artifacts.require("GnosisSafe");
 const MultiSend = artifacts.require("MultiSend");
 
-const { expect, TOKEN_DETAIL_DATA, toBN } = require("./setup");
+const { TOKEN_DETAIL_DATA, toBN } = require("./setup");
 
 const eventABIs = require("./utils/constant/eventABIs");
 const {
