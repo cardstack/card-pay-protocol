@@ -9,7 +9,7 @@ const eventABIs = require("./utils/constant/eventABIs");
 
 const { expect, TOKEN_DETAIL_DATA } = require("./setup");
 
-const { toTokenUnit, shouldSameBalance } = require("./utils/helper");
+const { toTokenUnit, shouldBeSameBalance } = require("./utils/helper");
 
 contract("RevenuePool", (accounts) => {
   let daicpxdToken, revenuePool, spendToken, fakeToken;
@@ -38,7 +38,7 @@ contract("RevenuePool", (accounts) => {
     await fakeToken.mint(accounts[0], toTokenUnit(100));
   });
 
-  describe("#Initial revenue pool contract", () => {
+  describe("initial revenue pool contract", () => {
     beforeEach(async () => {
       // deploy spend token
       spendToken = await SPEND.new("SPEND Token", "SPEND", [
@@ -75,8 +75,8 @@ contract("RevenuePool", (accounts) => {
     });
   });
 
-  describe("#Create merchant", () => {
-    it("merchant register by tally", async () => {
+  describe("create merchant", () => {
+    it("can register a merchant from tally", async () => {
       let tx = await revenuePool.registerMerchant(lw.accounts[0], offchainId, {
         from: tally,
       }).should.be.fulfilled;
@@ -89,7 +89,7 @@ contract("RevenuePool", (accounts) => {
       await revenuePool.isMerchant(merchant).should.become(true);
     });
 
-    it("merchant register by tally but merchant address is zero", async () => {
+    it("should reject when the merchant address is zero", async () => {
       await revenuePool
         .registerMerchant(utils.ZERO_ADDRESS, offchainId, {
           from: tally,
@@ -100,7 +100,7 @@ contract("RevenuePool", (accounts) => {
         );
     });
 
-    it("merchant register not by tally", async () => {
+    it("should reject when a non-tally address tries to register a merchant", async () => {
       await revenuePool
         .registerMerchant(lw.accounts[0], offchainId, {
           from: accounts[2],
@@ -123,29 +123,30 @@ contract("RevenuePool", (accounts) => {
     });
   });
 
-  describe("#Pay token", () => {
-    it("pay 1 DAI CPXD token to pool and mint SPEND token for merchant wallet", async () => {
+  describe("pay token", () => {
+    it("can pay 1 DAI CPXD token to pool and mint SPEND token to the merchant's wallet", async () => {
       let amount = toTokenUnit(1);
       let data = web3.eth.abi.encodeParameters(["address"], [merchant]);
 
       await daicpxdToken.transferAndCall(revenuePool.address, amount, data)
         .should.be.fulfilled;
 
-      await shouldSameBalance(daicpxdToken, accounts[0], toTokenUnit(99));
-      await shouldSameBalance(spendToken, merchant, "100");
+      await shouldBeSameBalance(daicpxdToken, accounts[0], toTokenUnit(99));
+      await shouldBeSameBalance(spendToken, merchant, "100");
     });
 
-    it("pay 2 DAI CPXD token to pool and mint SPEND token for merchant wallet", async () => {
+    it("can pay 2 DAI CPXD token to pool and mint SPEND token to the merchant's wallet", async () => {
       let amount = toTokenUnit(2); // equal 2 * 10^18
       let data = web3.eth.abi.encodeParameters(["address"], [merchant]);
 
+      await shouldBeSameBalance(spendToken, merchant, "100");
       await daicpxdToken.transferAndCall(revenuePool.address, amount, data);
 
-      await shouldSameBalance(daicpxdToken, accounts[0], toTokenUnit(97));
-      await shouldSameBalance(spendToken, merchant, "300");
+      await shouldBeSameBalance(daicpxdToken, accounts[0], toTokenUnit(97));
+      await shouldBeSameBalance(spendToken, merchant, "300");
     });
 
-    it("pay 1 DAI CPXD and receive address is not merchant", async () => {
+    it("should reject if the recipient's address is not a registered merchant", async () => {
       let balanceBefore = await daicpxdToken.balanceOf(accounts[0]);
       //lw.accounts[1] is not merchant.
       let data = web3.eth.abi.encodeParameters(["address"], [lw.accounts[1]]);
@@ -155,15 +156,15 @@ contract("RevenuePool", (accounts) => {
         .transferAndCall(revenuePool.address, amount, data)
         .should.be.rejectedWith(Error, "Invalid merchant");
 
-      await shouldSameBalance(daicpxdToken, accounts[0], balanceBefore);
+      await shouldBeSameBalance(daicpxdToken, accounts[0], balanceBefore);
     });
 
-    it("call onTokenTransfer from an invalid token contract(not allow use for pay)", async () => {
+    it("should reject a direct call to onTokenTransfer from a non-token contract", async () => {
       await revenuePool.onTokenTransfer(accounts[0], 100, "0x").should.be
         .rejected;
     });
 
-    it("call transferAndCall from contract which not payable", async () => {
+    it("should reject the receipt of tokens from a non-approved token contract", async () => {
       let amount = toTokenUnit("1"); // equal 1 * 10^18
       let data = web3.eth.abi.encodeParameter("address", lw.accounts[0]);
 
@@ -176,28 +177,38 @@ contract("RevenuePool", (accounts) => {
     });
   });
 
-  describe("#Claim token", () => {
-    it("claim 1 DAI CPXD for merchant by tally", async () => {
+  describe("claim token", () => {
+    it("allows a SPEND claim issued from tally (1 DAI CPXD)", async () => {
       let amount = toTokenUnit(1);
 
       await revenuePool.claimToken(merchant, daicpxdToken.address, amount, {
         from: tally,
       }).should.be.fulfilled;
 
-      await shouldSameBalance(daicpxdToken, merchant, toTokenUnit(1));
-      await shouldSameBalance(spendToken, merchant, "300");
+      await shouldBeSameBalance(daicpxdToken, merchant, toTokenUnit(1));
+      await shouldBeSameBalance(spendToken, merchant, "300");
     });
 
-    it("claim with wrong data for merchant by tally", async () => {
+    it("rejects a claim with malformed data", async () => {
       await revenuePool.claimToken(merchant, daicpxdToken.address, [], {
         from: tally,
       }).should.be.rejected;
     });
 
-    it("claim 1 for merchant and sender is not tally", async () => {
+    it("rejects a claim that is not issued from tally", async () => {
       let amount = toTokenUnit(1);
       await revenuePool.claimToken(merchant, daicpxdToken.address, amount, {
         from: accounts[2],
+      }).should.be.rejected;
+    });
+
+    // The tests are stateful. At this point the merchant as redeemed 100 of the
+    // 300 SPEND tokens they have accumulated, leaving 200 more SPEND that is
+    // available to be redeemed.
+    it("rejects a claim that is larger than the amount permissable for the merchant", async () => {
+      let amount = toTokenUnit(3);
+      await revenuePool.claimToken(merchant, daicpxdToken.address, amount, {
+        from: tally,
       }).should.be.rejected;
     });
   });

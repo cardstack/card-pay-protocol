@@ -20,7 +20,7 @@ const {
 
 const {
   toTokenUnit,
-  shouldSameBalance,
+  shouldBeSameBalance,
   encodeCreateCardsData,
   signAndSendSafeTransaction,
 } = require("./utils/helper");
@@ -28,7 +28,7 @@ const {
 const { expect, TOKEN_DETAIL_DATA, toBN } = require("./setup");
 
 contract("PrepaidManager", (accounts) => {
-  let MINIMUN_AMOUNT, MAXIMUM_AMOUNT;
+  let MINIMUM_AMOUNT, MAXIMUM_AMOUNT;
   let revenuePool, spendToken, cardManager, multiSend;
   let daicpxdToken, fakeDaicpxdToken;
   let gnosisSafeMasterCopy, proxyFactory;
@@ -85,11 +85,11 @@ contract("PrepaidManager", (accounts) => {
       "create Gnosis Safe Proxy"
     );
 
-    MINIMUN_AMOUNT = 100; // in spend <=> 1 USD
+    MINIMUM_AMOUNT = 100; // in spend <=> 1 USD
     MAXIMUM_AMOUNT = 500000; // in spend <=>  5000 USD
   });
 
-  describe("#Setup contract (setup method)", () => {
+  describe("setup contract", () => {
     before(async () => {
       // create spendToken
       spendToken = await SPEND.new("SPEND Token", "SPEND", [
@@ -112,12 +112,12 @@ contract("PrepaidManager", (accounts) => {
         proxyFactory.address,
         revenuePool.address,
         [daicpxdToken.address],
-        MINIMUN_AMOUNT,
+        MINIMUM_AMOUNT,
         MAXIMUM_AMOUNT
       );
     });
 
-    it("should initialized parameters", async () => {
+    it("should initialize parameters", async () => {
       expect(await cardManager.getTallys()).to.deep.equal([tally]);
       expect(await cardManager.gnosisSafe()).to.deep.equal(
         gnosisSafeMasterCopy.address
@@ -132,16 +132,40 @@ contract("PrepaidManager", (accounts) => {
         daicpxdToken.address,
       ]);
       expect(await cardManager.getMinimumAmount()).to.a.bignumber.equal(
-        toBN(MINIMUN_AMOUNT)
+        toBN(MINIMUM_AMOUNT)
       );
       expect(await cardManager.getMaximumAmount()).to.a.bignumber.equal(
         toBN(MAXIMUM_AMOUNT)
       );
     });
+
+    it("can update minimum amount", async () => {
+      await cardManager.updateMinimumAmount(200, {
+        from: tally,
+      }).should.be.fulfilled;
+      expect(await cardManager.getMinimumAmount()).to.a.bignumber.equal(
+        toBN(200)
+      );
+      await cardManager.updateMinimumAmount(MINIMUM_AMOUNT, {
+        from: tally,
+      }).should.be.fulfilled;
+    });
+
+    it("can update maximum amount", async () => {
+      await cardManager.updateMaximumAmount(600000, {
+        from: tally,
+      }).should.be.fulfilled;
+      expect(await cardManager.getMaximumAmount()).to.a.bignumber.equal(
+        toBN(600000)
+      );
+      await cardManager.updateMaximumAmount(MAXIMUM_AMOUNT, {
+        from: tally,
+      }).should.be.fulfilled;
+    });
   });
 
-  describe("#Create signature method", () => {
-    it("Test signature view method", async () => {
+  describe("create signature method", () => {
+    it("can append the contract's signature", async () => {
       let contractSignature =
         padZero(cardManager.address, "0x") + padZero(ZERO_ADDRESS) + "01";
       await cardManager
@@ -149,29 +173,29 @@ contract("PrepaidManager", (accounts) => {
         .should.become(contractSignature.toLocaleLowerCase());
 
       let mockSign = padZero(customer, "0x") + padZero(ZERO_ADDRESS) + "01",
-        expectSignture = mockSign + contractSignature.replace("0x", "");
+        expectSignature = mockSign + contractSignature.replace("0x", "");
 
       await cardManager
         .appendPrepaidCardAdminSignature(ZERO_ADDRESS, mockSign)
-        .should.become(expectSignture.toLocaleLowerCase());
+        .should.become(expectSignature.toLocaleLowerCase());
 
-      expectSignture = contractSignature + mockSign.replace("0x", "");
+      expectSignature = contractSignature + mockSign.replace("0x", "");
       await cardManager
         .appendPrepaidCardAdminSignature(
           "0xffffffffffffffffffffffffffffffffffffffff",
           mockSign
         )
-        .should.become(expectSignture.toLocaleLowerCase());
+        .should.become(expectSignature.toLocaleLowerCase());
     });
 
-    it("Invalid signature", async () => {
+    it("can reject when provided signature is invalid", async () => {
       await cardManager
         .appendPrepaidCardAdminSignature(customer, "0x01")
         .should.be.rejectedWith(Error, "Invalid signature!");
     });
   });
 
-  describe("#Create prepaid card", () => {
+  describe("create prepaid card", () => {
     let walletAmount;
 
     before(() => {
@@ -201,7 +225,7 @@ contract("PrepaidManager", (accounts) => {
       });
     });
 
-    it("should create prepaid card with balance is 1 token", async () => {
+    it("should create prepaid card when balance is 1 token", async () => {
       let amount = toTokenUnit(1);
 
       let createCardData = encodeCreateCardsData(depot.address, [amount]);
@@ -243,7 +267,7 @@ contract("PrepaidManager", (accounts) => {
 
       let paymentActual = toBN(executeSuccess[0]["payment"]);
 
-      await shouldSameBalance(daicpxdToken, relayer, paymentActual);
+      await shouldBeSameBalance(daicpxdToken, relayer, paymentActual);
 
       let prepaidCard = await getGnosisSafeFromEventLog(
         safeTx,
@@ -261,19 +285,23 @@ contract("PrepaidManager", (accounts) => {
           issueToken: daicpxdToken.address,
         });
 
-      await shouldSameBalance(
+      await shouldBeSameBalance(
         daicpxdToken,
         prepaidCard[0].address,
         toTokenUnit(1)
       );
-      await shouldSameBalance(
+      await shouldBeSameBalance(
         daicpxdToken,
         depot.address,
         walletAmount.sub(toTokenUnit(1)).sub(paymentActual)
       );
     });
 
-    it("Should create multi Prepaid Card (1 daicpxd 2 daicpxd 5 daicpxd) ", async () => {
+    // Note that these prepaid cards are used in the subsequent tests:
+    //   prepaidCards[0] = 1 daicpxd,
+    //   prepaidCards[1] = 2 daicpxd,
+    //   prepaidCards[2] = 5 daicpxd
+    it("should create multi Prepaid Card (1 daicpxd 2 daicpxd 5 daicpxd) ", async () => {
       let amounts = [1, 2, 5].map((amount) => toTokenUnit(amount));
 
       let createCardData = encodeCreateCardsData(depot.address, amounts);
@@ -333,21 +361,21 @@ contract("PrepaidManager", (accounts) => {
         await prepaidCard.isOwner(depot.address).should.become(true);
         await prepaidCard.isOwner(cardManager.address).should.become(true);
 
-        shouldSameBalance(daicpxdToken, prepaidCard.address, amounts[index]);
+        shouldBeSameBalance(daicpxdToken, prepaidCard.address, amounts[index]);
       });
 
       let payment = toBN(executeSuccess[0]["payment"]);
 
-      await shouldSameBalance(
+      await shouldBeSameBalance(
         daicpxdToken,
         depot.address,
         walletAmount.sub(toTokenUnit(8)).sub(payment)
       );
 
-      await shouldSameBalance(daicpxdToken, relayer, payment);
+      await shouldBeSameBalance(daicpxdToken, relayer, payment);
     });
 
-    it("Should not create card with value less than 1 token", async () => {
+    it("should not create card with value less than 1 token", async () => {
       let payloads = daicpxdToken.contract.methods
         .transferAndCall(
           cardManager.address,
@@ -384,14 +412,14 @@ contract("PrepaidManager", (accounts) => {
 
       let payment = toBN(executeFailed[0]["payment"]);
 
-      await shouldSameBalance(
+      await shouldBeSameBalance(
         daicpxdToken,
         depot.address,
         walletAmount.sub(payment)
       );
     });
 
-    it("Should not create multi Prepaid Card fail when amount > issuer's balance", async () => {
+    it("should not create multi Prepaid Card fail when amount > issuer's balance", async () => {
       let amounts = [10, 20, 80].map((amount) => toTokenUnit(amount));
 
       let payloads = daicpxdToken.contract.methods
@@ -434,15 +462,15 @@ contract("PrepaidManager", (accounts) => {
 
       let payment = toBN(executeFailed[0]["payment"]);
 
-      await shouldSameBalance(
+      await shouldBeSameBalance(
         daicpxdToken,
         depot.address,
         walletAmount.sub(payment)
       );
-      await shouldSameBalance(daicpxdToken, relayer, payment);
+      await shouldBeSameBalance(daicpxdToken, relayer, payment);
     });
 
-    it("Should not create number card is zero", async () => {
+    it("should not create prepaid card when the amount of cards to create is 0", async () => {
       let payloads = daicpxdToken.contract.methods
         .transferAndCall(
           cardManager.address,
@@ -483,14 +511,14 @@ contract("PrepaidManager", (accounts) => {
 
       let payment = toBN(executeFailed[0]["payment"]);
 
-      await shouldSameBalance(
+      await shouldBeSameBalance(
         daicpxdToken,
         depot.address,
         walletAmount.sub(payment)
       );
     });
 
-    it("Should not allow create card from token is not payable token", async () => {
+    it("should not should not create a prepaid card when the token used to pay for the card is not an allowable token", async () => {
       let amounts = [1, 2, 5].map((amount) => toTokenUnit(amount));
 
       let payloads = fakeDaicpxdToken.contract.methods
@@ -529,17 +557,17 @@ contract("PrepaidManager", (accounts) => {
 
       let payment = toBN(executeFailed[0]["payment"]);
 
-      await shouldSameBalance(
+      await shouldBeSameBalance(
         daicpxdToken,
         depot.address,
         walletAmount.sub(payment)
       );
-      await shouldSameBalance(daicpxdToken, relayer, payment);
+      await shouldBeSameBalance(daicpxdToken, relayer, payment);
     });
   });
 
-  describe("#Split prepaid card", () => {
-    it("split card from 2 token to 2 card with 1 token for each", async () => {
+  describe("split prepaid card", () => {
+    it("can split a card (from 1 prepaid card with 2 tokens to 2 cards with 1 token each)", async () => {
       let amounts = [1, 1].map((amount) => toTokenUnit(amount).toString());
 
       let splitCardData = [
@@ -620,12 +648,12 @@ contract("PrepaidManager", (accounts) => {
         await prepaidCard.isOwner(depot.address).should.become(true);
         await prepaidCard.isOwner(cardManager.address).should.become(true);
 
-        shouldSameBalance(daicpxdToken, prepaidCard.address, amounts[index]);
+        shouldBeSameBalance(daicpxdToken, prepaidCard.address, amounts[index]);
       });
     });
   });
 
-  describe("#Sell card for customer", () => {
+  describe("transfer a prepaid card", () => {
     let signatures, cardAddress;
     before(async () => {
       signatures = await cardManager.appendPrepaidCardAdminSignature(
@@ -638,7 +666,7 @@ contract("PrepaidManager", (accounts) => {
       cardAddress = prepaidCards[2].address;
     });
 
-    it("should be sell the card with 5 daicpxd to customer", async () => {
+    it("can transfer a card to a customer", async () => {
       let cardSales = [cardAddress, depot.address, customer];
       let currentNonce = await prepaidCards[2].nonce();
 
@@ -694,10 +722,12 @@ contract("PrepaidManager", (accounts) => {
 
       await prepaidCards[2].isOwner(customer).should.eventually.become(true);
 
-      await shouldSameBalance(daicpxdToken, cardAddress, toTokenUnit(5));
+      await shouldBeSameBalance(daicpxdToken, cardAddress, toTokenUnit(5));
     });
 
-    it("Should not sell card with 5 daicpxd (prepaidCards[2]) to another customer", async () => {
+    // These tests are stateful (ugh), so the transfer that happened in the
+    // previous test counts against the transfer that is attempted in this test
+    it("can not re-transfer a prepaid card that has already been transferred once", async () => {
       let otherCustomer = accounts[0];
 
       let payloads = prepaidCards[2].contract.methods
@@ -736,7 +766,7 @@ contract("PrepaidManager", (accounts) => {
     });
   });
 
-  describe("#Use prepaid card for payment", () => {
+  describe("use prepaid card for payment", () => {
     let cardAddress;
     before(async () => {
       let merchantTx = await revenuePool.registerMerchant(
@@ -756,7 +786,7 @@ contract("PrepaidManager", (accounts) => {
       cardAddress = prepaidCards[2].address;
     });
 
-    it("Customer payment for merchant", async () => {
+    it("can be used to pay a merchant", async () => {
       let data = await cardManager.getPayData(
         daicpxdToken.address,
         merchant,
@@ -792,15 +822,17 @@ contract("PrepaidManager", (accounts) => {
         { from: relayer }
       ).should.be.fulfilled;
 
-      await shouldSameBalance(
+      await shouldBeSameBalance(
         daicpxdToken,
         revenuePool.address,
         toTokenUnit(1)
       );
-      await shouldSameBalance(daicpxdToken, cardAddress, toTokenUnit(4));
+      await shouldBeSameBalance(daicpxdToken, cardAddress, toTokenUnit(4));
     });
 
-    it("Customer payment for merchant failed", async () => {
+    // These tests are stateful (ugh), so the prepaidCards[2] balance is now 4
+    // daicpxd due to the payment of 1 token made in the previous test
+    it("can not send more funds to a merchant than the balance of the prepaid card", async () => {
       let data = await cardManager.getPayData(
         daicpxdToken.address,
         merchant,
@@ -836,17 +868,17 @@ contract("PrepaidManager", (accounts) => {
         { from: relayer }
       ).should.be.rejected;
 
-      await shouldSameBalance(
+      await shouldBeSameBalance(
         daicpxdToken,
         revenuePool.address,
         toTokenUnit(1)
       );
-      await shouldSameBalance(daicpxdToken, cardAddress, toTokenUnit(4));
+      await shouldBeSameBalance(daicpxdToken, cardAddress, toTokenUnit(4));
     });
   });
 
-  describe("#Role test", () => {
-    it("Tally role", async () => {
+  describe("roles", () => {
+    it("can create and remove a tally role", async () => {
       let newTally = accounts[8];
       await cardManager.removeTally(tally).should.be.fulfilled;
       await cardManager.addTally(newTally).should.be.fulfilled;
@@ -854,7 +886,7 @@ contract("PrepaidManager", (accounts) => {
       await cardManager.getTallys().should.become([newTally]);
     });
 
-    it("Payable token add and remove", async () => {
+    it("can add and remove a payable token", async () => {
       let mockPayableTokenAddr = accounts[9];
 
       await cardManager.addPayableToken(mockPayableTokenAddr).should.be

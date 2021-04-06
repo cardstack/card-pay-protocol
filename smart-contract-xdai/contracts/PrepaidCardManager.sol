@@ -17,7 +17,7 @@ contract PrepaidCardManager is
     Safe,
     IPrepaidCardManager
 {
-    bytes4 public constant SWAP_OWNER = 0xe318b52b;   //swapOwner(address,address,address)
+    bytes4 public constant SWAP_OWNER = 0xe318b52b; //swapOwner(address,address,address)
     bytes4 public constant TRANSER_AND_CALL = 0x4000aea0; //transferAndCall(address,uint256,bytes)
     uint8 public constant MAXIMUM_NUMBER_OF_CARD = 15;
 
@@ -50,9 +50,9 @@ contract PrepaidCardManager is
         address _gsMasterCopy,
         address _gsProxyFactory,
         address _revenuePool,
-        address[] memory _payableTokens, 
+        address[] memory _payableTokens,
         uint256 _minAmount,
-        uint _maxAmount
+        uint256 _maxAmount
     ) public onlyOwner {
         // setup tally user
         _addTally(_tally);
@@ -65,7 +65,7 @@ contract PrepaidCardManager is
             _addPayableToken(_payableTokens[i]);
         }
         // set limit of amount.
-        minAmount = _minAmount; 
+        minAmount = _minAmount;
         maxAmount = _maxAmount;
     }
 
@@ -77,11 +77,11 @@ contract PrepaidCardManager is
         return maxAmount;
     }
 
-    function updateMininumAmount(uint256 _minValue) public onlyTally {
+    function updateMinimumAmount(uint256 _minValue) public onlyTally {
         minAmount = _minValue;
     }
 
-    function updateMaxinumAmount(uint256 _maxValue) public onlyTally {
+    function updateMaximumAmount(uint256 _maxValue) public onlyTally {
         maxAmount = _maxValue;
     }
 
@@ -111,7 +111,7 @@ contract PrepaidCardManager is
         cardDetails[card].issueToken = token;
 
         emit CreatePrepaidCard(depot, card, token, amount);
-        
+
         return card;
     }
 
@@ -124,7 +124,8 @@ contract PrepaidCardManager is
         view
         returns (bool)
     {
-        uint256 amountInSPEND = RevenuePool(revenuePool).convertToSpend(token, amount);
+        uint256 amountInSPEND =
+            RevenuePool(revenuePool).convertToSpend(token, amount);
         return (minAmount <= amountInSPEND && amountInSPEND <= maxAmount);
     }
 
@@ -150,19 +151,13 @@ contract PrepaidCardManager is
         );
 
         for (uint256 i = 0; i < numberCard; i++) {
-            require(
-                isValidAmount(token, amountOfCard[i]),
-                "Amount invalid."
-            );
+            require(isValidAmount(token, amountOfCard[i]), "Amount invalid.");
             neededAmount = neededAmount.add(amountOfCard[i]);
         }
 
         // TODO: should we handle the case when amount received > needed amount
         //      (transfer the rest of token back to issuer) ?
-        require(
-            amountReceived == neededAmount,
-            "Not enough token"
-        );
+        require(amountReceived == neededAmount, "Not enough token");
 
         for (uint256 i = 0; i < numberCard; i++) {
             createPrepaidCard(depot, token, amountOfCard[i]);
@@ -383,11 +378,11 @@ contract PrepaidCardManager is
      * @param merchant Merchant's address
      * @param amount amount need pay to merchant
      */
-    function getPayData(address token, address merchant, uint256 amount)
-        public
-        view
-        returns (bytes memory)
-    {
+    function getPayData(
+        address token,
+        address merchant,
+        uint256 amount
+    ) public view returns (bytes memory) {
         return
             abi.encodeWithSelector(
                 TRANSER_AND_CALL,
@@ -416,12 +411,7 @@ contract PrepaidCardManager is
             "Prepaid card data invalid"
         );
 
-        createMultiplePrepaidCards(
-            depot,
-            _msgSender(),
-            amount,
-            cardAmounts
-        );
+        createMultiplePrepaidCards(depot, _msgSender(), amount, cardAmounts);
 
         return true;
     }
