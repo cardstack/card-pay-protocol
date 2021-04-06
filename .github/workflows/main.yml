@@ -39,4 +39,4 @@ jobs:
           # TODO temporarily lowering this just to get some kind of testing into
           # the main branch. We'll raise this to 100% as part of finishing
           # Linear CS-516
-          min_coverage: 95
+          min_coverage: 100
