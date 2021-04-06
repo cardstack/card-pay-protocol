@@ -1,3 +1,4 @@
+![main status](https://github.com/cardstack/card-protocol-xdai/actions/workflows/main.yml/badge.svg)
 # Card Protocol Contracts
 The project hosts the contracts that comprise the Card Protocol. This includes the Prepaid Card Manager, Revenue Pool, SPEND token, and L2 Payment Token (e.g. DAI-CPXD).
 
@@ -11,6 +12,32 @@ TODO
 TODO
 ### SPEND Token
 TODO
+
+
+## Prerequisites
+The following prerequisites are required for this project:
+- NodeJS ver 14+
+- Yarn
+
+## Building
+To build this project execute:
+```
+yarn install
+```
+
+
+## Testing
+To run all the tests execute:
+```sh
+yarn test
+```
+
+The tests include a gas report which provides the min, max, and avg gas consumed for all the public functions in the contract based on the gas consumed while running tests, as well as, the gas required to deploy the contracts.
+
+To generate the test coverage report execute:
+```sh
+yarn test:coverage
+```
 
 ## Deployment
 We use a mnemonic held in AWS Secret Manager to manage our contract's key pair. You can use the online mnemonic tool to determine the address and private key based on the given mnemonic. https://iancoleman.io/bip39/
@@ -61,18 +88,15 @@ We use a mnemonic held in AWS Secret Manager to manage our contract's key pair. 
 
     **Staging**
     For the staging deployment run:
-    ```
+    ```sh
     yarn verify:sokol
     ```
 
     **Production**
     For the production deployment run:
-    ```
+    ```sh
     yarn verify:xdai
     ```
 5. **Memorialize Contract Locations**
 
    The contract addresses are saved in a `addresses-{network}.json` file. In order to memorialize our current card protocol addresses, commit and push the new/updated `addresses-{network}.json` file`.
-
-## Testing
-TODO

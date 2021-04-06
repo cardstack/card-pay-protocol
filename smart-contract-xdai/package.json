@@ -6,13 +6,12 @@
   "scripts": {
     "compile-contracts": "./node_modules/.bin/truffle compile",
     "recompile": "rm -rf build && npm run compile-contracts",
-    "test": "./test.sh",
+    "test": "./node_modules/.bin/truffle test",
     "test:coverage": "./node_modules/.bin/truffle run coverage",
-    "test:revenue": "./node_modules/.bin/truffle test --network=ganache ./test/RevenuePool.test.js",
-    "deploy:sokol": "./node_modules/.bin/truffle migrate --network=sokol --reset",
-    "deploy:xdai": "./node_modules/.bin/truffle migrate  --network xdai",
-    "verify:sokol": "truffle run blockscout ERC677Token SPEND RevenuePool PrepaidCardManager BridgeUtils--network sokol --license UNLICENSED",
-    "verify:xdai": "truffle run blockscout ERC677Token SPEND RevenuePool PrepaidCardManager BridgeUtils --network xdai --license UNLICENSED"
+    "deploy:sokol": "./node_modules/.bin/truffle migrate -f --network=sokol --reset",
+    "deploy:xdai": "./node_modules/.bin/truffle migrate -f --network xdai",
+    "verify:sokol": "truffle run blockscout ERC677Token SPEND RevenuePool PrepaidCardManager --network sokol --license UNLICENSED",
+    "verify:xdai": "truffle run blockscout ERC677Token SPEND RevenuePool PrepaidCardManager --network xdai --license UNLICENSED"
   },
   "repository": {
     "type": "git",

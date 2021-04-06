@@ -8,7 +8,7 @@ const {
 } = require("./constants");
 
 module.exports = async function (deployer, network) {
-  if (network === "ganache") {
+  if (["ganache", "test", "soliditycoverage"].includes(network)) {
     return;
   }
 

@@ -76,7 +76,7 @@ module.exports = {
     },
   },
 
-  plugins: ["solidity-coverage"],
+  plugins: ["solidity-coverage", "truffle-source-verify"],
 
   // Set default mocha options here, use special reporters etc.
   mocha: {
@@ -84,6 +84,7 @@ module.exports = {
     reporter: "eth-gas-reporter",
     reporterOptions: {
       currency: "USD",
+      blockLimit: 12000000,
     },
   },
 
@@ -93,5 +94,4 @@ module.exports = {
       version: "0.5.17", // Fetch exact version from solc-bin (default: truffle's version)
     },
   },
-  plugins: ["truffle-source-verify"],
 };

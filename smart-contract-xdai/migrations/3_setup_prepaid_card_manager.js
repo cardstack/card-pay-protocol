@@ -12,7 +12,7 @@ const MINIMUM_AMOUNT = process.env.MINIMUM_AMOUNT ?? 100; //minimum face value (
 const MAXIMUM_AMOUNT = process.env.MAXIMUM_AMOUNT ?? 100000 * 100; //maximum face value (in SPEND) for new prepaid card
 
 module.exports = async function (_, network) {
-  if (network === "ganache") {
+  if (["ganache", "test", "soliditycoverage"].includes(network)) {
     return;
   }
 

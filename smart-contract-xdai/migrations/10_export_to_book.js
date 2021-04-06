@@ -8,7 +8,11 @@ const fs = require("fs");
 const { join } = require("path");
 
 module.exports = async function (_, network) {
-  if (["ganache", "sokol-fork", "xdai-fork"].includes(network)) {
+  if (
+    ["soliditycoverage", "test", "ganache", "sokol-fork", "xdai-fork"].includes(
+      network
+    )
+  ) {
     return;
   }
 

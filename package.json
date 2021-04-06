@@ -5,9 +5,15 @@
   "repository": "https://github.com/cardstack/card-protocol-xdai.git",
   "author": "Phuong Lan <phuongzlan@gmail.com>",
   "license": "MIT",
+  "scripts": {
+    "test": "cd smart-contract-xdai && yarn test",
+    "test:coverage": "cd smart-contract-xdai && yarn test:coverage"
+  },
   "private": true,
   "workspaces": [
-    "gnosis-safe-react",
     "smart-contract-xdai"
-  ]
+  ],
+  "resolutions": {
+    "bitcore-lib": "8.1.1"
+  }
 }
