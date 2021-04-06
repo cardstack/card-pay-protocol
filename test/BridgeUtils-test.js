@@ -6,7 +6,7 @@ const GnosisMaster = artifacts.require("GnosisSafe");
 
 const utils = require("./utils/general");
 
-require("./setup");
+const { expect } = require("./setup");
 
 contract("BridgeUtils", async (accounts) => {
   let bridgeUtils, pool, prepaidCardManager;
@@ -53,15 +53,14 @@ contract("BridgeUtils", async (accounts) => {
     );
   });
 
-  it("add new token to bridge", async () => {
+  it("can add new token to bridge", async () => {
     await bridgeUtils.updateToken(tokenMock, { from: mediatorBridgeMock });
 
     let payableToken = await pool.getTokens();
-
-    assert.equal(payableToken.toString(), [tokenMock].toString());
+    expect(payableToken.toString()).to.equal([tokenMock].toString());
   });
 
-  it("register new supplier", async () => {
+  it("can register new supplier", async () => {
     let newSupplier = accounts[2];
     let summary = await bridgeUtils.registerSupplier(newSupplier, {
       from: mediatorBridgeMock,
@@ -70,13 +69,14 @@ contract("BridgeUtils", async (accounts) => {
     wallet = summary.receipt.logs[0].args[1];
     let gnosisSafe = await GnosisMaster.at(wallet);
 
-    let onwers = await gnosisSafe.getOwners();
-    assert.equal(onwers.toString(), [newSupplier].toString());
+    let owners = await gnosisSafe.getOwners();
+    expect(owners.toString()).to.equal([newSupplier].toString());
     let supplier = await bridgeUtils.suppliers(wallet);
-    assert.isTrue(supplier["registered"]);
+    expect(supplier["registered"]).to.equal(true);
+    expect(await bridgeUtils.isRegistered(wallet)).to.equal(true);
   });
 
-  it("try register supplier by non-mediator account", async () => {
+  it("rejects a supplier registration from a non-mediator address", async () => {
     let newSupplier = accounts[2];
     let notMediatorOfBridge = accounts[3];
     await bridgeUtils
@@ -89,12 +89,12 @@ contract("BridgeUtils", async (accounts) => {
       );
   });
 
-  it("update supplier's profile - called by supplier ", async () => {
+  it("allows a supplier to update their profile", async () => {
     let gnosisSafe = await GnosisMaster.at(wallet);
     let payload = bridgeUtils.contract.methods
       .updateSupplier("Zion", "https://www.zion.com")
       .encodeABI();
-    let sigs =
+    let signatures =
       "0x000000000000000000000000" +
       accounts[2].replace("0x", "") +
       "0000000000000000000000000000000000000000000000000000000000000000" +
@@ -110,18 +110,18 @@ contract("BridgeUtils", async (accounts) => {
       0,
       utils.ZERO_ADDRESS,
       utils.ZERO_ADDRESS,
-      sigs,
+      signatures,
       { from: accounts[2] }
     );
 
     let supplier = await bridgeUtils.suppliers(wallet);
 
-    assert.isTrue(supplier["registered"]);
-    assert.equal(supplier["brandName"], "Zion");
-    assert.equal(supplier["brandProfileUrl"], "https://www.zion.com");
+    expect(supplier["registered"]).to.equal(true);
+    expect(supplier["brandName"]).to.equal("Zion");
+    expect(supplier["brandProfileUrl"]).to.equal("https://www.zion.com");
   });
 
-  it("update invalid supplier", async () => {
+  it("rejects an update to a non-supplier address", async () => {
     let invalidSupplier = accounts[3];
     await bridgeUtils
       .updateSupplier("Babylon", "https://www.Babylon.com", {

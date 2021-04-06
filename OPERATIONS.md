@@ -32,7 +32,7 @@ This document describes various operations procedures for the on-going maintenan
 
 
 ## Configuring Metamask
-In order to update contracts with the "owner" account, you will need to add the owner's wallet to your Metamask. Metamask does not come preconfigured with the xDai nor Sokol network, so you'll need to add it if you haven't already. Download and install the "Metamask" Chrome extension. Make sure to set a challenging password that you won't forget.
+In order to update contracts with the "owner" account, you will need to add the owner's wallet to your Metamask. Metamask does not come pre-configured with the xDai nor Sokol network, so you'll need to add it if you haven't already. Download and install the "Metamask" Chrome extension. Make sure to set a challenging password that you won't forget.
 
 ### Adding Sokol Network
 1. Open Metamask and in the network drop down in the center select "Custom RPC"
@@ -288,21 +288,15 @@ This function should be called if the layer 2 token bridge contract has not yet 
 2. Select the "Write Contract" tab
 3. Click on the "Connect to Metamask" tab
 4. Select the Card Protocol Owner for the correct network in metamask
-5. Locate the "Setup" row and enter all the values (from above) that you wish to set for the BridgeUrils. If you wish to retain the current value, then use the "Read Contract" tab to look up the current value for any of the settings above.
+5. Locate the "Setup" row and enter all the values (from above) that you wish to set for the BridgeUtils. If you wish to retain the current value, then use the "Read Contract" tab to look up the current value for any of the settings above.
 8. Click on the "Write" button in the "Setup" row.
 9. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
 10. After the transaction has completed, you can confirm the setup configuration by clicking on the "Read Contract" tab and reviewing all the fields that pertain to the setup parameters.
 
 ### Update Supplier
-The `updateSupplier` function allows a supplier to configure their details, specifically their brand name and a URL for their profile. The sender of this transaction needs to originate from the address of the supplier themselves (the Card Protocol Owner cannot call this function).
+The `updateSupplier` function allows a supplier to configure their details, specifically their brand name and a URL for their profile. The sender of this transaction needs to originate from the gnosis safe address assigned to the suppliers (the Card Protocol Owner cannot call this function).
 
-1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the BridgeUtils contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
-2. Select the "Write Contract" tab
-3. Click on the "Connect to Metamask" tab
-4. Select the wallet of a registered supplier for the correct network in metamask
-5. Locate the "updateSupplier" row and enter the brand name and the brand profile URL in the respective fields.
-8. Click on the "Write" button in the "updateSupplier" row.
-10. After the transaction has completed, you can confirm the supplier configuration by clicking on the "Read Contract" tab and entering the supplier's address in the address field of the `suppliers` row and clicking on "Query"
+Because this is a gnosis safe transaction, the gnosis safe application should be used to update a supplier's details. https://xdai.gnosis-safe.io/app (currently there is no sokol gnosis safe app).
 
 ### Check Supplier Registration
 The `isRegistered` function allows us to know if a supplier has been registered.
@@ -311,7 +305,7 @@ The `isRegistered` function allows us to know if a supplier has been registered.
 
 1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the BridgeUtils contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
 2. Select the "Read Contract" tab
-3. Enter the supplier's address in the address field in the `isRegistered` row and click on the "Query" button.
+3. Enter the supplier's "depot" gnosis safe address in the address field in the `isRegistered` row and click on the "Query" button.
 
 
 
