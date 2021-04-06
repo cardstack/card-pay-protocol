@@ -21,7 +21,7 @@ const {
   toTokenUnit,
   encodeCreateCardsData,
   signAndSendSafeTransaction,
-  shouldSameBalance,
+  shouldBeSameBalance,
 } = require("./utils/helper");
 
 contract("PrepaidCardManager - issuer tests", (accounts) => {
@@ -110,7 +110,7 @@ contract("PrepaidCardManager - issuer tests", (accounts) => {
     prepaidCardManagerSignature = await prepaidCardManager.getContractSignature();
   });
 
-  it("#1 Shows issuer Creating Cards ", async () => {
+  it("allows issuer to create cards", async () => {
     let oldWalletBalance = await daicpxdToken.balanceOf(walletOfIssuer.address);
     let oldRelayerBalance = await daicpxdToken.balanceOf(relayer);
     let amounts = [1, 2, 5].map((amount) => toTokenUnit(amount));
@@ -176,24 +176,24 @@ contract("PrepaidCardManager - issuer tests", (accounts) => {
     prepaidCards.forEach(async function (prepaidCard, index) {
       assert.isTrue(await prepaidCard.isOwner(walletOfIssuer.address));
       assert.isTrue(await prepaidCard.isOwner(prepaidCardManager.address));
-      shouldSameBalance(daicpxdToken, prepaidCard.address, amounts[index]);
+      shouldBeSameBalance(daicpxdToken, prepaidCard.address, amounts[index]);
     });
 
     let payment = toBN(executeSuccess[executeSuccess.length - 1]["payment"]);
-    await shouldSameBalance(
+    await shouldBeSameBalance(
       daicpxdToken,
       walletOfIssuer.address,
       oldWalletBalance.sub(payment).sub(toBN(toTokenUnit(8)))
     );
 
-    await shouldSameBalance(
+    await shouldBeSameBalance(
       daicpxdToken,
       relayer,
       oldRelayerBalance.add(payment)
     );
   });
 
-  it("#2 Issure transfering the card to a customer ", async () => {
+  it("allows issuer to transfer card to customer", async () => {
     let txs = [
       {
         to: prepaidCards[2].address,
@@ -260,7 +260,7 @@ contract("PrepaidCardManager - issuer tests", (accounts) => {
       executeSuccess[executeSuccess.length - 1]["txHash"].toString()
     );
     assert.isTrue(await prepaidCards[2].isOwner(customer));
-    await shouldSameBalance(
+    await shouldBeSameBalance(
       daicpxdToken,
       prepaidCards[2].address,
       toTokenUnit(5)

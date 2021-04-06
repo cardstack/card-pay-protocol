@@ -4,8 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "compile-contracts": "./node_modules/.bin/truffle compile",
-    "recompile": "rm -rf build && npm run compile-contracts",
+    "build": "./node_modules/.bin/truffle compile",
+    "build:clean": "rm -rf build && yarn build",
     "test": "./node_modules/.bin/truffle test",
     "test:coverage": "./node_modules/.bin/truffle run coverage",
     "deploy:sokol": "./node_modules/.bin/truffle migrate -f --network=sokol --reset",

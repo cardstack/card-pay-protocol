@@ -11,7 +11,7 @@ const { getGnosisSafeFromEventLog } = require("./utils/general");
 const {
   toTokenUnit,
   encodeCreateCardsData,
-  shouldSameBalance,
+  shouldBeSameBalance,
 } = require("./utils/helper");
 
 const { expect, TOKEN_DETAIL_DATA } = require("./setup");
@@ -45,9 +45,6 @@ contract("PrepaidCardManager - Test contract by EOA", (accounts) => {
     // Deploy and mint 100 daicpxd token for deployer as owner
     daicpxdToken = await ERC677Token.new(...TOKEN_DETAIL_DATA);
     await daicpxdToken.mint(supplierEOA, toTokenUnit(20));
-    // Deploy and mint 100 daicpxd token for deployer as owner
-    fakeDaicpxdToken = await ERC677Token.new(...TOKEN_DETAIL_DATA);
-    await fakeDaicpxdToken.mint(supplierEOA, toTokenUnit(20));
 
     prepaidCardManager = await PrepaidCardManager.new();
 
@@ -73,7 +70,7 @@ contract("PrepaidCardManager - Test contract by EOA", (accounts) => {
     );
   });
 
-  it("Create muliple card by EOA account", async () => {
+  it("create multiple cards by EOA account", async () => {
     let amounts = [1, 2, 10].map((amount) => toTokenUnit(amount));
 
     let data = encodeCreateCardsData(supplierEOA, amounts);
@@ -94,13 +91,15 @@ contract("PrepaidCardManager - Test contract by EOA", (accounts) => {
     for (let i = 0; i < cards.length; ++i) {
       let card = cards[i];
       assert.ok(await card.isOwner(supplierEOA));
-      await shouldSameBalance(daicpxdToken, card.address, amounts[i]);
+      await shouldBeSameBalance(daicpxdToken, card.address, amounts[i]);
     }
 
-    await shouldSameBalance(daicpxdToken, supplierEOA, toTokenUnit(7));
+    await shouldBeSameBalance(daicpxdToken, supplierEOA, toTokenUnit(7));
   });
 
-  it("Create muliple card by EOA account failed because not enough token", async () => {
+  // The tests are stateful. The supplier originally had 20 tokens, but after
+  // the previous test they now have only 7 tokens remaining
+  it("cannot create cards from an EOA account when the token value sent to the prepaid card manager contract is more than the balance of the EOA", async () => {
     try {
       let amounts = [1, 2, 3].map((amount) => toTokenUnit(amount));
 
@@ -120,7 +119,7 @@ contract("PrepaidCardManager - Test contract by EOA", (accounts) => {
     }
   });
 
-  it("Create muliple card by EOA account failed because not enough token", async () => {
+  it("cannot create cards from an EOA account when the face values of the cards add up to more than the amount of tokens being sent", async () => {
     try {
       let amounts = [1, 2, 9].map((amount) => toTokenUnit(amount));
 
