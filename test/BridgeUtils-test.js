@@ -8,7 +8,7 @@ const utils = require("./utils/general");
 
 require("./setup");
 
-contract("Bridge utils contract", async (accounts) => {
+contract("BridgeUtils", async (accounts) => {
   let bridgeUtils, pool, prepaidCardManager;
   let mediatorBridgeMock, wallet;
   before(async () => {
@@ -53,7 +53,7 @@ contract("Bridge utils contract", async (accounts) => {
     );
   });
 
-  it("add new token to bridg" + "e", async () => {
+  it("add new token to bridge", async () => {
     await bridgeUtils.updateToken(tokenMock, { from: mediatorBridgeMock });
 
     let payableToken = await pool.getTokens();

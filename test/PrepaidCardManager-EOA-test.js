@@ -14,9 +14,9 @@ const {
   shouldBeSameBalance,
 } = require("./utils/helper");
 
-const { expect, TOKEN_DETAIL_DATA } = require("./setup");
+const { TOKEN_DETAIL_DATA } = require("./setup");
 
-contract("PrepaidCardManager - Test contract by EOA", (accounts) => {
+contract("PrepaidCardManager - EOA tests", (accounts) => {
   let daicpxdToken,
     revenuePool,
     spendToken,

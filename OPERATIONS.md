@@ -25,7 +25,10 @@ This document describes various operations procedures for the on-going maintenan
     - [Register Merchant](#register-merchant)
   - [Relay](#relay)
     - [Setup Payer](#setup-payer)
-  - [Token Bridge](#token-bridge)
+  - [Bridge Utils](#bridge-utils)
+    - [Setup](#setup-2)
+    - [Update Supplier](#update-supplier)
+    - [Check Supplier Registration](#check-supplier-registration)
 
 
 ## Configuring Metamask
@@ -71,7 +74,7 @@ The Card Protocol makes use of our own set of layer 2 tokens which are used to p
 
 ### Add Minter
 The owner of the L2 token contract is allowed to add addresses that are allowed to mint this token.
-1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the L2 token contract (we keep a record of the deployed contracts at `smart-contract-xdai/addresses-{network}.json`) by entering the token contract address in the blockscout search field.
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the L2 token contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the token contract address in the blockscout search field.
 2. Select the "Write Contract" tab
 3. Click on the "Connect to Metamask" tab
 4. Select the Card Protocol Owner for the correct network in metamask
@@ -82,7 +85,7 @@ The owner of the L2 token contract is allowed to add addresses that are allowed 
 
 ### Renounce Minter
 The owner of the L2 token contract is allowed to renounce addresses that are allowed to mint this token.
-1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the L2 token contract (we keep a record of the deployed contracts at `smart-contract-xdai/addresses-{network}.json`) by entering the token contract address in the blockscout search field.
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the L2 token contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the token contract address in the blockscout search field.
 2. Select the "Write Contract" tab
 3. Click on the "Connect to Metamask" tab
 4. Select the Card Protocol Owner for the correct network in metamask
@@ -93,7 +96,7 @@ The owner of the L2 token contract is allowed to renounce addresses that are all
 
 ### Minting L2 Tokens
 The owner of the L2 contract as well as any addresses that have been added as "minters" are allowed to mint this token.
-1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the L2 token contract whose tokens you wish to mint (we keep a record of the deployed contracts at `smart-contract-xdai/addresses-{network}.json`) by entering the token contract address in the blockscout search field.
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the L2 token contract whose tokens you wish to mint (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the token contract address in the blockscout search field.
 2. Select the "Write Contract" tab
 3. Click on the "Connect to Metamask" tab
 4. Select the Card Protocol Owner or approved minter address for the correct network in metamask
@@ -117,7 +120,7 @@ The `setup` function of the prepaid card manager allows us to configure some bas
 - setting the minimum face value of newly created prepaid cards (in units of SPEND tokens)
 - setting the maximum face value of newly created prepaid cards (in units of SPEND tokens)
 
-1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the PrepaidCardManager contract (we keep a record of the deployed contracts at `smart-contract-xdai/addresses-{network}.json`) by entering the contract address in the blockscout search field.
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the PrepaidCardManager contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
 2. Select the "Write Contract" tab
 3. Click on the "Connect to Metamask" tab
 4. Select the Card Protocol Owner for the correct network in metamask
@@ -128,7 +131,7 @@ The `setup` function of the prepaid card manager allows us to configure some bas
 
 ### Add Payable Token
 The `addPayableToken` function allows the prepaid card manager to accept a new L2 token address to be used for creating a prepaid card.
-1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the PrepaidCardManager contract (we keep a record of the deployed contracts at `smart-contract-xdai/addresses-{network}.json`) by entering the contract address in the blockscout search field.
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the PrepaidCardManager contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
 2. Select the "Write Contract" tab
 3. Click on the "Connect to Metamask" tab
 4. Select the Card Protocol Owner for the correct network in metamask
@@ -139,7 +142,7 @@ The `addPayableToken` function allows the prepaid card manager to accept a new L
 
 ### Remove Payable Token
 The `removePayableToken` function allows the prepaid card manager to no longer accept an L2 token address as a token that can be used to create a prepaid card.
-1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the PrepaidCardManager contract (we keep a record of the deployed contracts at `smart-contract-xdai/addresses-{network}.json`) by entering the contract address in the blockscout search field.
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the PrepaidCardManager contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
 2. Select the "Write Contract" tab
 3. Click on the "Connect to Metamask" tab
 4. Select the Card Protocol Owner for the correct network in metamask
@@ -150,7 +153,7 @@ The `removePayableToken` function allows the prepaid card manager to no longer a
 
 ### Update Minimum Amount
 The `updateMinimumAmount` function changes the minimum face value in units of SPEND tokens that a prepaid card is allowed to be created with.
-1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the PrepaidCardManager contract (we keep a record of the deployed contracts at `smart-contract-xdai/addresses-{network}.json`) by entering the contract address in the blockscout search field.
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the PrepaidCardManager contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
 2. Select the "Write Contract" tab
 3. Click on the "Connect to Metamask" tab
 4. Select the Card Protocol Owner for the correct network in metamask
@@ -161,7 +164,7 @@ The `updateMinimumAmount` function changes the minimum face value in units of SP
 
 ### Update Maximum Amount
 The `updateMaximumAmount` function changes the maximum face value in units of SPEND tokens that a prepaid card is allowed to be created with.
-1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the PrepaidCardManager contract (we keep a record of the deployed contracts at `smart-contract-xdai/addresses-{network}.json`) by entering the contract address in the blockscout search field.
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the PrepaidCardManager contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
 2. Select the "Write Contract" tab
 3. Click on the "Connect to Metamask" tab
 4. Select the Card Protocol Owner for the correct network in metamask
@@ -181,7 +184,7 @@ The `setup` function of the revenue pool allows us to configure some basic aspec
 - setting the SPEND token contract address
 - setting an array of L2 tokens that are accepted by the revenue pool
 
-1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the RevenuePool contract (we keep a record of the deployed contracts at `smart-contract-xdai/addresses-{network}.json`) by entering the contract address in the blockscout search field.
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the RevenuePool contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
 2. Select the "Write Contract" tab
 3. Click on the "Connect to Metamask" tab
 4. Select the Card Protocol Owner for the correct network in metamask
@@ -192,7 +195,7 @@ The `setup` function of the revenue pool allows us to configure some basic aspec
 
 ### Add Payable Token
 The `addPayableToken` function allows the revenue pool to accept a new L2 token address to be used as payment to a merchant.
-1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the RevenuePool contract (we keep a record of the deployed contracts at `smart-contract-xdai/addresses-{network}.json`) by entering the contract address in the blockscout search field.
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the RevenuePool contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
 2. Select the "Write Contract" tab
 3. Click on the "Connect to Metamask" tab
 4. Select the Card Protocol Owner for the correct network in metamask
@@ -203,7 +206,7 @@ The `addPayableToken` function allows the revenue pool to accept a new L2 token 
 
 ### Remove Payable Token
 The `removePayableToken` function allows the revenue pool to no longer accept an L2 token address to be used as payment to a merchant.
-1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the RevenuePool contract (we keep a record of the deployed contracts at `smart-contract-xdai/addresses-{network}.json`) by entering the contract address in the blockscout search field.
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the RevenuePool contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
 2. Select the "Write Contract" tab
 3. Click on the "Connect to Metamask" tab
 4. Select the Card Protocol Owner for the correct network in metamask
@@ -214,7 +217,7 @@ The `removePayableToken` function allows the revenue pool to no longer accept an
 
 ### Add Tally
 The `addTally` function adds an address that is permitted to call a function to redeem SPEND tokens on behalf of a merchant from the revenue pool.
-1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the RevenuePool contract (we keep a record of the deployed contracts at `smart-contract-xdai/addresses-{network}.json`) by entering the contract address in the blockscout search field.
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the RevenuePool contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
 2. Select the "Write Contract" tab
 3. Click on the "Connect to Metamask" tab
 4. Select the Card Protocol Owner for the correct network in metamask
@@ -225,7 +228,7 @@ The `addTally` function adds an address that is permitted to call a function to 
 
 ### Remove Tally
 The `removeTally` function removes an address that is permitted to call a function to redeem SPEND tokens on behalf of a merchant from the revenue pool.
-1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the RevenuePool contract (we keep a record of the deployed contracts at `smart-contract-xdai/addresses-{network}.json`) by entering the contract address in the blockscout search field.
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the RevenuePool contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
 2. Select the "Write Contract" tab
 3. Click on the "Connect to Metamask" tab
 4. Select the Card Protocol Owner for the correct network in metamask
@@ -236,7 +239,7 @@ The `removeTally` function removes an address that is permitted to call a functi
 
 ### Register Merchant
 The `registerMerchant` function adds the address of a merchant in the revenue pool that is permitted to accept payment with prepaid card as well as is able to redeem SPEND tokens from the revenue pool.
-1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the RevenuePool contract (we keep a record of the deployed contracts at `smart-contract-xdai/addresses-{network}.json`) by entering the contract address in the blockscout search field.
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the RevenuePool contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
 2. Select the "Write Contract" tab
 3. Click on the "Connect to Metamask" tab
 4. Select the Card Protocol Owner for the correct network in metamask
@@ -267,21 +270,48 @@ In order to setup the relay, a gas payer must be designated for the relay. This 
 15. Taint the terraform EBS volumes and EC2 instances for the relayer and redeploy the relay service from terraform.
 16. Navigate to the relay service for the environment and confirm that the /api/v1/about/ information reflects the address of the payer that you just setup.
 
-## Token Bridge 
-The token bridge is responsible for transfer token ownership between two chains. Within this repo, the only relevant contract is Bridge Utils. Bridge Utils is a utility contract (not the bridge contract) that exist on HOME (dai) network.
+## Bridge Utils
+The BridgeUtils contract is responsible for facilitating the Token Bridge's ability to move tokens from layer 1 into layer 2 (xDai), such that issuers can perform gasless transactions to create prepaid cards from the tokens that they have bridged into the layer 2 network.
 
-### updateToken
-Adds both a payable token (such as DAICPXD) to the revenue pool and the prepaid card manager. This enables the token to be paid to revenue pool for purchase of prepaid card and spends to be deducted from a prepaid card credit. Only a tally admin can execute this. 
+### Setup
+The `setup` function of the bridge utils allows us to configure some basic aspects of how this contract functions including:
+- setting an array of Tally contract addresses (these are addresses that are allowed to invoke the redeem SPEND function on the revenue pool contract)
+- setting the address of the revenue pool
+- setting the address of the prepaid card manager
+- setting the Gnosis safe master copy address
+- setting the Gnosis safe factory address
+- setting the address of the layer 2 token bridge contract
 
-### updateSupplier 
-Updates details of supplier, namely brandName and brandProfileUrl
+This function should be called if the layer 2 token bridge contract has not yet been configured for the Card Protocol.
 
-### registerSupplier 
-Register a new supplier. A suppliers (a gnosis safe) role  is to provide tokens from L1 to be bridged to L2. A supplier is a supplier of L1 tokens and prepaid cards (the two is bridged), the act of registering suggest that the person will issue prepaid cards. 
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the BridgeUtils contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
+2. Select the "Write Contract" tab
+3. Click on the "Connect to Metamask" tab
+4. Select the Card Protocol Owner for the correct network in metamask
+5. Locate the "Setup" row and enter all the values (from above) that you wish to set for the BridgeUrils. If you wish to retain the current value, then use the "Read Contract" tab to look up the current value for any of the settings above.
+8. Click on the "Write" button in the "Setup" row.
+9. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
+10. After the transaction has completed, you can confirm the setup configuration by clicking on the "Read Contract" tab and reviewing all the fields that pertain to the setup parameters.
 
-### isRegistered  
-Checks if a supplier is registered.
+### Update Supplier
+The `updateSupplier` function allows a supplier to configure their details, specifically their brand name and a URL for their profile. The sender of this transaction needs to originate from the address of the supplier themselves (the Card Protocol Owner cannot call this function).
 
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the BridgeUtils contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
+2. Select the "Write Contract" tab
+3. Click on the "Connect to Metamask" tab
+4. Select the wallet of a registered supplier for the correct network in metamask
+5. Locate the "updateSupplier" row and enter the brand name and the brand profile URL in the respective fields.
+8. Click on the "Write" button in the "updateSupplier" row.
+10. After the transaction has completed, you can confirm the supplier configuration by clicking on the "Read Contract" tab and entering the supplier's address in the address field of the `suppliers` row and clicking on "Query"
+
+### Check Supplier Registration
+The `isRegistered` function allows us to know if a supplier has been registered.
+
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the BridgeUtils contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
+
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the BridgeUtils contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
+2. Select the "Read Contract" tab
+3. Enter the supplier's address in the address field in the `isRegistered` row and click on the "Query" button.
 
 
 

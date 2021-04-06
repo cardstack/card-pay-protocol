@@ -13,6 +13,8 @@ TODO
 ### SPEND Token
 TODO
 
+### Bridge Utils
+TODO
 
 ## Prerequisites
 The following prerequisites are required for this project:
@@ -75,6 +77,7 @@ We use a mnemonic held in AWS Secret Manager to manage our contract's key pair. 
     - `GNOSIS_SAFE_MASTER_COPY` This defaults to the v1.2.0 version of the Gnosis safe master copy address: `0x6851d6fdfafd08c0295c392436245e5bc78b0185`
     - `GNOSIS_SAFE_FACTORY` This defaults to the v1.1.1 version of the Gnosis safe factory address: `0x76E2cFc1F5Fa8F6a5b3fC4c8F4788F0116861F9B`
     - `TALLY` The address of the Tally contract which is responsible for withdrawing L2 tokens from the revenue pool on behalf of merchants when they wish to redeem their SPEND.
+    - `BRIDGE_MEDIATOR` This is the address of the layer 2 token bridge contract. This defaults to a zero address.
     - `MINIMUM_AMOUNT` This is the minimum face value that a new prepaid card can be created with in units of SPEND. This defaults to 100 SPEND.
     - `MAXIMUM_AMOUNT` This is the maximum face value that a new prepaid card can be created with in units of SPEND. This defaults to 10,000,000 SPEND.
 
@@ -97,6 +100,9 @@ We use a mnemonic held in AWS Secret Manager to manage our contract's key pair. 
     ```sh
     yarn verify:xdai
     ```
-5. **Memorialize Contract Locations**
+5. **Configure BridgeUtils**
+   If the `BRIDGE_MEDIATOR` environment variable was not supplied (because the layer 2 token bridge contracts have not yet been deployed), then deploy the layer 2 token bridge contracts, and then configure the BridgeUtils contract with the address of the layer 2 token bridge contract. [Instructions to perform this are here.](./OPERATIONS.md#bridge-utils)
+
+6. **Memorialize Contract Locations**
 
    The contract addresses are saved in a `addresses-{network}.json` file. In order to memorialize our current card protocol addresses, commit and push the new/updated `addresses-{network}.json` file`.

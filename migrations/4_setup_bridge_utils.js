@@ -8,11 +8,8 @@ const {
 } = require("./constants");
 
 module.exports = async function (_, network) {
-  if (network === "ganache") {
+  if (["ganache", "test", "soliditycoverage"].includes(network)) {
     return;
-  }
-  if (!BRIDGE_MEDIATOR) {
-    throw new Error("Bridge Mediator is missing in your env file");
   }
 
   let bridgeUtils = await BridgeUtils.deployed();
@@ -26,4 +23,12 @@ module.exports = async function (_, network) {
     GNOSIS_SAFE_FACTORY,
     BRIDGE_MEDIATOR
   );
+  console.log(`configured bridge utils:
+  Tally contract address:       ${TALLY}
+  Gnosis safe master copy:      ${GNOSIS_SAFE_MASTER_COPY}
+  Gnosis safe factory:          ${GNOSIS_SAFE_FACTORY}
+  Revenue pool address:         ${pool.address}
+  Prepaid card manager address: ${prepaidCardManager.address}
+  Bridge mediator address:      ${BRIDGE_MEDIATOR}
+`);
 };

@@ -4,7 +4,7 @@ import "./core/Safe.sol";
 import "./roles/PayableToken.sol";
 import "@openzeppelin/contracts/ownership/Ownable.sol";
 
-contract BridgeUtils is Safe, Ownable{
+contract BridgeUtils is Safe, Ownable {
     event SupplierWallet(address owner, address wallet);
     event UpdateToken(address token);
 
@@ -21,6 +21,7 @@ contract BridgeUtils is Safe, Ownable{
     address public prepaidCardManager;
     address public bridgeMediator;
 
+    // TODO: what do we intend to do with the tally address? currently it is unsused
     constructor(address _tallyAdmin) public {
         tallyAdmin = _tallyAdmin;
     }
@@ -37,8 +38,6 @@ contract BridgeUtils is Safe, Ownable{
         return suppliers[supplierAddr].registered;
     }
 
-    /// TODO: need permission for do this action
-    /// @dev only tallyAdmin can call it.
     function setup(
         address _revenuePool,
         address _prepaidCardManager,
@@ -46,7 +45,6 @@ contract BridgeUtils is Safe, Ownable{
         address _gsProxyFactory,
         address _bridgeMediator
     ) public onlyOwner returns (bool) {
-
         Safe.setup(_gsMasterCopy, _gsProxyFactory);
         revenuePool = _revenuePool;
         prepaidCardManager = _prepaidCardManager;
@@ -63,7 +61,6 @@ contract BridgeUtils is Safe, Ownable{
         return true;
     }
 
-    /// @dev only `bridge` can call this method.
     function updateToken(address tokenAddr)
         external
         onlyBridgeMediator
@@ -72,13 +69,14 @@ contract BridgeUtils is Safe, Ownable{
         return _updateToken(tokenAddr);
     }
 
-    /// @dev update suppliers information
     function updateSupplier(
         string calldata brandName,
         string calldata brandProfileUrl
     ) external returns (bool) {
         address supplierAddr = msg.sender;
 
+        // perhaps we want to allow the owner of the contract to be able to set
+        // this as well just in case?
         require(suppliers[supplierAddr].registered, "Supplier is invalid.");
 
         suppliers[supplierAddr].brandName = brandName;
@@ -95,8 +93,6 @@ contract BridgeUtils is Safe, Ownable{
         return safe;
     }
 
-    /// @dev Create Safe for suppliers and return it.
-    /// only bridge can call it.
     function registerSupplier(address ownerAddr)
         external
         onlyBridgeMediator

@@ -8,8 +8,8 @@
       "type": "pwa-node",
       "request": "launch",
       "name": "Run Migration",
-      "cwd": "${workspaceRoot}/smart-contract-xdai",
-      "program": "${workspaceFolder}/smart-contract-xdai/node_modules/.bin/truffle",
+      "cwd": "${workspaceRoot}",
+      "program": "${workspaceFolder}/node_modules/.bin/truffle",
       "console": "integratedTerminal",
       "env": {},
       "args": ["migrate", "-f", "--network=sokol", "--reset"]
