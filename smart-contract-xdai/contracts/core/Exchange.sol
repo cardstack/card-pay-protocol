@@ -6,31 +6,17 @@ import "../roles/PayableToken.sol";
 
 /// @dev get amount when exchange from token `X` to SPEND and else.
 contract Exchange is PayableToken {
-
     using SafeMath for uint256;
-    
+
     /**
      * @dev query exchange rate of payable token and SPEND
      * @param _token address of payableToken
      * @return exchange rate
      * TODO: should use current exchange rate from chainlink
      */
-    function exchangeRateOf(address _token) public view returns (uint256) {
+    function exchangeRateOf(address _token) public pure returns (uint256) {
+        // this is the number of USD cents per token
         return 100;
-    }
-
-    /**
-     * @dev convert amount in SPEND to amount in payableToken
-     * @param payableTokenAddr address of payableToken
-     * @param amount amount in SPEND
-     * TODO: should use current exchange rate from chainlink
-     */
-    function convertToPayableToken(address payableTokenAddr, uint256 amount)
-        public
-        view
-        returns (uint256)
-    {
-        return amount.mul(10**16);
     }
 
     /**
@@ -42,10 +28,10 @@ contract Exchange is PayableToken {
      */
     function convertToSpend(address payableTokenAddr, uint256 amount)
         public
-        view
+        pure
         returns (uint256)
-    {   
-        return amount.div(10**16);
+    {
+        uint256 weiAmount = 1 ether;
+        return amount.div((weiAmount).div(exchangeRateOf(payableTokenAddr)));
     }
-
 }

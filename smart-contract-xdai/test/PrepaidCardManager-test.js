@@ -138,6 +138,30 @@ contract("PrepaidManager", (accounts) => {
         toBN(MAXIMUM_AMOUNT)
       );
     });
+
+    it("can update minimum amount", async () => {
+      await cardManager.updateMinimumAmount(200, {
+        from: tally,
+      }).should.be.fulfilled;
+      expect(await cardManager.getMinimumAmount()).to.a.bignumber.equal(
+        toBN(200)
+      );
+      await cardManager.updateMinimumAmount(MINIMUM_AMOUNT, {
+        from: tally,
+      }).should.be.fulfilled;
+    });
+
+    it("can update maximum amount", async () => {
+      await cardManager.updateMaximumAmount(600000, {
+        from: tally,
+      }).should.be.fulfilled;
+      expect(await cardManager.getMaximumAmount()).to.a.bignumber.equal(
+        toBN(600000)
+      );
+      await cardManager.updateMaximumAmount(MAXIMUM_AMOUNT, {
+        from: tally,
+      }).should.be.fulfilled;
+    });
   });
 
   describe("create signature method", () => {

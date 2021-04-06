@@ -203,7 +203,8 @@ contract("RevenuePool", (accounts) => {
     });
 
     // The tests are stateful. At this point the merchant as redeemed 100 of the
-    // 300 SPEND tokens they have accumulated
+    // 300 SPEND tokens they have accumulated, leaving 200 more SPEND that is
+    // available to be redeemed.
     it("rejects a claim that is larger than the amount permissable for the merchant", async () => {
       let amount = toTokenUnit(3);
       await revenuePool.claimToken(merchant, daicpxdToken.address, amount, {
