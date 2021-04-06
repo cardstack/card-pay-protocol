@@ -10,8 +10,8 @@
     "test:coverage": "./node_modules/.bin/truffle run coverage",
     "deploy:sokol": "./node_modules/.bin/truffle migrate -f --network=sokol --reset",
     "deploy:xdai": "./node_modules/.bin/truffle migrate -f --network xdai",
-    "verify:sokol": "truffle run blockscout ERC677Token SPEND RevenuePool PrepaidCardManager --network sokol --license UNLICENSED",
-    "verify:xdai": "truffle run blockscout ERC677Token SPEND RevenuePool PrepaidCardManager --network xdai --license UNLICENSED"
+    "verify:sokol": "truffle run blockscout ERC677Token SPEND RevenuePool PrepaidCardManager BridgeUtils --network sokol --license UNLICENSED",
+    "verify:xdai": "truffle run blockscout ERC677Token SPEND RevenuePool PrepaidCardManager BridgeUtils --network xdai --license UNLICENSED"
   },
   "repository": {
     "type": "git",
