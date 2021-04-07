@@ -2,6 +2,7 @@ const BridgeUtils = artifacts.require("BridgeUtils");
 const PrepaidCardManager = artifacts.require("PrepaidCardManager");
 const RevenuePool = artifacts.require("RevenuePool");
 const {
+  TALLY,
   GNOSIS_SAFE_FACTORY,
   GNOSIS_SAFE_MASTER_COPY,
   BRIDGE_MEDIATOR,
