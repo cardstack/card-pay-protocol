@@ -28,19 +28,25 @@ const {
 const { expect, TOKEN_DETAIL_DATA, toBN } = require("./setup");
 
 contract("PrepaidManager", (accounts) => {
-  let MINIMUM_AMOUNT, MAXIMUM_AMOUNT;
-  let revenuePool, spendToken, cardManager, multiSend;
-  let daicpxdToken, fakeDaicpxdToken;
-  let gnosisSafeMasterCopy, proxyFactory;
-  let tally,
+  let MINIMUM_AMOUNT,
+    MAXIMUM_AMOUNT,
+    revenuePool,
+    spendToken,
+    cardManager,
+    multiSend,
+    merchantOwner,
+    daicpxdToken,
+    fakeDaicpxdToken,
+    gnosisSafeMasterCopy,
+    proxyFactory,
+    tally,
     issuer,
     customer,
     merchant,
     relayer,
     depot,
-    offChainId = "Id";
-
-  let prepaidCards = [];
+    offChainId = "Id",
+    prepaidCards = [];
 
   before(async () => {
     tally = accounts[1];

@@ -4,6 +4,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../roles/PayableToken.sol";
 
+
 /// @dev get amount when exchange from token `X` to SPEND and else.
 contract Exchange is PayableToken {
     using SafeMath for uint256;
@@ -14,6 +15,7 @@ contract Exchange is PayableToken {
      * @return exchange rate
      * TODO: should use current exchange rate from chainlink
      */
+     // solhint-disable-next-line no-unused-vars
     function exchangeRateOf(address _token) public pure returns (uint256) {
         // this is the number of USD cents per token
         return 100;

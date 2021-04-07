@@ -10,6 +10,7 @@ import "./core/MerchantManager.sol";
 import "./core/Exchange.sol";
 import "./interfaces/IRevenuePool.sol";
 
+
 contract RevenuePool is TallyRole, MerchantManager, Exchange, IRevenuePool {
     using SafeMath for uint256;
 
@@ -43,6 +44,41 @@ contract RevenuePool is TallyRole, MerchantManager, Exchange, IRevenuePool {
     }
 
     /**
+     * @dev onTokenTransfer(ERC677) - call when token receive pool.
+     * we will exchange receive token to SPEND token and mint it for the wallet of merchant.
+     * @param from - who transfer token (should from prepaid card).
+     * @param amount - number token customer pay for merchant.
+     * @param data - merchantAddr in encode format.
+     */
+    function onTokenTransfer(
+        address from,
+        uint256 amount,
+        bytes calldata data
+    ) external isValidToken returns (bool) {
+        // decode and get merchant address from the data
+        address merchantAddr = abi.decode(data, (address));
+
+        handlePayment(merchantAddr, _msgSender(), amount);
+
+        emit CustomerPayment(from, merchantAddr, _msgSender(), amount);
+        return true;
+    }
+
+    /**
+     * @dev merchant claim token to their wallet, only tally account can call this method
+     * @param merchantAddr address of merchant
+     * @param payableToken address of payable token
+     * @param amount amount in payable token
+     */
+    function claimToken(
+        address merchantAddr,
+        address payableToken,
+        uint256 amount
+    ) external onlyTally returns (bool) {
+        return _claimToken(merchantAddr, payableToken, amount);
+    }
+
+    /**
      * @dev mint SPEND for merchant wallet when customer pay token for them.
      * @param merchantAddr merchant account address
      * @param payableToken payableToken contract address
@@ -62,27 +98,6 @@ contract RevenuePool is TallyRole, MerchantManager, Exchange, IRevenuePool {
 
         ISPEND(spendToken).mint(merchantAddr, amountSPEND);
 
-        return true;
-    }
-
-    /**
-     * @dev onTokenTransfer(ERC677) - call when token receive pool.
-     * we will exchange receive token to SPEND token and mint it for the wallet of merchant.
-     * @param from - who transfer token (should from prepaid card).
-     * @param amount - number token customer pay for merchant.
-     * @param data - merchantAddr in encode format.
-     */
-    function onTokenTransfer(
-        address from,
-        uint256 amount,
-        bytes calldata data
-    ) external isValidToken returns (bool) {
-        // decode and get merchant address from the data
-        address merchantAddr = abi.decode(data, (address));
-
-        handlePayment(merchantAddr, _msgSender(), amount);
-
-        emit CustomerPayment(from, merchantAddr, _msgSender(), amount);
         return true;
     }
 
@@ -114,19 +129,5 @@ contract RevenuePool is TallyRole, MerchantManager, Exchange, IRevenuePool {
 
         emit MerchantClaim(merchantAddr, payableToken, amount);
         return true;
-    }
-
-    /**
-     * @dev merchant claim token to their wallet, only tally account can call this method
-     * @param merchantAddr address of merchant
-     * @param payableToken address of payable token
-     * @param amount amount in payable token
-     */
-    function claimToken(
-        address merchantAddr,
-        address payableToken,
-        uint256 amount
-    ) external onlyTally returns (bool) {
-        return _claimToken(merchantAddr, payableToken, amount);
     }
 }

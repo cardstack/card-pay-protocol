@@ -6,7 +6,7 @@ const ProxyFactory = artifacts.require("GnosisSafeProxyFactory");
 const GnosisSafe = artifacts.require("GnosisSafe");
 const MultiSend = artifacts.require("MultiSend");
 
-const { TOKEN_DETAIL_DATA, toBN } = require("./setup");
+const { TOKEN_DETAIL_DATA, toBN, expect } = require("./setup");
 
 const eventABIs = require("./utils/constant/eventABIs");
 const {
@@ -31,10 +31,15 @@ contract("PrepaidCardManager - issuer tests", (accounts) => {
     prepaidCardManager,
     multiSend,
     offChainId = "Id",
-    fakeDaicpxdToken;
-  let tally, issuer, customer, merchant, relayer, walletOfIssuer;
+    fakeDaicpxdToken,
+    tally,
+    issuer,
+    customer,
+    merchant,
+    relayer,
+    walletOfIssuer,
+    prepaidCards = [];
 
-  let prepaidCards = [];
   before(async () => {
     tally = accounts[0];
     issuer = accounts[1];
@@ -106,8 +111,6 @@ contract("PrepaidCardManager - issuer tests", (accounts) => {
       100,
       500000
     );
-
-    prepaidCardManagerSignature = await prepaidCardManager.getContractSignature();
   });
 
   it("allows issuer to create cards", async () => {
@@ -161,21 +164,23 @@ contract("PrepaidCardManager - issuer tests", (accounts) => {
       walletOfIssuer.address
     );
 
-    assert.equal(
-      safeTxHash.toString(),
+    expect(safeTxHash.toString()).to.be.equal(
       executeSuccess[executeSuccess.length - 1]["txHash"].toString(),
       "The event execute success should exist."
     );
 
-    assert.equal(
-      prepaidCards.length,
+    expect(prepaidCards.length).to.be.equal(
       3,
       "Should create a new 3 cards(gnosis safe)."
     );
 
     prepaidCards.forEach(async function (prepaidCard, index) {
-      assert.isTrue(await prepaidCard.isOwner(walletOfIssuer.address));
-      assert.isTrue(await prepaidCard.isOwner(prepaidCardManager.address));
+      expect(await prepaidCard.isOwner(walletOfIssuer.address)).to.be.equal(
+        true
+      );
+      expect(await prepaidCard.isOwner(prepaidCardManager.address)).to.be.equal(
+        true
+      );
       shouldBeSameBalance(daicpxdToken, prepaidCard.address, amounts[index]);
     });
 
@@ -255,11 +260,10 @@ contract("PrepaidCardManager - issuer tests", (accounts) => {
       eventABIs.EXECUTION_SUCCESS,
       walletOfIssuer.address
     );
-    assert.equal(
-      safeTxHash.toString(),
+    expect(safeTxHash.toString()).to.be.equal(
       executeSuccess[executeSuccess.length - 1]["txHash"].toString()
     );
-    assert.isTrue(await prepaidCards[2].isOwner(customer));
+    expect(await prepaidCards[2].isOwner(customer)).to.be.equal(true);
     await shouldBeSameBalance(
       daicpxdToken,
       prepaidCards[2].address,
