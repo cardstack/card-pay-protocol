@@ -24,21 +24,21 @@ contract SPENDMinterRole is Ownable {
         return _addMinter(_minter);
     }
 
+    function removeMinter(address _minter) public onlyOwner returns (bool) {
+        return _removeMinter(_minter);
+    }
+
+    function getMinters() public view returns (address[] memory) {
+        return minter.enumerate();
+    }
+
     function _addMinter(address _minter) internal returns (bool) {
         minter.add(_minter);
         return true;
     }
 
-    function removeMinter(address _minter) public onlyOwner returns (bool) {
-        return _removeMinter(_minter);
-    }
-
     function _removeMinter(address _minter) internal returns (bool) {
         minter.remove(_minter);
         return true;
-    }
-
-    function getMinters() public view returns (address[] memory) {
-        return minter.enumerate();
     }
 }

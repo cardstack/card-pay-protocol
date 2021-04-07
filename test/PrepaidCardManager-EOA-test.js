@@ -4,7 +4,6 @@ const ERC677Token = artifacts.require("ERC677Token.sol");
 const SPEND = artifacts.require("SPEND.sol");
 const ProxyFactory = artifacts.require("GnosisSafeProxyFactory");
 const GnosisSafe = artifacts.require("GnosisSafe");
-const MultiSend = artifacts.require("MultiSend");
 
 const { getGnosisSafeFromEventLog } = require("./utils/general");
 
@@ -14,7 +13,7 @@ const {
   shouldBeSameBalance,
 } = require("./utils/helper");
 
-const { TOKEN_DETAIL_DATA } = require("./setup");
+const { TOKEN_DETAIL_DATA, expect } = require("./setup");
 
 contract("PrepaidCardManager - EOA tests", (accounts) => {
   let daicpxdToken,
@@ -22,22 +21,19 @@ contract("PrepaidCardManager - EOA tests", (accounts) => {
     spendToken,
     prepaidCardManager,
     offChainId = "Id",
-    fakeDaicpxdToken;
-  let tally, customer, merchant, relayer, supplierEOA;
-
-  let cards = [];
+    tally,
+    merchant,
+    supplierEOA,
+    cards = [];
 
   before(async () => {
     tally = accounts[0];
-    customer = accounts[2];
     merchant = accounts[3];
-    relayer = accounts[4];
     supplierEOA = accounts[8];
 
     let proxyFactory = await ProxyFactory.new();
     let gnosisSafeMasterCopy = await GnosisSafe.new();
 
-    multiSend = await MultiSend.new();
     revenuePool = await RevenuePool.new();
 
     spendToken = await SPEND.new("SPEND Token", "SPEND", [revenuePool.address]);
@@ -86,11 +82,11 @@ contract("PrepaidCardManager - EOA tests", (accounts) => {
 
     cards = await getGnosisSafeFromEventLog(tx, prepaidCardManager.address);
 
-    assert.equal(cards.length, 3);
+    expect(cards.length).to.equal(3);
 
     for (let i = 0; i < cards.length; ++i) {
       let card = cards[i];
-      assert.ok(await card.isOwner(supplierEOA));
+      expect(await card.isOwner(supplierEOA)).to.be.ok;
       await shouldBeSameBalance(daicpxdToken, card.address, amounts[i]);
     }
 
@@ -105,7 +101,7 @@ contract("PrepaidCardManager - EOA tests", (accounts) => {
 
       let data = encodeCreateCardsData(supplierEOA, amounts);
 
-      let tx = await daicpxdToken.transferAndCall(
+      await daicpxdToken.transferAndCall(
         prepaidCardManager.address,
         toTokenUnit(10),
         data,
@@ -113,9 +109,9 @@ contract("PrepaidCardManager - EOA tests", (accounts) => {
           from: supplierEOA,
         }
       );
-      assert.ok(false, "Should failed");
+      throw new Error(`call did not fail`);
     } catch (err) {
-      assert.equal(err.reason, "ERC20: transfer amount exceeds balance");
+      expect(err.reason).to.be.equal("ERC20: transfer amount exceeds balance");
     }
   });
 
@@ -125,7 +121,7 @@ contract("PrepaidCardManager - EOA tests", (accounts) => {
 
       let data = encodeCreateCardsData(supplierEOA, amounts);
 
-      let tx = await daicpxdToken.transferAndCall(
+      await daicpxdToken.transferAndCall(
         prepaidCardManager.address,
         toTokenUnit(6),
         data,
@@ -133,9 +129,9 @@ contract("PrepaidCardManager - EOA tests", (accounts) => {
           from: supplierEOA,
         }
       );
-      assert.ok(false, "Should failed");
+      throw new Error(`call did not fail`);
     } catch (err) {
-      assert.equal(err.reason, "Not enough token");
+      expect(err.reason).to.be.equal("Not enough token");
     }
   });
 });

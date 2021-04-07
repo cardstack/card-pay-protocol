@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/utils/EnumerableSet.sol";
 import "./Safe.sol";
 import "../roles/TallyRole.sol";
 
+
 contract MerchantManager is TallyRole, Safe {
     using EnumerableSet for EnumerableSet.AddressSet;
 
@@ -13,8 +14,8 @@ contract MerchantManager is TallyRole, Safe {
     struct Merchant {
         bool register;
         // offchant id
-        string merchantId;         
-        // mapping from token address to number token belongs of the merchant. 
+        string merchantId;
+        // mapping from token address to number token belongs of the merchant.
         mapping(address => uint256) lockTotal;
     }
 
@@ -35,14 +36,14 @@ contract MerchantManager is TallyRole, Safe {
     {
         require(
             merchantOwner != address(0),
-            "Merchant address shouldn't zero address"
+            "zero address not allowed"
         );
 
         address merchant = createSafe(merchantOwner);
-         
-        merchants[merchant].register = true; 
+
+        merchants[merchant].register = true;
         merchants[merchant].merchantId = merchantId;
-        
+
         emit MerchantCreation(merchantOwner, merchant);
 
         return merchant;

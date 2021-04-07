@@ -4,8 +4,8 @@ import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 import "@gnosis.pm/safe-contracts/contracts/libraries/MultiSend.sol";
 
 /**
- * @dev contract use for load a other contract, use for test.
+ * @dev this contract is used to consume dependencies that are leveraged in our
+   tests. The solidiity compiler will not make available any external deps that
+   are not explicitly consumed;
  */
-contract DevDependenciesGetter {
-
-}
+contract DevDependenciesGetter { } // solhint-disable-line no-empty-blocks

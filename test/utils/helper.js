@@ -61,17 +61,7 @@ exports.encodeCreateCardsData = function (account, amounts = []) {
 };
 
 exports.signAndSendSafeTransaction = async function signAndSendSafeTransaction(
-  safeTxData = {
-    to,
-    value,
-    data,
-    operation,
-    txGasEstimate,
-    baseGasEstimate,
-    gasPrice,
-    txGasToken,
-    refundReceiver,
-  },
+  safeTxData,
   owner,
   gnosisSafe,
   relayer,

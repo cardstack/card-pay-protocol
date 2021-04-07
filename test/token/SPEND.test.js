@@ -74,7 +74,7 @@ contract("SPEND", (accounts) => {
       await instance.burn(bob, amount);
       assert.fail("don't get error");
     } catch (error) {
-      assert.equal(error.reason, "ERC20: burn amount exceeds balance");
+      assert.equal(error.reason, "burn amount exceeds balance");
     }
   });
 
@@ -85,7 +85,7 @@ contract("SPEND", (accounts) => {
       await instance.mint("0x0000000000000000000000000000000000000000", 10);
     } catch (error) {
       revered = true;
-      assert.equal(error.reason, "ERC20: mint to the zero address");
+      assert.equal(error.reason, "cannot mint to zero address");
     }
 
     assert.isTrue(revered);
@@ -98,7 +98,7 @@ contract("SPEND", (accounts) => {
       await instance.burn("0x0000000000000000000000000000000000000000", 10);
     } catch (error) {
       revered = true;
-      assert.equal(error.reason, "ERC20: burn from the zero address");
+      assert.equal(error.reason, "cannot burn from zero address");
     }
 
     assert.isTrue(revered);

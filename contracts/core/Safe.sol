@@ -2,37 +2,37 @@ pragma solidity ^0.5.17;
 
 import "@gnosis.pm/safe-contracts/contracts/proxies/GnosisSafeProxyFactory.sol";
 
+
 contract Safe {
-    //setup(address[],uint256,address,bytes,address,address,uint256,address)
     bytes4 internal constant SETUP = 0xb63e800d;
     address internal constant ZERO_ADDRESS = address(0);
 
     address public gnosisSafe;
     address public gnosisProxyFactory;
 
-    function setup(address _gnosisSafe, address _gnosisProxyFactory) 
-        internal 
+    function setup(address _gnosisSafe, address _gnosisProxyFactory)
+        internal
     {
         gnosisProxyFactory = _gnosisProxyFactory;
         gnosisSafe = _gnosisSafe;
     }
 
-    function createSafe(address[] memory safeOwners, uint256 threshold) 
-        internal 
+    function createSafe(address[] memory safeOwners, uint256 threshold)
+        internal
         returns(address)
     {
         bytes memory data = abi.encodeWithSelector(
             SETUP,
             safeOwners,
-            threshold,  
-            ZERO_ADDRESS, 
-            "", 
-            ZERO_ADDRESS, 
-            ZERO_ADDRESS, 
-            0, 
+            threshold,
+            ZERO_ADDRESS,
+            "",
+            ZERO_ADDRESS,
+            ZERO_ADDRESS,
+            0,
             ZERO_ADDRESS
         );
-         
+
         address safe = address(
             GnosisSafeProxyFactory(gnosisProxyFactory).createProxy(
                 gnosisSafe,
@@ -40,13 +40,13 @@ contract Safe {
             )
         );
 
-        require(safe != ZERO_ADDRESS, "Create a Safe failed"); 
-        
+        require(safe != ZERO_ADDRESS, "Create a Safe failed");
+
         return safe;
     }
 
-    
-    function createSafe(address owner) 
+
+    function createSafe(address owner)
         internal
         returns(address)
     {
@@ -55,5 +55,5 @@ contract Safe {
 
         return createSafe(ownerArr, 1);
     }
-    
+
 }

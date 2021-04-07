@@ -9,8 +9,12 @@ const utils = require("./utils/general");
 const { expect } = require("./setup");
 
 contract("BridgeUtils", async (accounts) => {
-  let bridgeUtils, pool, prepaidCardManager;
-  let mediatorBridgeMock, wallet;
+  let bridgeUtils,
+    pool,
+    prepaidCardManager,
+    tokenMock,
+    mediatorBridgeMock,
+    wallet;
   before(async () => {
     let tallyAdmin = accounts[0];
     mediatorBridgeMock = accounts[1];

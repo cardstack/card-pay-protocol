@@ -11,6 +11,7 @@ import "./core/Safe.sol";
 import "./interfaces/IPrepaidCardManager.sol";
 import "./RevenuePool.sol";
 
+
 contract PrepaidCardManager is
     TallyRole,
     PayableToken,
@@ -86,36 +87,6 @@ contract PrepaidCardManager is
     }
 
     /**
-     * @dev Create Prepaid card
-     * @param depot depot address
-     * @param token token address
-     * @param amount amount of prepaid card
-     * @return PrepaidCard address
-     */
-    function createPrepaidCard(
-        address depot,
-        address token,
-        uint256 amount
-    ) private returns (address) {
-        address[] memory owners = new address[](2);
-
-        owners[0] = address(this);
-        owners[1] = depot;
-
-        address card = createSafe(owners, 2);
-
-        IERC677(token).transfer(card, amount);
-
-        // card was created
-        cardDetails[card].issuer = depot;
-        cardDetails[card].issueToken = token;
-
-        emit CreatePrepaidCard(depot, card, token, amount);
-
-        return card;
-    }
-
-    /**
      * @dev check amount of card want to create.
      * convert amount to spend and check.
      */
@@ -147,7 +118,7 @@ contract PrepaidCardManager is
 
         require(
             numberCard <= MAXIMUM_NUMBER_OF_CARD,
-            "Not allowed create more than MAXIMUM_NUMBER_OF_CARD"
+            "Created too many prepaid cards"
         );
 
         for (uint256 i = 0; i < numberCard; i++) {
@@ -162,37 +133,6 @@ contract PrepaidCardManager is
         for (uint256 i = 0; i < numberCard; i++) {
             createPrepaidCard(depot, token, amountOfCard[i]);
         }
-
-        return true;
-    }
-
-    /**
-     * @dev adapter execTransaction for prepaid card(gnosis safe)
-     * @param card Prepaid Card's address
-     * @param to Destination address of Safe transaction
-     * @param data Data payload of Safe transaction
-     * @param signatures Packed signature data ({bytes32 r}{bytes32 s}{uint8 v})
-     */
-    function execTransaction(
-        address payable card,
-        address to,
-        bytes memory data,
-        bytes memory signatures
-    ) private returns (bool) {
-        require(
-            GnosisSafe(card).execTransaction(
-                to,
-                0,
-                data,
-                Enum.Operation.Call,
-                0,
-                0,
-                0,
-                address(0),
-                address(0),
-                signatures
-            )
-        );
 
         return true;
     }
@@ -379,7 +319,7 @@ contract PrepaidCardManager is
      * @param amount amount need pay to merchant
      */
     function getPayData(
-        address token,
+        address token, // solhint-disable-line no-unused-vars
         address merchant,
         uint256 amount
     ) public view returns (bytes memory) {
@@ -399,7 +339,7 @@ contract PrepaidCardManager is
      * @param data data encoded
      */
     function onTokenTransfer(
-        address from,
+        address from, // solhint-disable-line no-unused-vars
         uint256 amount,
         bytes calldata data
     ) external isValidToken returns (bool) {
@@ -483,5 +423,66 @@ contract PrepaidCardManager is
                 getSplitCardData(depot, cardAmounts),
                 signatures
             );
+    }
+
+    /**
+     * @dev Create Prepaid card
+     * @param depot depot address
+     * @param token token address
+     * @param amount amount of prepaid card
+     * @return PrepaidCard address
+     */
+    function createPrepaidCard(
+        address depot,
+        address token,
+        uint256 amount
+    ) private returns (address) {
+        address[] memory owners = new address[](2);
+
+        owners[0] = address(this);
+        owners[1] = depot;
+
+        address card = createSafe(owners, 2);
+
+        // card was created
+        cardDetails[card].issuer = depot;
+        cardDetails[card].issueToken = token;
+        IERC677(token).transfer(card, amount);
+
+        emit CreatePrepaidCard(depot, card, token, amount);
+
+        return card;
+    }
+
+    /**
+     * @dev adapter execTransaction for prepaid card(gnosis safe)
+     * @param card Prepaid Card's address
+     * @param to Destination address of Safe transaction
+     * @param data Data payload of Safe transaction
+     * @param signatures Packed signature data ({bytes32 r}{bytes32 s}{uint8 v})
+     */
+    function execTransaction(
+        address payable card,
+        address to,
+        bytes memory data,
+        bytes memory signatures
+    ) private returns (bool) {
+        require(
+            GnosisSafe(card).execTransaction(
+                to,
+                0,
+                data,
+                Enum.Operation.Call,
+                0,
+                0,
+                0,
+                address(0),
+                address(0),
+                signatures
+            ),
+            "safe transaction was reverted"
+        );
+
+        return true;
     }
 }

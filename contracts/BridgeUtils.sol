@@ -4,6 +4,7 @@ import "./core/Safe.sol";
 import "./roles/PayableToken.sol";
 import "@openzeppelin/contracts/ownership/Ownable.sol";
 
+
 contract BridgeUtils is Safe, Ownable {
     event SupplierWallet(address owner, address wallet);
     event UpdateToken(address token);
@@ -53,22 +54,6 @@ contract BridgeUtils is Safe, Ownable {
         return true;
     }
 
-    function _updateToken(address tokenAddr) internal returns (bool) {
-        // update payable token for token
-        PayableToken(revenuePool).addPayableToken(tokenAddr);
-        PayableToken(prepaidCardManager).addPayableToken(tokenAddr);
-        emit UpdateToken(tokenAddr);
-        return true;
-    }
-
-    function updateToken(address tokenAddr)
-        external
-        onlyBridgeMediator
-        returns (bool)
-    {
-        return _updateToken(tokenAddr);
-    }
-
     function updateSupplier(
         string calldata brandName,
         string calldata brandProfileUrl
@@ -85,19 +70,35 @@ contract BridgeUtils is Safe, Ownable {
         return true;
     }
 
-    function _registerSupplier(address ownerAddr) internal returns (address) {
-        address safe = createSafe(ownerAddr);
-        suppliers[safe].registered = true;
-
-        emit SupplierWallet(ownerAddr, safe);
-        return safe;
-    }
-
     function registerSupplier(address ownerAddr)
         external
         onlyBridgeMediator
         returns (address)
     {
         return _registerSupplier(ownerAddr);
+    }
+
+    function _updateToken(address tokenAddr) internal returns (bool) {
+        // update payable token for token
+        PayableToken(revenuePool).addPayableToken(tokenAddr);
+        PayableToken(prepaidCardManager).addPayableToken(tokenAddr);
+        emit UpdateToken(tokenAddr);
+        return true;
+    }
+
+    function updateToken(address tokenAddr)
+        external
+        onlyBridgeMediator
+        returns (bool)
+    {
+        return _updateToken(tokenAddr);
+    }
+
+    function _registerSupplier(address ownerAddr) internal returns (address) {
+        address safe = createSafe(ownerAddr);
+        suppliers[safe].registered = true;
+
+        emit SupplierWallet(ownerAddr, safe);
+        return safe;
     }
 }

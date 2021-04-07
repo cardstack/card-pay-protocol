@@ -5,11 +5,12 @@ import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../roles/SPENDMinterRole.sol";
 
+
 contract SPEND is ISPEND, SPENDMinterRole {
 
     using SafeMath for uint256;
 
-    mapping(address => uint) _balances;
+    mapping(address => uint) public _balances;
 
     uint256 private _totalSupply;
 
@@ -24,6 +25,16 @@ contract SPEND is ISPEND, SPENDMinterRole {
         for (uint i = 0;i < minters.length; ++i) {
             addMinter(minters[i]);
         }
+    }
+
+    function mint(address account, uint amount) external onlyMinter returns(bool) {
+        _mint(account, amount);
+        return true;
+    }
+
+    function burn(address account, uint amount) external onlyMinter returns(bool) {
+        _burn(account, amount);
+        return true;
     }
 
     /**
@@ -73,35 +84,18 @@ contract SPEND is ISPEND, SPENDMinterRole {
     }
 
     function _mint(address account, uint256 amount) internal {
-        require(account != address(0), "ERC20: mint to the zero address");
-
-        _beforeTokenTransfer(address(0), account, amount);
+        require(account != address(0), "cannot mint to zero address");
 
         _totalSupply = _totalSupply.add(amount);
         _balances[account] = _balances[account].add(amount);
         emit Mint(account, amount);
     }
 
-    function mint(address account, uint amount) external onlyMinter returns(bool) {
-        _mint(account, amount);
-        return true;
-    }
-
     function _burn(address account, uint256 amount) internal {
-        require(account != address(0), "ERC20: burn from the zero address");
+        require(account != address(0), "cannot burn from zero address");
 
-        _beforeTokenTransfer(account, address(0), amount);
-
-        _balances[account] = _balances[account].sub(amount, "ERC20: burn amount exceeds balance");
+        _balances[account] = _balances[account].sub(amount, "burn amount exceeds balance");
         _totalSupply = _totalSupply.sub(amount);
         emit Burn(account, amount);
     }
-
-    function burn(address account, uint amount) external onlyMinter returns(bool) {
-        _burn(account, amount);
-        return true;
-    } 
-
-    function _beforeTokenTransfer(address from, address to, uint256 amount) internal {}
-
 }

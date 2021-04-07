@@ -94,10 +94,7 @@ contract("RevenuePool", (accounts) => {
         .registerMerchant(utils.ZERO_ADDRESS, offchainId, {
           from: tally,
         })
-        .should.be.rejectedWith(
-          Error,
-          "Merchant address shouldn't zero address"
-        );
+        .should.be.rejectedWith(Error, "zero address not allowed");
     });
 
     it("should reject when a non-tally address tries to register a merchant", async () => {
@@ -170,10 +167,7 @@ contract("RevenuePool", (accounts) => {
 
       await fakeToken
         .transferAndCall(revenuePool.address, amount, data)
-        .should.be.rejectedWith(
-          Error,
-          "Guard: Token is not support payable by contract."
-        );
+        .should.be.rejectedWith(Error, "unaccepted token");
     });
   });
 
