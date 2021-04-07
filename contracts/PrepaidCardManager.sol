@@ -118,7 +118,7 @@ contract PrepaidCardManager is
 
         require(
             numberCard <= MAXIMUM_NUMBER_OF_CARD,
-            "Not allowed create more than MAXIMUM_NUMBER_OF_CARD"
+            "Created too many prepaid cards"
         );
 
         for (uint256 i = 0; i < numberCard; i++) {
@@ -479,7 +479,8 @@ contract PrepaidCardManager is
                 address(0),
                 address(0),
                 signatures
-            )
+            ),
+            "safe transaction was reverted"
         );
 
         return true;
