@@ -1,8 +1,8 @@
 pragma solidity 0.5.17;
 
 import "./ISPEND.sol";
-import "@openzeppelin/contracts/ownership/Ownable.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
+import "@openzeppelin/contract-upgradeable/contracts/math/SafeMath.sol";
 import "../roles/SPENDMinterRole.sol";
 
 

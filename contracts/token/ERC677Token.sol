@@ -1,8 +1,7 @@
 pragma solidity 0.5.17;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20Detailed.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20Mintable.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20Burnable.sol";
+import "@openzeppelin/contract-upgradeable/contracts/token/ERC20/ERC20Mintable.sol";
+import "@openzeppelin/contract-upgradeable/contracts/token/ERC20/ERC20Burnable.sol";
 import "./ERC677TransferReceiver.sol";
 import "./IERC677.sol";
 
@@ -10,13 +9,18 @@ import "./IERC677.sol";
 /**
  * @dev reference from https://github.com/smartcontractkit/LinkToken
  */
-contract ERC677Token is IERC677, ERC20Detailed, ERC20Mintable, ERC20Burnable {
+contract ERC677Token is IERC677, ERC20Burnable, ERC20Mintable {
 
-    constructor(
-        string memory _name,
-        string memory _symbol,
-        uint8 _decimals
-    ) public ERC20Detailed(_name, _symbol, _decimals) {} // solhint-disable-line no-empty-blocks
+    string private _name;
+    string private _symbol;
+    uint8 private _decimals;
+
+    function initialize(string memory name, string memory symbol, uint8 decimals, address minter) public initializer {
+        _name = name;
+        _symbol = symbol;
+        _decimals = decimals;
+        initialize(minter);
+    }
 
     function transferAndCall(
         address _to,
@@ -33,6 +37,37 @@ contract ERC677Token is IERC677, ERC20Detailed, ERC20Mintable, ERC20Burnable {
         }
 
         return true;
+    }
+
+    /**
+     * @dev Returns the name of the token.
+     */
+    function name() public view returns (string memory) {
+        return _name;
+    }
+
+    /**
+     * @dev Returns the symbol of the token, usually a shorter version of the
+     * name.
+     */
+    function symbol() public view returns (string memory) {
+        return _symbol;
+    }
+
+    /**
+     * @dev Returns the number of decimals used to get its user representation.
+     * For example, if `decimals` equals `2`, a balance of `505` tokens should
+     * be displayed to a user as `5,05` (`505 / 10 ** 2`).
+     *
+     * Tokens usually opt for a value of 18, imitating the relationship between
+     * Ether and Wei.
+     *
+     * NOTE: This information is only used for _display_ purposes: it in
+     * no way affects any of the arithmetic of the contract, including
+     * {IERC20-balanceOf} and {IERC20-transfer}.
+     */
+    function decimals() public view returns (uint8) {
+        return _decimals;
     }
 
     function contractFallBack(

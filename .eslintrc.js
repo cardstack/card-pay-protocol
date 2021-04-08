@@ -10,6 +10,7 @@ module.exports = {
   },
   globals: {
     artifacts: "readonly",
+    web3: "readonly",
   },
   ignorePatterns: ["bin/**", "build/**", "coverage/**"],
   rules: {},

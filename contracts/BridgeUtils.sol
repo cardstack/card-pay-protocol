@@ -2,7 +2,7 @@ pragma solidity 0.5.17;
 
 import "./core/Safe.sol";
 import "./roles/PayableToken.sol";
-import "@openzeppelin/contracts/ownership/Ownable.sol";
+import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
 
 
 contract BridgeUtils is Safe, Ownable {
@@ -17,15 +17,9 @@ contract BridgeUtils is Safe, Ownable {
 
     mapping(address => Supplier) public suppliers;
 
-    address public tallyAdmin;
     address public revenuePool;
     address public prepaidCardManager;
     address public bridgeMediator;
-
-    // TODO: what do we intend to do with the tally address? currently it is unsused
-    constructor(address _tallyAdmin) public {
-        tallyAdmin = _tallyAdmin;
-    }
 
     modifier onlyBridgeMediator() {
         require(

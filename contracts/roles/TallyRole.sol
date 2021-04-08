@@ -1,7 +1,7 @@
 pragma solidity 0.5.17;
 
-import "@openzeppelin/contracts/ownership/Ownable.sol";
-import "@openzeppelin/contracts/utils/EnumerableSet.sol";
+import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
+import "@openzeppelin/contract-upgradeable/contracts/utils/EnumerableSet.sol";
 
 
 contract TallyRole is Ownable {
