@@ -3,10 +3,11 @@ set -e
 set -x
 
 NETWORK=$1
+SKIP_VERIFICATION=$2
 cd "$(dirname $0)"
 source "./lib/deploy-utils.sh"
 
-######### Configure contracts to be deployed #########
+######### contracts to be deployed #########
 ##
 ## Provide a list of each contract name (as specified
 ## in the sol file) to be deployed. If you want to
@@ -16,19 +17,47 @@ source "./lib/deploy-utils.sh"
 CONTRACTS=(
   "ERC677Token:DAI"
   # "ERC677Token:CARD"
-  # "PrepaidCardManager"
+  "PrepaidCardManager"
+  "RevenuePool"
+  "BridgeUtils"
+  "SPEND"
 )
 ######################################################
 
-######## Configure the contract init arguments #######
+######## contract init arguments #######
 ##
 ## Provide a list of initialization arguments for each
 ## contract using the contract's name (or ID) followed
-## by the suffix "_INIT" and the suffix of the network
-DAI_INIT_xdai=$(p "'DAICPXD-Token'" DAICPXD 18 '${account}')
-DAI_INIT_sokol=$(p "'DAICPSK-Token'" DAICPSK 18 '${account}')
-CARD_INIT_xdai=$(p "'CARDCPXD-Token'" CARDCPXD 18 '${account}')
-CARD_INIT_sokol=$(p "'CARDCPSK-Token'" CARDCPSK 18 '${account}')
+## by the suffix "_INIT". Variables are permitted to
+## be used, but you must use 's to prevent them from
+## being immeidately evaluated. The special $(p ...)
+## wrapping allows us to late bind the variables.
+DAI_INIT=$(p "'DAICPXD-Token'" DAICPXD 18 '${account}')
+CARD_INIT=$(p "'CARDCPXD-Token'" CARDCPXD 18 '${account}')
+PrepaidCardManager_INIT=$(p '${account}')
+RevenuePool_INIT=$(p '${account}')
+BridgeUtils_INIT=$(p '${account}')
+SPEND_INIT=$(p "'SPEND-Token'" SPEND '${account}' '${RevenuePool_ADDRESS}')
+######################################################
+
+######### contract configuration #####################
+##
+COMMANDS=(
+  'RevenuePool.setup ${TALLY} ${GNOSIS_SAFE_MASTER_COPY} ${GNOSIS_SAFE_FACTORY} ${SPEND_ADDRESS} [${DAI_ADDRESS}]'
+  'PrepaidCardManager.setup ${TALLY} ${GNOSIS_SAFE_MASTER_COPY} ${GNOSIS_SAFE_FACTORY} ${RevenuePool_ADDRESS} [${DAI_ADDRESS}] ${MINIMUM_AMOUNT} ${MAXIMUM_AMOUNT}'
+  'BridgeUtils.setup ${RevenuePool_ADDRESS} ${PrepaidCardManager_ADDRESS} ${GNOSIS_SAFE_MASTER_COPY} ${GNOSIS_SAFE_FACTORY} ${BRIDGE_MEDIATOR}'
+)
+######################################################
+
+######## initialize defaults #########################
+##
+ZERO_ADDRESS="0x0000000000000000000000000000000000000000"
+TALLY=${TALLY:-${ZERO_ADDRESS}}
+GNOSIS_SAFE_MASTER_COPY=${GNOSIS_SAFE_MASTER_COPY:-"0x6851d6fdfafd08c0295c392436245e5bc78b0185"}
+GNOSIS_SAFE_FACTORY=${GNOSIS_SAFE_FACTORY:-"0x76E2cFc1F5Fa8F6a5b3fC4c8F4788F0116861F9B"}
+BRIDGE_MEDIATOR=${BRIDGE_MEDIATOR:-${ZERO_ADDRESS}}
+MINIMUM_AMOUNT=${MINIMUM_AMOUNT:-100}      # minimum face value (in SPEND) for new prepaid card
+MAXIMUM_AMOUNT=${MAXIMUM_AMOUNT:-10000000} # maximum face value (in SPEND) for new prepaid card
 ######################################################
 
 read -p "This script will deploy a branch new instance of the Card Protocol to the ${NETWORK}. If you wish to upgrade a contract, please use the 'oz upgrade' command. Do you wish to continue? [y/N] " -n 1 -r
@@ -47,13 +76,17 @@ if [ -z "$MNEMONIC" ]; then
 fi
 
 account="$(defaultAccount $NETWORK)"
+
 echo "Deploying to $NETWORK with deployer address ${account}"
+
+# full compile with all downstream oz commands will utilize
+yarn build:clean
 
 for contractInfo in "${CONTRACTS[@]}"; do
   contractParts=(${contractInfo//:/ })
   contractName=${contractParts[0]}
   id=${contractParts[1]:-${contractParts[0]}}
-  initArgsName="${id}_INIT_${NETWORK}"
+  initArgsName="${id}_INIT"
   initArgs=$(eval ${!initArgsName})
   initArgs="${initArgs//\'/\"}"
 
@@ -68,5 +101,9 @@ for contractInfo in "${CONTRACTS[@]}"; do
   implementationAddress=$(getImplementationAddress $NETWORK $contractName $instanceAddress)
   echo "Deployed contract to $instanceAddress"
   verifyProxy $NETWORK $instanceAddress
-  verifyImplementation $NETWORK $contractName $implementationAddress
+  if [ "$SKIP_VERIFICATION" != "--skip-verification" ]; then
+    verifyImplementation $NETWORK $contractName $implementationAddress
+  fi
 done
+
+echo "Deployment complete."

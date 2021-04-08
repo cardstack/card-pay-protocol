@@ -4,6 +4,7 @@ import "./ISPEND.sol";
 import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contract-upgradeable/contracts/math/SafeMath.sol";
 import "../roles/SPENDMinterRole.sol";
+import "@openzeppelin/upgrades/contracts/Initializable.sol";
 
 
 contract SPEND is ISPEND, SPENDMinterRole {
@@ -18,13 +19,12 @@ contract SPEND is ISPEND, SPENDMinterRole {
     string private _symbol;
     uint8 private _decimals;
 
-    constructor (string memory name, string memory symbol, address[] memory minters) public {
+    function initialize (string memory name, string memory symbol, address sender, address minter) public initializer {
         _name = name;
         _symbol = symbol;
         _decimals = 0;
-        for (uint i = 0;i < minters.length; ++i) {
-            addMinter(minters[i]);
-        }
+        initializeMinterRole(sender);
+        addMinter(minter);
     }
 
     function mint(address account, uint amount) external onlyMinter returns(bool) {

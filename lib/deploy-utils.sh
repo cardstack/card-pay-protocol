@@ -23,9 +23,9 @@ deploy() {
   NETWORK=$1
   CONTRACT_NAME=$2
   ARGS="$3"
-  $OZ add $CONTRACT_NAME &>/dev/null
-  $OZ push -n $NETWORK &>/dev/null
-  output=$(OZ deploy --network $NETWORK --kind upgradeable --no-interactive $CONTRACT_NAME $ARGS)
+  $OZ add $CONTRACT_NAME --skip-compile &>/dev/null
+  $OZ push -n $NETWORK --skip-compile &>/dev/null
+  output=$(OZ deploy --network $NETWORK --kind upgradeable --skip-compile --no-interactive $CONTRACT_NAME $ARGS)
   ## test for address of contract instance
   if [[ "$output" =~ .*("0x"[0-9a-fA-F]{40})$ ]]; then
     echo ${BASH_REMATCH[1]}

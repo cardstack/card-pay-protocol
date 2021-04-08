@@ -36,7 +36,7 @@ contract("PrepaidCardManager - EOA tests", (accounts) => {
 
     revenuePool = await RevenuePool.new();
 
-    spendToken = await SPEND.new("SPEND Token", "SPEND", [revenuePool.address]);
+    spendToken = await SPEND.new("SPEND Token", "SPEND", revenuePool.address);
 
     // Deploy and mint 100 daicpxd token for deployer as owner
     daicpxdToken = await ERC677Token.new(...TOKEN_DETAIL_DATA);

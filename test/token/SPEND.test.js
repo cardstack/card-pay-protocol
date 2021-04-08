@@ -9,7 +9,7 @@ contract("SPEND", (accounts) => {
     owner = accounts[0];
     alice = accounts[1];
     bob = accounts[2];
-    instance = await SPEND.new("SPEND Token", "SPEND", [owner]);
+    instance = await SPEND.new("SPEND Token", "SPEND", owner);
   });
 
   it("can display token contract values", async () => {
@@ -64,7 +64,7 @@ contract("SPEND", (accounts) => {
       await instance.burn(owner, amount, { from: alice });
       assert.fail("don't get error");
     } catch (error) {
-      assert.equal(error.reason, "Minter: caller is not the minter");
+      assert.equal(error.reason, "sender is not a minter");
     }
   });
 

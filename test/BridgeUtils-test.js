@@ -87,10 +87,7 @@ contract("BridgeUtils", async (accounts) => {
       .registerSupplier(newSupplier, {
         from: notMediatorOfBridge,
       })
-      .should.be.rejectedWith(
-        Error,
-        "Guard: Action supported only by the bridge mediator"
-      );
+      .should.be.rejectedWith(Error, "caller is not a bridge mediator");
   });
 
   it("allows a supplier to update their profile", async () => {

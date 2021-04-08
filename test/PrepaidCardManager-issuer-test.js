@@ -51,7 +51,7 @@ contract("PrepaidCardManager - issuer tests", (accounts) => {
     let gnosisSafeMasterCopy = await GnosisSafe.new();
     multiSend = await MultiSend.new();
     revenuePool = await RevenuePool.new();
-    spendToken = await SPEND.new("SPEND Token", "SPEND", [revenuePool.address]);
+    spendToken = await SPEND.new("SPEND Token", "SPEND", revenuePool.address);
 
     // Deploy and mint 100 daicpxd token for deployer as owner
     daicpxdToken = await ERC677Token.new(...TOKEN_DETAIL_DATA);

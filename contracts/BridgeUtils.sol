@@ -3,9 +3,10 @@ pragma solidity 0.5.17;
 import "./core/Safe.sol";
 import "./roles/PayableToken.sol";
 import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
+import "@openzeppelin/upgrades/contracts/Initializable.sol";
 
 
-contract BridgeUtils is Safe, Ownable {
+contract BridgeUtils is Initializable, Safe, Ownable {
     event SupplierWallet(address owner, address wallet);
     event UpdateToken(address token);
 
@@ -24,7 +25,7 @@ contract BridgeUtils is Safe, Ownable {
     modifier onlyBridgeMediator() {
         require(
             msg.sender == bridgeMediator,
-            "Guard: Action supported only by the bridge mediator"
+            "caller is not a bridge mediator"
         );
         _;
     }

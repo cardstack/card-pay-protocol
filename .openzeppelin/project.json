@@ -1,7 +1,11 @@
 {
   "manifestVersion": "2.2",
   "contracts": {
-    "ERC677Token": "ERC677Token"
+    "RevenuePool": "RevenuePool",
+    "SPEND": "SPEND",
+    "ERC677Token": "ERC677Token",
+    "PrepaidCardManager": "PrepaidCardManager",
+    "BridgeUtils": "BridgeUtils"
   },
   "dependencies": {},
   "name": "card-protocol",

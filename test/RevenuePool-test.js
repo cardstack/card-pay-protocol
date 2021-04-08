@@ -41,9 +41,7 @@ contract("RevenuePool", (accounts) => {
   describe("initial revenue pool contract", () => {
     beforeEach(async () => {
       // deploy spend token
-      spendToken = await SPEND.new("SPEND Token", "SPEND", [
-        revenuePool.address,
-      ]);
+      spendToken = await SPEND.new("SPEND Token", "SPEND", revenuePool.address);
       // setup for revenue pool
       await revenuePool.setup(
         tally,
