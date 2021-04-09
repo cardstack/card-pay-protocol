@@ -1,6 +1,12 @@
 #!/bin/bash
 set -e
 
+# TODO As we add more new contracts to the Card Protocol, we sould update this
+# script to optionally deploy and configure only new contracts. We can use
+# .openzeppelin to keep track of what has/has not been deployed, as well as to
+# get the existing addresses from contracts that are already deployed so that we
+# can feed that into the configureation scripts for new contracts
+
 ######### contracts to be deployed #########
 ##
 ## Provide a list of each contract name (as specified

@@ -56,7 +56,7 @@ We use a mnemonic held in AWS Secret Manager to manage our contract's key pair. 
    - xDai Faucet: https://blockscout.com/xdai/mainnet/faucet
    - Sokol Faucet: https://blockscout.com/poa/sokol/faucet
 
-3. **Deploy Contract**
+3. **Deploy Contract (first time deploy)**
 
     **Staging:**
     For a staging deploy, deploy to the Sokol network by entering the following command:
@@ -86,24 +86,12 @@ We use a mnemonic held in AWS Secret Manager to manage our contract's key pair. 
 
     As of 4/1/2021 the total native network cost to deploy is 0.1934 units (SPOA in sokol), where the block gas limit is 12499976.
 
-4. **Verify Contracts**
-
-   After the contracts have been deployed to the blockchain, we need to upload our verified source code to the L2 Block Explorer, BlockScout.
-
-    **Staging**
-    For the staging deployment run:
-    ```sh
-    yarn verify:sokol
-    ```
-
-    **Production**
-    For the production deployment run:
-    ```sh
-    yarn verify:xdai
-    ```
-5. **Configure BridgeUtils**
+4. **Configure BridgeUtils**
    If the `BRIDGE_MEDIATOR` environment variable was not supplied (because the layer 2 token bridge contracts have not yet been deployed), then deploy the layer 2 token bridge contracts, and then configure the BridgeUtils contract with the address of the layer 2 token bridge contract. [Instructions to perform this are here.](./OPERATIONS.md#bridge-utils)
 
-6. **Memorialize Contract Locations**
+5. **Memorialize Contract State**
+   OpenZeppelin captures state information about the contracts that have been deployed. It uses this information to determine whether its safe to upgrade future versions of the contract based on changes that have been made as well where to update the contracts. It is OpenZeppelin's strong recommendation that this contract state be under source control. This means that after the initial deploy and after subsequent contract upgrades we need to commit and merge changes to the `./.openzeppelin` folder. So make sure to `git commit` after any contract deploys and upgrades, as well as a `git push` to merge the commits back into the main branch so our representation of the state remains consistent.
 
-   The contract addresses are saved in a `addresses-{network}.json` file. In order to memorialize our current card protocol addresses, commit and push the new/updated `addresses-{network}.json` file`.
+## Upgrading Contracts
+TODO
+##

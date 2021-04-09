@@ -12,10 +12,8 @@
     "lint": "npm-run-all lint:*",
     "lint:js": "./node_modules/.bin/eslint .",
     "lint:sol": "./node_modules/.bin/solhint ./contracts/**/*.sol -w 0",
-    "deploy:sokol": "./node_modules/.bin/truffle migrate -f --network=sokol --reset",
-    "deploy:xdai": "./node_modules/.bin/truffle migrate -f --network xdai",
-    "verify:sokol": "truffle run blockscout ERC677Token SPEND RevenuePool PrepaidCardManager BridgeUtils --network sokol --license UNLICENSED",
-    "verify:xdai": "truffle run blockscout ERC677Token SPEND RevenuePool PrepaidCardManager BridgeUtils --network xdai --license UNLICENSED"
+    "deploy:sokol": "./deploy.sh -n sokol",
+    "deploy:xdai": "./deploy.sh -n xdai"
   },
   "repository": {
     "type": "git",
