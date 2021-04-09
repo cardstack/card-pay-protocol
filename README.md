@@ -9,7 +9,8 @@ TODO
 ### Revenue Pool
 TODO
 ### L2 Payment Token
-TODO
+The layer 2 payment token is actually controlled by the token bridge. The token bridge will deploy upgradable ERC-677 compliant token contracts on an ad-hoc basis. This project supplies an ERC-677 token contract, but it is only meant for testing purposes and should not actually be deployed.
+
 ### SPEND Token
 TODO
 

@@ -15,8 +15,6 @@ source "./lib/deploy-utils.sh"
 ## provide an ID for the contract instance using ":"
 ## as a delimiter
 CONTRACTS=(
-  "ERC677Token:DAI"
-  # "ERC677Token:CARD"
   "PrepaidCardManager"
   "RevenuePool"
   "BridgeUtils"
@@ -32,8 +30,6 @@ CONTRACTS=(
 ## be used, but you must use 's to prevent them from
 ## being immeidately evaluated. The special $(p ...)
 ## wrapping allows us to late bind the variables.
-DAI_INIT=$(p "'DAICPXD-Token'" DAICPXD 18 '${account}')
-CARD_INIT=$(p "'CARDCPXD-Token'" CARDCPXD 18 '${account}')
 PrepaidCardManager_INIT=$(p '${account}')
 RevenuePool_INIT=$(p '${account}')
 BridgeUtils_INIT=$(p '${account}')
@@ -43,8 +39,8 @@ SPEND_INIT=$(p "'SPEND-Token'" SPEND '${account}' '${RevenuePool_ADDRESS}')
 ######### contract configuration #####################
 ##
 COMMANDS=(
-  'RevenuePool.setup ${TALLY} ${GNOSIS_SAFE_MASTER_COPY} ${GNOSIS_SAFE_FACTORY} ${SPEND_ADDRESS} [${DAI_ADDRESS}]'
-  'PrepaidCardManager.setup ${TALLY} ${GNOSIS_SAFE_MASTER_COPY} ${GNOSIS_SAFE_FACTORY} ${RevenuePool_ADDRESS} [${DAI_ADDRESS}] ${MINIMUM_AMOUNT} ${MAXIMUM_AMOUNT}'
+  'RevenuePool.setup ${TALLY} ${GNOSIS_SAFE_MASTER_COPY} ${GNOSIS_SAFE_FACTORY} ${SPEND_ADDRESS} []'
+  'PrepaidCardManager.setup ${TALLY} ${GNOSIS_SAFE_MASTER_COPY} ${GNOSIS_SAFE_FACTORY} ${RevenuePool_ADDRESS} [] ${MINIMUM_AMOUNT} ${MAXIMUM_AMOUNT}'
   'BridgeUtils.setup ${RevenuePool_ADDRESS} ${PrepaidCardManager_ADDRESS} ${GNOSIS_SAFE_MASTER_COPY} ${GNOSIS_SAFE_FACTORY} ${BRIDGE_MEDIATOR}'
 )
 ######################################################
