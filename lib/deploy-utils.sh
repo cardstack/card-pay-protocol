@@ -32,6 +32,14 @@ deploy() {
   fi
 }
 
+sendTxn() {
+  NETWORK=$1
+  TO=$2
+  METHOD=$3
+  ARGS="$4"
+  $OZ send-tx --to $TO --network $NETWORK --method $METHOD --no-interactive --args $ARGS
+}
+
 ## $1 = Network
 ## $2 = Contract Name
 ## $3 = Instance address (proxy)
@@ -49,6 +57,23 @@ getImplementationAddress() {
     exit 1
   fi
   echo "$conf" | jq -r ".proxies | with_entries(if (.key|test(\"$NAME\")) then ( {key: .key, value: .value } ) else empty end) | .[] | .[] | select(.address==\"$INSTANCE\").implementation"
+}
+
+## $1 = Network
+## $2 = Contract Name
+getLatestProxyAddress() {
+  NETWORK=$1
+  NAME=$2
+  conf=''
+  if [ "$NETWORK" == "sokol" ]; then
+    conf="$(cat ./.openzeppelin/*-77.json)"
+  elif [ "$NETWORK" == "xdai"]; then
+    conf="$(cat ./.openzeppelin/*-100.json)"
+  else
+    echo "Don't know how to handle network ${NETWORK}"
+    exit 1
+  fi
+  echo "$conf" | jq -r ".proxies | with_entries(if (.key|test(\"${NAME}\")) then ( {key: .key, value: .value } ) else empty end) | .[] | .[-1].address"
 }
 
 verifyImplementation() {
