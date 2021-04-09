@@ -9,7 +9,7 @@ contract("SPEND", (accounts) => {
     bob = accounts[2];
     owner2 = accounts[3];
     instance = await SPEND.new();
-    await instance.initialize("SPEND Token", "SPEND", owner, owner);
+    await instance.initialize(owner, owner);
   });
 
   it("can display token contract values", async () => {

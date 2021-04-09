@@ -105,12 +105,7 @@ contract("PrepaidManager", (accounts) => {
     before(async () => {
       // create spendToken
       spendToken = await SPEND.new();
-      await spendToken.initialize(
-        "SPEND Token",
-        "SPEND",
-        owner,
-        revenuePool.address
-      );
+      await spendToken.initialize(owner, revenuePool.address);
 
       // Setup for revenue pool
       await revenuePool.setup(

@@ -52,12 +52,7 @@ contract("RevenuePool", (accounts) => {
     beforeEach(async () => {
       // deploy spend token
       spendToken = await SPEND.new();
-      await spendToken.initialize(
-        "SPEND Token",
-        "SPEND",
-        owner,
-        revenuePool.address
-      );
+      await spendToken.initialize(owner, revenuePool.address);
 
       // setup for revenue pool
       await revenuePool.setup(

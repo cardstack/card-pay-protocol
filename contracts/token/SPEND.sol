@@ -16,14 +16,7 @@ contract SPEND is ISPEND, SPENDMinterRole {
 
     uint256 private _totalSupply;
 
-    string private _name;
-    string private _symbol;
-    uint8 private _decimals;
-
-    function initialize (string memory name, string memory symbol, address owner, address minter) public initializer {
-        _name = name;
-        _symbol = symbol;
-        _decimals = 0;
+    function initialize (address owner, address minter) public initializer {
         initializeMinterRole(owner);
         addMinter(minter);
     }
@@ -41,16 +34,16 @@ contract SPEND is ISPEND, SPENDMinterRole {
     /**
      * @dev Returns the name of the token.
      */
-    function name() public view returns (string memory) {
-        return _name;
+    function name() public pure returns (string memory) {
+        return "SPEND Token";
     }
 
     /**
      * @dev Returns the symbol of the token, usually a shorter version of the
      * name.
      */
-    function symbol() public view returns (string memory) {
-        return _symbol;
+    function symbol() public pure returns (string memory) {
+        return "SPEND";
     }
 
     /**
@@ -66,8 +59,8 @@ contract SPEND is ISPEND, SPENDMinterRole {
      * no way affects any of the arithmetic of the contract, including
      * {IERC20-balanceOf} and {IERC20-transfer}.
      */
-    function decimals() public view returns (uint8) {
-        return _decimals;
+    function decimals() public pure returns (uint8) {
+        return 0;
     }
 
     /**
