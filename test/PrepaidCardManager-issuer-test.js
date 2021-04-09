@@ -33,6 +33,7 @@ contract("PrepaidCardManager - issuer tests", (accounts) => {
     offChainId = "Id",
     fakeDaicpxdToken,
     tally,
+    owner,
     issuer,
     customer,
     merchant,
@@ -41,7 +42,7 @@ contract("PrepaidCardManager - issuer tests", (accounts) => {
     prepaidCards = [];
 
   before(async () => {
-    tally = accounts[0];
+    tally = owner = accounts[0];
     issuer = accounts[1];
     customer = accounts[2];
     merchant = accounts[3];
@@ -51,13 +52,22 @@ contract("PrepaidCardManager - issuer tests", (accounts) => {
     let gnosisSafeMasterCopy = await GnosisSafe.new();
     multiSend = await MultiSend.new();
     revenuePool = await RevenuePool.new();
-    spendToken = await SPEND.new("SPEND Token", "SPEND", revenuePool.address);
+    await revenuePool.initialize(owner);
+    spendToken = await SPEND.new();
+    await spendToken.initialize(
+      "SPEND Token",
+      "SPEND",
+      owner,
+      revenuePool.address
+    );
 
     // Deploy and mint 100 daicpxd token for deployer as owner
-    daicpxdToken = await ERC677Token.new(...TOKEN_DETAIL_DATA);
+    daicpxdToken = await ERC677Token.new();
+    await daicpxdToken.initialize(...TOKEN_DETAIL_DATA, owner);
     await daicpxdToken.mint(accounts[0], toTokenUnit(1000));
     // Deploy and mint 100 daicpxd token for deployer as owner
-    fakeDaicpxdToken = await ERC677Token.new(...TOKEN_DETAIL_DATA);
+    fakeDaicpxdToken = await ERC677Token.new();
+    await fakeDaicpxdToken.initialize(...TOKEN_DETAIL_DATA, owner);
     await fakeDaicpxdToken.mint(accounts[0], toTokenUnit(1000));
 
     walletOfIssuer = await getParamFromTxEvent(
@@ -90,6 +100,7 @@ contract("PrepaidCardManager - issuer tests", (accounts) => {
     await fakeDaicpxdToken.mint(walletOfIssuer.address, toTokenUnit(20));
 
     prepaidCardManager = await PrepaidCardManager.new();
+    await prepaidCardManager.initialize(owner);
 
     // Setup for revenue pool
     await revenuePool.setup(

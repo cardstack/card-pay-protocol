@@ -1,10 +1,11 @@
 pragma solidity 0.5.17;
 
-import "./ISPEND.sol";
 import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contract-upgradeable/contracts/math/SafeMath.sol";
-import "../roles/SPENDMinterRole.sol";
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
+
+import "./ISPEND.sol";
+import "../roles/SPENDMinterRole.sol";
 
 
 contract SPEND is ISPEND, SPENDMinterRole {
@@ -19,11 +20,11 @@ contract SPEND is ISPEND, SPENDMinterRole {
     string private _symbol;
     uint8 private _decimals;
 
-    function initialize (string memory name, string memory symbol, address sender, address minter) public initializer {
+    function initialize (string memory name, string memory symbol, address owner, address minter) public initializer {
         _name = name;
         _symbol = symbol;
         _decimals = 0;
-        initializeMinterRole(sender);
+        initializeMinterRole(owner);
         addMinter(minter);
     }
 

@@ -1,15 +1,15 @@
 const { assert } = require("chai");
-
 const SPEND = artifacts.require("SPEND");
 
 contract("SPEND", (accounts) => {
-  let instance;
-  let owner, alice, bob;
+  let instance, owner, alice, bob, owner2;
   before(async () => {
     owner = accounts[0];
     alice = accounts[1];
     bob = accounts[2];
-    instance = await SPEND.new("SPEND Token", "SPEND", owner);
+    owner2 = accounts[3];
+    instance = await SPEND.new();
+    await instance.initialize("SPEND Token", "SPEND", owner, owner);
   });
 
   it("can display token contract values", async () => {
@@ -43,7 +43,7 @@ contract("SPEND", (accounts) => {
       await instance.mint(bob, amount, { from: alice });
       assert.fail("don't got error");
     } catch (error) {
-      assert.equal(error.reason, "Minter: caller is not the minter");
+      assert.equal(error.reason, "caller is not a minter");
     }
   });
 
@@ -64,7 +64,7 @@ contract("SPEND", (accounts) => {
       await instance.burn(owner, amount, { from: alice });
       assert.fail("don't get error");
     } catch (error) {
-      assert.equal(error.reason, "sender is not a minter");
+      assert.equal(error.reason, "caller is not a minter");
     }
   });
 
@@ -112,5 +112,21 @@ contract("SPEND", (accounts) => {
 
     let currentMinters = await instance.getMinters();
     assert.deepEqual([newMinter], currentMinters);
+  });
+
+  it("can transfer ownership of the token contract", async () => {
+    assert.equal(await instance.owner(), owner);
+    await instance.transferOwnership(owner2);
+    assert.equal(await instance.owner(), owner2);
+    await instance.transferOwnership(owner, { from: owner2 });
+  });
+
+  it("can renounce ownership of the token contract", async () => {
+    assert.equal(await instance.owner(), owner);
+    await instance.renounceOwnership();
+    assert.equal(
+      await instance.owner(),
+      "0x0000000000000000000000000000000000000000"
+    );
   });
 });
