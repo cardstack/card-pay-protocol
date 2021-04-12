@@ -16,6 +16,7 @@ contract RevenuePool is Initializable, TallyRole, MerchantManager, Exchange, IRe
     using SafeMath for uint256;
 
     address public spendToken;
+    event Setup();
 
     /**
      * @dev set up revenue pool
@@ -42,6 +43,7 @@ contract RevenuePool is Initializable, TallyRole, MerchantManager, Exchange, IRe
         for (uint256 i = 0; i < _payableTokens.length; i++) {
             addPayableToken(_payableTokens[i]);
         }
+        emit Setup();
     }
 
     /**
