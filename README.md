@@ -21,6 +21,7 @@ TODO
 The following prerequisites are required for this project:
 - NodeJS ver 14+
 - Yarn
+- jq (`brew install jq`)
 
 ## Building
 To build this project execute:
