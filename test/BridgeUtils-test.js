@@ -52,6 +52,9 @@ contract("BridgeUtils", async (accounts) => {
       MAXIMUM_AMOUNT
     );
 
+    await pool.setBridgeUtils(bridgeUtils.address);
+    await prepaidCardManager.setBridgeUtils(bridgeUtils.address);
+
     await bridgeUtils.setup(
       pool.address,
       prepaidCardManager.address,
@@ -66,6 +69,10 @@ contract("BridgeUtils", async (accounts) => {
 
     let payableToken = await pool.getTokens();
     expect(payableToken.toString()).to.equal([tokenMock].toString());
+  });
+
+  it("can get the BridgeUtils address", async () => {
+    expect(await pool.bridgeUtils()).to.equal(bridgeUtils.address);
   });
 
   it("can register new supplier", async () => {
