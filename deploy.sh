@@ -1,12 +1,6 @@
 #!/bin/bash
 set -e
 
-# TODO As we add more new contracts to the Card Protocol, we sould update this
-# script to optionally deploy and configure only new contracts. We can use
-# .openzeppelin to keep track of what has/has not been deployed, as well as to
-# get the existing addresses from contracts that are already deployed so that we
-# can feed that into the configureation scripts for new contracts
-
 ######### contracts to be deployed #########
 ##
 ## Provide a list of each contract name (as specified
@@ -125,11 +119,6 @@ if [ -z "$NETWORK" ]; then
   exit 1
 fi
 
-read -p "This script will deploy a branch new instance of the Card Protocol to the ${NETWORK}. If you wish to upgrade a contract, please use the 'oz upgrade' command. Do you wish to continue? [y/N] " -n 1 -r
-if [ "$REPLY" != 'y' -a "$REPLY" != 'Y' ]; then
-  exit 0
-fi
-
 deployerAddress="$(defaultAccount $NETWORK)"
 echo "Deploying to $NETWORK with deployer address ${deployerAddress}"
 
@@ -141,22 +130,39 @@ for contractInfo in "${CONTRACTS[@]}"; do
   contractParts=(${contractInfo//:/ })
   contractName=${contractParts[0]}
   id=${contractParts[1]:-${contractParts[0]}}
-  initArgsName="${id}_INIT"
-  initArgs=$(eval $(p ${!initArgsName}))
-
-  echo "Deploying contract $contractName with args: ${initArgs}"
-  instanceAddress=$(deploy $NETWORK $contractName "${initArgs}")
-  if [ -z "${instanceAddress}" ]; then
-    echo "Failed to deploy contract $contractName with args: ${initArgs}"
-    exit 1
+  instanceAddress=$(getLatestProxyAddress $NETWORK $contractName)
+  if [ -n "$instanceAddress" ] && [ "$contractName" == "$id" ]; then
+    echo "The contract $id has already been deployed. Use 'zos upgrade' to update it."
+    declare "${id}_ADDRESS=${instanceAddress}"
+    declare "${id}_INSTALLED=true"
+  elif [ -n "$instanceAddress" ] && [ "$contractName" != "$id" ]; then
+    read -p "An instance of the ${contractName} has already been deployed to ${instanceAddress}. Do you wish to deploy a new instance of this contract for ${id}? [y/N]" -n 1 -r
+    if [ "$REPLY" != 'y' -a "$REPLY" != 'Y' ]; then
+      declare "${id}_ADDRESS=${instanceAddress}"
+      declare "${id}_INSTALLED=true"
+      echo "If you wish to update $id. Use 'zos upgrade' to update it."
+    fi
   fi
-  declare "${id}_ADDRESS=${instanceAddress}"
 
-  implementationAddress=$(getImplementationAddress $NETWORK $contractName $instanceAddress)
-  echo "Deployed contract to $instanceAddress"
-  verifyProxy $NETWORK $instanceAddress
-  if [ -z "$skipVerification" ]; then
-    verifyImplementation $NETWORK $contractName $implementationAddress
+  installed="${id}_INSTALLED"
+  if [ -z "${!installed}" ]; then
+    initArgsName="${id}_INIT"
+    initArgs=$(eval $(p ${!initArgsName}))
+
+    echo "Deploying contract $contractName with args: ${initArgs}"
+    instanceAddress=$(deploy $NETWORK $contractName "${initArgs}")
+    if [ -z "${instanceAddress}" ]; then
+      echo "Failed to deploy contract $contractName with args: ${initArgs}"
+      exit 1
+    fi
+    declare "${id}_ADDRESS=${instanceAddress}"
+
+    implementationAddress=$(getImplementationAddress $NETWORK $contractName $instanceAddress)
+    echo "Deployed contract to $instanceAddress"
+    verifyProxy $NETWORK $instanceAddress
+    if [ -z "$skipVerification" ]; then
+      verifyImplementation $NETWORK $contractName $implementationAddress
+    fi
   fi
   echo ""
 done
@@ -164,25 +170,27 @@ done
 for command in "${COMMANDS[@]}"; do
   action=${command%% *}
   contract=${action%%\.*}
+  installed="${contract}_INSTALLED"
   method=${action:${#contract}+1}
   args=$(p ${command:${#action}+1})
   toAddress="${contract}_ADDRESS"
   to=${!toAddress}
   evalArgs=$(eval ${args})
-
+  echo "Sending transaction: ${action}($evalArgs)"
   sendTxn $NETWORK $to $method "$evalArgs"
 done
 
 echo ""
-echo "Created Contracts (proxy addresses):"
 for contractInfo in "${CONTRACTS[@]}"; do
   contractParts=(${contractInfo//:/ })
   contractName=${contractParts[0]}
   id=${contractParts[1]:-${contractParts[0]}}
-  contractAddress="${id}_ADDRESS"
-  echo "  - ${id}: ${!contractAddress}"
+  installed="${id}_INSTALLED"
+  if [ -z "${!installed}" ]; then
+    contractAddress="${id}_ADDRESS"
+    echo "Created contract ${id}: ${!contractAddress} (proxy address)"
+  fi
 done
 
 echo ""
 echo "Deployment complete."
-echo "Please use 'oz upgrade' to upgrade the deployed contracts (and don't forget to re-verify upgraded contract sources)."

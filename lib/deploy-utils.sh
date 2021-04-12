@@ -49,14 +49,20 @@ getImplementationAddress() {
   INSTANCE=$3
   conf=''
   if [ "$NETWORK" == "sokol" ]; then
-    conf="$(cat ./.openzeppelin/*-77.json)"
-  elif [ "$NETWORK" == "xdai"]; then
-    conf="$(cat ./.openzeppelin/*-100.json)"
+    if ls ./.openzeppelin/*-77.json 1>/dev/null 2>&1; then
+      conf="$(cat ./.openzeppelin/*-77.json)"
+    fi
+  elif [ "$NETWORK" == "xdai" ]; then
+    if ls ./.openzeppelin/*-100.json 1>/dev/null 2>&1; then
+      conf="$(cat ./.openzeppelin/*-100.json)"
+    fi
   else
     echo "Don't know how to handle network ${NETWORK}"
     exit 1
   fi
-  echo "$conf" | jq -r ".proxies | with_entries(if (.key|test(\"$NAME\")) then ( {key: .key, value: .value } ) else empty end) | .[] | .[] | select(.address==\"$INSTANCE\").implementation"
+  if [ -n "$conf" ]; then
+    echo "$conf" | jq -r ".proxies | with_entries(if (.key|test(\"$NAME\")) then ( {key: .key, value: .value } ) else empty end) | .[] | .[] | select(.address==\"$INSTANCE\").implementation"
+  fi
 }
 
 ## $1 = Network
@@ -66,14 +72,20 @@ getLatestProxyAddress() {
   NAME=$2
   conf=''
   if [ "$NETWORK" == "sokol" ]; then
-    conf="$(cat ./.openzeppelin/*-77.json)"
-  elif [ "$NETWORK" == "xdai"]; then
-    conf="$(cat ./.openzeppelin/*-100.json)"
+    if ls ./.openzeppelin/*-77.json 1>/dev/null 2>&1; then
+      conf="$(cat ./.openzeppelin/*-77.json)"
+    fi
+  elif [ "$NETWORK" == "xdai" ]; then
+    if ls ./.openzeppelin/*-100.json 1>/dev/null 2>&1; then
+      conf="$(cat ./.openzeppelin/*-100.json)"
+    fi
   else
     echo "Don't know how to handle network ${NETWORK}"
     exit 1
   fi
-  echo "$conf" | jq -r ".proxies | with_entries(if (.key|test(\"${NAME}\")) then ( {key: .key, value: .value } ) else empty end) | .[] | .[-1].address"
+  if [ -n "$conf" ]; then
+    echo "$conf" | jq -r ".proxies | with_entries(if (.key|test(\"${NAME}\")) then ( {key: .key, value: .value } ) else empty end) | .[] | .[-1].address"
+  fi
 }
 
 verifyImplementation() {
