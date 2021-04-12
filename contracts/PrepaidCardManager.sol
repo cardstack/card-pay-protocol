@@ -2,7 +2,8 @@ pragma solidity 0.5.17;
 
 import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 import "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contract-upgradeable/contracts/math/SafeMath.sol";
+import "@openzeppelin/upgrades/contracts/Initializable.sol";
 
 import "./token/IERC677.sol";
 import "./roles/TallyRole.sol";
@@ -13,6 +14,7 @@ import "./RevenuePool.sol";
 
 
 contract PrepaidCardManager is
+    Initializable,
     TallyRole,
     PayableToken,
     Safe,

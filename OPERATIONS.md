@@ -2,6 +2,7 @@
 This document describes various operations procedures for the on-going maintenance necessary for the Card Protocol, as well as procedures to aid in testing the Card Protocol. Many of these operations require "owner" access in order to execute. We'll use BlockScout and Metamask to perform these operations steps.
 
 - [Card Protocol Operations](#card-protocol-operations)
+  - [OpenZeppelin CLI vs Blockscout](#openzeppelin-cli-vs-blockscout)
   - [Configuring Metamask](#configuring-metamask)
     - [Adding Sokol Network](#adding-sokol-network)
     - [Adding xDai Network](#adding-xdai-network)
@@ -30,6 +31,8 @@ This document describes various operations procedures for the on-going maintenan
     - [Update Supplier](#update-supplier)
     - [Check Supplier Registration](#check-supplier-registration)
 
+## OpenZeppelin CLI vs Blockscout
+These instructions are written from the perspective of using the Blockscout website to update our contracts. Blockscout is nice in that it requires no prior setup, aside from creating your metamask wallet. An alternative to blockscout is using the OpenZeppelin CLI to run the commands below. The OpenZeppelin CLI is actually very pleasant to use and has an interactive interface to help guide you through sending transactions. It does require, though, building the source code and having a development environment that is ready to go. IF this is something that interests you, all of the commands below can be driven from the `oz send-tx` command from OpenZeppelin's CLI. [See OpenZeppelin's documentation for more information](https://docs.openzeppelin.com/cli).
 
 ## Configuring Metamask
 In order to update contracts with the "owner" account, you will need to add the owner's wallet to your Metamask. Metamask does not come pre-configured with the xDai nor Sokol network, so you'll need to add it if you haven't already. Download and install the "Metamask" Chrome extension. Make sure to set a challenging password that you won't forget.

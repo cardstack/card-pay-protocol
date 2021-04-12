@@ -1,8 +1,10 @@
 pragma solidity 0.5.17;
 
+import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
+import "@openzeppelin/contract-upgradeable/contracts/math/SafeMath.sol";
+import "@openzeppelin/upgrades/contracts/Initializable.sol";
+
 import "./ISPEND.sol";
-import "@openzeppelin/contracts/ownership/Ownable.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../roles/SPENDMinterRole.sol";
 
 
@@ -14,17 +16,9 @@ contract SPEND is ISPEND, SPENDMinterRole {
 
     uint256 private _totalSupply;
 
-    string private _name;
-    string private _symbol;
-    uint8 private _decimals;
-
-    constructor (string memory name, string memory symbol, address[] memory minters) public {
-        _name = name;
-        _symbol = symbol;
-        _decimals = 0;
-        for (uint i = 0;i < minters.length; ++i) {
-            addMinter(minters[i]);
-        }
+    function initialize (address owner, address minter) public initializer {
+        initializeMinterRole(owner);
+        addMinter(minter);
     }
 
     function mint(address account, uint amount) external onlyMinter returns(bool) {
@@ -40,16 +34,16 @@ contract SPEND is ISPEND, SPENDMinterRole {
     /**
      * @dev Returns the name of the token.
      */
-    function name() public view returns (string memory) {
-        return _name;
+    function name() public pure returns (string memory) {
+        return "SPEND Token";
     }
 
     /**
      * @dev Returns the symbol of the token, usually a shorter version of the
      * name.
      */
-    function symbol() public view returns (string memory) {
-        return _symbol;
+    function symbol() public pure returns (string memory) {
+        return "SPEND";
     }
 
     /**
@@ -65,8 +59,8 @@ contract SPEND is ISPEND, SPENDMinterRole {
      * no way affects any of the arithmetic of the contract, including
      * {IERC20-balanceOf} and {IERC20-transfer}.
      */
-    function decimals() public view returns (uint8) {
-        return _decimals;
+    function decimals() public pure returns (uint8) {
+        return 0;
     }
 
     /**

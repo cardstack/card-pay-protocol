@@ -39,6 +39,7 @@ contract("PrepaidManager", (accounts) => {
     fakeDaicpxdToken,
     gnosisSafeMasterCopy,
     proxyFactory,
+    owner,
     tally,
     issuer,
     customer,
@@ -49,6 +50,7 @@ contract("PrepaidManager", (accounts) => {
     prepaidCards = [];
 
   before(async () => {
+    owner = accounts[0];
     tally = accounts[1];
     issuer = accounts[2];
     customer = accounts[3];
@@ -58,15 +60,19 @@ contract("PrepaidManager", (accounts) => {
     proxyFactory = await ProxyFactory.new();
     gnosisSafeMasterCopy = await GnosisSafe.new();
     revenuePool = await RevenuePool.new();
+    await revenuePool.initialize(owner);
     cardManager = await PrepaidCardManager.new();
+    await cardManager.initialize(owner);
     multiSend = await MultiSend.new();
 
     // Deploy and mint 100 daicpxd token for deployer as owner
-    daicpxdToken = await ERC677Token.new(...TOKEN_DETAIL_DATA);
+    daicpxdToken = await ERC677Token.new();
+    await daicpxdToken.initialize(...TOKEN_DETAIL_DATA, owner);
     await daicpxdToken.mint(accounts[0], toTokenUnit(1000));
 
     // Deploy and mint 100 daicpxd token for deployer as owner
-    fakeDaicpxdToken = await ERC677Token.new(...TOKEN_DETAIL_DATA);
+    fakeDaicpxdToken = await ERC677Token.new();
+    await fakeDaicpxdToken.initialize(...TOKEN_DETAIL_DATA, owner);
     await fakeDaicpxdToken.mint(accounts[0], toTokenUnit(1000));
 
     let gnosisData = gnosisSafeMasterCopy.contract.methods
@@ -98,9 +104,8 @@ contract("PrepaidManager", (accounts) => {
   describe("setup contract", () => {
     before(async () => {
       // create spendToken
-      spendToken = await SPEND.new("SPEND Token", "SPEND", [
-        revenuePool.address,
-      ]);
+      spendToken = await SPEND.new();
+      await spendToken.initialize(owner, revenuePool.address);
 
       // Setup for revenue pool
       await revenuePool.setup(

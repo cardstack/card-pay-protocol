@@ -12,15 +12,22 @@ const { expect, TOKEN_DETAIL_DATA } = require("./setup");
 const { toTokenUnit, shouldBeSameBalance } = require("./utils/helper");
 
 contract("RevenuePool", (accounts) => {
-  let daicpxdToken, revenuePool, spendToken, fakeToken;
-  let lw, tally, merchant;
-  let offchainId;
-  let proxyFactory, gnosisSafeMasterCopy;
+  let daicpxdToken,
+    revenuePool,
+    spendToken,
+    fakeToken,
+    lw,
+    tally,
+    owner,
+    merchant,
+    offchainId,
+    proxyFactory,
+    gnosisSafeMasterCopy;
 
   before(async () => {
     offchainId = "offchain";
     lw = await utils.createLightwallet();
-    tally = accounts[0];
+    tally = owner = accounts[0];
 
     proxyFactory = await ProxyFactory.new();
     gnosisSafeMasterCopy = await utils.deployContract(
@@ -29,21 +36,24 @@ contract("RevenuePool", (accounts) => {
     );
 
     revenuePool = await RevenuePool.new();
+    await revenuePool.initialize(owner);
 
     // deploy and mint 100 daicpxd token for deployer as owner
-    daicpxdToken = await ERC677Token.new(...TOKEN_DETAIL_DATA);
+    daicpxdToken = await ERC677Token.new();
+    await daicpxdToken.initialize(...TOKEN_DETAIL_DATA, owner);
     await daicpxdToken.mint(accounts[0], toTokenUnit(100));
 
-    fakeToken = await ERC677Token.new(...TOKEN_DETAIL_DATA);
+    fakeToken = await ERC677Token.new();
+    await fakeToken.initialize(...TOKEN_DETAIL_DATA, owner);
     await fakeToken.mint(accounts[0], toTokenUnit(100));
   });
 
   describe("initial revenue pool contract", () => {
     beforeEach(async () => {
       // deploy spend token
-      spendToken = await SPEND.new("SPEND Token", "SPEND", [
-        revenuePool.address,
-      ]);
+      spendToken = await SPEND.new();
+      await spendToken.initialize(owner, revenuePool.address);
+
       // setup for revenue pool
       await revenuePool.setup(
         tally,

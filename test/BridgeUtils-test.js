@@ -11,16 +11,19 @@ const { expect } = require("./setup");
 contract("BridgeUtils", async (accounts) => {
   let bridgeUtils,
     pool,
+    owner,
     prepaidCardManager,
     tokenMock,
     mediatorBridgeMock,
     wallet;
   before(async () => {
-    let tallyAdmin = accounts[0];
+    let tallyAdmin = (owner = accounts[0]);
     mediatorBridgeMock = accounts[1];
     tokenMock = accounts[2];
-    bridgeUtils = await BridgeUtils.new(tallyAdmin);
+    bridgeUtils = await BridgeUtils.new();
+    await bridgeUtils.initialize(owner);
     pool = await RevenuePool.new();
+    await pool.initialize(owner);
 
     let gnosisFactory = await GnosisFactory.new();
     let gnosisMaster = await GnosisMaster.new();
@@ -34,6 +37,7 @@ contract("BridgeUtils", async (accounts) => {
     );
 
     prepaidCardManager = await PrepaidCardManager.new();
+    await prepaidCardManager.initialize(owner);
 
     const MINIMUM_AMOUNT = process.env.MINIMUM_AMOUNT ?? 100;
     const MAXIMUM_AMOUNT = process.env.MAXIMUM_AMOUNT ?? 100000 * 100;
@@ -87,10 +91,7 @@ contract("BridgeUtils", async (accounts) => {
       .registerSupplier(newSupplier, {
         from: notMediatorOfBridge,
       })
-      .should.be.rejectedWith(
-        Error,
-        "Guard: Action supported only by the bridge mediator"
-      );
+      .should.be.rejectedWith(Error, "caller is not a bridge mediator");
   });
 
   it("allows a supplier to update their profile", async () => {

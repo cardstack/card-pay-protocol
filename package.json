@@ -9,13 +9,11 @@
     "test": "yarn lint && yarn test:sol",
     "test:sol": "./node_modules/.bin/truffle test",
     "test:coverage": "./node_modules/.bin/truffle run coverage",
-    "lint": "yarn lint:js && yarn lint:sol",
+    "lint": "npm-run-all lint:*",
     "lint:js": "./node_modules/.bin/eslint .",
     "lint:sol": "./node_modules/.bin/solhint ./contracts/**/*.sol -w 0",
-    "deploy:sokol": "./node_modules/.bin/truffle migrate -f --network=sokol --reset",
-    "deploy:xdai": "./node_modules/.bin/truffle migrate -f --network xdai",
-    "verify:sokol": "truffle run blockscout ERC677Token SPEND RevenuePool PrepaidCardManager BridgeUtils --network sokol --license UNLICENSED",
-    "verify:xdai": "truffle run blockscout ERC677Token SPEND RevenuePool PrepaidCardManager BridgeUtils --network xdai --license UNLICENSED"
+    "deploy:sokol": "./deploy.sh -n sokol",
+    "deploy:xdai": "./deploy.sh -n xdai"
   },
   "repository": {
     "type": "git",
@@ -31,7 +29,9 @@
   "devDependencies": {
     "@gnosis.pm/mock-contract": "github:gnosis/mock-contract#sol_0_5_0",
     "@gnosis.pm/safe-contracts": "^1.2.0",
-    "@openzeppelin/contracts": "^2.5.1",
+    "@openzeppelin/cli": "^2.8.2",
+    "@openzeppelin/contract-upgradeable": "OpenZeppelin/openzeppelin-contracts-upgradeable#v2.5.0",
+    "@openzeppelin/truffle-upgrades": "^1.5.0",
     "@truffle/hdwallet-provider": "1.2.1",
     "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
@@ -44,6 +44,7 @@
     "eth-lightwallet": "^4.0.0",
     "ganache-cli": "^6.12.1",
     "mocha": "^8.2.1",
+    "npm-run-all": "^4.1.5",
     "pify": "^5.0.0",
     "prettier": "^2.2.1",
     "prettier-plugin-solidity": "^1.0.0-beta.7",

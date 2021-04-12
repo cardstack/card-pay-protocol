@@ -1,7 +1,8 @@
 pragma solidity 0.5.17;
 
-import "@openzeppelin/contracts/ownership/Ownable.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
+import "@openzeppelin/contract-upgradeable/contracts/math/SafeMath.sol";
+import "@openzeppelin/upgrades/contracts/Initializable.sol";
 
 import "./token/IERC677.sol";
 import "./token/ISPEND.sol";
@@ -11,7 +12,7 @@ import "./core/Exchange.sol";
 import "./interfaces/IRevenuePool.sol";
 
 
-contract RevenuePool is TallyRole, MerchantManager, Exchange, IRevenuePool {
+contract RevenuePool is Initializable, TallyRole, MerchantManager, Exchange, IRevenuePool {
     using SafeMath for uint256;
 
     address public spendToken;

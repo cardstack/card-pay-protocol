@@ -19,6 +19,7 @@ contract("PrepaidCardManager - EOA tests", (accounts) => {
   let daicpxdToken,
     revenuePool,
     spendToken,
+    owner,
     prepaidCardManager,
     offChainId = "Id",
     tally,
@@ -27,7 +28,7 @@ contract("PrepaidCardManager - EOA tests", (accounts) => {
     cards = [];
 
   before(async () => {
-    tally = accounts[0];
+    tally = owner = accounts[0];
     merchant = accounts[3];
     supplierEOA = accounts[8];
 
@@ -35,14 +36,18 @@ contract("PrepaidCardManager - EOA tests", (accounts) => {
     let gnosisSafeMasterCopy = await GnosisSafe.new();
 
     revenuePool = await RevenuePool.new();
+    await revenuePool.initialize(owner);
 
-    spendToken = await SPEND.new("SPEND Token", "SPEND", [revenuePool.address]);
+    spendToken = await SPEND.new();
+    await spendToken.initialize(owner, revenuePool.address);
 
     // Deploy and mint 100 daicpxd token for deployer as owner
-    daicpxdToken = await ERC677Token.new(...TOKEN_DETAIL_DATA);
+    daicpxdToken = await ERC677Token.new();
+    await daicpxdToken.initialize(...TOKEN_DETAIL_DATA, owner);
     await daicpxdToken.mint(supplierEOA, toTokenUnit(20));
 
     prepaidCardManager = await PrepaidCardManager.new();
+    await prepaidCardManager.initialize(owner);
 
     // Setup for revenue pool
     await revenuePool.setup(

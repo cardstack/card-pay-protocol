@@ -12,3 +12,5 @@ package-lock.json
 coverage.json
 coverage
 scripts
+
+.openzeppelin/.session

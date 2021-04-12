@@ -1,6 +1,6 @@
 pragma solidity 0.5.17;
 
-import "@openzeppelin/contracts/utils/EnumerableSet.sol";
+import "@openzeppelin/contract-upgradeable/contracts/utils/EnumerableSet.sol";
 
 import "./Safe.sol";
 import "../roles/TallyRole.sol";
