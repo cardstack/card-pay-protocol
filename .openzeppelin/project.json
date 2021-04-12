@@ -3,7 +3,6 @@
   "contracts": {
     "RevenuePool": "RevenuePool",
     "SPEND": "SPEND",
-    "ERC677Token": "ERC677Token",
     "PrepaidCardManager": "PrepaidCardManager",
     "BridgeUtils": "BridgeUtils"
   },
