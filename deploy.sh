@@ -49,6 +49,8 @@ SPEND_INIT='${deployerAddress} ${RevenuePool_ADDRESS}'
 COMMANDS=(
   'RevenuePool.setup ${TALLY},${GNOSIS_SAFE_MASTER_COPY},${GNOSIS_SAFE_FACTORY},${SPEND_ADDRESS},[]'
   'PrepaidCardManager.setup ${TALLY},${GNOSIS_SAFE_MASTER_COPY},${GNOSIS_SAFE_FACTORY},${RevenuePool_ADDRESS},[],${MINIMUM_AMOUNT},${MAXIMUM_AMOUNT}'
+  'PrepaidCardManager.setBridgeUtils ${BridgeUtils_ADDRESS}'
+  'RevenuePool.setBridgeUtils ${BridgeUtils_ADDRESS}'
   'BridgeUtils.setup ${RevenuePool_ADDRESS},${PrepaidCardManager_ADDRESS},${GNOSIS_SAFE_MASTER_COPY},${GNOSIS_SAFE_FACTORY},${BRIDGE_MEDIATOR}'
 )
 ######################################################
