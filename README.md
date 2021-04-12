@@ -93,5 +93,19 @@ We use a mnemonic held in AWS Secret Manager to manage our contract's key pair. 
    OpenZeppelin captures state information about the contracts that have been deployed. It uses this information to determine whether its safe to upgrade future versions of the contract based on changes that have been made as well where to update the contracts. It is OpenZeppelin's strong recommendation that this contract state be under source control. This means that after the initial deploy and after subsequent contract upgrades we need to commit and merge changes to the `./.openzeppelin` folder. So make sure to `git commit` after any contract deploys and upgrades, as well as a `git push` to merge the commits back into the main branch so our representation of the state remains consistent.
 
 ## Upgrading Contracts
-TODO
+We use the Open Zeppelin SDK to manage our upgradable contracts. Once a contract has been deployed we have the ability to change the logic in the contract while still retaining the contract state due to the way in which Open Zeppelin maintains proxy contracts and their corresponding implementations. [There are a few limitations to be made aware of when updating a contract, which is outlined in the OZ documentation.](https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable#modifying-your-contracts). The OZ tools will check for any violations to the limitations as part of upgrading the contract and let you know if your changes to the contract are indeed upgradable changes. After you have made changes to the contract that you wish upgrade perform the following:
+1. `git pull` (or `fetch` and `merge` if you prefer) the latest from the `main` git branch.
+2. `git commit` your contract update changes (if they have not been committed already)
+3. Run the open zeppelin contract upgrade command using our mnemonic from AWS:
+   ```sh
+   MNEMONIC=$(AWS_PROFILE=cardstack-prod aws secretsmanager get-secret-value --secret-id=production_card_protocol_mnemonic --region=ap-southeast-1 | jq -r '.SecretString') oz upgrade <contract name> --network <network>
+   ```
+   And then answer the questions from the interactive prompt regarding whether you need to execute a function as part of upgrading your contract.
+4. Re-verify your contract source files in blockscout:
+   ```sh
+   ./verify.sh -c <contract name> -n <network>
+   ```
+   Note that I've seen blockscout be a bit squirrely about verifying contracts--sometimes it returns with a 504 error. One thing that I've seen that seems to help if to redeploy the implementation contract to a new address and reverify. It seems that if you get a 504 on a particular contract address, it will never verify at that address for some reason, but that the exact same contract code can be re-verified at a different address.
+5. `git commit` the changes made to `./.openzeppelin`, as well as `git push` to merge the commits back into the main branch. These changes reflect the new contract upgrade state, and its very important that this state is shared with the team so it can remain consistent with the organization.
+
 ##
