@@ -12,6 +12,8 @@ contract SPENDMinterRole is Initializable, Context {
     address private _owner;
 
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+    event MinterAdded(address indexed minter);
+    event MinterRemoved(address indexed minter);
 
     /**
      * @dev Throws if called by any account other than the minter.
@@ -55,11 +57,13 @@ contract SPENDMinterRole is Initializable, Context {
 
     function _addMinter(address _minter) internal returns (bool) {
         minter.add(_minter);
+        emit MinterAdded(_minter);
         return true;
     }
 
     function _removeMinter(address _minter) internal returns (bool) {
         minter.remove(_minter);
+        emit MinterRemoved(_minter);
         return true;
     }
 
