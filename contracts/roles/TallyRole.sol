@@ -9,6 +9,9 @@ contract TallyRole is Ownable {
 
     EnumerableSet.AddressSet internal tally;
 
+    event TallyAdded(address indexed tally);
+    event TallyRemoved(address indexed tally);
+
     /**
      * @dev Throws if called by any account other than the tally.
      */
@@ -31,11 +34,13 @@ contract TallyRole is Ownable {
 
     function _addTally(address _tally) internal returns (bool) {
         tally.add(_tally);
+        emit TallyAdded(_tally);
         return true;
     }
 
     function _removeTally(address _tally) internal returns (bool) {
         tally.remove(_tally);
+        emit TallyRemoved(_tally);
         return true;
     }
 }

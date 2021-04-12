@@ -26,6 +26,7 @@ contract PrepaidCardManager is
 
     using SafeMath for uint256;
 
+    event Setup();
     event CreatePrepaidCard(
         address issuer,
         address card,
@@ -70,6 +71,7 @@ contract PrepaidCardManager is
         // set limit of amount.
         minAmount = _minAmount;
         maxAmount = _maxAmount;
+        emit Setup();
     }
 
     function getMinimumAmount() public view returns (uint256) {

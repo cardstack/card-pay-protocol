@@ -7,6 +7,7 @@ import "@openzeppelin/upgrades/contracts/Initializable.sol";
 
 
 contract BridgeUtils is Initializable, Safe, Ownable {
+    event Setup();
     event SupplierWallet(address owner, address wallet);
     event UpdateToken(address token);
 
@@ -45,6 +46,7 @@ contract BridgeUtils is Initializable, Safe, Ownable {
         revenuePool = _revenuePool;
         prepaidCardManager = _prepaidCardManager;
         bridgeMediator = _bridgeMediator;
+        emit Setup();
 
         return true;
     }
