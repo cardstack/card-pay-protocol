@@ -107,6 +107,6 @@ We use the Open Zeppelin SDK to manage our upgradable contracts. Once a contract
    ./verify.sh -c <contract name> -n <network>
    ```
    Note that I've seen blockscout be a bit squirrely about verifying contracts--sometimes it returns with a 504 error. One thing that I've seen that seems to help if to redeploy the implementation contract to a new address and reverify. It seems that if you get a 504 on a particular contract address, it will never verify at that address for some reason, but that the exact same contract code can be re-verified at a different address.
-5. `git commit` the changes made to `./.openzeppelin`, as well as `git push` to merge the commits back into the main branch. These changes reflect the new contract upgrade state, and its very important that this state is shared with the team so it can remain consistent with the organization.
+5. `git commit` the changes made to `./.openzeppelin`, as well as `git push` to merge the commits back into the main branch. These changes reflect the new contract upgrade state, and its very important that this state is shared with the team so it can remain consistent within our organization.
 
 ##
