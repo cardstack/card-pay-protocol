@@ -3,44 +3,43 @@ pragma solidity 0.5.17;
 import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contract-upgradeable/contracts/utils/EnumerableSet.sol";
 
-
 contract TallyRole is Ownable {
-    using EnumerableSet for EnumerableSet.AddressSet;
+  using EnumerableSet for EnumerableSet.AddressSet;
 
-    EnumerableSet.AddressSet internal tally;
+  EnumerableSet.AddressSet internal tally;
 
-    event TallyAdded(address indexed tally);
-    event TallyRemoved(address indexed tally);
+  event TallyAdded(address indexed tally);
+  event TallyRemoved(address indexed tally);
 
-    /**
-     * @dev Throws if called by any account other than the tally.
-     */
-    modifier onlyTally() {
-        require(tally.contains(_msgSender()), "Tally: caller is not the tally");
-        _;
-    }
+  /**
+   * @dev Throws if called by any account other than the tally.
+   */
+  modifier onlyTally() {
+    require(tally.contains(_msgSender()), "Tally: caller is not the tally");
+    _;
+  }
 
-    function addTally(address _tally) public onlyOwner returns (bool) {
-        return _addTally(_tally);
-    }
+  function addTally(address _tally) public onlyOwner returns (bool) {
+    return _addTally(_tally);
+  }
 
-    function removeTally(address _tally) public onlyOwner returns (bool) {
-        return _removeTally(_tally);
-    }
+  function removeTally(address _tally) public onlyOwner returns (bool) {
+    return _removeTally(_tally);
+  }
 
-    function getTallys() public view returns (address[] memory) {
-        return tally.enumerate();
-    }
+  function getTallys() public view returns (address[] memory) {
+    return tally.enumerate();
+  }
 
-    function _addTally(address _tally) internal returns (bool) {
-        tally.add(_tally);
-        emit TallyAdded(_tally);
-        return true;
-    }
+  function _addTally(address _tally) internal returns (bool) {
+    tally.add(_tally);
+    emit TallyAdded(_tally);
+    return true;
+  }
 
-    function _removeTally(address _tally) internal returns (bool) {
-        tally.remove(_tally);
-        emit TallyRemoved(_tally);
-        return true;
-    }
+  function _removeTally(address _tally) internal returns (bool) {
+    tally.remove(_tally);
+    emit TallyRemoved(_tally);
+    return true;
+  }
 }

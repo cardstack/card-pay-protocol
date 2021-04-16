@@ -3,6 +3,7 @@ const RevenuePool = artifacts.require("RevenuePool.sol");
 const SPEND = artifacts.require("SPEND.sol");
 const ProxyFactory = artifacts.require("GnosisSafeProxyFactory");
 const GnosisSafe = artifacts.require("GnosisSafe");
+const Feed = artifacts.require("ManualFeed");
 
 const utils = require("./utils/general");
 const eventABIs = require("./utils/constant/eventABIs");
@@ -18,6 +19,7 @@ contract("RevenuePool", (accounts) => {
     fakeToken,
     lw,
     tally,
+    feed,
     owner,
     merchant,
     offchainId,
@@ -46,6 +48,12 @@ contract("RevenuePool", (accounts) => {
     fakeToken = await ERC677Token.new();
     await fakeToken.initialize(...TOKEN_DETAIL_DATA, owner);
     await fakeToken.mint(accounts[0], toTokenUnit(100));
+
+    feed = await Feed.new();
+    await feed.initialize(owner);
+    await feed.setup("DAI.CPXD", 8);
+    await feed.addRound(100000000, 1618433281, 1618433281);
+    await revenuePool.createExchange("DAI", feed.address);
   });
 
   describe("initial revenue pool contract", () => {
@@ -177,7 +185,7 @@ contract("RevenuePool", (accounts) => {
 
       await fakeToken
         .transferAndCall(revenuePool.address, amount, data)
-        .should.be.rejectedWith(Error, "unaccepted token");
+        .should.be.rejectedWith(Error, "calling token is unaccepted");
     });
   });
 

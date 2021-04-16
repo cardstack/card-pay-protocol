@@ -4,6 +4,7 @@ const ERC677Token = artifacts.require("ERC677Token.sol");
 const SPEND = artifacts.require("SPEND.sol");
 const ProxyFactory = artifacts.require("GnosisSafeProxyFactory");
 const GnosisSafe = artifacts.require("GnosisSafe");
+const Feed = artifacts.require("ManualFeed");
 
 const { getGnosisSafeFromEventLog } = require("./utils/general");
 
@@ -58,6 +59,11 @@ contract("PrepaidCardManager - EOA tests", (accounts) => {
       [daicpxdToken.address]
     );
 
+    let feed = await Feed.new();
+    await feed.initialize(owner);
+    await feed.setup("DAI.CPXD", 8);
+    await feed.addRound(100000000, 1618433281, 1618433281);
+    await revenuePool.createExchange("DAI", feed.address);
     await revenuePool.registerMerchant(merchant, offChainId);
 
     await prepaidCardManager.setup(

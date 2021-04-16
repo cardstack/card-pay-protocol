@@ -27,6 +27,7 @@
   },
   "homepage": "https://github.com/cardstack/card-protocol-xdai#readme",
   "devDependencies": {
+    "@chainlink/contracts": "^0.1.7",
     "@gnosis.pm/mock-contract": "github:gnosis/mock-contract#sol_0_5_0",
     "@gnosis.pm/safe-contracts": "^1.2.0",
     "@openzeppelin/cli": "^2.8.2",

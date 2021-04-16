@@ -25,6 +25,6 @@ const expect = chai.expect;
 exports.expect = expect;
 
 // token detail
-const TOKEN_DETAIL_DATA = ["DAICPXD Token", "DAICPXD", 18];
+const TOKEN_DETAIL_DATA = ["DAI.CPXD", "DAI", 18];
 
 exports.TOKEN_DETAIL_DATA = TOKEN_DETAIL_DATA;

@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
-
+set -x
 ######### contracts to be deployed #########
 ##
 ## Provide a list of each contract name (as specified
@@ -12,7 +12,9 @@ CONTRACTS=(
   "PrepaidCardManager"
   "RevenuePool"
   "BridgeUtils"
-  "SPEND"
+  "SPEND",
+  "ManualFeed:DAIFeed"
+  "ManualFeed:CARDFeed"
 )
 ## Note that after the contract is deployed, the proxy
 ## instance address for the contract will be set in
@@ -34,6 +36,8 @@ PrepaidCardManager_INIT='${deployerAddress}'
 RevenuePool_INIT='${deployerAddress}'
 BridgeUtils_INIT='${deployerAddress}'
 SPEND_INIT='${deployerAddress} ${RevenuePool_ADDRESS}'
+DAIFeed_INIT='${deployerAddress}'
+CARDFeed_INIT='${deployerAddress}'
 ######################################################
 
 ######### contract configuration #####################
@@ -46,8 +50,14 @@ SPEND_INIT='${deployerAddress} ${RevenuePool_ADDRESS}'
 ## Variables are permitted to be used and late bound.
 ## Note that unlike the init args, multiple args must
 ## be delimited by commas (thanks oz)
-COMMANDS=(
+sokol_COMMANDS=(
+  'ManualFeed:CARDFeed.setup CARD.CPXD/USD,8'
+  'ManualFeed:CARDFeed.addRound  907143,1618433281,1618433281'
+  'ManualFeed:DAIFeed.setup DAI.CPXD/USD,8'
+  'ManualFeed:DAIFeed.addRound  100085090,1618433281,1618433281'
   'RevenuePool.setup ${TALLY},${GNOSIS_SAFE_MASTER_COPY},${GNOSIS_SAFE_FACTORY},${SPEND_ADDRESS},[]'
+  'RevenuePool.createExchange DAI,${DAIFeed_ADDRESS}'
+  'RevenuePool.createExchange CARD,${CARDFeed_ADDRESS}'
   'PrepaidCardManager.setup ${TALLY},${GNOSIS_SAFE_MASTER_COPY},${GNOSIS_SAFE_FACTORY},${RevenuePool_ADDRESS},[],${MINIMUM_AMOUNT},${MAXIMUM_AMOUNT}'
   'PrepaidCardManager.setBridgeUtils ${BridgeUtils_ADDRESS}'
   'RevenuePool.setBridgeUtils ${BridgeUtils_ADDRESS}'
@@ -121,6 +131,12 @@ if [ -z "$NETWORK" ]; then
   exit 1
 fi
 
+commands="${network}_COMMANDS"
+if [ -z "${!commands}" ]; then
+  echo "Missing ${network}_COMMANDS for the configuration txns necessary for the contracts deployed in the network ${NETWORK}"
+  exit 1
+fi
+
 deployerAddress="$(defaultAccount $NETWORK)"
 echo "Deploying to $NETWORK with deployer address ${deployerAddress}"
 
@@ -169,13 +185,16 @@ for contractInfo in "${CONTRACTS[@]}"; do
   echo ""
 done
 
-for command in "${COMMANDS[@]}"; do
+for command in "${!commands[@]}"; do
   action=${command%% *}
-  contract=${action%%\.*}
-  installed="${contract}_INSTALLED"
-  method=${action:${#contract}+1}
+  contractIdPair=${action%%\.*}
+  contract=${contractIdPair%%\:*}
+  id="${contractIdPair:${#contract}+1}"
+  id=${id:-${contract}}
+  installed="${id}_INSTALLED"
+  method=${action:${#contractIdPair}+1}
   args=$(p ${command:${#action}+1})
-  toAddress="${contract}_ADDRESS"
+  toAddress="${id}_ADDRESS"
   to=${!toAddress}
   evalArgs=$(eval ${args})
   echo "Sending transaction: ${action}($evalArgs)"
@@ -183,16 +202,23 @@ for command in "${COMMANDS[@]}"; do
 done
 
 echo ""
+addressesJSON=""
+separator=""
 for contractInfo in "${CONTRACTS[@]}"; do
   contractParts=(${contractInfo//:/ })
   contractName=${contractParts[0]}
   id=${contractParts[1]:-${contractParts[0]}}
+  proxyAddress="${id}_ADDRESS"
+  implementationAddress=$(getImplementationAddress $NETWORK $contractName ${!proxyAddress})
+  addressesJSON="${addressesJSON}${separator}\"${id}\": { \"contractName\": \"${contractName}\", \"proxy\": \"${!proxyAddress}\", \"implementation\": \"${implementationAddress}\" }"
+  separator=", "
   installed="${id}_INSTALLED"
   if [ -z "${!installed}" ]; then
     contractAddress="${id}_ADDRESS"
     echo "Created contract ${id}: ${!contractAddress} (proxy address)"
   fi
 done
+echo "{ ${addressesJSON} } " >./.openzeppelin/addresses-${NETWORK}.json
 
 echo ""
 echo "Deployment complete."

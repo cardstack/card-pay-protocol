@@ -5,6 +5,7 @@ const SPEND = artifacts.require("SPEND.sol");
 const ProxyFactory = artifacts.require("GnosisSafeProxyFactory");
 const GnosisSafe = artifacts.require("GnosisSafe");
 const MultiSend = artifacts.require("MultiSend");
+const Feed = artifacts.require("ManualFeed");
 
 const { TOKEN_DETAIL_DATA, toBN, expect } = require("./setup");
 
@@ -106,6 +107,11 @@ contract("PrepaidCardManager - issuer tests", (accounts) => {
       [daicpxdToken.address]
     );
 
+    let feed = await Feed.new();
+    await feed.initialize(owner);
+    await feed.setup("DAI.CPXD", 8);
+    await feed.addRound(100000000, 1618433281, 1618433281);
+    await revenuePool.createExchange("DAI", feed.address);
     await revenuePool.registerMerchant(merchant, offChainId);
 
     await prepaidCardManager.setup(
