@@ -9,8 +9,13 @@ const utils = require("./utils/general");
 const eventABIs = require("./utils/constant/eventABIs");
 
 const { expect, TOKEN_DETAIL_DATA } = require("./setup");
+const { BN, fromWei } = require("web3").utils;
 
-const { toTokenUnit, shouldBeSameBalance } = require("./utils/helper");
+const {
+  toTokenUnit,
+  shouldBeSameBalance,
+  getBalance,
+} = require("./utils/helper");
 
 contract("RevenuePool", (accounts) => {
   let daicpxdToken,
@@ -43,11 +48,11 @@ contract("RevenuePool", (accounts) => {
     // deploy and mint 100 daicpxd token for deployer as owner
     daicpxdToken = await ERC677Token.new();
     await daicpxdToken.initialize(...TOKEN_DETAIL_DATA, owner);
-    await daicpxdToken.mint(accounts[0], toTokenUnit(100));
+    await daicpxdToken.mint(owner, toTokenUnit(100));
 
     fakeToken = await ERC677Token.new();
     await fakeToken.initialize(...TOKEN_DETAIL_DATA, owner);
-    await fakeToken.mint(accounts[0], toTokenUnit(100));
+    await fakeToken.mint(owner, toTokenUnit(100));
 
     feed = await Feed.new();
     await feed.initialize(owner);
@@ -122,7 +127,6 @@ contract("RevenuePool", (accounts) => {
         })
         .should.be.rejectedWith(Error, "Tally: caller is not the tally");
     });
-
     it("set up wrong data", async () => {
       await revenuePool.setup(
         tally,
@@ -140,29 +144,59 @@ contract("RevenuePool", (accounts) => {
 
   describe("pay token", () => {
     it("can pay 1 DAI CPXD token to pool and mint SPEND token to the merchant's wallet", async () => {
+      let existingSPENDBalance = Number(
+        BN(await getBalance(spendToken, merchant)).toString()
+      );
+      let existingDAIBalance = fromWei(
+        BN(await getBalance(daicpxdToken, owner)).toString()
+      );
       let amount = toTokenUnit(1);
       let data = web3.eth.abi.encodeParameters(["address"], [merchant]);
 
       await daicpxdToken.transferAndCall(revenuePool.address, amount, data)
         .should.be.fulfilled;
 
-      await shouldBeSameBalance(daicpxdToken, accounts[0], toTokenUnit(99));
-      await shouldBeSameBalance(spendToken, merchant, "100");
+      await shouldBeSameBalance(
+        daicpxdToken,
+        owner,
+        toTokenUnit(existingDAIBalance - 1)
+      );
+      await shouldBeSameBalance(
+        spendToken,
+        merchant,
+        String(existingSPENDBalance + 100)
+      );
     });
 
     it("can pay 2 DAI CPXD token to pool and mint SPEND token to the merchant's wallet", async () => {
+      let existingSPENDBalance = Number(
+        BN(await getBalance(spendToken, merchant)).toString()
+      );
+      let existingDAIBalance = fromWei(
+        BN(await getBalance(daicpxdToken, owner)).toString()
+      );
       let amount = toTokenUnit(2); // equal 2 * 10^18
       let data = web3.eth.abi.encodeParameters(["address"], [merchant]);
 
-      await shouldBeSameBalance(spendToken, merchant, "100");
       await daicpxdToken.transferAndCall(revenuePool.address, amount, data);
 
-      await shouldBeSameBalance(daicpxdToken, accounts[0], toTokenUnit(97));
-      await shouldBeSameBalance(spendToken, merchant, "300");
+      await shouldBeSameBalance(
+        daicpxdToken,
+        owner,
+        toTokenUnit(existingDAIBalance - 2)
+      );
+      await shouldBeSameBalance(
+        spendToken,
+        merchant,
+        String(existingSPENDBalance + 200)
+      );
     });
 
     it("should reject if the recipient's address is not a registered merchant", async () => {
-      let balanceBefore = await daicpxdToken.balanceOf(accounts[0]);
+      let existingSPENDBalance = await daicpxdToken.balanceOf(owner);
+      let existingDAIBalance = fromWei(
+        BN(await getBalance(daicpxdToken, owner)).toString()
+      );
       //lw.accounts[1] is not merchant.
       let data = web3.eth.abi.encodeParameters(["address"], [lw.accounts[1]]);
       let amount = toTokenUnit(1); // 1 DAI CPXD
@@ -171,12 +205,16 @@ contract("RevenuePool", (accounts) => {
         .transferAndCall(revenuePool.address, amount, data)
         .should.be.rejectedWith(Error, "Invalid merchant");
 
-      await shouldBeSameBalance(daicpxdToken, accounts[0], balanceBefore);
+      await shouldBeSameBalance(daicpxdToken, owner, existingSPENDBalance);
+      await shouldBeSameBalance(
+        daicpxdToken,
+        owner,
+        toTokenUnit(existingDAIBalance)
+      );
     });
 
     it("should reject a direct call to onTokenTransfer from a non-token contract", async () => {
-      await revenuePool.onTokenTransfer(accounts[0], 100, "0x").should.be
-        .rejected;
+      await revenuePool.onTokenTransfer(owner, 100, "0x").should.be.rejected;
     });
 
     it("should reject the receipt of tokens from a non-approved token contract", async () => {
@@ -189,16 +227,109 @@ contract("RevenuePool", (accounts) => {
     });
   });
 
+  describe("exchange rate", () => {
+    afterEach(async () => {
+      // reset the rate to 1:1
+      await feed.addRound(100000000, 1618435000, 1618435000);
+    });
+
+    it("when exchange rate is 2:1, a payment of 1 DAI token results in 200 SPEND tokens minted in merchant's wallet", async () => {
+      let existingSPENDBalance = Number(
+        BN(await getBalance(spendToken, merchant)).toString()
+      );
+      let existingDAIBalance = fromWei(
+        BN(await getBalance(daicpxdToken, owner)).toString()
+      );
+      await feed.addRound(200000000, 1618435000, 1618435000);
+      let amount = toTokenUnit(1);
+      let data = web3.eth.abi.encodeParameters(["address"], [merchant]);
+
+      await daicpxdToken.transferAndCall(revenuePool.address, amount, data)
+        .should.be.fulfilled;
+
+      await shouldBeSameBalance(
+        daicpxdToken,
+        owner,
+        toTokenUnit(existingDAIBalance - 1)
+      );
+      await shouldBeSameBalance(
+        spendToken,
+        merchant,
+        String(existingSPENDBalance + 200)
+      );
+    });
+
+    it("when exchange rate is 1:2, a payment of 1 DAI token results in 50 SPEND tokens minted in merchant's wallet", async () => {
+      let existingSPENDBalance = Number(
+        BN(await getBalance(spendToken, merchant)).toString()
+      );
+      let existingDAIBalance = fromWei(
+        BN(await getBalance(daicpxdToken, owner)).toString()
+      );
+      await feed.addRound(50000000, 1618436000, 1618436000);
+      let amount = toTokenUnit(1);
+      let data = web3.eth.abi.encodeParameters(["address"], [merchant]);
+
+      await daicpxdToken.transferAndCall(revenuePool.address, amount, data)
+        .should.be.fulfilled;
+
+      await shouldBeSameBalance(
+        daicpxdToken,
+        owner,
+        toTokenUnit(existingDAIBalance - 1)
+      );
+      await shouldBeSameBalance(
+        spendToken,
+        merchant,
+        String(existingSPENDBalance + 50)
+      );
+    });
+
+    it("rejects when exchange rate is 0", async () => {
+      let existingSPENDBalance = await daicpxdToken.balanceOf(owner);
+      let existingDAIBalance = fromWei(
+        BN(await getBalance(daicpxdToken, owner)).toString()
+      );
+      await feed.addRound(0, 1618436000, 1618436000);
+      let data = web3.eth.abi.encodeParameters(["address"], [merchant]);
+      let amount = toTokenUnit(1);
+
+      await daicpxdToken
+        .transferAndCall(revenuePool.address, amount, data)
+        .should.be.rejectedWith(Error, "exchange rate cannot be 0");
+
+      await shouldBeSameBalance(daicpxdToken, owner, existingSPENDBalance);
+      await shouldBeSameBalance(
+        daicpxdToken,
+        owner,
+        toTokenUnit(existingDAIBalance)
+      );
+    });
+  });
+
   describe("claim token", () => {
     it("allows a SPEND claim issued from tally (1 DAI CPXD)", async () => {
       let amount = toTokenUnit(1);
-
+      let existingSPENDBalance = Number(
+        BN(await getBalance(spendToken, merchant)).toString()
+      );
+      let existingDAIBalance = fromWei(
+        BN(await getBalance(daicpxdToken, merchant)).toString()
+      );
       await revenuePool.claimToken(merchant, daicpxdToken.address, amount, {
         from: tally,
       }).should.be.fulfilled;
 
-      await shouldBeSameBalance(daicpxdToken, merchant, toTokenUnit(1));
-      await shouldBeSameBalance(spendToken, merchant, "300");
+      await shouldBeSameBalance(
+        daicpxdToken,
+        merchant,
+        toTokenUnit(existingDAIBalance + 1)
+      );
+      await shouldBeSameBalance(
+        spendToken,
+        merchant,
+        String(existingSPENDBalance)
+      );
     });
 
     it("rejects a claim with malformed data", async () => {
@@ -215,10 +346,12 @@ contract("RevenuePool", (accounts) => {
     });
 
     // The tests are stateful. At this point the merchant as redeemed 100 of the
-    // 300 SPEND tokens they have accumulated, leaving 200 more SPEND that is
-    // available to be redeemed.
+    // SPEND tokens they have accumulated.
     it("rejects a claim that is larger than the amount permissable for the merchant", async () => {
-      let amount = toTokenUnit(3);
+      let invalidAmount = Math.ceil(
+        Number(BN(await getBalance(spendToken, merchant)).toString()) / 100
+      );
+      let amount = toTokenUnit(invalidAmount);
       await revenuePool.claimToken(merchant, daicpxdToken.address, amount, {
         from: tally,
       }).should.be.rejected;

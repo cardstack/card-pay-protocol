@@ -35,6 +35,10 @@ contract ManualFeed is Ownable, AggregatorV3Interface {
     rounds[_currentRound].updatedAt = updatedAt;
   }
 
+  function currentRound() external view returns (uint80) {
+    return _currentRound;
+  }
+
   function getRoundData(uint80 _roundId)
     external
     view
