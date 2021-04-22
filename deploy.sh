@@ -95,6 +95,7 @@ serializeAddresses() {
 
 cd "$(dirname $0)"
 source "./lib/deploy-utils.sh"
+check_semver="./lib/check_semver.sh"
 
 usage() {
   echo "Usage: ./deploy.sh -n <network> [-s: skip blockscout verification]
@@ -108,6 +109,8 @@ for the deployer account.
 -n   The network to deploy contracts to (xdai or sokol)
 
 -s   [Optional] Skips the blockscout contract source verification
+
+-v   [Optional] Specify a version which is memorialized as a tag in git and in the package.json
 "
 }
 
@@ -117,7 +120,7 @@ if [ -z "$MNEMONIC" ]; then
   exit 1
 fi
 
-while getopts "hn:s" options; do
+while getopts "hn:sv:" options; do
   case "$options" in
   h)
     usage
@@ -133,6 +136,16 @@ while getopts "hn:s" options; do
     ;;
   s)
     skipVerification="true"
+    ;;
+  v)
+    version="$($check_semver -v $OPTARG || echo "'${OPTARG}' is not a valid semantic version")"
+    if [ "$version" != "$OPTARG" ]; then
+      echo "${version}"
+      exit 1
+    elif [ "$version" == "$(jq -r .version ./package.json)" ]; then
+      echo "The version '${version}' is already being used"
+      exit 1
+    fi
     ;;
   *)
     echo "Unexpected option: $1"
@@ -218,6 +231,21 @@ for contractInfo in "${contracts[@]}"; do
     echo "Created contract ${id}: ${!contractAddress} (proxy address)"
   fi
 done
+
+if [ -n "$version" ]; then
+  for contractInfo in "${contracts[@]}"; do
+    contractParts=(${contractInfo//:/ })
+    contractName=${contractParts[0]}
+    id=${contractParts[1]:-${contractParts[0]}}
+    proxyAddress="${id}_ADDRESS"
+    tagMessage="$tagMessage
+${id} address: ${!proxyAddress}"
+  done
+  echo "$(cat ./package.json | jq ".version = \"${version}\"")" >./package.json
+  git tag -a "$version" -m "$tagMessage"
+  echo "git tag '${version}' created
+use 'git push $(basename $(git rev-parse --show-toplevel)) ${version}' to push the tag to the remote repo"
+fi
 
 echo ""
 echo "Deployment complete."
