@@ -242,7 +242,7 @@ if [ -n "$version" ]; then
 ${id} address: ${!proxyAddress}"
   done
   echo "$(cat ./package.json | jq ".version = \"${version}\"")" >./package.json
-  git add ./package.json ./openzeppelin/*
+  git add ./package.json ./.openzeppelin
   git commit -m "ver ${version}"
   git tag -a "$version" -m "$tagMessage"
   echo "git tag '${version}' created
