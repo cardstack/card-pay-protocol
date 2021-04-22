@@ -246,7 +246,7 @@ ${id} address: ${!proxyAddress}"
   git commit -m "ver ${version}"
   git tag -a "$version" -m "$tagMessage"
   echo "git tag '${version}' created
-use 'git push $(basename $(git rev-parse --show-toplevel)) ${version}' to push the tag to the remote repo"
+use 'git push origin ${version}' to push the tag to the remote repo"
 fi
 
 echo ""
