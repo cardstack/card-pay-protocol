@@ -233,6 +233,9 @@ for contractInfo in "${contracts[@]}"; do
 done
 
 if [ -n "$version" ]; then
+  tagMessage="Network: ${network}
+
+"
   for contractInfo in "${contracts[@]}"; do
     contractParts=(${contractInfo//:/ })
     contractName=${contractParts[0]}
