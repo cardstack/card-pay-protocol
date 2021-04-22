@@ -14,11 +14,13 @@ contract BridgeUtils is Initializable, Safe, Ownable {
 
   struct Supplier {
     bool registered;
+    address safe;
     string brandName;
     string brandProfileUrl;
   }
 
   mapping(address => Supplier) public suppliers;
+  mapping(address => address) public safes;
 
   address public revenuePool;
   address public prepaidCardManager;
@@ -53,16 +55,18 @@ contract BridgeUtils is Initializable, Safe, Ownable {
     string calldata brandName,
     string calldata brandProfileUrl
   ) external returns (bool) {
-    address supplierAddr = msg.sender;
+    address safeAddr = msg.sender;
 
     // perhaps we want to allow the owner of the contract to be able to set
     // this as well just in case?
-    require(suppliers[supplierAddr].registered, "Supplier is invalid.");
+    address supplier = safes[safeAddr];
+    require(supplier != address(0), "Supplier is invalid");
+    require(suppliers[supplier].registered, "Do not have supplier for safe");
 
-    suppliers[supplierAddr].brandName = brandName;
-    suppliers[supplierAddr].brandProfileUrl = brandProfileUrl;
+    suppliers[supplier].brandName = brandName;
+    suppliers[supplier].brandProfileUrl = brandProfileUrl;
 
-    emit SupplierUpdated(supplierAddr);
+    emit SupplierUpdated(supplier);
     return true;
   }
 
@@ -96,7 +100,9 @@ contract BridgeUtils is Initializable, Safe, Ownable {
 
   function _registerSupplier(address ownerAddr) internal returns (address) {
     address safe = createSafe(ownerAddr);
-    suppliers[safe].registered = true;
+    suppliers[ownerAddr].registered = true;
+    suppliers[ownerAddr].safe = safe;
+    safes[safe] = ownerAddr;
 
     emit SupplierWallet(ownerAddr, safe);
     return safe;
