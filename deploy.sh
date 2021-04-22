@@ -246,10 +246,10 @@ ${id} address: ${!proxyAddress}"
   done
   echo "$(cat ./package.json | jq ".version = \"${version}\"")" >./package.json
   git add ./package.json ./.openzeppelin
-  git commit -m "ver ${version}"
-  git tag -a "$version" -m "$tagMessage"
-  echo "git tag '${version}' created
-use 'git push origin ${version}' to push the tag to the remote repo"
+  git commit -m "v${version}"
+  git tag -a "v$version" -m "$tagMessage"
+  echo "git tag 'v${version}' created
+use 'git push origin v${version}' to push the tag to the remote repo"
 fi
 
 echo ""
