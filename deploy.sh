@@ -242,7 +242,7 @@ if [ -n "$version" ]; then
 ${id} address: ${!proxyAddress}"
   done
   echo "$(cat ./package.json | jq ".version = \"${version}\"")" >./package.json
-  git commmit -am "ver ${version}" ./package.json ./openzeppelin
+  git commit -am "ver ${version}" ./package.json ./openzeppelin
   git tag -a "$version" -m "$tagMessage"
   echo "git tag '${version}' created
 use 'git push $(basename $(git rev-parse --show-toplevel)) ${version}' to push the tag to the remote repo"
