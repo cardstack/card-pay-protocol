@@ -104,9 +104,10 @@ contract("BridgeUtils", async (accounts) => {
 
     let owners = await gnosisSafe.getOwners();
     expect(owners.toString()).to.equal([newSupplier].toString());
-    let supplier = await bridgeUtils.suppliers(wallet);
+    let supplier = await bridgeUtils.suppliers(newSupplier);
     expect(supplier["registered"]).to.equal(true);
-    expect(await bridgeUtils.isRegistered(wallet)).to.equal(true);
+    expect(supplier["safe"]).to.equal(wallet);
+    expect(await bridgeUtils.isRegistered(newSupplier)).to.equal(true);
   });
 
   it("rejects a supplier registration from a non-mediator address", async () => {
@@ -120,13 +121,14 @@ contract("BridgeUtils", async (accounts) => {
   });
 
   it("allows a supplier to update their profile", async () => {
+    let supplierAddr = accounts[2];
     let gnosisSafe = await GnosisMaster.at(wallet);
     let payload = bridgeUtils.contract.methods
       .updateSupplier("Zion", "https://www.zion.com")
       .encodeABI();
     let signatures =
       "0x000000000000000000000000" +
-      accounts[2].replace("0x", "") +
+      supplierAddr.replace("0x", "") +
       "0000000000000000000000000000000000000000000000000000000000000000" +
       "01";
 
@@ -141,12 +143,13 @@ contract("BridgeUtils", async (accounts) => {
       utils.ZERO_ADDRESS,
       utils.ZERO_ADDRESS,
       signatures,
-      { from: accounts[2] }
+      { from: supplierAddr }
     );
 
-    let supplier = await bridgeUtils.suppliers(wallet);
+    let supplier = await bridgeUtils.suppliers(supplierAddr);
 
     expect(supplier["registered"]).to.equal(true);
+    expect(supplier["safe"]).to.equal(wallet);
     expect(supplier["brandName"]).to.equal("Zion");
     expect(supplier["brandProfileUrl"]).to.equal("https://www.zion.com");
   });
