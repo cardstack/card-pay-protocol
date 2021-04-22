@@ -8,11 +8,13 @@ set -e
 ##  deploy multiple instances of the same contract, then
 ## provide an ID for the contract instance using ":"
 ## as a delimiter
-CONTRACTS=(
+contracts=(
   "PrepaidCardManager"
   "RevenuePool"
   "BridgeUtils"
   "SPEND"
+  "ManualFeed:DAIFeed"
+  "ManualFeed:CARDFeed"
 )
 ## Note that after the contract is deployed, the proxy
 ## instance address for the contract will be set in
@@ -34,6 +36,8 @@ PrepaidCardManager_INIT='${deployerAddress}'
 RevenuePool_INIT='${deployerAddress}'
 BridgeUtils_INIT='${deployerAddress}'
 SPEND_INIT='${deployerAddress} ${RevenuePool_ADDRESS}'
+DAIFeed_INIT='${deployerAddress}'
+CARDFeed_INIT='${deployerAddress}'
 ######################################################
 
 ######### contract configuration #####################
@@ -46,8 +50,14 @@ SPEND_INIT='${deployerAddress} ${RevenuePool_ADDRESS}'
 ## Variables are permitted to be used and late bound.
 ## Note that unlike the init args, multiple args must
 ## be delimited by commas (thanks oz)
-COMMANDS=(
+sokol_COMMANDS=(
+  'ManualFeed:CARDFeed.setup CARD_USD,8'
+  'ManualFeed:CARDFeed.addRound  907143,1618433281,1618433281'
+  'ManualFeed:DAIFeed.setup DAI_USD,8'
+  'ManualFeed:DAIFeed.addRound  100085090,1618433281,1618433281'
   'RevenuePool.setup ${TALLY},${GNOSIS_SAFE_MASTER_COPY},${GNOSIS_SAFE_FACTORY},${SPEND_ADDRESS},[]'
+  'RevenuePool.createExchange DAI,${DAIFeed_ADDRESS}'
+  'RevenuePool.createExchange CARD,${CARDFeed_ADDRESS}'
   'PrepaidCardManager.setup ${TALLY},${GNOSIS_SAFE_MASTER_COPY},${GNOSIS_SAFE_FACTORY},${RevenuePool_ADDRESS},[],${MINIMUM_AMOUNT},${MAXIMUM_AMOUNT}'
   'PrepaidCardManager.setBridgeUtils ${BridgeUtils_ADDRESS}'
   'RevenuePool.setBridgeUtils ${BridgeUtils_ADDRESS}'
@@ -57,14 +67,31 @@ COMMANDS=(
 
 ######## initialize defaults #########################
 ##
-ZERO_ADDRESS="0x0000000000000000000000000000000000000000"
-TALLY=${TALLY:-${ZERO_ADDRESS}}
+zero_address="0x0000000000000000000000000000000000000000"
+TALLY=${TALLY:-${zero_address}}
 GNOSIS_SAFE_MASTER_COPY=${GNOSIS_SAFE_MASTER_COPY:-"0x6851d6fdfafd08c0295c392436245e5bc78b0185"}
 GNOSIS_SAFE_FACTORY=${GNOSIS_SAFE_FACTORY:-"0x76E2cFc1F5Fa8F6a5b3fC4c8F4788F0116861F9B"}
-BRIDGE_MEDIATOR=${BRIDGE_MEDIATOR:-${ZERO_ADDRESS}}
+BRIDGE_MEDIATOR=${BRIDGE_MEDIATOR:-${zero_address}}
 MINIMUM_AMOUNT=${MINIMUM_AMOUNT:-100}      # minimum face value (in SPEND) for new prepaid card
 MAXIMUM_AMOUNT=${MAXIMUM_AMOUNT:-10000000} # maximum face value (in SPEND) for new prepaid card
 ######################################################
+
+serializeAddresses() {
+  addressesJSON=""
+  separator=""
+  for _contractInfo in "${contracts[@]}"; do
+    _contractParts=(${_contractInfo//:/ })
+    _contractName=${_contractParts[0]}
+    _id=${_contractParts[1]:-${_contractParts[0]}}
+    _proxyAddress="${_id}_ADDRESS"
+    _implementationAddress=$(getImplementationAddress $network $_contractName ${!_proxyAddress})
+    if [ -n "${!_proxyAddress}" ] && [ -n "${_implementationAddress}" ]; then
+      addressesJSON="${addressesJSON}${separator}\"${_id}\": { \"contractName\": \"${_contractName}\", \"proxy\": \"${!_proxyAddress}\", \"implementation\": \"${_implementationAddress}\" }"
+      separator=", "
+    fi
+  done
+  echo "{ ${addressesJSON} } " >./.openzeppelin/addresses-${network}.json
+}
 
 cd "$(dirname $0)"
 source "./lib/deploy-utils.sh"
@@ -97,8 +124,8 @@ while getopts "hn:s" options; do
     exit 0
     ;;
   n)
-    NETWORK=$OPTARG
-    if [ "$NETWORK" != "sokol" -a "$NETWORK" != "xdai" ]; then
+    network=$OPTARG
+    if [ "$network" != "sokol" -a "$network" != "xdai" ]; then
       echo "Must provide valid network to deploy to: 'sokol' or 'xdai'"
       usage
       exit 1
@@ -115,35 +142,34 @@ while getopts "hn:s" options; do
   esac
 done
 
-if [ -z "$NETWORK" ]; then
+if [ -z "$network" ]; then
   echo "No network provided."
   usage
   exit 1
 fi
 
-deployerAddress="$(defaultAccount $NETWORK)"
-echo "Deploying to $NETWORK with deployer address ${deployerAddress}"
+networkCommands="${network}_COMMANDS"
+if [ -z "${!networkCommands}" ]; then
+  echo "Missing ${network}_COMMANDS for the configuration txns necessary for the contracts deployed in the network ${network}"
+  exit 1
+fi
+
+deployerAddress="$(defaultAccount $network)"
+echo "Deploying to $network with deployer address ${deployerAddress}"
 
 # full compile with all downstream oz commands will utilize
 yarn build:clean
 echo ""
 
-for contractInfo in "${CONTRACTS[@]}"; do
+for contractInfo in "${contracts[@]}"; do
   contractParts=(${contractInfo//:/ })
   contractName=${contractParts[0]}
   id=${contractParts[1]:-${contractParts[0]}}
-  instanceAddress=$(getLatestProxyAddress $NETWORK $contractName)
-  if [ -n "$instanceAddress" ] && [ "$contractName" == "$id" ]; then
+  instanceAddress=$(getLastDeployedProxyAddress $network $id)
+  if [ -n "$instanceAddress" ]; then
     echo "The contract $id has already been deployed. Use 'zos upgrade' to update it."
     declare "${id}_ADDRESS=${instanceAddress}"
     declare "${id}_INSTALLED=true"
-  elif [ -n "$instanceAddress" ] && [ "$contractName" != "$id" ]; then
-    read -p "An instance of the ${contractName} has already been deployed to ${instanceAddress}. Do you wish to deploy a new instance of this contract for ${id}? [y/N]" -n 1 -r
-    if [ "$REPLY" != 'y' -a "$REPLY" != 'Y' ]; then
-      declare "${id}_ADDRESS=${instanceAddress}"
-      declare "${id}_INSTALLED=true"
-      echo "If you wish to update $id. Use 'zos upgrade' to update it."
-    fi
   fi
 
   installed="${id}_INSTALLED"
@@ -151,42 +177,41 @@ for contractInfo in "${CONTRACTS[@]}"; do
     initArgsName="${id}_INIT"
     initArgs=$(eval $(p ${!initArgsName}))
 
-    echo "Deploying contract $contractName with args: ${initArgs}"
-    instanceAddress=$(deploy $NETWORK $contractName "${initArgs}")
-    if [ -z "${instanceAddress}" ]; then
-      echo "Failed to deploy contract $contractName with args: ${initArgs}"
+    echo "Deploying contract $id as $contractName with args: ${initArgs}"
+
+    if [ -z "$skipVerification" ]; then
+      instanceAddress=$(deployWithVerification $network $contractName "${initArgs}")
+    else
+      instanceAddress=$(deploy $network $contractName "${initArgs}")
+    fi
+
+    if [ -z "$instanceAddress" ] || [[ ! "$instanceAddress" =~ ^0x[a-fA-F0-9]{40}$ ]]; then
+      instanceAddress=${instanceAddress:-"Failed to deploy contract $contractName with args: ${initArgs}"}
       exit 1
     fi
     declare "${id}_ADDRESS=${instanceAddress}"
-
-    implementationAddress=$(getImplementationAddress $NETWORK $contractName $instanceAddress)
     echo "Deployed contract to $instanceAddress"
-    verifyProxy $NETWORK $instanceAddress
-    if [ -z "$skipVerification" ]; then
-      verifyImplementation $NETWORK $contractName $implementationAddress
-    fi
   fi
   echo ""
 done
+serializeAddresses
 
-for command in "${COMMANDS[@]}"; do
-  action=${command%% *}
-  contract=${action%%\.*}
-  installed="${contract}_INSTALLED"
-  method=${action:${#contract}+1}
-  args=$(p ${command:${#action}+1})
-  toAddress="${contract}_ADDRESS"
-  to=${!toAddress}
-  evalArgs=$(eval ${args})
-  echo "Sending transaction: ${action}($evalArgs)"
-  sendTxn $NETWORK $to $method "$evalArgs"
-done
+if [ $network == "sokol" ]; then
+  for command in "${sokol_COMMANDS[@]}"; do
+    execCommand $network "$command"
+  done
+elif [ $network == "xdai" ]; then
+  for command in "${xdai_COMMANDS[@]}"; do
+    execCommand $network "$command"
+  done
+fi
 
 echo ""
-for contractInfo in "${CONTRACTS[@]}"; do
+for contractInfo in "${contracts[@]}"; do
   contractParts=(${contractInfo//:/ })
   contractName=${contractParts[0]}
   id=${contractParts[1]:-${contractParts[0]}}
+  proxyAddress="${id}_ADDRESS"
   installed="${id}_INSTALLED"
   if [ -z "${!installed}" ]; then
     contractAddress="${id}_ADDRESS"

@@ -5,6 +5,7 @@ const SPEND = artifacts.require("SPEND.sol");
 const ProxyFactory = artifacts.require("GnosisSafeProxyFactory");
 const GnosisSafe = artifacts.require("GnosisSafe");
 const MultiSend = artifacts.require("MultiSend");
+const Feed = artifacts.require("ManualFeed");
 
 const eventABIs = require("./utils/constant/eventABIs");
 
@@ -75,6 +76,16 @@ contract("PrepaidManager", (accounts) => {
     await fakeDaicpxdToken.initialize(...TOKEN_DETAIL_DATA, owner);
     await fakeDaicpxdToken.mint(accounts[0], toTokenUnit(1000));
 
+    let feed = await Feed.new();
+    await feed.initialize(owner);
+    await feed.setup("DAI.CPXD", 8);
+    await feed.addRound(100000000, 1618433281, 1618433281);
+    await revenuePool.createExchange("DAI", feed.address);
+
+    // create spendToken
+    spendToken = await SPEND.new();
+    await spendToken.initialize(owner, revenuePool.address);
+
     let gnosisData = gnosisSafeMasterCopy.contract.methods
       .setup(
         [issuer],
@@ -103,10 +114,6 @@ contract("PrepaidManager", (accounts) => {
 
   describe("setup contract", () => {
     before(async () => {
-      // create spendToken
-      spendToken = await SPEND.new();
-      await spendToken.initialize(owner, revenuePool.address);
-
       // Setup for revenue pool
       await revenuePool.setup(
         tally,

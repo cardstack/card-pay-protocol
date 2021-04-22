@@ -3,10 +3,12 @@ const PrepaidCardManager = artifacts.require("PrepaidCardManager");
 const RevenuePool = artifacts.require("RevenuePool");
 const GnosisFactory = artifacts.require("GnosisSafeProxyFactory");
 const GnosisMaster = artifacts.require("GnosisSafe");
+const Feed = artifacts.require("ManualFeed");
+const ERC677Token = artifacts.require("ERC677Token.sol");
 
 const utils = require("./utils/general");
 
-const { expect } = require("./setup");
+const { expect, TOKEN_DETAIL_DATA } = require("./setup");
 
 contract("BridgeUtils", async (accounts) => {
   let bridgeUtils,
@@ -14,12 +16,17 @@ contract("BridgeUtils", async (accounts) => {
     owner,
     prepaidCardManager,
     tokenMock,
+    unlistedToken,
     mediatorBridgeMock,
     wallet;
   before(async () => {
     let tallyAdmin = (owner = accounts[0]);
     mediatorBridgeMock = accounts[1];
-    tokenMock = accounts[2];
+    let daicpxdToken = await ERC677Token.new();
+    await daicpxdToken.initialize(...TOKEN_DETAIL_DATA, owner);
+    tokenMock = daicpxdToken.address;
+    unlistedToken = await ERC677Token.new();
+    await unlistedToken.initialize("Kitty Token", "KITTY", 18, owner);
     bridgeUtils = await BridgeUtils.new();
     await bridgeUtils.initialize(owner);
     pool = await RevenuePool.new();
@@ -27,6 +34,10 @@ contract("BridgeUtils", async (accounts) => {
 
     let gnosisFactory = await GnosisFactory.new();
     let gnosisMaster = await GnosisMaster.new();
+    let feed = await Feed.new();
+    await feed.initialize(owner);
+    await feed.setup("DAI.CPXD", 8);
+    await feed.addRound(100000000, 1618433281, 1618433281);
 
     await pool.setup(
       tallyAdmin,
@@ -35,6 +46,7 @@ contract("BridgeUtils", async (accounts) => {
       utils.Address0,
       []
     );
+    await pool.createExchange("DAI", feed.address);
 
     prepaidCardManager = await PrepaidCardManager.new();
     await prepaidCardManager.initialize(owner);
@@ -69,6 +81,12 @@ contract("BridgeUtils", async (accounts) => {
 
     let payableToken = await pool.getTokens();
     expect(payableToken.toString()).to.equal([tokenMock].toString());
+  });
+
+  it("rejects when a token is added that we do not have an exchange for", async () => {
+    await bridgeUtils
+      .updateToken(unlistedToken.address, { from: mediatorBridgeMock })
+      .should.be.rejectedWith(Error, "No exchange exists for token");
   });
 
   it("can get the BridgeUtils address", async () => {

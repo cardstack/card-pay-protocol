@@ -6,14 +6,14 @@ contract("ERC677Token", (accounts) => {
   before(async () => {
     owner = accounts[0];
     instance = await ERC677Token.new();
-    await instance.initialize("DAICPXD Token", "DAICPXD", 18, owner);
+    await instance.initialize("DAI.CPXD", "DAI", 18, owner);
   });
 
   it("can display token contract values", async () => {
     let name = await instance.name();
-    assert.equal(name, "DAICPXD Token");
+    assert.equal(name, "DAI.CPXD");
     let symbol = await instance.symbol();
-    assert.equal(symbol, "DAICPXD");
+    assert.equal(symbol, "DAI");
     let decimals = await instance.decimals();
     assert.equal(decimals, 18);
   });

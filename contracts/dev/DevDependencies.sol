@@ -8,4 +8,7 @@ import "@gnosis.pm/safe-contracts/contracts/libraries/MultiSend.sol";
    tests. The solidiity compiler will not make available any external deps that
    are not explicitly consumed;
  */
-contract DevDependenciesGetter { } // solhint-disable-line no-empty-blocks
+// solhint-disable-next-line no-empty-blocks
+contract DevDependenciesGetter {
+
+}
