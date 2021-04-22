@@ -10,6 +10,7 @@ contract BridgeUtils is Initializable, Safe, Ownable {
   event Setup();
   event SupplierWallet(address owner, address wallet);
   event UpdateToken(address token);
+  event SupplierUpdated(address supplier);
 
   struct Supplier {
     bool registered;
@@ -61,6 +62,7 @@ contract BridgeUtils is Initializable, Safe, Ownable {
     suppliers[supplierAddr].brandName = brandName;
     suppliers[supplierAddr].brandProfileUrl = brandProfileUrl;
 
+    emit SupplierUpdated(supplierAddr);
     return true;
   }
 
