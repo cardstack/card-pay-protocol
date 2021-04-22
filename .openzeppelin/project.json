@@ -4,7 +4,8 @@
     "RevenuePool": "RevenuePool",
     "SPEND": "SPEND",
     "PrepaidCardManager": "PrepaidCardManager",
-    "BridgeUtils": "BridgeUtils"
+    "BridgeUtils": "BridgeUtils",
+    "ManualFeed": "ManualFeed"
   },
   "dependencies": {},
   "name": "card-protocol",
