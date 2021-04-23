@@ -23,7 +23,7 @@ contract Exchange is Ownable, PayableToken {
     public
     onlyOwner
   {
-    bytes32 key = keccak256(bytes(tokenSymbol));
+    bytes32 key = keccak256(bytes(abi.encodePacked(tokenSymbol, ".CPXD")));
     exchanges[key].exists = true;
     exchanges[key].tokenSymbol = tokenSymbol;
     exchanges[key].feed = feed;
