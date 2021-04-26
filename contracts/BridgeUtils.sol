@@ -35,6 +35,11 @@ contract BridgeUtils is Initializable, Safe, Ownable {
     return suppliers[supplierAddr].registered;
   }
 
+  function safeForSupplier(address supplierAddr) public view returns (address) {
+    require(isRegistered(supplierAddr), "supplier is not registered");
+    return suppliers[supplierAddr].safe;
+  }
+
   function setup(
     address _revenuePool,
     address _prepaidCardManager,
