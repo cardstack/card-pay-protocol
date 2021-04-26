@@ -152,6 +152,7 @@ contract("BridgeUtils", async (accounts) => {
     expect(supplier["safe"]).to.equal(wallet);
     expect(supplier["brandName"]).to.equal("Zion");
     expect(supplier["brandProfileUrl"]).to.equal("https://www.zion.com");
+    expect(await bridgeUtils.safeForSupplier(supplierAddr)).to.equal(wallet);
   });
 
   it("rejects an update to a non-supplier address", async () => {

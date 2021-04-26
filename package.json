@@ -25,6 +25,9 @@
   "bugs": {
     "url": "https://github.com/cardstack/card-protocol-xdai/issues"
   },
+  "engines": {
+    "node": ">=14.0"
+  },
   "homepage": "https://github.com/cardstack/card-protocol-xdai#readme",
   "devDependencies": {
     "@chainlink/contracts": "^0.1.7",
