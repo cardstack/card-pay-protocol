@@ -84,9 +84,8 @@ serializeAddresses() {
     _contractName=${_contractParts[0]}
     _id=${_contractParts[1]:-${_contractParts[0]}}
     _proxyAddress="${_id}_ADDRESS"
-    _implementationAddress=$(getImplementationAddress $network $_contractName ${!_proxyAddress})
     if [ -n "${!_proxyAddress}" ] && [ -n "${_implementationAddress}" ]; then
-      addressesJSON="${addressesJSON}${separator}\"${_id}\": { \"contractName\": \"${_contractName}\", \"proxy\": \"${!_proxyAddress}\", \"implementation\": \"${_implementationAddress}\" }"
+      addressesJSON="${addressesJSON}${separator}\"${_id}\": { \"contractName\": \"${_contractName}\", \"proxy\": \"${!_proxyAddress}\" }"
       separator=", "
     fi
   done

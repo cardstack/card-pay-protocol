@@ -5,7 +5,7 @@ cd "$(dirname $0)"
 source "./lib/deploy-utils.sh"
 
 usage() {
-  echo "Usage: ./verify.sh -n <network> -c <contract name> [-a <contract proxy address]
+  echo "Usage: ./verify.sh -n <network> -c <[optional contract id]:><contract name> [-a <contract proxy address]
 
 -h   Display Help
 
@@ -35,7 +35,9 @@ while getopts "hc:n:a:" options; do
     fi
     ;;
   c)
-    contractName=$OPTARG
+    contractParts=(${OPTARG//:/ })
+    contractName=${contractParts[0]}
+    id=${contractParts[1]:-${contractParts[0]}}
     ;;
   a)
     proxyAddress=$OPTARG
@@ -53,21 +55,21 @@ if [ -z "$network" ]; then
   usage
   exit 1
 fi
-if [ -z "$contractName" ]; then
+if [ -z "$id" ]; then
   echo "No contract name provided."
   usage
   exit 1
 fi
 
 if [ -z "$proxyAddress" ]; then
-  proxyAddress=$(getLatestProxyAddress $network $contractName)
+  proxyAddress=$(getLastDeployedProxyAddress $network $id)
 fi
 if [ -z "$proxyAddress" ]; then
-  echo "Cannot find the proxy address for the contract: ${contractName}"
+  echo "Cannot find the proxy address for the contract: ${id}"
   exit 1
 fi
 
 implementationAddress=$(getImplementationAddress $network $contractName $proxyAddress)
-echo "Verifying ${contractName} proxy ${proxyAddress}"
+echo "Verifying ${id} proxy ${proxyAddress}"
 verifyProxy $network $instanceAddress
 verifyImplementation $network $contractName $implementationAddress
