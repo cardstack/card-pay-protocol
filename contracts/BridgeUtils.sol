@@ -20,11 +20,11 @@ contract BridgeUtils is Initializable, Safe, Ownable {
   }
 
   mapping(address => Supplier) public suppliers;
-  mapping(address => address) public safes;
 
   address public revenuePool;
   address public prepaidCardManager;
   address public bridgeMediator;
+  mapping(address => address) public safes;
 
   modifier onlyBridgeMediator() {
     require(msg.sender == bridgeMediator, "caller is not a bridge mediator");
