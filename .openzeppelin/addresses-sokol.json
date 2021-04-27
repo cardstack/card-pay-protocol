@@ -1,0 +1,26 @@
+{
+  "PrepaidCardManager": {
+    "proxy": "0x0ecAF3d3729C99F6b5F37b29A29acB4bB047Ee92",
+    "contractName": "PrepaidCardManager"
+  },
+  "RevenuePool": {
+    "proxy": "0x866F7C1431703eF1158Fd9a5957d2990af0237E4",
+    "contractName": "RevenuePool"
+  },
+  "BridgeUtils": {
+    "proxy": "0x0BAfDf9bB10a12e550B7F536348Aba013DF51651",
+    "contractName": "BridgeUtils"
+  },
+  "SPEND": {
+    "proxy": "0x50629C79af71134051c9Aa93Ca6D89829c9018F5",
+    "contractName": "SPEND"
+  },
+  "DAIFeed": {
+    "proxy": "0x74Db3bBE52994C9d9E427bb86d427249cA961a01",
+    "contractName": "ManualFeed"
+  },
+  "CARDFeed": {
+    "proxy": "0x4f3A1D8664CdcA007D3fc5B48B3cC7723833ef6f",
+    "contractName": "ManualFeed"
+  }
+}

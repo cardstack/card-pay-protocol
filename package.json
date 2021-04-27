@@ -12,8 +12,8 @@
     "lint": "npm-run-all lint:*",
     "lint:js": "./node_modules/.bin/eslint .",
     "lint:sol": "./node_modules/.bin/solhint ./contracts/**/*.sol -w 0",
-    "deploy:sokol": "./node_modules/.bin/truffle migrate --network sokol --compile-add --reset",
-    "deploy:xdai": "./node_modules/.bin/truffle migrate --network xdai --compile-add --reset"
+    "deploy:sokol": "./node_modules/.bin/truffle migrate --network sokol --compile-all --reset",
+    "deploy:xdai": "./node_modules/.bin/truffle migrate --network xdai --compile-all --reset"
   },
   "repository": {
     "type": "git",
