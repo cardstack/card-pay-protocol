@@ -25,7 +25,7 @@
 // const mnemonic = fs.readFileSync(".secret").toString().trim();
 
 require("dotenv").config();
-const HDWalletProvider = require("@truffle/hdwallet-provider");
+const TrezorWalletProvider = require("trezor-cli-wallet-provider");
 
 module.exports = {
   /**
@@ -47,11 +47,8 @@ module.exports = {
     //
     sokol: {
       provider: () => {
-        return new HDWalletProvider({
-          mnemonic: {
-            phrase: process.env.MNEMONIC,
-          },
-          providerOrUrl: "https://sokol.poa.network",
+        return new TrezorWalletProvider("https://sokol.stack.cards", {
+          chainId: 77,
         });
       },
       network_id: 77,
@@ -59,11 +56,8 @@ module.exports = {
     },
     xdai: {
       provider: function () {
-        return new HDWalletProvider({
-          mnemonic: {
-            phrase: process.env.MNEMONIC,
-          },
-          providerOrUrl: "https://rpc.xdaichain.com/",
+        return new TrezorWalletProvider("https://rpc.xdaichain.com/", {
+          chainId: 100,
         });
       },
       gasPrice: 1000000000,

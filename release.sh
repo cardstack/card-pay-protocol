@@ -68,5 +68,5 @@ echo "$(cat ./package.json | jq ".version = \"${version}\"")" >./package.json
 git add ./package.json ./.openzeppelin
 git commit -m "v${version}"
 git tag -a "v$version" -m "$tagMessage"
-echo "git tag 'v${version}' created
-use 'git push origin v${version}' to push the tag to the remote repo"
+git push origin "v${version}"
+echo "git tag 'v${version}' created and pushed"
