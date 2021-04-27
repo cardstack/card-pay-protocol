@@ -5,7 +5,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "type": "pwa-node",
+      "type": "node",
       "request": "launch",
       "name": "Run Tests",
       "cwd": "${workspaceRoot}",
@@ -13,6 +13,26 @@
       "console": "integratedTerminal",
       "env": {},
       "args": ["test"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Run Migration",
+      "cwd": "${workspaceRoot}",
+      "program": "${workspaceFolder}/node_modules/.bin/truffle",
+      "console": "integratedTerminal",
+      "env": {},
+      "args": ["migrate", "--network", "sokol", "--compile-all", "--reset"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Run truffle exec",
+      "cwd": "${workspaceRoot}",
+      "program": "${workspaceFolder}/node_modules/.bin/truffle",
+      "console": "integratedTerminal",
+      "env": {},
+      "args": ["exec", "./lib/default-account.js", "--network", "sokol"]
     }
   ]
 }
