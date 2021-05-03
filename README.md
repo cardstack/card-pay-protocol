@@ -3,22 +3,41 @@
 The project hosts the contracts that comprise the Card Protocol. This includes the Prepaid Card Manager, Revenue Pool, SPEND token, and L2 Payment Token (e.g. DAI-CPXD).
 
 ## About the Card Protocol
-TODO
+The Card Protocol is a set of contracts that are used to support commerce functions within the Cardstack ecosystem. This is includes fiat on-ramping, support for suppliers of prepaid cards via token bridging, the ability for merchants to sell digital goods and be paid by customers with prepaid cards.
+![Card Protocol Flow Diagram](https://user-images.githubusercontent.com/61075/116917836-2d5c8800-ac1d-11eb-991f-0ab53bd2cb67.png)
 
-### Prepaid Card Manager
-TODO
-
-### Revenue Pool
-TODO
-
-### L2 Payment Token
-The layer 2 payment token is actually controlled by the token bridge. The token bridge will deploy upgradable ERC-677 compliant token contracts on an ad-hoc basis. This project supplies an ERC-677 token contract, but it is only meant for testing purposes and should not actually be deployed.
-
-### SPEND Token
-TODO
+The sequence diagram above depicts the flow of funds through the Card Protocol. The idea is starting from the left:
+1. A *Supplier* bridges stable coin from Ethereum mainnet layer 1 into xDai layer 2 by sending stable coin to the token bridge.
+2. The token bridge locks the layer 1 stable coin and mints a reciprocal layer 2 form of the locked token with the token suffix of "CPXD". So for example the DAI token would be minted as DAI.CPXD in layer 2. The token bridge will actually call into the Card Protocol to create a gnosis safe for the *Supplier* and place the newly minted layer 2 tokens in the gnosis safe for which the *Supplier* will be made an owner.
+3. The *Supplier* will then use the funds from their gnosis safe to create a series of prepaid cards. The prepaid card is a gnosis safe that has 2 owners, where one owner is the `Supplier` and the other owner is the `PrepaidCardManager` contract. This safe requires 2 signatures in order to execute transactions, which means that the `PrepaidCardManager` contract needs to sign off on any transaction for the prepaid card gnosis safe.
+4. *Customers* will go through a fiat on-ramp, whereby they exchange fiat currency for the ownership of a prepaid card created by the *Supplier*. As part of this purchase, the supplier will transfer ownership for one of the owners of the prepaid card gnosis safe to the customer (the `PrepaidCardManager` contract still retains its ownership of the prepaid card gnosis safe).
+5. Meanwhile *Merchants* are registered into the Card Protocol, as part of the registration, a gnosis safe is created for the merchant. As a note, all the merchant addresses in the card protocol are assumed to be the address of the safe created for the merchant.
+6. When a *Customer* is ready to purchase a product from a *Merchant*, the customer leverages a gnosis safe relay service function to call the `PrepaidCardManager.payForMerchant` method. This method will transfer the tokens used to pay a merchant into the `RevenuePool` contract.
+7. At a later time, the *Merchant* can then withdraw the the funds held for them in the `RevenuePool` contract. This will be the layer 2 CPXD token.
+8. At the merchant's choosing, they can bridge the layer 2 CPXD token back to layer 1. Because of the high gas fees in layer 1, likely the bridging back to layer 1 will only happen when the merchant has accrued enough layer 2 CPXD that it makes sense to offset the higher gas fees for bridging back to layer 1.
 
 ### Bridge Utils
-TODO
+The `BridgeUtils` contract manages the point of interaction between the token bridge's home mediator contract and the Card Protocol. When the token bridge encounters an allowed stablecoin that it hasn't encountered before, it will create a new token contract in layer 2 for that token, as part of this, the token bridge will also inform the Card Protocol about the new token contract address, such that the Card Protocol can accept the new CPXD form of the stablecoin as payment for the creation of new prepaid cards, as well as, payments by customers to merchants. Additionally, as part of the token bridging process, the bridged tokens are placed in a gnosis safe that is owned by the *Suppliers* (the initiators of the token bridging process). This allows for easy gas-less (from the perspective of the users of the protocol) transactions. The gnosis safe as part of the token bridging process is actually created by the `BridgeUtils` contract.
+### Prepaid Card Manager
+The `PrepaidCardManager` contract is responsible for creating the gnosis safes that are considered as *Prepaid Cards*. As part of this process, a gnosis safe is created when layer 2 CPXD tokens are sent to the `PrepaidCardManager` Contract (as part of the layer 2 CPXD token's ERC-677 `onTokenTransfer()` function). This gnosis safe represents a *Prepaid Card*. This safe is created with 2 owners:
+1. The sender of the transaction, i.e. the *Supplier's* gnosis safe
+2. The `PrepaidCardManager` contract itself.
+
+As well as a threshold of 2 signatures in order to execute gnosis safe transactions. This approach means that the `PrepaidCardManager` contract needs to sign off on all transactions involving *Prepaid Cards*. As such the `PrepaidCardManager` contract allows *Prepaid Cards* to be able to perform the following functions:
+- A *Prepaid Card* is allowed to be sliced into smaller face values, each of which is owned by the same 2 owners.
+- A *Prepaid Card* is allowed to be transferred to a new owner, where the `PrepaidCardManager` contract still retains ownership, but the 2nd owner of the gnosis safe can be changed. A *Prepaid Card* is only allowed to be transferred one time (from a *Supplier* to a *Customer*).
+- A *Prepaid Card* can be used to pay a *Merchant*. The *Merchant* must have been previously registered by the `RevenuePool` contract.
+
+The `PrepaidCardManager` contract supports gnosis relay service for all of its functions, which means that it provides data payload, estimation, and signature functions for all the *Prepaid Card* capabilities above.
+
+
+### Revenue Pool
+The `RevenuePool` contract provides an escrow capability in the Card Protocol, where payments from *Customers* to *Merchants* are held in the `RevenuePool` contract, and *Merchants* can claim the proceeds of their sales by withdrawing tokens held by the `RevenuePool` on their behalf. The `RevenuePool` is configured as the recipient of ERC-677 tokens, and the `PrepaidCardManager` contract ultimately fashions a token transfer as part of paying a *Merchant* into the `RevenuePool` contract (with the *Merchant's* info in the call data of the token transfer). The `RevenuePool` will collect a percentage of the customer payment to the merchant as the "fees" for using teh Card Protocol (TBD), and the rest will be claimable by the merchant. Additionally, the `RevenuePool` will mint the equivalent of SPEND tokens (based on USD exchange rate) and place in the *Merchant's* safe.
+
+
+### SPEND Token
+The `SPEND` token contract is a simple token contract that has `mint` and `burn` functions and whose tokens are not transferrable. The `SPEND` token can be thought of as a ticket that the *Merchants* receive as part of being paid by customers. These tokens are an accounting mechanism used to track the cumulative amount of payments that a *Merchant* has received from *Customers*.
+
 
 ## Prerequisites
 The following prerequisites are required for this project:
