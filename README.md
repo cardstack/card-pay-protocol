@@ -4,10 +4,13 @@ The project hosts the contracts that comprise the Card Protocol. This includes t
 
 ## About the Card Protocol
 TODO
+
 ### Prepaid Card Manager
 TODO
+
 ### Revenue Pool
 TODO
+
 ### L2 Payment Token
 The layer 2 payment token is actually controlled by the token bridge. The token bridge will deploy upgradable ERC-677 compliant token contracts on an ad-hoc basis. This project supplies an ERC-677 token contract, but it is only meant for testing purposes and should not actually be deployed.
 
@@ -28,7 +31,6 @@ To build this project execute:
 ```
 yarn install
 ```
-
 
 ## Testing
 To run all the tests execute:
@@ -92,6 +94,14 @@ We use a mnemonic held in AWS Secret Manager to manage our contract's key pair. 
 
 5. **Memorialize Contract State**
    OpenZeppelin captures state information about the contracts that have been deployed. It uses this information to determine whether its safe to upgrade future versions of the contract based on changes that have been made as well where to update the contracts. It is OpenZeppelin's strong recommendation that this contract state be under source control. This means that after the initial deploy and after subsequent contract upgrades we need to commit and merge changes to the `./.openzeppelin` folder. So make sure to `git commit` after any contract deploys and upgrades, as well as a `git push` to merge the commits back into the main branch so our representation of the state remains consistent.
+
+6. **Set up Gas Tokens**
+   After the Home Bridge Meditator has been setup to talk to the Card Protocol:
+   - bridge the tokens that will be used for gas (all the supported stable coins and the CARD token).
+   - Note the layer 2 CPXD address for each of the bridged tokens.
+   - Login to the relay service's admin interface: http://<relay_service_url>/admin
+   - Use the admin interface to add each of teh stable coins and the CARD token as new tokens.
+   - Fill out the form for each token by providing the details for each token. Make sure to check the "gas" checkbox for each token, and save the settings.
 
 ## Upgrading Contracts
 We use the Open Zeppelin SDK to manage our upgradable contracts. Once a contract has been deployed we have the ability to change the logic in the contract while still retaining the contract state due to the way in which Open Zeppelin maintains proxy contracts and their corresponding implementations. [There are a few limitations to be made aware of when updating a contract, which is outlined in the OZ documentation.](https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable#modifying-your-contracts). The OZ tools will check for any violations to the limitations as part of upgrading the contract and let you know if your changes to the contract are indeed upgradable changes. After you have made changes to the contract that you wish upgrade perform the following:
