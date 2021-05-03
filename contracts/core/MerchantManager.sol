@@ -24,6 +24,10 @@ contract MerchantManager is TallyRole, Safe {
     Safe.setup(_gsMasterCopy, _gsProxyFactory);
   }
 
+  // TODO this function returns whether a safe address is a merchant safe
+  // address we'll likely need to hold a mapping of merchants to safes, and have
+  // a function to tell us if a merchant address itself is a reigstered merchant
+  // (much like how we deal with suppliers in the BridgeUtils contract)
   function isMerchant(address merchantAddr) public view returns (bool) {
     return merchants[merchantAddr].register;
   }
