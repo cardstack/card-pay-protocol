@@ -1,7 +1,7 @@
 const Feed = artifacts.require("ManualFeed");
 const MockDIAOracle = artifacts.require("MockDIAOracle");
 const DIAPriceOracle = artifacts.require("DIAOracleAdapter");
-const ChainlinkPriceOracle = artifacts.require("ChainLinkFeedAdapter");
+const ChainlinkPriceOracle = artifacts.require("ChainlinkFeedAdapter");
 const { expect } = require("./setup");
 
 contract("PriceOracle", async (accounts) => {
