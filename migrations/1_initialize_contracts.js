@@ -58,6 +58,7 @@ module.exports = async function (deployer, network, addresses) {
     }
 
     const addressesFile = `./.openzeppelin/addresses-${network}.json`;
+    let skipVerify = process.argv.includes("--skipVerify");
     let proxyAddresses = {};
     let newImpls = [];
     let previousImpls = implAddresses(network);
@@ -108,13 +109,17 @@ module.exports = async function (deployer, network, addresses) {
           contractName,
         };
       }
-      await verifyProxy(proxyAddress, network);
+      if (!skipVerify) {
+        await verifyProxy(proxyAddress, network);
+      }
       let unverifiedImpls = difference(implAddresses(network), [
         ...previousImpls,
         ...newImpls,
       ]);
       for (let impl of unverifiedImpls) {
-        await verifyImpl(impl, contractName, network, "MIT");
+        if (!skipVerify) {
+          await verifyImpl(impl, contractName, network, "MIT");
+        }
         newImpls.push(impl);
       }
     }

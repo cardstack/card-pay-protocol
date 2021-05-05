@@ -7,6 +7,9 @@ const BridgeUtils = artifacts.require("BridgeUtils");
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const TALLY = process.env.TALLY ?? ZERO_ADDRESS;
 const BRIDGE_MEDIATOR = process.env.BRIDGE_MEDIATOR ?? ZERO_ADDRESS;
+const PAYABLE_TOKENS = (process.env.PAYABLE_TOKENS ?? "")
+  .split(",")
+  .map((t) => t.trim());
 const GNOSIS_SAFE_MASTER_COPY =
   process.env.GNOSIS_SAFE_MASTER_COPY ??
   "0x6851d6fdfafd08c0295c392436245e5bc78b0185";
@@ -43,13 +46,14 @@ Configuring RevenuePool ${revenuePoolAddress}
   tally address: ${TALLY}
   gnosis master copy: ${GNOSIS_SAFE_MASTER_COPY}
   gnosis proxy factory: ${GNOSIS_SAFE_FACTORY}
+  payable tokens: ${PAYABLE_TOKENS.join(", ")}
   SPEND token address: ${spendTokenAddress}`);
   await revenuePool.setup(
     TALLY,
     GNOSIS_SAFE_MASTER_COPY,
     GNOSIS_SAFE_FACTORY,
     spendTokenAddress,
-    []
+    PAYABLE_TOKENS
   );
   console.log(`  set BridgeUtils address to ${bridgeUtilsAddress}`);
   await revenuePool.setBridgeUtils(bridgeUtilsAddress);
@@ -69,6 +73,7 @@ Configuring PrepaidCardManager ${prepaidCardManagerAddress}
   gnosis master copy: ${GNOSIS_SAFE_MASTER_COPY}
   gnosis proxy factory: ${GNOSIS_SAFE_FACTORY}
   RevenuePool address: ${revenuePoolAddress}
+  payable tokens: ${PAYABLE_TOKENS.join(", ")}
   minimum face value: ${MINIMUM_AMOUNT}
   maximum face value: ${MAXIMUM_AMOUNT}`);
   await prepaidCardManager.setup(
@@ -76,7 +81,7 @@ Configuring PrepaidCardManager ${prepaidCardManagerAddress}
     GNOSIS_SAFE_MASTER_COPY,
     GNOSIS_SAFE_FACTORY,
     revenuePoolAddress,
-    [],
+    PAYABLE_TOKENS,
     MINIMUM_AMOUNT,
     MAXIMUM_AMOUNT
   );

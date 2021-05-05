@@ -36,7 +36,7 @@ module.exports = async function (deployer, network) {
   let daiOracleAddress = getAddress("DAIOracle", addresses);
   let cardOracleAddress = getAddress("CARDOracle", addresses);
   let daiOracle = await ChainlinkOracle.at(daiOracleAddress);
-  let cardOracle = await DIAOracle.at();
+  let cardOracle = await DIAOracle.at(cardOracleAddress);
   console.log(`
 ==================================================
 Configuring DAIOracle ${daiOracleAddress}
