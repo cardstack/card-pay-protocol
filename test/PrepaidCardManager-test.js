@@ -6,6 +6,7 @@ const ProxyFactory = artifacts.require("GnosisSafeProxyFactory");
 const GnosisSafe = artifacts.require("GnosisSafe");
 const MultiSend = artifacts.require("MultiSend");
 const Feed = artifacts.require("ManualFeed");
+const ChainlinkOracle = artifacts.require("ChainlinkFeedAdapter");
 
 const eventABIs = require("./utils/constant/eventABIs");
 
@@ -80,7 +81,15 @@ contract("PrepaidManager", (accounts) => {
     await feed.initialize(owner);
     await feed.setup("DAI.CPXD", 8);
     await feed.addRound(100000000, 1618433281, 1618433281);
-    await revenuePool.createExchange("DAI", feed.address);
+    let ethFeed = await Feed.new();
+    await ethFeed.initialize(owner);
+    await ethFeed.setup("ETH", 8);
+    await ethFeed.addRound(300000000000, 1618433281, 1618433281);
+    let chainlinkOracle = await ChainlinkOracle.new();
+    chainlinkOracle.initialize(owner);
+    await chainlinkOracle.setup(feed.address, ethFeed.address);
+
+    await revenuePool.createExchange("DAI", chainlinkOracle.address);
 
     // create spendToken
     spendToken = await SPEND.new();

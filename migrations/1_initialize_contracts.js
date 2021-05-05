@@ -8,6 +8,8 @@ const RevenuePool = artifacts.require("RevenuePool");
 const BridgeUtils = artifacts.require("BridgeUtils");
 const SPEND = artifacts.require("SPEND");
 const Feed = artifacts.require("ManualFeed");
+const ChainlinkOracle = artifacts.require("ChainlinkFeedAdapter");
+const DIAOracle = artifacts.require("DIAOracleAdapter");
 
 // we only maintain these migrations purely to measure the amount of gas it
 // takes to perform a deployment for each contract
@@ -19,6 +21,8 @@ module.exports = async function (deployer, network, addresses) {
       deployer.deploy(BridgeUtils),
       deployer.deploy(SPEND),
       deployer.deploy(Feed),
+      deployer.deploy(ChainlinkOracle),
+      deployer.deploy(DIAOracle),
     ]);
   } else {
     // Contract init details
@@ -33,9 +37,25 @@ module.exports = async function (deployer, network, addresses) {
         contractName: "SPEND",
         init: [addresses[0], "RevenuePool.address"],
       },
-      DAIFeed: { contractName: "ManualFeed", init: [addresses[0]] },
-      CARDFeed: { contractName: "ManualFeed", init: [addresses[0]] },
+      DAIOracle: { contractName: "ChainlinkFeedAdapter", init: [addresses[0]] },
+      CARDOracle: { contractName: "DIAOracleAdapter", init: [addresses[0]] },
     };
+
+    // Use manual feeds in sokol
+    if (network === "sokol") {
+      contracts["DAIUSDFeed"] = {
+        contractName: "ManualFeed",
+        init: [addresses[0]],
+      };
+      contracts["ETHUSDFeed"] = {
+        contractName: "ManualFeed",
+        init: [addresses[0]],
+      };
+      contracts["MockDIA"] = {
+        contractName: "MockDIAOracle",
+        init: [addresses[0]],
+      };
+    }
 
     const addressesFile = `./.openzeppelin/addresses-${network}.json`;
     let proxyAddresses = {};
