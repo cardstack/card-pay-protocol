@@ -17,10 +17,14 @@ contract ManualFeed is Ownable, AggregatorV3Interface {
 
   mapping(uint80 => RoundData) internal rounds;
 
+  event RoundAdded(uint80 indexed roundId);
+  event FeedSetup(string description, uint8 decimals);
+
   function setup(string memory description, uint8 decimals) public onlyOwner {
     _description = description;
     _decimals = decimals;
     _currentRound = 0;
+    emit FeedSetup(description, decimals);
   }
 
   function addRound(
@@ -33,6 +37,7 @@ contract ManualFeed is Ownable, AggregatorV3Interface {
     rounds[_currentRound].price = price;
     rounds[_currentRound].startedAt = startedAt;
     rounds[_currentRound].updatedAt = updatedAt;
+    emit RoundAdded(_currentRound);
   }
 
   function currentRound() external view returns (uint80) {

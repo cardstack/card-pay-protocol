@@ -39,6 +39,9 @@ The `RevenuePool` contract provides an escrow capability in the Card Protocol, w
 The `SPEND` token contract is a simple token contract that has `mint` and `burn` functions and whose tokens are not transferrable. The `SPEND` token can be thought of as a ticket that the *Merchants* receive as part of being paid by customers. These tokens are an accounting mechanism used to track the cumulative amount of payments that a *Merchant* has received from *Customers*.
 
 
+### Price Oracle
+In order to determine the amount of SPEND token to mint for *Customer* payments to *Merchants, we require a price oracle to convert the CPXD stable coin to USD. To support this we will leverage price oracles from both chainlink and DIA. Chainlink will provide stablecoin USD rates, and DIA will provide CARD USD rates. Chainlink and DIA use different interfaces for their onchain price feeds. In order to present a consolidated representation of various token prices we have created an `IPriceOracle` interface that represents the consolidated interface for all our price oracles, as well as we have a `ChainlinkFeedAdapter` and a `DIAOracleAdapter` contract that implements the `IPriceOracle` interface. These adapter contracts allow us to wrap the on-chain feeds from these two different token price sources into a consolidated interface that we can query from our `RevenuePool` contract. We also provide the token rates in units of ETH in order to support various web client needd.
+
 ## Prerequisites
 The following prerequisites are required for this project:
 - NodeJS ver 14+

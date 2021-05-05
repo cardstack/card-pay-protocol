@@ -39,13 +39,13 @@
           {
             "contract": "TallyRole",
             "label": "tally",
-            "type": "t_struct(AddressSet)6960_storage",
+            "type": "t_struct(AddressSet)7466_storage",
             "src": "roles/TallyRole.sol:9"
           },
           {
             "contract": "PayableToken",
             "label": "payableTokens",
-            "type": "t_struct(AddressSet)6960_storage",
+            "type": "t_struct(AddressSet)7466_storage",
             "src": "roles/PayableToken.sol:9"
           },
           {
@@ -87,7 +87,7 @@
           {
             "contract": "PrepaidCardManager",
             "label": "cardDetails",
-            "type": "t_mapping(t_address,t_struct(CardDetail)2123_storage)",
+            "type": "t_mapping(t_address,t_struct(CardDetail)1990_storage)",
             "src": "PrepaidCardManager.sol:41"
           }
         ],
@@ -98,10 +98,10 @@
           "t_uint256": {
             "label": "uint256"
           },
-          "t_mapping(t_address,t_struct(CardDetail)2123_storage)": {
+          "t_mapping(t_address,t_struct(CardDetail)1990_storage)": {
             "label": "mapping(address => struct IPrepaidCardManager.CardDetail)"
           },
-          "t_struct(CardDetail)2123_storage": {
+          "t_struct(CardDetail)1990_storage": {
             "label": "struct IPrepaidCardManager.CardDetail",
             "members": [
               {
@@ -114,7 +114,7 @@
               }
             ]
           },
-          "t_struct(AddressSet)6960_storage": {
+          "t_struct(AddressSet)7466_storage": {
             "label": "struct EnumerableSet.AddressSet",
             "members": [
               {
@@ -457,7 +457,7 @@
           {
             "contract": "SPENDMinterRole",
             "label": "minter",
-            "type": "t_struct(AddressSet)6960_storage",
+            "type": "t_struct(AddressSet)7466_storage",
             "src": "roles/SPENDMinterRole.sol:10"
           },
           {
@@ -489,7 +489,7 @@
           "t_uint256": {
             "label": "uint256"
           },
-          "t_struct(AddressSet)6960_storage": {
+          "t_struct(AddressSet)7466_storage": {
             "label": "struct EnumerableSet.AddressSet",
             "members": [
               {
@@ -746,6 +746,494 @@
           },
           "t_uint256": {
             "label": "uint256"
+          }
+        }
+      }
+    },
+    "1de8c500e348933060be16ee1d2309efdf4c600968cdd5625b4e6cd874742e84": {
+      "address": "0x11062B1DFA329A26C89cc5240CA2EDe6b9E52733",
+      "txHash": "0x9b87db12ef4ee00e7c0b289e9338ea4508094d1018621efd80baf8884e47c0c4",
+      "layout": {
+        "storage": [
+          {
+            "contract": "Initializable",
+            "label": "initialized",
+            "type": "t_bool",
+            "src": "../@openzeppelin/upgrades/contracts/Initializable.sol:21"
+          },
+          {
+            "contract": "Initializable",
+            "label": "initializing",
+            "type": "t_bool",
+            "src": "../@openzeppelin/upgrades/contracts/Initializable.sol:26"
+          },
+          {
+            "contract": "Initializable",
+            "label": "______gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "../@openzeppelin/upgrades/contracts/Initializable.sol:61"
+          },
+          {
+            "contract": "Ownable",
+            "label": "_owner",
+            "type": "t_address",
+            "src": "../@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol:17"
+          },
+          {
+            "contract": "Ownable",
+            "label": "______gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "../@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol:80"
+          },
+          {
+            "contract": "TallyRole",
+            "label": "tally",
+            "type": "t_struct(AddressSet)7466_storage",
+            "src": "roles/TallyRole.sol:9"
+          },
+          {
+            "contract": "Safe",
+            "label": "gnosisSafe",
+            "type": "t_address",
+            "src": "core/Safe.sol:9"
+          },
+          {
+            "contract": "Safe",
+            "label": "gnosisProxyFactory",
+            "type": "t_address",
+            "src": "core/Safe.sol:10"
+          },
+          {
+            "contract": "MerchantManager",
+            "label": "merchants",
+            "type": "t_mapping(t_address,t_struct(Merchant)1711_storage)",
+            "src": "core/MerchantManager.sol:21"
+          },
+          {
+            "contract": "PayableToken",
+            "label": "payableTokens",
+            "type": "t_struct(AddressSet)7466_storage",
+            "src": "roles/PayableToken.sol:9"
+          },
+          {
+            "contract": "PayableToken",
+            "label": "_bridgeUtils",
+            "type": "t_address",
+            "src": "roles/PayableToken.sol:10"
+          },
+          {
+            "contract": "Exchange",
+            "label": "exchanges",
+            "type": "t_mapping(t_bytes32,t_struct(ExchangeInfo)1500_storage)",
+            "src": "core/Exchange.sol:20"
+          },
+          {
+            "contract": "RevenuePool",
+            "label": "spendToken",
+            "type": "t_address",
+            "src": "RevenuePool.sol:23"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address"
+          },
+          "t_mapping(t_bytes32,t_struct(ExchangeInfo)1500_storage)": {
+            "label": "mapping(bytes32 => struct Exchange.ExchangeInfo)"
+          },
+          "t_bytes32": {
+            "label": "bytes32"
+          },
+          "t_struct(ExchangeInfo)1500_storage": {
+            "label": "struct Exchange.ExchangeInfo",
+            "members": [
+              {
+                "label": "exists",
+                "type": "t_bool"
+              },
+              {
+                "label": "tokenSymbol",
+                "type": "t_string_storage"
+              },
+              {
+                "label": "feed",
+                "type": "t_address"
+              }
+            ]
+          },
+          "t_bool": {
+            "label": "bool"
+          },
+          "t_string_storage": {
+            "label": "string"
+          },
+          "t_struct(AddressSet)7466_storage": {
+            "label": "struct EnumerableSet.AddressSet",
+            "members": [
+              {
+                "label": "index",
+                "type": "t_mapping(t_address,t_uint256)"
+              },
+              {
+                "label": "values",
+                "type": "t_array(t_address)dyn_storage"
+              }
+            ]
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)"
+          },
+          "t_uint256": {
+            "label": "uint256"
+          },
+          "t_array(t_address)dyn_storage": {
+            "label": "address[]"
+          },
+          "t_mapping(t_address,t_struct(Merchant)1711_storage)": {
+            "label": "mapping(address => struct MerchantManager.Merchant)"
+          },
+          "t_struct(Merchant)1711_storage": {
+            "label": "struct MerchantManager.Merchant",
+            "members": [
+              {
+                "label": "register",
+                "type": "t_bool"
+              },
+              {
+                "label": "merchantId",
+                "type": "t_string_storage"
+              },
+              {
+                "label": "lockTotal",
+                "type": "t_mapping(t_address,t_uint256)"
+              }
+            ]
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]"
+          }
+        }
+      }
+    },
+    "ce914f9f8a9f72b9ff27e2d74d251f4d5ca0cafaf60e15c9bf64815e1af24951": {
+      "address": "0xbECF297f43b0A5FdB2bd9535e256E6Da89CaC2B8",
+      "txHash": "0x65a794dedfe5bc89e1870ca9d857d18b2d4e6b43cb767a8e981ea17947648bfc",
+      "layout": {
+        "storage": [
+          {
+            "contract": "Initializable",
+            "label": "initialized",
+            "type": "t_bool",
+            "src": "../@openzeppelin/upgrades/contracts/Initializable.sol:21"
+          },
+          {
+            "contract": "Initializable",
+            "label": "initializing",
+            "type": "t_bool",
+            "src": "../@openzeppelin/upgrades/contracts/Initializable.sol:26"
+          },
+          {
+            "contract": "Initializable",
+            "label": "______gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "../@openzeppelin/upgrades/contracts/Initializable.sol:61"
+          },
+          {
+            "contract": "Ownable",
+            "label": "_owner",
+            "type": "t_address",
+            "src": "../@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol:17"
+          },
+          {
+            "contract": "Ownable",
+            "label": "______gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "../@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol:80"
+          },
+          {
+            "contract": "ChainlinkFeedAdapter",
+            "label": "tokenUsdFeed",
+            "type": "t_address",
+            "src": "oracles/ChainlinkFeedAdapter.sol:10"
+          },
+          {
+            "contract": "ChainlinkFeedAdapter",
+            "label": "usdEthFeed",
+            "type": "t_address",
+            "src": "oracles/ChainlinkFeedAdapter.sol:11"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]"
+          },
+          "t_uint256": {
+            "label": "uint256"
+          },
+          "t_bool": {
+            "label": "bool"
+          }
+        }
+      }
+    },
+    "6094c9fed64b7a37f3fa64678adecb88bcb138cf87b5848cfdc3980a41f02d38": {
+      "address": "0xFB3AD6D0b0cA3ebd939c5d23858A13B0E84af489",
+      "txHash": "0x7788aa7ea353a8e5851fecbb38a02f74b0c037bcfd8816263c26297f7e0a9c6f",
+      "layout": {
+        "storage": [
+          {
+            "contract": "Initializable",
+            "label": "initialized",
+            "type": "t_bool",
+            "src": "../@openzeppelin/upgrades/contracts/Initializable.sol:21"
+          },
+          {
+            "contract": "Initializable",
+            "label": "initializing",
+            "type": "t_bool",
+            "src": "../@openzeppelin/upgrades/contracts/Initializable.sol:26"
+          },
+          {
+            "contract": "Initializable",
+            "label": "______gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "../@openzeppelin/upgrades/contracts/Initializable.sol:61"
+          },
+          {
+            "contract": "Ownable",
+            "label": "_owner",
+            "type": "t_address",
+            "src": "../@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol:17"
+          },
+          {
+            "contract": "Ownable",
+            "label": "______gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "../@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol:80"
+          },
+          {
+            "contract": "DIAOracleAdapter",
+            "label": "oracle",
+            "type": "t_address",
+            "src": "oracles/DIAOracleAdapter.sol:13"
+          },
+          {
+            "contract": "DIAOracleAdapter",
+            "label": "tokenSymbol",
+            "type": "t_string_storage",
+            "src": "oracles/DIAOracleAdapter.sol:14"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address"
+          },
+          "t_string_storage": {
+            "label": "string"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]"
+          },
+          "t_uint256": {
+            "label": "uint256"
+          },
+          "t_bool": {
+            "label": "bool"
+          }
+        }
+      }
+    },
+    "aaf1185ee52f4fb221643d14a6c47c8c38d3ba1daded53e03fd6e7c72982fad9": {
+      "address": "0x52fAA6C56b0acE80811Bc9208B1FD13ACa579075",
+      "txHash": "0xc7942b86ebe8ad99265cc80235287807372571ea98b91ed6fb944026f27867c7",
+      "layout": {
+        "storage": [
+          {
+            "contract": "Initializable",
+            "label": "initialized",
+            "type": "t_bool",
+            "src": "../@openzeppelin/upgrades/contracts/Initializable.sol:21"
+          },
+          {
+            "contract": "Initializable",
+            "label": "initializing",
+            "type": "t_bool",
+            "src": "../@openzeppelin/upgrades/contracts/Initializable.sol:26"
+          },
+          {
+            "contract": "Initializable",
+            "label": "______gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "../@openzeppelin/upgrades/contracts/Initializable.sol:61"
+          },
+          {
+            "contract": "Ownable",
+            "label": "_owner",
+            "type": "t_address",
+            "src": "../@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol:17"
+          },
+          {
+            "contract": "Ownable",
+            "label": "______gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "../@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol:80"
+          },
+          {
+            "contract": "ManualFeed",
+            "label": "_description",
+            "type": "t_string_storage",
+            "src": "oracles/ManualFeed.sol:14"
+          },
+          {
+            "contract": "ManualFeed",
+            "label": "_decimals",
+            "type": "t_uint8",
+            "src": "oracles/ManualFeed.sol:15"
+          },
+          {
+            "contract": "ManualFeed",
+            "label": "_currentRound",
+            "type": "t_uint80",
+            "src": "oracles/ManualFeed.sol:16"
+          },
+          {
+            "contract": "ManualFeed",
+            "label": "rounds",
+            "type": "t_mapping(t_uint80,t_struct(RoundData)2535_storage)",
+            "src": "oracles/ManualFeed.sol:18"
+          }
+        ],
+        "types": {
+          "t_string_storage": {
+            "label": "string"
+          },
+          "t_uint8": {
+            "label": "uint8"
+          },
+          "t_uint80": {
+            "label": "uint80"
+          },
+          "t_mapping(t_uint80,t_struct(RoundData)2535_storage)": {
+            "label": "mapping(uint80 => struct ManualFeed.RoundData)"
+          },
+          "t_struct(RoundData)2535_storage": {
+            "label": "struct ManualFeed.RoundData",
+            "members": [
+              {
+                "label": "exists",
+                "type": "t_bool"
+              },
+              {
+                "label": "price",
+                "type": "t_int256"
+              },
+              {
+                "label": "startedAt",
+                "type": "t_uint256"
+              },
+              {
+                "label": "updatedAt",
+                "type": "t_uint256"
+              }
+            ]
+          },
+          "t_bool": {
+            "label": "bool"
+          },
+          "t_int256": {
+            "label": "int256"
+          },
+          "t_uint256": {
+            "label": "uint256"
+          },
+          "t_address": {
+            "label": "address"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]"
+          }
+        }
+      }
+    },
+    "cdf344d413b4067f5e7f4d8e9828a6e98368caa9c3c3993f771e5cc035167ac3": {
+      "address": "0xdC9C59D2115de992Bd4042119E2d6D45d067DF12",
+      "txHash": "0xa9895246e94cb3aa77503cdd37d0b905a242ffb80188751e0a86dad3952a89d6",
+      "layout": {
+        "storage": [
+          {
+            "contract": "Initializable",
+            "label": "initialized",
+            "type": "t_bool",
+            "src": "../@openzeppelin/upgrades/contracts/Initializable.sol:21"
+          },
+          {
+            "contract": "Initializable",
+            "label": "initializing",
+            "type": "t_bool",
+            "src": "../@openzeppelin/upgrades/contracts/Initializable.sol:26"
+          },
+          {
+            "contract": "Initializable",
+            "label": "______gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "../@openzeppelin/upgrades/contracts/Initializable.sol:61"
+          },
+          {
+            "contract": "Ownable",
+            "label": "_owner",
+            "type": "t_address",
+            "src": "../@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol:17"
+          },
+          {
+            "contract": "Ownable",
+            "label": "______gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "../@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol:80"
+          },
+          {
+            "contract": "MockDIAOracle",
+            "label": "data",
+            "type": "t_mapping(t_bytes32,t_struct(PriceData)1918_storage)",
+            "src": "dev/MockDIAOracle.sol:13"
+          }
+        ],
+        "types": {
+          "t_mapping(t_bytes32,t_struct(PriceData)1918_storage)": {
+            "label": "mapping(bytes32 => struct MockDIAOracle.PriceData)"
+          },
+          "t_bytes32": {
+            "label": "bytes32"
+          },
+          "t_struct(PriceData)1918_storage": {
+            "label": "struct MockDIAOracle.PriceData",
+            "members": [
+              {
+                "label": "price",
+                "type": "t_uint128"
+              },
+              {
+                "label": "updatedAt",
+                "type": "t_uint128"
+              }
+            ]
+          },
+          "t_uint128": {
+            "label": "uint128"
+          },
+          "t_address": {
+            "label": "address"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]"
+          },
+          "t_uint256": {
+            "label": "uint256"
+          },
+          "t_bool": {
+            "label": "bool"
           }
         }
       }

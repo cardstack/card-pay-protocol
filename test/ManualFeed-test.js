@@ -7,7 +7,7 @@ contract("Feed", async (accounts) => {
   let feed;
   before(async () => {
     feed = await Feed.new();
-    feed.initialize(owner);
+    await feed.initialize(owner);
   });
 
   it("can create feed", async () => {

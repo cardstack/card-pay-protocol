@@ -4,6 +4,7 @@ const RevenuePool = artifacts.require("RevenuePool");
 const GnosisFactory = artifacts.require("GnosisSafeProxyFactory");
 const GnosisMaster = artifacts.require("GnosisSafe");
 const Feed = artifacts.require("ManualFeed");
+const ChainlinkOracle = artifacts.require("ChainlinkFeedAdapter");
 const ERC677Token = artifacts.require("ERC677Token.sol");
 
 const utils = require("./utils/general");
@@ -39,6 +40,15 @@ contract("BridgeUtils", async (accounts) => {
     await feed.setup("DAI.CPXD", 8);
     await feed.addRound(100000000, 1618433281, 1618433281);
 
+    let ethFeed = await Feed.new();
+    await ethFeed.initialize(owner);
+    await ethFeed.setup("ETH", 8);
+    await ethFeed.addRound(300000000000, 1618433281, 1618433281);
+
+    let chainlinkOracle = await ChainlinkOracle.new();
+    chainlinkOracle.initialize(owner);
+    await chainlinkOracle.setup(feed.address, ethFeed.address);
+
     await pool.setup(
       tallyAdmin,
       gnosisMaster.address,
@@ -46,7 +56,7 @@ contract("BridgeUtils", async (accounts) => {
       utils.Address0,
       []
     );
-    await pool.createExchange("DAI", feed.address);
+    await pool.createExchange("DAI", chainlinkOracle.address);
 
     prepaidCardManager = await PrepaidCardManager.new();
     await prepaidCardManager.initialize(owner);

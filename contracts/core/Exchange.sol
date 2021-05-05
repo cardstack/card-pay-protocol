@@ -2,10 +2,10 @@ pragma solidity 0.5.17;
 
 import "@openzeppelin/contract-upgradeable/contracts/math/SafeMath.sol";
 import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
-import "@chainlink/contracts/src/v0.5/interfaces/AggregatorV3Interface.sol";
 
 import "../token/IERC677.sol";
 import "../roles/PayableToken.sol";
+import "../oracles/IPriceOracle.sol";
 
 contract Exchange is Ownable, PayableToken {
   using SafeMath for uint256;
@@ -43,14 +43,14 @@ contract Exchange is Ownable, PayableToken {
   function exchangeRateOf(address token)
     public
     view
-    returns (int256 price, uint8 decimals)
+    returns (uint256 price, uint8 decimals)
   {
     require(hasExchange(token), "No exchange exists for token");
     ExchangeInfo memory exchange =
       exchanges[keccak256(bytes(IERC677(token).symbol()))];
-    AggregatorV3Interface feed = AggregatorV3Interface(exchange.feed);
-    decimals = feed.decimals();
-    (, price, , , ) = feed.latestRoundData();
+    IPriceOracle oracle = IPriceOracle(exchange.feed);
+    decimals = oracle.decimals();
+    (price, ) = oracle.usdPrice();
   }
 
   /**
@@ -64,7 +64,7 @@ contract Exchange is Ownable, PayableToken {
     view
     returns (uint256)
   {
-    (int256 price, uint8 decimals) = exchangeRateOf(payableTokenAddr);
+    (uint256 price, uint8 decimals) = exchangeRateOf(payableTokenAddr);
     require(price > 0, "exchange rate cannot be 0");
     // SPEND is equivalent to USD cents, so we move the decimal point 2
     // places to the right after obtaining the USD value of the token amount
@@ -74,6 +74,6 @@ contract Exchange is Ownable, PayableToken {
     // of the base, so in order to prevent overflows you should use a base of
     // uint256
     uint256 ten = 10;
-    return (amount.mul(uint256(price))).div(ten**spendDecimals);
+    return (amount.mul(price)).div(ten**spendDecimals);
   }
 }

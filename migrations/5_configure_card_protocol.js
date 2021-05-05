@@ -7,6 +7,9 @@ const BridgeUtils = artifacts.require("BridgeUtils");
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const TALLY = process.env.TALLY ?? ZERO_ADDRESS;
 const BRIDGE_MEDIATOR = process.env.BRIDGE_MEDIATOR ?? ZERO_ADDRESS;
+const PAYABLE_TOKENS = (process.env.PAYABLE_TOKENS ?? "")
+  .split(",")
+  .map((t) => t.trim());
 const GNOSIS_SAFE_MASTER_COPY =
   process.env.GNOSIS_SAFE_MASTER_COPY ??
   "0x6851d6fdfafd08c0295c392436245e5bc78b0185";
@@ -34,49 +37,51 @@ module.exports = async function (deployer, network) {
   );
   let revenuePool = await RevenuePool.at(revenuePoolAddress);
   let spendTokenAddress = getAddress("SPEND", proxyAddresses);
-  let daiFeed = getAddress("DAIFeed", proxyAddresses);
-  let cardFeed = getAddress("CARDFeed", proxyAddresses);
+  let daiOracleAddress = getAddress("DAIOracle", proxyAddresses);
+  let cardOracleAddress = getAddress("CARDOracle", proxyAddresses);
   let bridgeUtilsAddress = getAddress("BridgeUtils", proxyAddresses);
   console.log(`
-==================================================`);
-  console.log(`Configuring RevenuePool ${revenuePoolAddress}`);
-  console.log(`  tally address: ${TALLY}`);
-  console.log(`  gnosis master copy: ${GNOSIS_SAFE_MASTER_COPY}`);
-  console.log(`  gnosis proxy factory: ${GNOSIS_SAFE_FACTORY}`);
-  console.log(`  SPEND token address: ${spendTokenAddress}`);
+==================================================
+Configuring RevenuePool ${revenuePoolAddress}
+  tally address: ${TALLY}
+  gnosis master copy: ${GNOSIS_SAFE_MASTER_COPY}
+  gnosis proxy factory: ${GNOSIS_SAFE_FACTORY}
+  payable tokens: ${PAYABLE_TOKENS.join(", ")}
+  SPEND token address: ${spendTokenAddress}`);
   await revenuePool.setup(
     TALLY,
     GNOSIS_SAFE_MASTER_COPY,
     GNOSIS_SAFE_FACTORY,
     spendTokenAddress,
-    []
+    PAYABLE_TOKENS
   );
   console.log(`  set BridgeUtils address to ${bridgeUtilsAddress}`);
   await revenuePool.setBridgeUtils(bridgeUtilsAddress);
-  console.log(`  add DAI/USD feed at ${daiFeed}`);
-  await revenuePool.createExchange("DAI", daiFeed);
-  console.log(`  add CARD/USD feed at ${cardFeed}`);
-  await revenuePool.createExchange("CARD", cardFeed);
+  console.log(`  set DAI oracle to ${daiOracleAddress}`);
+  await revenuePool.createExchange("DAI", daiOracleAddress);
+  console.log(`  set CARD oracle to ${cardOracleAddress}`);
+  await revenuePool.createExchange("CARD", cardOracleAddress);
 
   // PrepaidCardManager configuration
   let prepaidCardManager = await PrepaidCardManager.at(
     prepaidCardManagerAddress
   );
   console.log(`
-==================================================`);
-  console.log(`Configuring PrepaidCardManager ${prepaidCardManagerAddress}`);
-  console.log(`  tally address: ${TALLY}`);
-  console.log(`  gnosis master copy: ${GNOSIS_SAFE_MASTER_COPY}`);
-  console.log(`  gnosis proxy factory: ${GNOSIS_SAFE_FACTORY}`);
-  console.log(`  RevenuePool address: ${revenuePoolAddress}`);
-  console.log(`  minimum face value: ${MINIMUM_AMOUNT}`);
-  console.log(`  maximum face value: ${MAXIMUM_AMOUNT}`);
+==================================================
+Configuring PrepaidCardManager ${prepaidCardManagerAddress}
+  tally address: ${TALLY}
+  gnosis master copy: ${GNOSIS_SAFE_MASTER_COPY}
+  gnosis proxy factory: ${GNOSIS_SAFE_FACTORY}
+  RevenuePool address: ${revenuePoolAddress}
+  payable tokens: ${PAYABLE_TOKENS.join(", ")}
+  minimum face value: ${MINIMUM_AMOUNT}
+  maximum face value: ${MAXIMUM_AMOUNT}`);
   await prepaidCardManager.setup(
     TALLY,
     GNOSIS_SAFE_MASTER_COPY,
     GNOSIS_SAFE_FACTORY,
     revenuePoolAddress,
-    [],
+    PAYABLE_TOKENS,
     MINIMUM_AMOUNT,
     MAXIMUM_AMOUNT
   );
@@ -86,13 +91,13 @@ module.exports = async function (deployer, network) {
   // BridgeUtils configuration
   let bridgeUtils = await BridgeUtils.at(bridgeUtilsAddress);
   console.log(`
-==================================================`);
-  console.log(`Configuring BridgeUtils ${bridgeUtilsAddress}`);
-  console.log(`  RevenuePool address: ${revenuePoolAddress}`);
-  console.log(`  PrepaidCardManager address: ${prepaidCardManagerAddress}`);
-  console.log(`  gnosis master copy: ${GNOSIS_SAFE_MASTER_COPY}`);
-  console.log(`  gnosis proxy factory: ${GNOSIS_SAFE_FACTORY}`);
-  console.log(`  bridge mediator address: ${BRIDGE_MEDIATOR}`);
+==================================================
+Configuring BridgeUtils ${bridgeUtilsAddress}
+  RevenuePool address: ${revenuePoolAddress}
+  PrepaidCardManager address: ${prepaidCardManagerAddress}
+  gnosis master copy: ${GNOSIS_SAFE_MASTER_COPY}
+  gnosis proxy factory: ${GNOSIS_SAFE_FACTORY}
+  bridge mediator address: ${BRIDGE_MEDIATOR}`);
   await bridgeUtils.setup(
     revenuePoolAddress,
     prepaidCardManagerAddress,
