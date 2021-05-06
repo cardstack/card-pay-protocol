@@ -1,4 +1,6 @@
 const { readJSONSync, existsSync } = require("node-fs-extra");
+const Web3 = require("web3");
+const { fromWei } = Web3.utils;
 
 const RevenuePool = artifacts.require("RevenuePool");
 const PrepaidCardManager = artifacts.require("PrepaidCardManager");
@@ -6,6 +8,8 @@ const BridgeUtils = artifacts.require("BridgeUtils");
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const TALLY = process.env.TALLY ?? ZERO_ADDRESS;
+const GAS_FEE_RECEIVER = process.env.GAS_FEE_RECEIVER ?? ZERO_ADDRESS;
+const GAS_FEE_CARD_WEI = process.env.GAS_FEE_CARD_WEI ?? 0;
 const BRIDGE_MEDIATOR = process.env.BRIDGE_MEDIATOR ?? ZERO_ADDRESS;
 const PAYABLE_TOKENS = (process.env.PAYABLE_TOKENS ?? "")
   .split(",")
@@ -73,6 +77,8 @@ Configuring PrepaidCardManager ${prepaidCardManagerAddress}
   gnosis master copy: ${GNOSIS_SAFE_MASTER_COPY}
   gnosis proxy factory: ${GNOSIS_SAFE_FACTORY}
   RevenuePool address: ${revenuePoolAddress}
+  gas fee receiver: ${GAS_FEE_RECEIVER}
+  gas fee: ${fromWei(GAS_FEE_CARD_WEI)} CARD
   payable tokens: ${PAYABLE_TOKENS.join(", ")}
   minimum face value: ${MINIMUM_AMOUNT}
   maximum face value: ${MAXIMUM_AMOUNT}`);
@@ -81,6 +87,8 @@ Configuring PrepaidCardManager ${prepaidCardManagerAddress}
     GNOSIS_SAFE_MASTER_COPY,
     GNOSIS_SAFE_FACTORY,
     revenuePoolAddress,
+    GAS_FEE_RECEIVER,
+    GAS_FEE_CARD_WEI,
     PAYABLE_TOKENS,
     MINIMUM_AMOUNT,
     MAXIMUM_AMOUNT

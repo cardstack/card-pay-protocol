@@ -106,6 +106,9 @@ We use a mnemonic held in AWS Secret Manager to manage our contract's key pair. 
     - `BRIDGE_MEDIATOR` This is the address of the layer 2 token bridge contract. This defaults to a zero address.
     - `MINIMUM_AMOUNT` This is the minimum face value that a new prepaid card can be created with in units of SPEND. This defaults to 100 SPEND.
     - `MAXIMUM_AMOUNT` This is the maximum face value that a new prepaid card can be created with in units of SPEND. This defaults to 10,000,000 SPEND.
+    - `PAYABLE_TOKENS` This is a comma separated list of bridged token addresses to pre-populate as tokens accepted by the Card Protocol
+    - `GAS_FEE_RECEIVER` This is the address of an entity that will receive gas fees as prepaid cards are created. Ideally this is the relay gas payer address.
+    - `GAS_FEE_CARD_WEI` This is the gas fee in units of CARD wei that is charged for the creation of each prepaid card.
 
     The contract addresses that are created are saved in a `addresses-{network}.json` file.
 

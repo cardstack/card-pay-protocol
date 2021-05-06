@@ -32,6 +32,7 @@ contract PrepaidCardManager is
     address token,
     uint256 amount
   );
+  event GasFeeCollected(address issuer, address card, uint256 amount);
 
   address public revenuePool;
 
@@ -39,6 +40,8 @@ contract PrepaidCardManager is
   uint256 internal minAmount;
 
   mapping(address => CardDetail) public cardDetails;
+  address public gasFeeReceiver;
+  uint256 public gasFeeCARDAmount;
 
   /**
    * @dev Setup function sets initial storage of contract.
@@ -53,14 +56,20 @@ contract PrepaidCardManager is
     address _gsMasterCopy,
     address _gsProxyFactory,
     address _revenuePool,
+    address _gasFeeReceiver,
+    uint256 _gasFeeCARDAmount,
     address[] memory _payableTokens,
     uint256 _minAmount,
     uint256 _maxAmount
   ) public onlyOwner {
     // setup tally user
-    _addTally(_tally);
+    if (_tally != address(0)) {
+      _addTally(_tally);
+    }
 
     revenuePool = _revenuePool;
+    gasFeeReceiver = _gasFeeReceiver;
+    gasFeeCARDAmount = _gasFeeCARDAmount;
 
     Safe.setup(_gsMasterCopy, _gsProxyFactory);
     // set token list payable.
@@ -99,7 +108,7 @@ contract PrepaidCardManager is
     returns (bool)
   {
     uint256 amountInSPEND =
-      RevenuePool(revenuePool).convertToSpend(token, amount);
+      RevenuePool(revenuePool).convertToSpend(token, amount - gasFee(token));
     return (minAmount <= amountInSPEND && amountInSPEND <= maxAmount);
   }
 
@@ -138,6 +147,22 @@ contract PrepaidCardManager is
     }
 
     return true;
+  }
+
+  /**
+   * @dev get the price in the specified token (in units of wei) to acheive the
+   * specified face value in units of SPEND. Note that the face value will drift
+   * afterwards based on the exchange rate
+   */
+  function priceForFaceValue(address token, uint256 spendFaceValue)
+    public
+    view
+    returns (uint256)
+  {
+    return
+      (RevenuePool(revenuePool).convertFromSpend(token, spendFaceValue)).add(
+        gasFee(token)
+      );
   }
 
   /**
@@ -425,6 +450,14 @@ contract PrepaidCardManager is
       );
   }
 
+  function gasFee(address token) public view returns (uint256) {
+    if (gasFeeReceiver == address(0)) {
+      return 0;
+    } else {
+      return RevenuePool(revenuePool).convertFromCARD(token, gasFeeCARDAmount);
+    }
+  }
+
   /**
    * @dev Create Prepaid card
    * @param depot depot address
@@ -447,9 +480,14 @@ contract PrepaidCardManager is
     // card was created
     cardDetails[card].issuer = depot;
     cardDetails[card].issueToken = token;
-    IERC677(token).transfer(card, amount);
+    uint256 _gasFee = gasFee(token);
+    if (gasFeeReceiver != address(0) && _gasFee > 0) {
+      IERC677(token).transfer(gasFeeReceiver, _gasFee);
+    }
+    IERC677(token).transfer(card, amount - _gasFee);
 
-    emit CreatePrepaidCard(depot, card, token, amount);
+    emit CreatePrepaidCard(depot, card, token, amount - _gasFee);
+    emit GasFeeCollected(depot, card, _gasFee);
 
     return card;
   }
