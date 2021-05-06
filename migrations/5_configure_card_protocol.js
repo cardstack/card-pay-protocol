@@ -9,7 +9,7 @@ const BridgeUtils = artifacts.require("BridgeUtils");
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const TALLY = process.env.TALLY ?? ZERO_ADDRESS;
 const GAS_FEE_RECEIVER = process.env.GAS_FEE_RECEIVER ?? ZERO_ADDRESS;
-const GAS_FEE_CARD_WEI = process.env.GAS_FEE_CARD_WEI ?? 0;
+const GAS_FEE_CARD_WEI = String(process.env.GAS_FEE_CARD_WEI ?? 0);
 const BRIDGE_MEDIATOR = process.env.BRIDGE_MEDIATOR ?? ZERO_ADDRESS;
 const PAYABLE_TOKENS = (process.env.PAYABLE_TOKENS ?? "")
   .split(",")
