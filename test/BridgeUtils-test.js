@@ -6,6 +6,8 @@ const GnosisMaster = artifacts.require("GnosisSafe");
 const Feed = artifacts.require("ManualFeed");
 const ChainlinkOracle = artifacts.require("ChainlinkFeedAdapter");
 const ERC677Token = artifacts.require("ERC677Token.sol");
+const MockDIAOracle = artifacts.require("MockDIAOracle");
+const DIAPriceOracle = artifacts.require("DIAOracleAdapter");
 
 const utils = require("./utils/general");
 
@@ -15,6 +17,7 @@ contract("BridgeUtils", async (accounts) => {
   let bridgeUtils,
     pool,
     owner,
+    gasFeeReceiver,
     prepaidCardManager,
     tokenMock,
     unlistedToken,
@@ -23,6 +26,7 @@ contract("BridgeUtils", async (accounts) => {
   before(async () => {
     let tallyAdmin = (owner = accounts[0]);
     mediatorBridgeMock = accounts[1];
+    gasFeeReceiver = accounts[6];
     let daicpxdToken = await ERC677Token.new();
     await daicpxdToken.initialize(...TOKEN_DETAIL_DATA, owner);
     tokenMock = daicpxdToken.address;
@@ -49,6 +53,13 @@ contract("BridgeUtils", async (accounts) => {
     chainlinkOracle.initialize(owner);
     await chainlinkOracle.setup(feed.address, ethFeed.address);
 
+    let mockDiaOracle = await MockDIAOracle.new();
+    await mockDiaOracle.initialize(owner);
+    await mockDiaOracle.setValue("CARD/USD", 1000000, 1618433281);
+    let diaPrice = await DIAPriceOracle.new();
+    await diaPrice.initialize(owner);
+    await diaPrice.setup(mockDiaOracle.address, "CARD");
+
     await pool.setup(
       tallyAdmin,
       gnosisMaster.address,
@@ -57,6 +68,7 @@ contract("BridgeUtils", async (accounts) => {
       []
     );
     await pool.createExchange("DAI", chainlinkOracle.address);
+    await pool.createExchange("CARD", diaPrice.address);
 
     prepaidCardManager = await PrepaidCardManager.new();
     await prepaidCardManager.initialize(owner);
@@ -69,6 +81,8 @@ contract("BridgeUtils", async (accounts) => {
       gnosisMaster.address,
       gnosisFactory.address,
       pool.address,
+      gasFeeReceiver,
+      0,
       [],
       MINIMUM_AMOUNT,
       MAXIMUM_AMOUNT

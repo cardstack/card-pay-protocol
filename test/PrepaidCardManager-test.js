@@ -7,6 +7,8 @@ const GnosisSafe = artifacts.require("GnosisSafe");
 const MultiSend = artifacts.require("MultiSend");
 const Feed = artifacts.require("ManualFeed");
 const ChainlinkOracle = artifacts.require("ChainlinkFeedAdapter");
+const MockDIAOracle = artifacts.require("MockDIAOracle");
+const DIAPriceOracle = artifacts.require("DIAOracleAdapter");
 
 const eventABIs = require("./utils/constant/eventABIs");
 
@@ -45,6 +47,7 @@ contract("PrepaidManager", (accounts) => {
     tally,
     issuer,
     customer,
+    gasFeeReceiver,
     merchant,
     relayer,
     depot,
@@ -58,6 +61,7 @@ contract("PrepaidManager", (accounts) => {
     customer = accounts[3];
     merchantOwner = accounts[4];
     relayer = accounts[5];
+    gasFeeReceiver = accounts[6];
 
     proxyFactory = await ProxyFactory.new();
     gnosisSafeMasterCopy = await GnosisSafe.new();
@@ -89,7 +93,15 @@ contract("PrepaidManager", (accounts) => {
     chainlinkOracle.initialize(owner);
     await chainlinkOracle.setup(feed.address, ethFeed.address);
 
+    let mockDiaOracle = await MockDIAOracle.new();
+    await mockDiaOracle.initialize(owner);
+    await mockDiaOracle.setValue("CARD/USD", 1000000, 1618433281);
+    let diaPrice = await DIAPriceOracle.new();
+    await diaPrice.initialize(owner);
+    await diaPrice.setup(mockDiaOracle.address, "CARD");
+
     await revenuePool.createExchange("DAI", chainlinkOracle.address);
+    await revenuePool.createExchange("CARD", diaPrice.address);
 
     // create spendToken
     spendToken = await SPEND.new();
@@ -117,27 +129,28 @@ contract("PrepaidManager", (accounts) => {
       "create Gnosis Safe Proxy"
     );
 
+    await revenuePool.setup(
+      tally,
+      gnosisSafeMasterCopy.address,
+      proxyFactory.address,
+      spendToken.address,
+      [daicpxdToken.address]
+    );
+
     MINIMUM_AMOUNT = 100; // in spend <=> 1 USD
     MAXIMUM_AMOUNT = 500000; // in spend <=>  5000 USD
   });
 
   describe("setup contract", () => {
     before(async () => {
-      // Setup for revenue pool
-      await revenuePool.setup(
-        tally,
-        gnosisSafeMasterCopy.address,
-        proxyFactory.address,
-        spendToken.address,
-        [daicpxdToken.address]
-      );
-
       // Setup card manager contract
       await cardManager.setup(
         tally,
         gnosisSafeMasterCopy.address,
         proxyFactory.address,
         revenuePool.address,
+        gasFeeReceiver,
+        0,
         [daicpxdToken.address],
         MINIMUM_AMOUNT,
         MAXIMUM_AMOUNT
@@ -328,6 +341,7 @@ contract("PrepaidManager", (accounts) => {
     //   prepaidCards[0] = 1 daicpxd,
     //   prepaidCards[1] = 2 daicpxd,
     //   prepaidCards[2] = 5 daicpxd
+    // TODO refactor our tests to be less stateful
     it("should create multi Prepaid Card (1 daicpxd 2 daicpxd 5 daicpxd) ", async () => {
       let amounts = [1, 2, 5].map((amount) => toTokenUnit(amount));
 
@@ -357,6 +371,7 @@ contract("PrepaidManager", (accounts) => {
         relayer
       );
 
+      // Careful!! this variable is used in other tests!!
       prepaidCards = await getGnosisSafeFromEventLog(
         safeTx,
         cardManager.address
@@ -590,6 +605,342 @@ contract("PrepaidManager", (accounts) => {
         walletAmount.sub(payment)
       );
       await shouldBeSameBalance(daicpxdToken, relayer, payment);
+    });
+  });
+
+  describe("gasFeeReceiver", () => {
+    let initialAmount;
+
+    before(async () => {
+      initialAmount = toTokenUnit(100);
+      await cardManager.setup(
+        tally,
+        gnosisSafeMasterCopy.address,
+        proxyFactory.address,
+        revenuePool.address,
+        gasFeeReceiver,
+        // We are setting this value specifically, which with the configured
+        // exchange rate is equal to 1 DAI (100 CARD:1 DAI)
+        toTokenUnit(100),
+        [daicpxdToken.address],
+        MINIMUM_AMOUNT,
+        MAXIMUM_AMOUNT
+      );
+    });
+
+    beforeEach(async () => {
+      // mint 100 token for depot
+      await daicpxdToken.mint(depot.address, initialAmount);
+    });
+
+    after(async () => {
+      // reset to 0 gasFee to make other tests easy to reason about
+      await cardManager.setup(
+        tally,
+        gnosisSafeMasterCopy.address,
+        proxyFactory.address,
+        revenuePool.address,
+        gasFeeReceiver,
+        0, // We are setting this value specifically
+        [daicpxdToken.address],
+        MINIMUM_AMOUNT,
+        MAXIMUM_AMOUNT
+      );
+    });
+
+    afterEach(async () => {
+      // burn all token in depot wallet
+      let balance = await daicpxdToken.balanceOf(depot.address);
+      let data = daicpxdToken.contract.methods.burn(balance).encodeABI();
+
+      let safeTxData = {
+        to: daicpxdToken.address,
+        data,
+      };
+
+      await signAndSendSafeTransaction(safeTxData, issuer, depot, relayer);
+
+      // burn all token in relayer wallet
+      await daicpxdToken.burn(await daicpxdToken.balanceOf(relayer), {
+        from: relayer,
+      });
+
+      // burn all tokens in gasReceiver wallet
+      await daicpxdToken.burn(await daicpxdToken.balanceOf(gasFeeReceiver), {
+        from: gasFeeReceiver,
+      });
+    });
+
+    it("gasFeeReceiver should receive gas fee when prepaid card is created", async () => {
+      let amount = toTokenUnit(5);
+
+      let createCardData = encodeCreateCardsData(depot.address, [amount]);
+
+      let transferAndCall = daicpxdToken.contract.methods.transferAndCall(
+        cardManager.address,
+        amount,
+        createCardData
+      );
+
+      let payloads = transferAndCall.encodeABI();
+      let gasEstimate = await transferAndCall.estimateGas();
+
+      let safeTxData = {
+        to: daicpxdToken.address,
+        data: payloads,
+        txGasEstimate: gasEstimate,
+        gasPrice: 1000000000,
+        txGasToken: daicpxdToken.address,
+        refundReceive: relayer,
+      };
+
+      let { safeTx } = await signAndSendSafeTransaction(
+        safeTxData,
+        issuer,
+        depot,
+        relayer
+      );
+
+      let executeSuccess = getParamsFromEvent(
+        safeTx,
+        eventABIs.EXECUTION_SUCCESS,
+        depot.address
+      );
+
+      let paymentActual = toBN(executeSuccess[0]["payment"]);
+      let prepaidCard = await getGnosisSafeFromEventLog(
+        safeTx,
+        cardManager.address
+      );
+
+      await cardManager
+        .cardDetails(prepaidCard[0].address)
+        .should.eventually.to.include({
+          issuer: depot.address,
+          issueToken: daicpxdToken.address,
+        });
+
+      await shouldBeSameBalance(
+        daicpxdToken,
+        prepaidCard[0].address,
+        toTokenUnit(4)
+      );
+      await shouldBeSameBalance(daicpxdToken, gasFeeReceiver, toTokenUnit(1));
+      await shouldBeSameBalance(
+        daicpxdToken,
+        depot.address,
+        initialAmount.sub(toTokenUnit(5)).sub(paymentActual)
+      );
+    });
+
+    it("gasFeeReceiver should receive gas fee for each prepaid card created when there are more than one created", async () => {
+      let amounts = [2, 4, 6].map((amount) => toTokenUnit(amount));
+      let totalAmount = 12;
+
+      let createCardData = encodeCreateCardsData(depot.address, amounts);
+
+      let payloads = daicpxdToken.contract.methods
+        .transferAndCall(
+          cardManager.address,
+          toTokenUnit(totalAmount),
+          createCardData
+        )
+        .encodeABI();
+
+      let gasEstimate = await daicpxdToken.contract.methods
+        .transferAndCall(
+          cardManager.address,
+          toTokenUnit(totalAmount),
+          createCardData
+        )
+        .estimateGas();
+
+      let safeTxData = {
+        to: daicpxdToken.address,
+        data: payloads,
+        txGasEstimate: gasEstimate,
+        gasPrice: 1000000000,
+        txGasToken: daicpxdToken.address,
+        refundReceive: relayer,
+      };
+
+      let { safeTx } = await signAndSendSafeTransaction(
+        safeTxData,
+        issuer,
+        depot,
+        relayer
+      );
+
+      let prepaidCards = await getGnosisSafeFromEventLog(
+        safeTx,
+        cardManager.address
+      );
+
+      let executeSuccess = getParamsFromEvent(
+        safeTx,
+        eventABIs.EXECUTION_SUCCESS,
+        depot.address
+      );
+
+      prepaidCards.forEach(async (prepaidCard, index) => {
+        shouldBeSameBalance(
+          daicpxdToken,
+          prepaidCard.address,
+          amounts[index].sub(toTokenUnit(1))
+        );
+      });
+
+      let payment = toBN(executeSuccess[0]["payment"]);
+
+      await shouldBeSameBalance(
+        daicpxdToken,
+        depot.address,
+        initialAmount.sub(toTokenUnit(totalAmount)).sub(payment)
+      );
+      await shouldBeSameBalance(daicpxdToken, gasFeeReceiver, toTokenUnit(3)); // gas fee was sent 3 times
+      await shouldBeSameBalance(daicpxdToken, relayer, payment);
+    });
+
+    it("gas fee should not be collected if gasFeeReceiver is zero address", async () => {
+      await cardManager.setup(
+        tally,
+        gnosisSafeMasterCopy.address,
+        proxyFactory.address,
+        revenuePool.address,
+        ZERO_ADDRESS,
+        // We are setting this value specifically, which with the configured
+        // exchange rate is equal to 1 DAI (100 CARD:1 DAI)
+        toTokenUnit(100),
+        [daicpxdToken.address],
+        MINIMUM_AMOUNT,
+        MAXIMUM_AMOUNT
+      );
+
+      let amount = toTokenUnit(5);
+
+      let createCardData = encodeCreateCardsData(depot.address, [amount]);
+
+      let transferAndCall = daicpxdToken.contract.methods.transferAndCall(
+        cardManager.address,
+        amount,
+        createCardData
+      );
+
+      let payloads = transferAndCall.encodeABI();
+      let gasEstimate = await transferAndCall.estimateGas();
+
+      let safeTxData = {
+        to: daicpxdToken.address,
+        data: payloads,
+        txGasEstimate: gasEstimate,
+        gasPrice: 1000000000,
+        txGasToken: daicpxdToken.address,
+        refundReceive: relayer,
+      };
+
+      let { safeTx } = await signAndSendSafeTransaction(
+        safeTxData,
+        issuer,
+        depot,
+        relayer
+      );
+
+      let executeSuccess = getParamsFromEvent(
+        safeTx,
+        eventABIs.EXECUTION_SUCCESS,
+        depot.address
+      );
+
+      let paymentActual = toBN(executeSuccess[0]["payment"]);
+      let prepaidCard = await getGnosisSafeFromEventLog(
+        safeTx,
+        cardManager.address
+      );
+
+      await cardManager
+        .cardDetails(prepaidCard[0].address)
+        .should.eventually.to.include({
+          issuer: depot.address,
+          issueToken: daicpxdToken.address,
+        });
+
+      await shouldBeSameBalance(
+        daicpxdToken,
+        prepaidCard[0].address,
+        toTokenUnit(5)
+      );
+      await shouldBeSameBalance(daicpxdToken, gasFeeReceiver, toTokenUnit(0));
+      await shouldBeSameBalance(
+        daicpxdToken,
+        depot.address,
+        initialAmount.sub(toTokenUnit(5)).sub(paymentActual)
+      );
+
+      // reset state for other tests
+      await cardManager.setup(
+        tally,
+        gnosisSafeMasterCopy.address,
+        proxyFactory.address,
+        revenuePool.address,
+        gasFeeReceiver,
+        // We are setting this value specifically, which with the configured
+        // exchange rate is equal to 1 DAI (100 CARD:1 DAI)
+        toTokenUnit(100),
+        [daicpxdToken.address],
+        MINIMUM_AMOUNT,
+        MAXIMUM_AMOUNT
+      );
+    });
+
+    it("can get the price for a particular face value of a prepaid card", async () => {
+      // the configured rate is 1 DAI : 100 SPEND
+      let faceValueInSpend = 500;
+      let faceValueInDai = toTokenUnit(5);
+      let amount = await cardManager.priceForFaceValue(
+        daicpxdToken.address,
+        faceValueInSpend
+      );
+      expect(amount.toString()).to.equal(
+        faceValueInDai.add(toTokenUnit(1)).toString() // gas fee is 1 DAI
+      );
+
+      let createCardData = encodeCreateCardsData(depot.address, [amount]);
+
+      let transferAndCall = daicpxdToken.contract.methods.transferAndCall(
+        cardManager.address,
+        amount,
+        createCardData
+      );
+
+      let payloads = transferAndCall.encodeABI();
+      let gasEstimate = await transferAndCall.estimateGas();
+
+      let safeTxData = {
+        to: daicpxdToken.address,
+        data: payloads,
+        txGasEstimate: gasEstimate,
+        gasPrice: 1000000000,
+        txGasToken: daicpxdToken.address,
+        refundReceive: relayer,
+      };
+
+      let { safeTx } = await signAndSendSafeTransaction(
+        safeTxData,
+        issuer,
+        depot,
+        relayer
+      );
+
+      let prepaidCard = await getGnosisSafeFromEventLog(
+        safeTx,
+        cardManager.address
+      );
+
+      await shouldBeSameBalance(
+        daicpxdToken,
+        prepaidCard[0].address,
+        faceValueInDai
+      );
     });
   });
 

@@ -6,6 +6,8 @@ const ProxyFactory = artifacts.require("GnosisSafeProxyFactory");
 const GnosisSafe = artifacts.require("GnosisSafe");
 const Feed = artifacts.require("ManualFeed");
 const ChainlinkOracle = artifacts.require("ChainlinkFeedAdapter");
+const MockDIAOracle = artifacts.require("MockDIAOracle");
+const DIAPriceOracle = artifacts.require("DIAOracleAdapter");
 
 const { getGnosisSafeFromEventLog } = require("./utils/general");
 
@@ -26,6 +28,7 @@ contract("PrepaidCardManager - EOA tests", (accounts) => {
     offChainId = "Id",
     tally,
     merchant,
+    gasFeeReceiver,
     supplierEOA,
     cards = [];
 
@@ -33,6 +36,7 @@ contract("PrepaidCardManager - EOA tests", (accounts) => {
     tally = owner = accounts[0];
     merchant = accounts[3];
     supplierEOA = accounts[8];
+    gasFeeReceiver = accounts[9];
 
     let proxyFactory = await ProxyFactory.new();
     let gnosisSafeMasterCopy = await GnosisSafe.new();
@@ -72,7 +76,15 @@ contract("PrepaidCardManager - EOA tests", (accounts) => {
     chainlinkOracle.initialize(owner);
     await chainlinkOracle.setup(feed.address, ethFeed.address);
 
+    let mockDiaOracle = await MockDIAOracle.new();
+    await mockDiaOracle.initialize(owner);
+    await mockDiaOracle.setValue("CARD/USD", 1000000, 1618433281);
+    let diaPrice = await DIAPriceOracle.new();
+    await diaPrice.initialize(owner);
+    await diaPrice.setup(mockDiaOracle.address, "CARD");
+
     await revenuePool.createExchange("DAI", chainlinkOracle.address);
+    await revenuePool.createExchange("CARD", diaPrice.address);
     await revenuePool.registerMerchant(merchant, offChainId);
 
     await prepaidCardManager.setup(
@@ -80,6 +92,8 @@ contract("PrepaidCardManager - EOA tests", (accounts) => {
       gnosisSafeMasterCopy.address,
       proxyFactory.address,
       revenuePool.address,
+      gasFeeReceiver,
+      0,
       [daicpxdToken.address],
       100,
       500000
