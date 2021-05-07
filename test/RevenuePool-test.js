@@ -440,4 +440,32 @@ contract("RevenuePool", (accounts) => {
       }).should.be.rejected;
     });
   });
+
+  describe("roles", () => {
+    it("can create and remove a tally role", async () => {
+      let newTally = accounts[8];
+      await revenuePool.removeTally(tally).should.be.fulfilled;
+      await revenuePool.addTally(newTally).should.be.fulfilled;
+
+      await revenuePool.getTallys().should.become([newTally]);
+    });
+
+    it("can add and remove a payable token", async () => {
+      let mockPayableTokenAddr = accounts[9];
+
+      await revenuePool.addPayableToken(mockPayableTokenAddr).should.be
+        .fulfilled;
+
+      await revenuePool.removePayableToken(daicpxdToken.address).should.be
+        .fulfilled;
+
+      await revenuePool.getTokens().should.become([mockPayableTokenAddr]);
+    });
+  });
+
+  describe("versioning", () => {
+    it("can get version of contract", async () => {
+      expect(await revenuePool.cardProtocolVersion()).to.match(/\d\.\d\.\d/);
+    });
+  });
 });

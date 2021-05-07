@@ -1,12 +1,12 @@
 pragma solidity 0.5.17;
 
+import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
 import "./core/Safe.sol";
 import "./core/Exchange.sol";
+import "./core/Versionable.sol";
 import "./roles/PayableToken.sol";
-import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
-import "@openzeppelin/upgrades/contracts/Initializable.sol";
 
-contract BridgeUtils is Initializable, Safe, Ownable {
+contract BridgeUtils is Ownable, Versionable, Safe {
   event Setup();
   event SupplierWallet(address owner, address wallet);
   event UpdateToken(address token);

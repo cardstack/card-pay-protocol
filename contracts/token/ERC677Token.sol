@@ -4,11 +4,12 @@ import "@openzeppelin/contract-upgradeable/contracts/token/ERC20/ERC20Mintable.s
 import "@openzeppelin/contract-upgradeable/contracts/token/ERC20/ERC20Burnable.sol";
 import "./ERC677TransferReceiver.sol";
 import "./IERC677.sol";
+import "../core/Versionable.sol";
 
 /**
  * @dev reference from https://github.com/smartcontractkit/LinkToken
  */
-contract ERC677Token is IERC677, ERC20Burnable, ERC20Mintable {
+contract ERC677Token is Versionable, IERC677, ERC20Burnable, ERC20Mintable {
   string private _name;
   string private _symbol;
   uint8 private _decimals;
@@ -100,4 +101,6 @@ contract ERC677Token is IERC677, ERC20Burnable, ERC20Mintable {
     }
     return (codehash != accountHash && codehash != 0x0);
   }
+
+  uint256[50] private ____gap;
 }

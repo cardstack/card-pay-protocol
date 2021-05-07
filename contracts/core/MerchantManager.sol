@@ -48,4 +48,6 @@ contract MerchantManager is TallyRole, Safe {
 
     return merchant;
   }
+
+  uint256[50] private ____gap;
 }

@@ -4,8 +4,9 @@ import "@chainlink/contracts/src/v0.5/interfaces/AggregatorV3Interface.sol";
 import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contract-upgradeable/contracts/math/SafeMath.sol";
 import "./IPriceOracle.sol";
+import "../core/Versionable.sol";
 
-contract ChainlinkFeedAdapter is Ownable, IPriceOracle {
+contract ChainlinkFeedAdapter is Ownable, Versionable, IPriceOracle {
   using SafeMath for uint256;
   address internal tokenUsdFeed;
   address internal usdEthFeed;

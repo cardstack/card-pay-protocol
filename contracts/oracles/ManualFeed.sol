@@ -2,8 +2,9 @@ pragma solidity 0.5.17;
 
 import "@chainlink/contracts/src/v0.5/interfaces/AggregatorV3Interface.sol";
 import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
+import "../core/Versionable.sol";
 
-contract ManualFeed is Ownable, AggregatorV3Interface {
+contract ManualFeed is Ownable, Versionable, AggregatorV3Interface {
   struct RoundData {
     bool exists;
     int256 price;

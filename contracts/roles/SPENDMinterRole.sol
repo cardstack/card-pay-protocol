@@ -107,4 +107,6 @@ contract SPENDMinterRole is Initializable, Context {
     emit OwnershipTransferred(_owner, newOwner);
     _owner = newOwner;
   }
+
+  uint256[50] private ____gap;
 }

@@ -9,9 +9,11 @@ import "./token/ISPEND.sol";
 import "./roles/TallyRole.sol";
 import "./core/MerchantManager.sol";
 import "./core/Exchange.sol";
+import "./core/Versionable.sol";
 import "./interfaces/IRevenuePool.sol";
 
 contract RevenuePool is
+  Versionable,
   Initializable,
   TallyRole,
   MerchantManager,
@@ -39,7 +41,9 @@ contract RevenuePool is
     address[] memory _payableTokens
   ) public onlyOwner {
     // setup tally user
-    addTally(_tally);
+    if (_tally != address(0)) {
+      addTally(_tally);
+    }
     // setup gnosis safe address
     MerchantManager.setup(_gsMasterCopy, _gsProxyFactory);
 

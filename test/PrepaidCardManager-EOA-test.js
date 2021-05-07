@@ -88,7 +88,6 @@ contract("PrepaidCardManager - EOA tests", (accounts) => {
     await revenuePool.registerMerchant(merchant, offChainId);
 
     await prepaidCardManager.setup(
-      tally,
       gnosisSafeMasterCopy.address,
       proxyFactory.address,
       revenuePool.address,

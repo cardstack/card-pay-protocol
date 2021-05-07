@@ -5,8 +5,9 @@ import "@openzeppelin/contract-upgradeable/contracts/math/SafeMath.sol";
 import "@chainlink/contracts/src/v0.5/interfaces/AggregatorV3Interface.sol";
 import "./IPriceOracle.sol";
 import "./IDIAOracle.sol";
+import "../core/Versionable.sol";
 
-contract DIAOracleAdapter is Ownable, IPriceOracle {
+contract DIAOracleAdapter is Ownable, Versionable, IPriceOracle {
   using SafeMath for uint256;
 
   uint8 internal constant DECIMALS = 8;

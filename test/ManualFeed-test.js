@@ -66,4 +66,8 @@ contract("Feed", async (accounts) => {
       .getRoundData(1000)
       .should.be.rejectedWith(Error, "No data present");
   });
+
+  it("can get version of contract", async () => {
+    expect(await feed.cardProtocolVersion()).to.match(/\d\.\d\.\d/);
+  });
 });

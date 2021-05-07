@@ -77,7 +77,6 @@ contract("BridgeUtils", async (accounts) => {
     const MAXIMUM_AMOUNT = process.env.MAXIMUM_AMOUNT ?? 100000 * 100;
 
     await prepaidCardManager.setup(
-      tallyAdmin,
       gnosisMaster.address,
       gnosisFactory.address,
       pool.address,
@@ -186,5 +185,8 @@ contract("BridgeUtils", async (accounts) => {
         from: invalidSupplier,
       })
       .should.be.rejectedWith(Error, "Supplier is invalid");
+  });
+  it("can get version of contract", async () => {
+    expect(await bridgeUtils.cardProtocolVersion()).to.match(/\d\.\d\.\d/);
   });
 });

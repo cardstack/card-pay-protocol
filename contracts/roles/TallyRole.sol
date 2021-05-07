@@ -42,4 +42,6 @@ contract TallyRole is Ownable {
     emit TallyRemoved(_tally);
     return true;
   }
+
+  uint256[50] private ____gap;
 }

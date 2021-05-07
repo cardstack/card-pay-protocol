@@ -47,4 +47,6 @@ contract Safe {
 
     return createSafe(ownerArr, 1);
   }
+
+  uint256[50] private ____gap;
 }
