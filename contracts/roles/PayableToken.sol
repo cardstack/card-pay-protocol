@@ -35,27 +35,27 @@ contract PayableToken is Ownable {
   }
 
   function addPayableToken(address _token)
-    public
+    external
     onlyBridgeUtilsOrOwner
     returns (bool)
   {
     return _addPayableToken(_token);
   }
 
-  function removePayableToken(address _token) public onlyOwner returns (bool) {
+  function removePayableToken(address _token) external onlyOwner returns (bool) {
     return _removePayableToken(_token);
   }
 
-  function setBridgeUtils(address bridgeUtils) public onlyOwner returns (bool) {
+  function setBridgeUtils(address bridgeUtils) external onlyOwner returns (bool) {
     _bridgeUtils = bridgeUtils;
     emit BridgeUtilsSet(bridgeUtils);
   }
 
-  function bridgeUtils() public view returns (address) {
+  function bridgeUtils() external view returns (address) {
     return _bridgeUtils;
   }
 
-  function getTokens() public view returns (address[] memory) {
+  function getTokens() external view returns (address[] memory) {
     return payableTokens.enumerate();
   }
 

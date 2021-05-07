@@ -33,24 +33,24 @@ contract SPENDMinterRole is Initializable, Context {
     _;
   }
 
-  /**
-   * @dev Initializes the contract setting the deployer as the initial owner.
-   */
-  function initializeMinterRole(address sender) public initializer {
-    _owner = sender;
-    emit OwnershipTransferred(address(0), _owner);
-  }
-
-  function addMinter(address _minter) public onlyOwner returns (bool) {
+  function addMinter(address _minter) external onlyOwner returns (bool) {
     return _addMinter(_minter);
   }
 
-  function removeMinter(address _minter) public onlyOwner returns (bool) {
+  function removeMinter(address _minter) external onlyOwner returns (bool) {
     return _removeMinter(_minter);
   }
 
-  function getMinters() public view returns (address[] memory) {
+  function getMinters() external view returns (address[] memory) {
     return minter.enumerate();
+  }
+
+  /**
+   * @dev Initializes the contract setting the deployer as the initial owner.
+   */
+  function initializeMinterRole(address sender) internal initializer {
+    _owner = sender;
+    emit OwnershipTransferred(address(0), _owner);
   }
 
   function _addMinter(address _minter) internal returns (bool) {
@@ -68,7 +68,7 @@ contract SPENDMinterRole is Initializable, Context {
   /**
    * @dev Returns the address of the current owner.
    */
-  function owner() public view returns (address) {
+  function owner() external view returns (address) {
     return _owner;
   }
 
@@ -86,7 +86,7 @@ contract SPENDMinterRole is Initializable, Context {
    * > Note: Renouncing ownership will leave the contract without an owner,
    * thereby removing any functionality that is only available to the owner.
    */
-  function renounceOwnership() public onlyOwner {
+  function renounceOwnership() external onlyOwner {
     emit OwnershipTransferred(_owner, address(0));
     _owner = address(0);
   }
@@ -95,7 +95,7 @@ contract SPENDMinterRole is Initializable, Context {
    * @dev Transfers ownership of the contract to a new account (`newOwner`).
    * Can only be called by the current owner.
    */
-  function transferOwnership(address newOwner) public onlyOwner {
+  function transferOwnership(address newOwner) external onlyOwner {
     _transferOwnership(newOwner);
   }
 

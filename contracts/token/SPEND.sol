@@ -15,9 +15,9 @@ contract SPEND is Versionable, ISPEND, SPENDMinterRole {
 
   uint256 private _totalSupply;
 
-  function initialize(address owner, address minter) public initializer {
+  function initialize(address owner, address _minter) public initializer {
     initializeMinterRole(owner);
-    addMinter(minter);
+    _addMinter(_minter);
   }
 
   function mint(address account, uint256 amount)
@@ -41,7 +41,7 @@ contract SPEND is Versionable, ISPEND, SPENDMinterRole {
   /**
    * @dev Returns the name of the token.
    */
-  function name() public pure returns (string memory) {
+  function name() external pure returns (string memory) {
     return "SPEND Token";
   }
 
@@ -49,7 +49,7 @@ contract SPEND is Versionable, ISPEND, SPENDMinterRole {
    * @dev Returns the symbol of the token, usually a shorter version of the
    * name.
    */
-  function symbol() public pure returns (string memory) {
+  function symbol() external pure returns (string memory) {
     return "SPEND";
   }
 
@@ -66,21 +66,21 @@ contract SPEND is Versionable, ISPEND, SPENDMinterRole {
    * no way affects any of the arithmetic of the contract, including
    * {IERC20-balanceOf} and {IERC20-transfer}.
    */
-  function decimals() public pure returns (uint8) {
+  function decimals() external pure returns (uint8) {
     return 0;
   }
 
   /**
    * @dev See {IERC20-totalSupply}.
    */
-  function totalSupply() public view returns (uint256) {
+  function totalSupply() external view returns (uint256) {
     return _totalSupply;
   }
 
   /**
    * @dev See {IERC20-balanceOf}.
    */
-  function balanceOf(address account) public view returns (uint256) {
+  function balanceOf(address account) external view returns (uint256) {
     return _balances[account];
   }
 

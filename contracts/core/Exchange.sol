@@ -19,8 +19,8 @@ contract Exchange is Ownable, PayableToken {
 
   mapping(bytes32 => ExchangeInfo) public exchanges;
 
-  function createExchange(string memory tokenSymbol, address feed)
-    public
+  function createExchange(string calldata tokenSymbol, address feed)
+    external
     onlyOwner
   {
     bytes32 key = keccak256(bytes(tokenSymbol));

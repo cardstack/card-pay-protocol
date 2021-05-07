@@ -38,11 +38,11 @@ contract RevenuePool is
     address _gsMasterCopy,
     address _gsProxyFactory,
     address _spendToken,
-    address[] memory _payableTokens
-  ) public onlyOwner {
+    address[] calldata _payableTokens
+  ) external onlyOwner {
     // setup tally user
     if (_tally != address(0)) {
-      addTally(_tally);
+      _addTally(_tally);
     }
     // setup gnosis safe address
     MerchantManager.setup(_gsMasterCopy, _gsProxyFactory);
@@ -50,7 +50,7 @@ contract RevenuePool is
     spendToken = _spendToken;
     // set token list payable.
     for (uint256 i = 0; i < _payableTokens.length; i++) {
-      addPayableToken(_payableTokens[i]);
+      _addPayableToken(_payableTokens[i]);
     }
     emit Setup();
   }

@@ -46,7 +46,7 @@ contract BridgeUtils is Ownable, Versionable, Safe {
     address _gsMasterCopy,
     address _gsProxyFactory,
     address _bridgeMediator
-  ) public onlyOwner returns (bool) {
+  ) external onlyOwner returns (bool) {
     Safe.setup(_gsMasterCopy, _gsProxyFactory);
     revenuePool = _revenuePool;
     prepaidCardManager = _prepaidCardManager;

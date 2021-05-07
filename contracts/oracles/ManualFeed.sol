@@ -21,7 +21,7 @@ contract ManualFeed is Ownable, Versionable, AggregatorV3Interface {
   event RoundAdded(uint80 indexed roundId);
   event FeedSetup(string description, uint8 decimals);
 
-  function setup(string memory description, uint8 decimals) public onlyOwner {
+  function setup(string calldata description, uint8 decimals) external onlyOwner {
     _description = description;
     _decimals = decimals;
     _currentRound = 0;
@@ -32,7 +32,7 @@ contract ManualFeed is Ownable, Versionable, AggregatorV3Interface {
     int256 price,
     uint256 startedAt,
     uint256 updatedAt
-  ) public onlyOwner {
+  ) external onlyOwner {
     _currentRound++;
     rounds[_currentRound].exists = true;
     rounds[_currentRound].price = price;

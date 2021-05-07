@@ -20,10 +20,6 @@ contract PrepaidCardManager is
   Safe,
   IPrepaidCardManager
 {
-  bytes4 public constant SWAP_OWNER = 0xe318b52b; //swapOwner(address,address,address)
-  bytes4 public constant TRANSER_AND_CALL = 0x4000aea0; //transferAndCall(address,uint256,bytes)
-  uint8 public constant MAXIMUM_NUMBER_OF_CARD = 15;
-
   using SafeMath for uint256;
 
   event Setup();
@@ -35,14 +31,16 @@ contract PrepaidCardManager is
   );
   event GasFeeCollected(address issuer, address card, uint256 amount);
 
+  bytes4 public constant SWAP_OWNER = 0xe318b52b; //swapOwner(address,address,address)
+  bytes4 public constant TRANSER_AND_CALL = 0x4000aea0; //transferAndCall(address,uint256,bytes)
+  uint8 public constant MAXIMUM_NUMBER_OF_CARD = 15;
+  uint256 public minimumMerchantPayment = 50; //in units of SPEND
   address public revenuePool;
-
+  address public gasFeeReceiver;
+  mapping(address => CardDetail) public cardDetails;
+  uint256 public gasFeeCARDAmount;
   uint256 internal maxAmount;
   uint256 internal minAmount;
-
-  mapping(address => CardDetail) public cardDetails;
-  address public gasFeeReceiver;
-  uint256 public gasFeeCARDAmount;
 
   /**
    * @dev Setup function sets initial storage of contract.
@@ -61,10 +59,10 @@ contract PrepaidCardManager is
     address _revenuePool,
     address _gasFeeReceiver,
     uint256 _gasFeeCARDAmount,
-    address[] memory _payableTokens,
+    address[] calldata _payableTokens,
     uint256 _minAmount,
     uint256 _maxAmount
-  ) public onlyOwner {
+  ) external onlyOwner {
     revenuePool = _revenuePool;
     gasFeeReceiver = _gasFeeReceiver;
     gasFeeCARDAmount = _gasFeeCARDAmount;
@@ -80,11 +78,11 @@ contract PrepaidCardManager is
     emit Setup();
   }
 
-  function getMinimumSpendAmount() public view returns (uint256) {
+  function minimumFaceValue() external view returns (uint256) {
     return minAmount;
   }
 
-  function getMaximumSpendAmount() public view returns (uint256) {
+  function maximumFaceValue() external view returns (uint256) {
     return maxAmount;
   }
 
@@ -128,12 +126,15 @@ contract PrepaidCardManager is
       neededAmount = neededAmount.add(amountOfCard[i]);
     }
 
-    // TODO: should we handle the case when amount received > needed amount
-    //      (transfer the rest of token back to issuer) ?
-    require(amountReceived == neededAmount, "Not enough token");
-
+    require(amountReceived >= neededAmount, "Not enough token");
     for (uint256 i = 0; i < numberCard; i++) {
       createPrepaidCard(depot, token, amountOfCard[i]);
+    }
+
+    // refund the supplier any excess funds that they provided
+    if (amountReceived > neededAmount) {
+      // the depot is a trusted contract (gnosis safe)
+      IERC677(token).transfer(depot, amountReceived - neededAmount);
     }
 
     return true;
@@ -145,7 +146,7 @@ contract PrepaidCardManager is
    * afterwards based on the exchange rate
    */
   function priceForFaceValue(address token, uint256 spendFaceValue)
-    public
+    external
     view
     returns (uint256)
   {
@@ -308,8 +309,7 @@ contract PrepaidCardManager is
    * @param merchantSafe Merchant's safe address
    * @param amount value to pay to merchant
    * @param signatures Packed signature data ({bytes32 r}{bytes32 s}{uint8 v})
-   * TODO: should limit minimum price of merchant service. Attacker can spam our contract if price is to low.
-   * TODO: relayer should check all information correctly before call this method
+   * TODO: relayer should verify request will fulfill the requires() before calling this method
    */
   function payForMerchant(
     address payable prepaidCard,
@@ -318,6 +318,12 @@ contract PrepaidCardManager is
     uint256 amount,
     bytes calldata signatures
   ) external returns (bool) {
+    uint256 amountInSPEND =
+      RevenuePool(revenuePool).convertToSpend(payableTokenAddr, amount);
+    require(
+      amountInSPEND >= minimumMerchantPayment,
+      "merchant payment too small"
+    ); // protect against spamming contract with too low a price
     return
       execTransaction(
         prepaidCard,
@@ -472,8 +478,10 @@ contract PrepaidCardManager is
     cardDetails[card].issueToken = token;
     uint256 _gasFee = gasFee(token);
     if (gasFeeReceiver != address(0) && _gasFee > 0) {
+      // The gasFeeReceiver is a trusted address that we control
       IERC677(token).transfer(gasFeeReceiver, _gasFee);
     }
+    // The card is a trusted contract (gnosis safe)
     IERC677(token).transfer(card, amount - _gasFee);
 
     emit CreatePrepaidCard(depot, card, token, amount - _gasFee);

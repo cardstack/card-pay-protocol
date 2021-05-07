@@ -30,6 +30,7 @@ const {
 } = require("./utils/helper");
 
 const { expect, TOKEN_DETAIL_DATA, toBN } = require("./setup");
+const { toWei } = require("web3").utils;
 
 contract("PrepaidManager", (accounts) => {
   let MINIMUM_AMOUNT,
@@ -169,10 +170,10 @@ contract("PrepaidManager", (accounts) => {
       expect(await cardManager.getTokens()).to.deep.equal([
         daicpxdToken.address,
       ]);
-      expect(await cardManager.getMinimumSpendAmount()).to.a.bignumber.equal(
+      expect(await cardManager.minimumFaceValue()).to.a.bignumber.equal(
         toBN(MINIMUM_AMOUNT)
       );
-      expect(await cardManager.getMaximumSpendAmount()).to.a.bignumber.equal(
+      expect(await cardManager.maximumFaceValue()).to.a.bignumber.equal(
         toBN(MAXIMUM_AMOUNT)
       );
     });
@@ -389,6 +390,67 @@ contract("PrepaidManager", (accounts) => {
       );
 
       await shouldBeSameBalance(daicpxdToken, relayer, payment);
+    });
+
+    it("should refund the supplier when the total amount specified to be applied to a prepaid card is less than the amount of tokens they send", async () => {
+      let amount = toTokenUnit(1);
+
+      let createCardData = encodeCreateCardsData(depot.address, [amount]); // create a 1 DAI prepaid card
+
+      let transferAndCall = daicpxdToken.contract.methods.transferAndCall(
+        cardManager.address,
+        amount.add(toTokenUnit(1)), // send 2 DAI for the txn
+        createCardData
+      );
+
+      let payloads = transferAndCall.encodeABI();
+      let gasEstimate = await transferAndCall.estimateGas();
+
+      let safeTxData = {
+        to: daicpxdToken.address,
+        data: payloads,
+        txGasEstimate: gasEstimate,
+        gasPrice: 1000000000,
+        txGasToken: daicpxdToken.address,
+        refundReceive: relayer,
+      };
+
+      let { safeTxHash, safeTx } = await signAndSendSafeTransaction(
+        safeTxData,
+        issuer,
+        depot,
+        relayer
+      );
+
+      let executeSuccess = getParamsFromEvent(
+        safeTx,
+        eventABIs.EXECUTION_SUCCESS,
+        depot.address
+      );
+
+      expect(executeSuccess[0]).to.include({
+        txHash: safeTxHash,
+      });
+
+      let paymentActual = toBN(executeSuccess[0]["payment"]);
+
+      await shouldBeSameBalance(daicpxdToken, relayer, paymentActual);
+
+      let prepaidCard = await getGnosisSafeFromEventLog(
+        safeTx,
+        cardManager.address
+      );
+
+      await shouldBeSameBalance(
+        daicpxdToken,
+        prepaidCard[0].address,
+        toTokenUnit(1)
+      );
+      await shouldBeSameBalance(
+        daicpxdToken,
+        depot.address,
+        walletAmount.sub(toTokenUnit(1)).sub(paymentActual)
+      );
     });
 
     it("should not create card with value less than 1 token", async () => {
@@ -1215,6 +1277,52 @@ contract("PrepaidManager", (accounts) => {
         signatures,
         { from: relayer }
       ).should.be.rejected;
+
+      await shouldBeSameBalance(
+        daicpxdToken,
+        revenuePool.address,
+        toTokenUnit(1)
+      );
+      await shouldBeSameBalance(daicpxdToken, cardAddress, toTokenUnit(4));
+    });
+
+    it("can not send less funds to a merchant than the minimum merchant payment amount", async () => {
+      let data = await cardManager.getPayData(
+        daicpxdToken.address,
+        merchantSafe,
+        toWei("0.4")
+      ).should.be.fulfilled;
+
+      let signature = await signSafeTransaction(
+        daicpxdToken.address,
+        0,
+        data,
+        0,
+        0,
+        0,
+        0,
+        ZERO_ADDRESS,
+        ZERO_ADDRESS,
+        await prepaidCards[2].nonce(),
+        customer,
+        prepaidCards[2]
+      );
+
+      let signatures = await cardManager.appendPrepaidCardAdminSignature(
+        customer,
+        signature
+      );
+
+      await cardManager
+        .payForMerchant(
+          cardAddress,
+          daicpxdToken.address,
+          merchantSafe,
+          toWei("0.4"),
+          signatures,
+          { from: relayer }
+        )
+        .should.be.rejectedWith(Error, "merchant payment too small");
 
       await shouldBeSameBalance(
         daicpxdToken,

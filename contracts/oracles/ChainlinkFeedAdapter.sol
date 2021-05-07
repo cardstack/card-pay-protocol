@@ -13,7 +13,7 @@ contract ChainlinkFeedAdapter is Ownable, Versionable, IPriceOracle {
 
   event ChainlinkFeedSetup(address tokenUsdFeed, address usdEthFeed);
 
-  function setup(address _tokenUsdFeed, address _usdEthFeed) public onlyOwner {
+  function setup(address _tokenUsdFeed, address _usdEthFeed) external onlyOwner {
     require(
       _tokenUsdFeed != address(0) && _usdEthFeed != address(0),
       "feed can't be zero address"
