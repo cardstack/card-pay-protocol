@@ -22,15 +22,15 @@ contract TallyRole is Ownable {
     _;
   }
 
-  function addTally(address _tally) public onlyOwner returns (bool) {
+  function addTally(address _tally) external onlyOwner returns (bool) {
     return _addTally(_tally);
   }
 
-  function removeTally(address _tally) public onlyOwner returns (bool) {
+  function removeTally(address _tally) external onlyOwner returns (bool) {
     return _removeTally(_tally);
   }
 
-  function getTallys() public view returns (address[] memory) {
+  function getTallys() external view returns (address[] memory) {
     return tally.enumerate();
   }
 

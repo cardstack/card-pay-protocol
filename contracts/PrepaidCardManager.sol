@@ -59,10 +59,10 @@ contract PrepaidCardManager is
     address _revenuePool,
     address _gasFeeReceiver,
     uint256 _gasFeeCARDAmount,
-    address[] memory _payableTokens,
+    address[] calldata _payableTokens,
     uint256 _minAmount,
     uint256 _maxAmount
-  ) public onlyOwner {
+  ) external onlyOwner {
     revenuePool = _revenuePool;
     gasFeeReceiver = _gasFeeReceiver;
     gasFeeCARDAmount = _gasFeeCARDAmount;
@@ -78,11 +78,11 @@ contract PrepaidCardManager is
     emit Setup();
   }
 
-  function minimumFaceValue() public view returns (uint256) {
+  function minimumFaceValue() external view returns (uint256) {
     return minAmount;
   }
 
-  function maximumFaceValue() public view returns (uint256) {
+  function maximumFaceValue() external view returns (uint256) {
     return maxAmount;
   }
 
@@ -146,7 +146,7 @@ contract PrepaidCardManager is
    * afterwards based on the exchange rate
    */
   function priceForFaceValue(address token, uint256 spendFaceValue)
-    public
+    external
     view
     returns (uint256)
   {

@@ -16,7 +16,7 @@ contract DIAOracleAdapter is Ownable, Versionable, IPriceOracle {
 
   event DAIOracleSetup(address tokenUsdOracle, string tokenSymbol);
 
-  function setup(address _oracle, string memory _tokenSymbol) public onlyOwner {
+  function setup(address _oracle, string calldata _tokenSymbol) external onlyOwner {
     require(_oracle != address(0), "oracle can't be zero address");
     oracle = _oracle;
     tokenSymbol = _tokenSymbol;
@@ -24,7 +24,7 @@ contract DIAOracleAdapter is Ownable, Versionable, IPriceOracle {
     emit DAIOracleSetup(oracle, _tokenSymbol);
   }
 
-  function decimals() public view returns (uint8) {
+  function decimals() external view returns (uint8) {
     return DECIMALS;
   }
 
