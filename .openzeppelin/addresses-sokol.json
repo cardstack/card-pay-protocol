@@ -30,9 +30,5 @@
   "ETHUSDFeed": {
     "proxy": "0x8F873C120c7b541ccF939E143AeB1D1086BE9EBC",
     "contractName": "ManualFeed"
-  },
-  "MockDIA": {
-    "proxy": "0xd6d1687e00d75F8F90175b74D95cFa9c6fE1e502",
-    "contractName": "MockDIAOracle"
   }
 }
