@@ -8,45 +8,56 @@ import "../roles/TallyRole.sol";
 contract MerchantManager is TallyRole, Safe {
   using EnumerableSet for EnumerableSet.AddressSet;
 
-  event MerchantCreation(address merchantOwner, address merchant);
+  event MerchantCreation(address merchant, address merchantSafe);
+  event MerchantUpdate(address merchant, address merchantSafe);
 
-  struct Merchant {
+  struct MerchantSafe {
     bool register;
-    // offchain id
-    string merchantId;
-    // mapping from token address to number token belongs of the merchant.
+    address merchant;
+    string merchantExternalId; // offchain id
+    // mapping from token address to amount of tokens that belong to the safe
     mapping(address => uint256) lockTotal;
   }
 
-  mapping(address => Merchant) internal merchants;
+  mapping(address => MerchantSafe) internal merchantSafes;
+  mapping(address => address) internal merchants;
 
   function setup(address _gsMasterCopy, address _gsProxyFactory) internal {
     Safe.setup(_gsMasterCopy, _gsProxyFactory);
   }
 
-  // TODO this function returns whether a safe address is a merchant safe
-  // address we'll likely need to hold a mapping of merchants to safes, and have
-  // a function to tell us if a merchant address itself is a reigstered merchant
-  // (much like how we deal with suppliers in the BridgeUtils contract)
-  function isMerchant(address merchantAddr) public view returns (bool) {
-    return merchants[merchantAddr].register;
+  function isMerchantSafe(address merchantSafe) public view returns (bool) {
+    return merchantSafes[merchantSafe].register;
   }
 
-  function registerMerchant(address merchantOwner, string calldata merchantId)
-    external
-    onlyTally
-    returns (address)
-  {
-    require(merchantOwner != address(0), "zero address not allowed");
+  function safeForMerchant(address merchant) public view returns (address) {
+    return merchants[merchant];
+  }
 
-    address merchant = createSafe(merchantOwner);
+  function registerMerchant(
+    address merchant,
+    string calldata merchantExternalId
+  ) external onlyTallyOrOwner returns (address) {
+    require(merchant != address(0), "zero address not allowed");
 
-    merchants[merchant].register = true;
-    merchants[merchant].merchantId = merchantId;
+    address merchantSafe = safeForMerchant(merchant);
+    if (merchantSafe != address(0)) {
+      merchantSafes[merchantSafe].merchantExternalId = merchantExternalId;
+      emit MerchantUpdate(merchant, merchantSafe);
+      return merchantSafe;
+    }
 
-    emit MerchantCreation(merchantOwner, merchant);
+    merchantSafe = createSafe(merchant);
 
-    return merchant;
+    merchantSafes[merchantSafe].register = true;
+    merchantSafes[merchantSafe].merchant = merchant;
+    merchantSafes[merchantSafe].merchantExternalId = merchantExternalId;
+
+    merchants[merchant] = merchantSafe;
+
+    emit MerchantCreation(merchant, merchantSafe);
+
+    return merchantSafe;
   }
 
   uint256[50] private ____gap;

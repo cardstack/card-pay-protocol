@@ -55,11 +55,24 @@ const eventABIs = {
     abis: [
       {
         type: "address",
-        name: "merchantOwner",
+        name: "merchant",
       },
       {
         type: "address",
+        name: "merchantSafe",
+      },
+    ],
+  },
+  MERCHANT_UPDATE: {
+    topic: web3EthAbi.encodeEventSignature("MerchantUpdate(address,address)"),
+    abis: [
+      {
+        type: "address",
         name: "merchant",
+      },
+      {
+        type: "address",
+        name: "merchantSafe",
       },
     ],
   },

@@ -25,16 +25,13 @@ contract("PrepaidCardManager - EOA tests", (accounts) => {
     spendToken,
     owner,
     prepaidCardManager,
-    offChainId = "Id",
     tally,
-    merchant,
     gasFeeReceiver,
     supplierEOA,
     cards = [];
 
   before(async () => {
     tally = owner = accounts[0];
-    merchant = accounts[3];
     supplierEOA = accounts[8];
     gasFeeReceiver = accounts[9];
 
@@ -85,7 +82,6 @@ contract("PrepaidCardManager - EOA tests", (accounts) => {
 
     await revenuePool.createExchange("DAI", chainlinkOracle.address);
     await revenuePool.createExchange("CARD", diaPrice.address);
-    await revenuePool.registerMerchant(merchant, offChainId);
 
     await prepaidCardManager.setup(
       gnosisSafeMasterCopy.address,

@@ -60,7 +60,7 @@ contract RevenuePool is
    * we will exchange receive token to SPEND token and mint it for the wallet of merchant.
    * @param from - who transfer token (should from prepaid card).
    * @param amount - number token customer pay for merchant.
-   * @param data - merchantAddr in encode format.
+   * @param data - merchant safe in encode format.
    */
   function onTokenTransfer(
     address from,
@@ -68,78 +68,78 @@ contract RevenuePool is
     bytes calldata data
   ) external isValidToken returns (bool) {
     // decode and get merchant address from the data
-    address merchantAddr = abi.decode(data, (address));
+    address merchantSafe = abi.decode(data, (address));
 
-    handlePayment(merchantAddr, _msgSender(), amount);
+    handlePayment(merchantSafe, _msgSender(), amount);
 
-    emit CustomerPayment(from, merchantAddr, _msgSender(), amount);
+    emit CustomerPayment(from, merchantSafe, _msgSender(), amount);
     return true;
   }
 
   /**
    * @dev merchant claim token to their wallet, only tally account can call this method
-   * @param merchantAddr address of merchant
+   * @param merchantSafe address of merchantSafe
    * @param payableToken address of payable token
    * @param amount amount in payable token
    */
   function claimToken(
-    address merchantAddr,
+    address merchantSafe,
     address payableToken,
     uint256 amount
-  ) external onlyTally returns (bool) {
-    return _claimToken(merchantAddr, payableToken, amount);
+  ) external onlyTallyOrOwner returns (bool) {
+    return _claimToken(merchantSafe, payableToken, amount);
   }
 
   /**
    * @dev mint SPEND for merchant wallet when customer pay token for them.
-   * @param merchantAddr merchant account address
+   * @param merchantSafe merchant safe address
    * @param payableToken payableToken contract address
    * @param amount amount in payableToken
    */
   function handlePayment(
-    address merchantAddr,
+    address merchantSafe,
     address payableToken,
     uint256 amount
   ) internal returns (bool) {
-    require(isMerchant(merchantAddr), "Invalid merchant");
+    require(isMerchantSafe(merchantSafe), "Invalid merchant");
 
-    uint256 lockTotal = merchants[merchantAddr].lockTotal[payableToken];
-    merchants[merchantAddr].lockTotal[payableToken] = lockTotal.add(amount);
+    uint256 lockTotal = merchantSafes[merchantSafe].lockTotal[payableToken];
+    merchantSafes[merchantSafe].lockTotal[payableToken] = lockTotal.add(amount);
 
     uint256 amountSPEND = convertToSpend(payableToken, amount);
 
-    ISPEND(spendToken).mint(merchantAddr, amountSPEND);
+    ISPEND(spendToken).mint(merchantSafe, amountSPEND);
 
     return true;
   }
 
   /**
    * @dev merchant claim token
-   * @param merchantAddr address of merchant
+   * @param merchantSafe address of merchant
    * @param payableToken address of payable token
    * @param amount amount in payable token
    */
   function _claimToken(
-    address merchantAddr,
+    address merchantSafe,
     address payableToken,
     uint256 amount
   ) internal isValidTokenAddress(payableToken) returns (bool) {
     // ensure enough token for redeem
-    uint256 lockTotal = merchants[merchantAddr].lockTotal[payableToken];
+    uint256 lockTotal = merchantSafes[merchantSafe].lockTotal[payableToken];
     require(amount <= lockTotal, "Insufficient funds");
 
     // unlock token of merchant
     lockTotal = lockTotal.sub(amount);
 
     // update new lockTotal
-    merchants[merchantAddr].lockTotal[payableToken] = lockTotal;
+    merchantSafes[merchantSafe].lockTotal[payableToken] = lockTotal;
 
-    // transfer payable token from revenue pool to merchant address. The
-    // merchant address is actually a gnosis safe contract, created by
+    // transfer payable token from revenue pool to merchant's safe address. The
+    // merchant's safe address is a gnosis safe contract, created by
     // registerMerchant(), so this is a trusted contract transfer
-    IERC677(payableToken).transfer(merchantAddr, amount);
+    IERC677(payableToken).transfer(merchantSafe, amount);
 
-    emit MerchantClaim(merchantAddr, payableToken, amount);
+    emit MerchantClaim(merchantSafe, payableToken, amount);
     return true;
   }
 }

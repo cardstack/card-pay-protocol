@@ -34,13 +34,11 @@ contract("PrepaidCardManager - issuer tests", (accounts) => {
     spendToken,
     prepaidCardManager,
     multiSend,
-    offChainId = "Id",
     fakeDaicpxdToken,
     tally,
     owner,
     issuer,
     customer,
-    merchant,
     relayer,
     gasFeeReceiver,
     walletOfIssuer,
@@ -50,7 +48,6 @@ contract("PrepaidCardManager - issuer tests", (accounts) => {
     tally = owner = accounts[0];
     issuer = accounts[1];
     customer = accounts[2];
-    merchant = accounts[3];
     relayer = accounts[4];
     gasFeeReceiver = accounts[5];
 
@@ -133,8 +130,6 @@ contract("PrepaidCardManager - issuer tests", (accounts) => {
 
     await revenuePool.createExchange("DAI", chainlinkOracle.address);
     await revenuePool.createExchange("CARD", diaPrice.address);
-
-    await revenuePool.registerMerchant(merchant, offChainId);
 
     await prepaidCardManager.setup(
       gnosisSafeMasterCopy.address,

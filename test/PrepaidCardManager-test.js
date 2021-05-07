@@ -38,7 +38,7 @@ contract("PrepaidManager", (accounts) => {
     spendToken,
     cardManager,
     multiSend,
-    merchantOwner,
+    merchant,
     daicpxdToken,
     fakeDaicpxdToken,
     gnosisSafeMasterCopy,
@@ -48,7 +48,7 @@ contract("PrepaidManager", (accounts) => {
     issuer,
     customer,
     gasFeeReceiver,
-    merchant,
+    merchantSafe,
     relayer,
     depot,
     offChainId = "Id",
@@ -59,7 +59,7 @@ contract("PrepaidManager", (accounts) => {
     tally = accounts[1];
     issuer = accounts[2];
     customer = accounts[3];
-    merchantOwner = accounts[4];
+    merchant = accounts[4];
     relayer = accounts[5];
     gasFeeReceiver = accounts[6];
 
@@ -1118,7 +1118,7 @@ contract("PrepaidManager", (accounts) => {
     let cardAddress;
     before(async () => {
       let merchantTx = await revenuePool.registerMerchant(
-        merchantOwner,
+        merchant,
         offChainId,
         {
           from: tally,
@@ -1129,7 +1129,7 @@ contract("PrepaidManager", (accounts) => {
         eventABIs.MERCHANT_CREATION,
         revenuePool.address
       );
-      merchant = merchantCreation[0]["merchant"];
+      merchantSafe = merchantCreation[0]["merchantSafe"];
 
       cardAddress = prepaidCards[2].address;
     });
@@ -1137,7 +1137,7 @@ contract("PrepaidManager", (accounts) => {
     it("can be used to pay a merchant", async () => {
       let data = await cardManager.getPayData(
         daicpxdToken.address,
-        merchant,
+        merchantSafe,
         toTokenUnit(1)
       ).should.be.fulfilled;
 
@@ -1164,7 +1164,7 @@ contract("PrepaidManager", (accounts) => {
       await cardManager.payForMerchant(
         cardAddress,
         daicpxdToken.address,
-        merchant,
+        merchantSafe,
         toTokenUnit(1),
         signatures,
         { from: relayer }
@@ -1183,7 +1183,7 @@ contract("PrepaidManager", (accounts) => {
     it("can not send more funds to a merchant than the balance of the prepaid card", async () => {
       let data = await cardManager.getPayData(
         daicpxdToken.address,
-        merchant,
+        merchantSafe,
         toTokenUnit(10)
       ).should.be.fulfilled;
 
@@ -1210,7 +1210,7 @@ contract("PrepaidManager", (accounts) => {
       await cardManager.payForMerchant(
         cardAddress,
         daicpxdToken.address,
-        merchant,
+        merchantSafe,
         toTokenUnit(10),
         signatures,
         { from: relayer }

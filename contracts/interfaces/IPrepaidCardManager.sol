@@ -21,7 +21,7 @@ interface IPrepaidCardManager {
   function payForMerchant(
     address payable prepaidCardAddr,
     address payableTokenAddr,
-    address merchant,
+    address merchantSafe,
     uint256 paymentAmount,
     bytes calldata customerSignatures
   ) external returns (bool);
