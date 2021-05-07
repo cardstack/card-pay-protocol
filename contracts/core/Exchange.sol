@@ -129,4 +129,6 @@ contract Exchange is Ownable, PayableToken {
         tokenUSDPrice.mul(ten**cardExchangeDecimals)
       );
   }
+
+  uint256[50] private ____gap;
 }

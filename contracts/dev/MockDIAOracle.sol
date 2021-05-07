@@ -1,10 +1,11 @@
 pragma solidity 0.5.17;
 
 import "../oracles/IDIAOracle.sol";
+import "../core/Versionable.sol";
 import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
 
 // This contract is purely for testing and not meant to be deployed
-contract MockDIAOracle is Ownable, IDIAOracle {
+contract MockDIAOracle is Ownable, Versionable, IDIAOracle {
   struct PriceData {
     uint128 price;
     uint128 updatedAt;

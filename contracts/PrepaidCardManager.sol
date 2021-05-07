@@ -9,12 +9,13 @@ import "./token/IERC677.sol";
 import "./roles/TallyRole.sol";
 import "./roles/PayableToken.sol";
 import "./core/Safe.sol";
+import "./core/Versionable.sol";
 import "./interfaces/IPrepaidCardManager.sol";
 import "./RevenuePool.sol";
 
 contract PrepaidCardManager is
   Initializable,
-  TallyRole,
+  Versionable,
   PayableToken,
   Safe,
   IPrepaidCardManager
@@ -45,14 +46,16 @@ contract PrepaidCardManager is
 
   /**
    * @dev Setup function sets initial storage of contract.
-   * @param _tally Tally address
    * @param _gsMasterCopy Gnosis safe Master Copy address
    * @param _gsProxyFactory Gnosis safe Proxy Factory address
    * @param _revenuePool Revenue Pool address
-   * @param _payableTokens Payable tokens are allowed to use
+   * @param _gasFeeReceiver The addres that will receive the new prepaid card gas fee
+   * @param _gasFeeCARDAmount the amount to charge for the gas fee for new prepaid card in units of CARD wei
+   * @param _payableTokens Payable tokens are allowed to use (these are created by the token bridge, specify them here if there are existing tokens breaked by teh bridge to use)
+   * @param _minAmount The minimum face value of a new prepaid card in units of SPEND
+   * @param _maxAmount The maximum face value of a new prepaid card in units of SPEND
    */
   function setup(
-    address _tally,
     address _gsMasterCopy,
     address _gsProxyFactory,
     address _revenuePool,
@@ -62,11 +65,6 @@ contract PrepaidCardManager is
     uint256 _minAmount,
     uint256 _maxAmount
   ) public onlyOwner {
-    // setup tally user
-    if (_tally != address(0)) {
-      _addTally(_tally);
-    }
-
     revenuePool = _revenuePool;
     gasFeeReceiver = _gasFeeReceiver;
     gasFeeCARDAmount = _gasFeeCARDAmount;
@@ -82,20 +80,12 @@ contract PrepaidCardManager is
     emit Setup();
   }
 
-  function getMinimumAmount() public view returns (uint256) {
+  function getMinimumSpendAmount() public view returns (uint256) {
     return minAmount;
   }
 
-  function getMaximumAmount() public view returns (uint256) {
+  function getMaximumSpendAmount() public view returns (uint256) {
     return maxAmount;
-  }
-
-  function updateMinimumAmount(uint256 _minValue) public onlyTally {
-    minAmount = _minValue;
-  }
-
-  function updateMaximumAmount(uint256 _maxValue) public onlyTally {
-    maxAmount = _maxValue;
   }
 
   /**
@@ -315,7 +305,7 @@ contract PrepaidCardManager is
    * @dev Pay token to merchant
    * @param prepaidCard Prepaid Card's address
    * @param payableTokenAddr payable token address
-   * @param merchant Merchant's address
+   * @param merchantSafe Merchant's safe address
    * @param amount value to pay to merchant
    * @param signatures Packed signature data ({bytes32 r}{bytes32 s}{uint8 v})
    * TODO: should limit minimum price of merchant service. Attacker can spam our contract if price is to low.
@@ -324,7 +314,7 @@ contract PrepaidCardManager is
   function payForMerchant(
     address payable prepaidCard,
     address payableTokenAddr,
-    address merchant,
+    address merchantSafe,
     uint256 amount,
     bytes calldata signatures
   ) external returns (bool) {
@@ -332,7 +322,7 @@ contract PrepaidCardManager is
       execTransaction(
         prepaidCard,
         payableTokenAddr,
-        getPayData(payableTokenAddr, merchant, amount),
+        getPayData(payableTokenAddr, merchantSafe, amount),
         signatures
       );
   }
@@ -340,12 +330,12 @@ contract PrepaidCardManager is
   /**
    * @dev Returns the bytes that are hashed to be signed by owners.
    * @param token Token merchant
-   * @param merchant Merchant's address
+   * @param merchantSafe Merchant's safe address
    * @param amount amount need pay to merchant
    */
   function getPayData(
     address token, // solhint-disable-line no-unused-vars
-    address merchant,
+    address merchantSafe,
     uint256 amount
   ) public view returns (bytes memory) {
     return
@@ -353,7 +343,7 @@ contract PrepaidCardManager is
         TRANSER_AND_CALL,
         revenuePool,
         amount,
-        abi.encode(merchant)
+        abi.encode(merchantSafe)
       );
   }
 

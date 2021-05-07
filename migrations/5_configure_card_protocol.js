@@ -73,7 +73,6 @@ Configuring RevenuePool ${revenuePoolAddress}
   console.log(`
 ==================================================
 Configuring PrepaidCardManager ${prepaidCardManagerAddress}
-  tally address: ${TALLY}
   gnosis master copy: ${GNOSIS_SAFE_MASTER_COPY}
   gnosis proxy factory: ${GNOSIS_SAFE_FACTORY}
   RevenuePool address: ${revenuePoolAddress}
@@ -83,7 +82,6 @@ Configuring PrepaidCardManager ${prepaidCardManagerAddress}
   minimum face value: ${MINIMUM_AMOUNT}
   maximum face value: ${MAXIMUM_AMOUNT}`);
   await prepaidCardManager.setup(
-    TALLY,
     GNOSIS_SAFE_MASTER_COPY,
     GNOSIS_SAFE_FACTORY,
     revenuePoolAddress,

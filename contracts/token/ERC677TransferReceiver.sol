@@ -11,4 +11,6 @@ contract ERC677TransferReceiver {
     uint256 amount,
     bytes calldata data
   ) external returns (bool);
+
+  uint256[50] private ____gap;
 }

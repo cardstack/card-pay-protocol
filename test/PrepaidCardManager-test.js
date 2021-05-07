@@ -38,7 +38,7 @@ contract("PrepaidManager", (accounts) => {
     spendToken,
     cardManager,
     multiSend,
-    merchantOwner,
+    merchant,
     daicpxdToken,
     fakeDaicpxdToken,
     gnosisSafeMasterCopy,
@@ -48,7 +48,7 @@ contract("PrepaidManager", (accounts) => {
     issuer,
     customer,
     gasFeeReceiver,
-    merchant,
+    merchantSafe,
     relayer,
     depot,
     offChainId = "Id",
@@ -59,7 +59,7 @@ contract("PrepaidManager", (accounts) => {
     tally = accounts[1];
     issuer = accounts[2];
     customer = accounts[3];
-    merchantOwner = accounts[4];
+    merchant = accounts[4];
     relayer = accounts[5];
     gasFeeReceiver = accounts[6];
 
@@ -145,7 +145,6 @@ contract("PrepaidManager", (accounts) => {
     before(async () => {
       // Setup card manager contract
       await cardManager.setup(
-        tally,
         gnosisSafeMasterCopy.address,
         proxyFactory.address,
         revenuePool.address,
@@ -158,7 +157,6 @@ contract("PrepaidManager", (accounts) => {
     });
 
     it("should initialize parameters", async () => {
-      expect(await cardManager.getTallys()).to.deep.equal([tally]);
       expect(await cardManager.gnosisSafe()).to.deep.equal(
         gnosisSafeMasterCopy.address
       );
@@ -171,36 +169,12 @@ contract("PrepaidManager", (accounts) => {
       expect(await cardManager.getTokens()).to.deep.equal([
         daicpxdToken.address,
       ]);
-      expect(await cardManager.getMinimumAmount()).to.a.bignumber.equal(
+      expect(await cardManager.getMinimumSpendAmount()).to.a.bignumber.equal(
         toBN(MINIMUM_AMOUNT)
       );
-      expect(await cardManager.getMaximumAmount()).to.a.bignumber.equal(
+      expect(await cardManager.getMaximumSpendAmount()).to.a.bignumber.equal(
         toBN(MAXIMUM_AMOUNT)
       );
-    });
-
-    it("can update minimum amount", async () => {
-      await cardManager.updateMinimumAmount(200, {
-        from: tally,
-      }).should.be.fulfilled;
-      expect(await cardManager.getMinimumAmount()).to.a.bignumber.equal(
-        toBN(200)
-      );
-      await cardManager.updateMinimumAmount(MINIMUM_AMOUNT, {
-        from: tally,
-      }).should.be.fulfilled;
-    });
-
-    it("can update maximum amount", async () => {
-      await cardManager.updateMaximumAmount(600000, {
-        from: tally,
-      }).should.be.fulfilled;
-      expect(await cardManager.getMaximumAmount()).to.a.bignumber.equal(
-        toBN(600000)
-      );
-      await cardManager.updateMaximumAmount(MAXIMUM_AMOUNT, {
-        from: tally,
-      }).should.be.fulfilled;
     });
   });
 
@@ -614,7 +588,6 @@ contract("PrepaidManager", (accounts) => {
     before(async () => {
       initialAmount = toTokenUnit(100);
       await cardManager.setup(
-        tally,
         gnosisSafeMasterCopy.address,
         proxyFactory.address,
         revenuePool.address,
@@ -636,7 +609,6 @@ contract("PrepaidManager", (accounts) => {
     after(async () => {
       // reset to 0 gasFee to make other tests easy to reason about
       await cardManager.setup(
-        tally,
         gnosisSafeMasterCopy.address,
         proxyFactory.address,
         revenuePool.address,
@@ -803,7 +775,6 @@ contract("PrepaidManager", (accounts) => {
 
     it("gas fee should not be collected if gasFeeReceiver is zero address", async () => {
       await cardManager.setup(
-        tally,
         gnosisSafeMasterCopy.address,
         proxyFactory.address,
         revenuePool.address,
@@ -878,7 +849,6 @@ contract("PrepaidManager", (accounts) => {
 
       // reset state for other tests
       await cardManager.setup(
-        tally,
         gnosisSafeMasterCopy.address,
         proxyFactory.address,
         revenuePool.address,
@@ -1148,7 +1118,7 @@ contract("PrepaidManager", (accounts) => {
     let cardAddress;
     before(async () => {
       let merchantTx = await revenuePool.registerMerchant(
-        merchantOwner,
+        merchant,
         offChainId,
         {
           from: tally,
@@ -1159,7 +1129,7 @@ contract("PrepaidManager", (accounts) => {
         eventABIs.MERCHANT_CREATION,
         revenuePool.address
       );
-      merchant = merchantCreation[0]["merchant"];
+      merchantSafe = merchantCreation[0]["merchantSafe"];
 
       cardAddress = prepaidCards[2].address;
     });
@@ -1167,7 +1137,7 @@ contract("PrepaidManager", (accounts) => {
     it("can be used to pay a merchant", async () => {
       let data = await cardManager.getPayData(
         daicpxdToken.address,
-        merchant,
+        merchantSafe,
         toTokenUnit(1)
       ).should.be.fulfilled;
 
@@ -1194,7 +1164,7 @@ contract("PrepaidManager", (accounts) => {
       await cardManager.payForMerchant(
         cardAddress,
         daicpxdToken.address,
-        merchant,
+        merchantSafe,
         toTokenUnit(1),
         signatures,
         { from: relayer }
@@ -1213,7 +1183,7 @@ contract("PrepaidManager", (accounts) => {
     it("can not send more funds to a merchant than the balance of the prepaid card", async () => {
       let data = await cardManager.getPayData(
         daicpxdToken.address,
-        merchant,
+        merchantSafe,
         toTokenUnit(10)
       ).should.be.fulfilled;
 
@@ -1240,7 +1210,7 @@ contract("PrepaidManager", (accounts) => {
       await cardManager.payForMerchant(
         cardAddress,
         daicpxdToken.address,
-        merchant,
+        merchantSafe,
         toTokenUnit(10),
         signatures,
         { from: relayer }
@@ -1256,14 +1226,6 @@ contract("PrepaidManager", (accounts) => {
   });
 
   describe("roles", () => {
-    it("can create and remove a tally role", async () => {
-      let newTally = accounts[8];
-      await cardManager.removeTally(tally).should.be.fulfilled;
-      await cardManager.addTally(newTally).should.be.fulfilled;
-
-      await cardManager.getTallys().should.become([newTally]);
-    });
-
     it("can add and remove a payable token", async () => {
       let mockPayableTokenAddr = accounts[9];
 
@@ -1274,6 +1236,11 @@ contract("PrepaidManager", (accounts) => {
         .fulfilled;
 
       await cardManager.getTokens().should.become([mockPayableTokenAddr]);
+    });
+  });
+  describe("versioning", () => {
+    it("can get version of contract", async () => {
+      expect(await cardManager.cardProtocolVersion()).to.match(/\d\.\d\.\d/);
     });
   });
 });

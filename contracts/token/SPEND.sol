@@ -5,9 +5,10 @@ import "@openzeppelin/contract-upgradeable/contracts/math/SafeMath.sol";
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
 
 import "./ISPEND.sol";
+import "../core/Versionable.sol";
 import "../roles/SPENDMinterRole.sol";
 
-contract SPEND is ISPEND, SPENDMinterRole {
+contract SPEND is Versionable, ISPEND, SPENDMinterRole {
   using SafeMath for uint256;
 
   mapping(address => uint256) public _balances;

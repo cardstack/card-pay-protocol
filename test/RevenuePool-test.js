@@ -32,6 +32,8 @@ contract("RevenuePool", (accounts) => {
     cardOracle,
     owner,
     merchant,
+    anotherMerchant,
+    merchantSafe,
     offchainId,
     proxyFactory,
     gnosisSafeMasterCopy;
@@ -39,7 +41,10 @@ contract("RevenuePool", (accounts) => {
   before(async () => {
     offchainId = "offchain";
     lw = await utils.createLightwallet();
-    tally = owner = accounts[0];
+    owner = accounts[0];
+    tally = accounts[1];
+    merchant = accounts[2];
+    anotherMerchant = accounts[3];
 
     proxyFactory = await ProxyFactory.new();
     gnosisSafeMasterCopy = await utils.deployContract(
@@ -121,8 +126,10 @@ contract("RevenuePool", (accounts) => {
   });
 
   describe("create merchant", () => {
+    // Warning the merchant safe created in this test is used in all the
+    // subsequent tests!
     it("can register a merchant from tally", async () => {
-      let tx = await revenuePool.registerMerchant(lw.accounts[0], offchainId, {
+      let tx = await revenuePool.registerMerchant(merchant, offchainId, {
         from: tally,
       }).should.be.fulfilled;
       let merchantCreation = await utils.getParamsFromEvent(
@@ -130,8 +137,33 @@ contract("RevenuePool", (accounts) => {
         eventABIs.MERCHANT_CREATION,
         revenuePool.address
       );
-      merchant = merchantCreation[0]["merchant"];
-      await revenuePool.isMerchant(merchant).should.become(true);
+      merchantSafe = merchantCreation[0]["merchantSafe"];
+      await revenuePool.isMerchantSafe(merchantSafe).should.become(true);
+    });
+
+    it("can register a merchant from owner", async () => {
+      let tx = await revenuePool.registerMerchant(anotherMerchant, offchainId, {
+        from: owner,
+      }).should.be.fulfilled;
+      let merchantCreation = await utils.getParamsFromEvent(
+        tx,
+        eventABIs.MERCHANT_CREATION,
+        revenuePool.address
+      );
+      let safe = merchantCreation[0]["merchantSafe"];
+      await revenuePool.isMerchantSafe(safe).should.become(true);
+    });
+
+    it("can return an already created safe for a merchant if they are already registered", async () => {
+      await revenuePool.isMerchantSafe(merchantSafe).should.become(true);
+      let tx = await revenuePool.registerMerchant(merchant, offchainId);
+      let merchantUpdate = await utils.getParamsFromEvent(
+        tx,
+        eventABIs.MERCHANT_UPDATE,
+        revenuePool.address
+      );
+      let existingSafe = merchantUpdate[0]["merchantSafe"];
+      expect(existingSafe).to.equal(merchantSafe);
     });
 
     it("should reject when the merchant address is zero", async () => {
@@ -144,12 +176,13 @@ contract("RevenuePool", (accounts) => {
 
     it("should reject when a non-tally address tries to register a merchant", async () => {
       await revenuePool
-        .registerMerchant(lw.accounts[0], offchainId, {
-          from: accounts[2],
+        .registerMerchant(accounts[9], offchainId, {
+          from: merchant,
         })
-        .should.be.rejectedWith(Error, "Tally: caller is not the tally");
+        .should.be.rejectedWith(Error, "caller is not tally or owner");
     });
-    it("set up wrong data", async () => {
+
+    it("set up with incorrect gnosis master copy and factory", async () => {
       await revenuePool.setup(
         tally,
         accounts[9],
@@ -158,7 +191,7 @@ contract("RevenuePool", (accounts) => {
         [daicpxdToken.address]
       );
 
-      await revenuePool.registerMerchant(lw.accounts[4], offchainId, {
+      await revenuePool.registerMerchant(accounts[4], offchainId, {
         from: tally,
       }).should.be.rejected;
     });
@@ -167,13 +200,13 @@ contract("RevenuePool", (accounts) => {
   describe("pay token", () => {
     it("can pay 1 DAI CPXD token to pool and mint SPEND token to the merchant's wallet", async () => {
       let existingSPENDBalance = Number(
-        BN(await getBalance(spendToken, merchant)).toString()
+        BN(await getBalance(spendToken, merchantSafe)).toString()
       );
       let existingDAIBalance = fromWei(
         BN(await getBalance(daicpxdToken, owner)).toString()
       );
       let amount = toTokenUnit(1);
-      let data = web3.eth.abi.encodeParameters(["address"], [merchant]);
+      let data = web3.eth.abi.encodeParameters(["address"], [merchantSafe]);
 
       await daicpxdToken.transferAndCall(revenuePool.address, amount, data)
         .should.be.fulfilled;
@@ -185,20 +218,20 @@ contract("RevenuePool", (accounts) => {
       );
       await shouldBeSameBalance(
         spendToken,
-        merchant,
+        merchantSafe,
         String(existingSPENDBalance + 100)
       );
     });
 
     it("can pay 2 DAI CPXD token to pool and mint SPEND token to the merchant's wallet", async () => {
       let existingSPENDBalance = Number(
-        BN(await getBalance(spendToken, merchant)).toString()
+        BN(await getBalance(spendToken, merchantSafe)).toString()
       );
       let existingDAIBalance = fromWei(
         BN(await getBalance(daicpxdToken, owner)).toString()
       );
       let amount = toTokenUnit(2); // equal 2 * 10^18
-      let data = web3.eth.abi.encodeParameters(["address"], [merchant]);
+      let data = web3.eth.abi.encodeParameters(["address"], [merchantSafe]);
 
       await daicpxdToken.transferAndCall(revenuePool.address, amount, data);
 
@@ -209,7 +242,7 @@ contract("RevenuePool", (accounts) => {
       );
       await shouldBeSameBalance(
         spendToken,
-        merchant,
+        merchantSafe,
         String(existingSPENDBalance + 200)
       );
     });
@@ -318,14 +351,14 @@ contract("RevenuePool", (accounts) => {
 
     it("when exchange rate is 2:1, a payment of 1 DAI token results in 200 SPEND tokens minted in merchant's wallet", async () => {
       let existingSPENDBalance = Number(
-        BN(await getBalance(spendToken, merchant)).toString()
+        BN(await getBalance(spendToken, merchantSafe)).toString()
       );
       let existingDAIBalance = fromWei(
         BN(await getBalance(daicpxdToken, owner)).toString()
       );
       await feed.addRound(200000000, 1618435000, 1618435000);
       let amount = toTokenUnit(1);
-      let data = web3.eth.abi.encodeParameters(["address"], [merchant]);
+      let data = web3.eth.abi.encodeParameters(["address"], [merchantSafe]);
 
       await daicpxdToken.transferAndCall(revenuePool.address, amount, data)
         .should.be.fulfilled;
@@ -337,21 +370,21 @@ contract("RevenuePool", (accounts) => {
       );
       await shouldBeSameBalance(
         spendToken,
-        merchant,
+        merchantSafe,
         String(existingSPENDBalance + 200)
       );
     });
 
     it("when exchange rate is 1:2, a payment of 1 DAI token results in 50 SPEND tokens minted in merchant's wallet", async () => {
       let existingSPENDBalance = Number(
-        BN(await getBalance(spendToken, merchant)).toString()
+        BN(await getBalance(spendToken, merchantSafe)).toString()
       );
       let existingDAIBalance = fromWei(
         BN(await getBalance(daicpxdToken, owner)).toString()
       );
       await feed.addRound(50000000, 1618436000, 1618436000);
       let amount = toTokenUnit(1);
-      let data = web3.eth.abi.encodeParameters(["address"], [merchant]);
+      let data = web3.eth.abi.encodeParameters(["address"], [merchantSafe]);
 
       await daicpxdToken.transferAndCall(revenuePool.address, amount, data)
         .should.be.fulfilled;
@@ -363,7 +396,7 @@ contract("RevenuePool", (accounts) => {
       );
       await shouldBeSameBalance(
         spendToken,
-        merchant,
+        merchantSafe,
         String(existingSPENDBalance + 50)
       );
     });
@@ -374,7 +407,7 @@ contract("RevenuePool", (accounts) => {
         BN(await getBalance(daicpxdToken, owner)).toString()
       );
       await feed.addRound(0, 1618436000, 1618436000);
-      let data = web3.eth.abi.encodeParameters(["address"], [merchant]);
+      let data = web3.eth.abi.encodeParameters(["address"], [merchantSafe]);
       let amount = toTokenUnit(1);
 
       await daicpxdToken
@@ -394,36 +427,36 @@ contract("RevenuePool", (accounts) => {
     it("allows a SPEND claim issued from tally (1 DAI CPXD)", async () => {
       let amount = toTokenUnit(1);
       let existingSPENDBalance = Number(
-        BN(await getBalance(spendToken, merchant)).toString()
+        BN(await getBalance(spendToken, merchantSafe)).toString()
       );
       let existingDAIBalance = fromWei(
-        BN(await getBalance(daicpxdToken, merchant)).toString()
+        BN(await getBalance(daicpxdToken, merchantSafe)).toString()
       );
-      await revenuePool.claimToken(merchant, daicpxdToken.address, amount, {
+      await revenuePool.claimToken(merchantSafe, daicpxdToken.address, amount, {
         from: tally,
       }).should.be.fulfilled;
 
       await shouldBeSameBalance(
         daicpxdToken,
-        merchant,
+        merchantSafe,
         toTokenUnit(existingDAIBalance + 1)
       );
       await shouldBeSameBalance(
         spendToken,
-        merchant,
+        merchantSafe,
         String(existingSPENDBalance)
       );
     });
 
     it("rejects a claim with malformed data", async () => {
-      await revenuePool.claimToken(merchant, daicpxdToken.address, [], {
+      await revenuePool.claimToken(merchantSafe, daicpxdToken.address, [], {
         from: tally,
       }).should.be.rejected;
     });
 
     it("rejects a claim that is not issued from tally", async () => {
       let amount = toTokenUnit(1);
-      await revenuePool.claimToken(merchant, daicpxdToken.address, amount, {
+      await revenuePool.claimToken(merchantSafe, daicpxdToken.address, amount, {
         from: accounts[2],
       }).should.be.rejected;
     });
@@ -432,12 +465,40 @@ contract("RevenuePool", (accounts) => {
     // SPEND tokens they have accumulated.
     it("rejects a claim that is larger than the amount permissable for the merchant", async () => {
       let invalidAmount = Math.ceil(
-        Number(BN(await getBalance(spendToken, merchant)).toString()) / 100
+        Number(BN(await getBalance(spendToken, merchantSafe)).toString()) / 100
       );
       let amount = toTokenUnit(invalidAmount);
-      await revenuePool.claimToken(merchant, daicpxdToken.address, amount, {
+      await revenuePool.claimToken(merchantSafe, daicpxdToken.address, amount, {
         from: tally,
       }).should.be.rejected;
+    });
+  });
+
+  describe("roles", () => {
+    it("can create and remove a tally role", async () => {
+      let newTally = accounts[8];
+      await revenuePool.removeTally(tally).should.be.fulfilled;
+      await revenuePool.addTally(newTally).should.be.fulfilled;
+
+      await revenuePool.getTallys().should.become([newTally]);
+    });
+
+    it("can add and remove a payable token", async () => {
+      let mockPayableTokenAddr = accounts[9];
+
+      await revenuePool.addPayableToken(mockPayableTokenAddr).should.be
+        .fulfilled;
+
+      await revenuePool.removePayableToken(daicpxdToken.address).should.be
+        .fulfilled;
+
+      await revenuePool.getTokens().should.become([mockPayableTokenAddr]);
+    });
+  });
+
+  describe("versioning", () => {
+    it("can get version of contract", async () => {
+      expect(await revenuePool.cardProtocolVersion()).to.match(/\d\.\d\.\d/);
     });
   });
 });

@@ -74,4 +74,6 @@ contract PayableToken is Ownable {
     emit PayableTokenRemoved(_token);
     return true;
   }
+
+  uint256[50] private ____gap;
 }
