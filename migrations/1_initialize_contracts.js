@@ -51,10 +51,6 @@ module.exports = async function (deployer, network, addresses) {
         contractName: "ManualFeed",
         init: [addresses[0]],
       };
-      contracts["MockDIA"] = {
-        contractName: "MockDIAOracle",
-        init: [addresses[0]],
-      };
     }
 
     const addressesFile = `./.openzeppelin/addresses-${network}.json`;

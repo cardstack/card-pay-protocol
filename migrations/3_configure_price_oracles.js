@@ -18,8 +18,8 @@ module.exports = async function (deployer, network) {
   let chainlinkETHUSDAddress;
 
   if (network === "sokol") {
-    // use manual feeds in our oracles
-    diaOracleAddress = getAddress("MockDIA", addresses);
+    diaOracleAddress = "0xBA03d4bF8950128a7779C5C1E7899c6E39D29332";
+    // use manual feeds in our chainlink oracles
     chainlinkDAIUSDAddress = getAddress("DAIUSDFeed", addresses);
     chainlinkETHUSDAddress = getAddress("ETHUSDFeed", addresses);
   } else if (network === "xdai") {
