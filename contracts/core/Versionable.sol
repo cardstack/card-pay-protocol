@@ -1,10 +1,8 @@
 pragma solidity 0.5.17;
 
 contract Versionable {
-  string internal _version = "0.1.4";
-
-  function cardProtocolVersion() external view returns (string memory) {
-    return _version;
+  function cardProtocolVersion() external pure returns (string memory) {
+    return "0.1.5";
   }
 
   uint256[50] private ____gap;

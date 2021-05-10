@@ -34,7 +34,7 @@ contract PrepaidCardManager is
   bytes4 public constant SWAP_OWNER = 0xe318b52b; //swapOwner(address,address,address)
   bytes4 public constant TRANSER_AND_CALL = 0x4000aea0; //transferAndCall(address,uint256,bytes)
   uint8 public constant MAXIMUM_NUMBER_OF_CARD = 15;
-  uint256 public minimumMerchantPayment = 50; //in units of SPEND
+  uint256 public constant MINIMUM_MERCHANT_PAYMENT = 50; //in units of SPEND
   address public revenuePool;
   address public gasFeeReceiver;
   mapping(address => CardDetail) public cardDetails;
@@ -321,7 +321,7 @@ contract PrepaidCardManager is
     uint256 amountInSPEND =
       RevenuePool(revenuePool).convertToSpend(payableTokenAddr, amount);
     require(
-      amountInSPEND >= minimumMerchantPayment,
+      amountInSPEND >= MINIMUM_MERCHANT_PAYMENT,
       "merchant payment too small"
     ); // protect against spamming contract with too low a price
     return
