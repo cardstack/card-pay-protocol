@@ -1,34 +1,34 @@
 {
   "PrepaidCardManager": {
-    "proxy": "0x0ecAF3d3729C99F6b5F37b29A29acB4bB047Ee92",
+    "proxy": "0x0a8E59b0a616750093B36F0715d32ce2E72AEf7A",
     "contractName": "PrepaidCardManager"
   },
+  "RevenuePool": {
+    "proxy": "0x6bAba06A258104e2deB5406F53D0978Dc5C56575",
+    "contractName": "RevenuePool"
+  },
   "BridgeUtils": {
-    "proxy": "0x0BAfDf9bB10a12e550B7F536348Aba013DF51651",
+    "proxy": "0xB5a5236e71b33f1F327302ec49d8729CbB9E209F",
     "contractName": "BridgeUtils"
   },
   "SPEND": {
-    "proxy": "0x50629C79af71134051c9Aa93Ca6D89829c9018F5",
+    "proxy": "0x96B42EAffcc086C1E2e9e7a534cBad94b723087d",
     "contractName": "SPEND"
   },
-  "RevenuePool": {
-    "proxy": "0x443F625d43287Eec70d8f89A20134C7D9B1bC387",
-    "contractName": "RevenuePool"
-  },
   "DAIOracle": {
-    "proxy": "0xA58489902326b530F087e269484263E71356479a",
+    "proxy": "0x31ADd0e2Cf48f42E937413dE9a47d99732591795",
     "contractName": "ChainlinkFeedAdapter"
   },
   "CARDOracle": {
-    "proxy": "0xC91c577DA795fb5917956dB9e3BBEFa709E6b3Ae",
+    "proxy": "0x57757a362E578e3Fe3e5984131F6b4CC3aC8af14",
     "contractName": "DIAOracleAdapter"
   },
   "DAIUSDFeed": {
-    "proxy": "0xA41614764E3142ae9176993adc364bB7674B97f2",
+    "proxy": "0x65eBb465b8275ba6BbA879c8002ac4c78bd1f4ba",
     "contractName": "ManualFeed"
   },
   "ETHUSDFeed": {
-    "proxy": "0x8F873C120c7b541ccF939E143AeB1D1086BE9EBC",
+    "proxy": "0x845edc191aF7202061De4c8919f2D535f2E92449",
     "contractName": "ManualFeed"
   }
 }
