@@ -68,34 +68,28 @@ yarn test:coverage
 ```
 
 ## Deployment
-We use a mnemonic held in AWS Secret Manager to manage our contract's key pair. You can use the online mnemonic tool to determine the address and private key based on the given mnemonic. https://iancoleman.io/bip39/
+We use a truffle provider that supports trezor hardware wallet signing for contract deployment. When deploying contracts make sure that your trezor hardware wallet is connectd to your computer's USB port.
 
-1. **Select a Mnemonic (or use an existing mnemonic)**
+1. **Fund the Wallet**
 
-    Enter the mnemonic phrase (or generate a new 12 word phrase if the contract has not yet been deployed), and select "Coin" of `Ethereum` in the top Mnemonic panel, then select the `BIP44` tab in the Derivation Path panel. The address and private key for this mnemonic will be the first row that appears in the Derived Address panel at the bottom of the page.
-
-2. **Fund the Wallet**
-
-   Using the mnemonic tool above, determine the address for the wallet that is doing the deployment, and fund that wallet with enough native tokens (xDai tokens for the xDai network and SPOA for the Sokol network). There are faucets available here:
+Determine the address that you are using to perform the deployment (usually we use the first address of the hardware wallet) and fund that wallet with enough native tokens (xDai tokens for the xDai network and SPOA for the Sokol network). There are faucets available here:
 
    - xDai Faucet: https://blockscout.com/xdai/mainnet/faucet
    - Sokol Faucet: https://blockscout.com/poa/sokol/faucet
 
-3. **Deploy Contract (first time deploy)**
+1. **Deploy Contract (first time deploy)**
 
     **Staging:**
-    For a staging deploy, deploy to the Sokol network by entering the following command:
+    For a staging deploy, deploy to the Sokol network by entering the following command (specify environment variables that contain the optional configuration if there are values that you want to deploy with (like an already existing CPXD tokens or home bridge mediator address, etc):
     ```sh
-    MNEMONIC=$(AWS_PROFILE=cardstack aws secretsmanager get-secret-value --secret-id=staging_card_protocol_mnemonic --region=us-east-1 | jq -r '.SecretString') yarn deploy:sokol
+    yarn deploy:sokol
     ```
-    (where the `AWS_PROFILE` env variable is the name of your profile that holds your cardstack staging environment credentials)
 
     **Production:**
-    For a production deploy, deploy to the xDai network by entering the following command:
+    For a production deploy, deploy to the xDai network by entering the following command (specify environment variables that contain the optional configuration if there are values that you want to deploy with (like an already existing CPXD tokens or home bridge mediator address, etc):
     ```sh
-    MNEMONIC=$(AWS_PROFILE=cardstack-prod aws secretsmanager get-secret-value --secret-id=production_card_protocol_mnemonic --region=ap-southeast-1 | jq -r '.SecretString') yarn deploy:xdai
+    yarn deploy:xdai
     ```
-    (where the `AWS_PROFILE` env variable is the name of your profile that holds your cardstack production environment credentials)
 
     **Optional Configuration**
 
@@ -110,17 +104,17 @@ We use a mnemonic held in AWS Secret Manager to manage our contract's key pair. 
     - `GAS_FEE_RECEIVER` This is the address of an entity that will receive gas fees as prepaid cards are created. Ideally this is the relay gas payer address.
     - `GAS_FEE_CARD_WEI` This is the gas fee in units of CARD wei that is charged for the creation of each prepaid card.
 
-    The contract addresses that are created are saved in a `addresses-{network}.json` file.
+    The contract addresses that are created are saved in a `./openzeppelin/addresses-{network}.json` file.
 
     As of 4/1/2021 the total native network cost to deploy is 0.1934 units (SPOA in sokol), where the block gas limit is 12499976.
 
-4. **Configure BridgeUtils**
+1. **Configure BridgeUtils**
    If the `BRIDGE_MEDIATOR` environment variable was not supplied (because the layer 2 token bridge contracts have not yet been deployed), then deploy the layer 2 token bridge contracts, and then configure the BridgeUtils contract with the address of the layer 2 token bridge contract. [Instructions to perform this are here.](./OPERATIONS.md#bridge-utils)
 
-5. **Memorialize Contract State**
+1. **Memorialize Contract State**
    OpenZeppelin captures state information about the contracts that have been deployed. It uses this information to determine whether its safe to upgrade future versions of the contract based on changes that have been made as well where to update the contracts. It is OpenZeppelin's strong recommendation that this contract state be under source control. This means that after the initial deploy and after subsequent contract upgrades we need to commit and merge changes to the `./.openzeppelin` folder. So make sure to `git commit` after any contract deploys and upgrades, as well as a `git push` to merge the commits back into the main branch so our representation of the state remains consistent.
 
-6. **Set up Gas Tokens**
+1. **Set up Gas Tokens**
    After the Home Bridge Meditator has been setup to talk to the Card Protocol:
    - bridge the tokens that will be used for gas (all the supported stable coins and the CARD token).
    - Note the layer 2 CPXD address for each of the bridged tokens.
@@ -129,19 +123,20 @@ We use a mnemonic held in AWS Secret Manager to manage our contract's key pair. 
    - Fill out the form for each token by providing the details for each token. Make sure to check the "gas" checkbox for each token, and save the settings.
 
 ## Upgrading Contracts
-We use the Open Zeppelin SDK to manage our upgradable contracts. Once a contract has been deployed we have the ability to change the logic in the contract while still retaining the contract state due to the way in which Open Zeppelin maintains proxy contracts and their corresponding implementations. [There are a few limitations to be made aware of when updating a contract, which is outlined in the OZ documentation.](https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable#modifying-your-contracts). The OZ tools will check for any violations to the limitations as part of upgrading the contract and let you know if your changes to the contract are indeed upgradable changes. After you have made changes to the contract that you wish upgrade perform the following:
+We use the Open Zeppelin SDK to manage our upgradable contracts (via truffle migration). Once a contract has been deployed we have the ability to change the logic in the contract while still retaining the contract state due to the way in which Open Zeppelin maintains proxy contracts and their corresponding implementations. [There are a few limitations to be made aware of when updating a contract, which is outlined in the OZ documentation.](https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable#modifying-your-contracts). The OZ tools will check for any violations to the limitations as part of upgrading the contract and let you know if your changes to the contract are indeed upgradable changes. After you have made changes to the contract that you wish upgrade perform the following:
 1. `git pull` (or `fetch` and `merge` if you prefer) the latest from the `main` git branch.
 2. `git commit` your contract update changes (if they have not been committed already)
-3. Run the open zeppelin contract upgrade command using our mnemonic from AWS:
+3. Run the turffle deploy via yarn providing the network that you are deploying.  Make sure to use environment variables documented above to retain all the current card protocol settings, such as the home bridge mediator address, the CPXD tokens, gas fee receiver, etc.
    ```sh
-   MNEMONIC=$(AWS_PROFILE=cardstack-prod aws secretsmanager get-secret-value --secret-id=production_card_protocol_mnemonic --region=ap-southeast-1 | jq -r '.SecretString') oz upgrade <contract name> --network <network>
+   BRIDGE_MEDIATOR=<HOME BRIDGE ADDRESS> PAYABLE_TOKENS=<COMMA SEPARATED TOKEN ADDRESSES>, ... yarn deploy:<network> 
    ```
-   And then answer the questions from the interactive prompt regarding whether you need to execute a function as part of upgrading your contract.
-4. Re-verify your contract source files in blockscout:
+  
+4. `git add ./openzeppelin` to stage the updated contract state files.
+5. `git commit` to commit the updated contract state files 
+6. Run the release script to tag a new version in github
    ```sh
-   ./verify.sh -c <contract name> -n <network>
+   ./release.sh -n <NETWORK> -v <VERSION>
    ```
-   Note that I've seen blockscout be a bit squirrely about verifying contracts--sometimes it returns with a 504 error. One thing that I've seen that seems to help if to redeploy the implementation contract to a new address and reverify. It seems that if you get a 504 on a particular contract address, it will never verify at that address for some reason, but that the exact same contract code can be re-verified at a different address.
-5. `git commit` the changes made to `./.openzeppelin`, as well as `git push` to merge the commits back into the main branch. These changes reflect the new contract upgrade state, and its very important that this state is shared with the team so it can remain consistent within our organization.
+8. `git push` to merge the commits back into the main branch. These changes reflect the new contract upgrade state, and its very important that this state is shared with the team so it can remain consistent within our organization.
 
 ##
