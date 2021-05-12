@@ -17,7 +17,7 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "Run Sokol Migration",
+      "name": "Deploy to Sokol",
       "cwd": "${workspaceRoot}",
       "program": "${workspaceFolder}/node_modules/.bin/truffle",
       "console": "integratedTerminal",
