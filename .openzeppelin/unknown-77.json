@@ -210,7 +210,7 @@
           {
             "contract": "TallyRole",
             "label": "tally",
-            "type": "t_struct(AddressSet)7875_storage",
+            "type": "t_struct(AddressSet)7878_storage",
             "src": "roles/TallyRole.sol:9"
           },
           {
@@ -240,7 +240,7 @@
           {
             "contract": "MerchantManager",
             "label": "merchantSafes",
-            "type": "t_mapping(t_address,t_struct(MerchantSafe)2000_storage)",
+            "type": "t_mapping(t_address,t_struct(MerchantSafe)2003_storage)",
             "src": "core/MerchantManager.sol:22"
           },
           {
@@ -258,7 +258,7 @@
           {
             "contract": "PayableToken",
             "label": "payableTokens",
-            "type": "t_struct(AddressSet)7875_storage",
+            "type": "t_struct(AddressSet)7878_storage",
             "src": "roles/PayableToken.sol:9"
           },
           {
@@ -276,7 +276,7 @@
           {
             "contract": "Exchange",
             "label": "exchanges",
-            "type": "t_mapping(t_bytes32,t_struct(ExchangeInfo)1629_storage)",
+            "type": "t_mapping(t_bytes32,t_struct(ExchangeInfo)1632_storage)",
             "src": "core/Exchange.sol:20"
           },
           {
@@ -296,13 +296,13 @@
           "t_address": {
             "label": "address"
           },
-          "t_mapping(t_bytes32,t_struct(ExchangeInfo)1629_storage)": {
+          "t_mapping(t_bytes32,t_struct(ExchangeInfo)1632_storage)": {
             "label": "mapping(bytes32 => struct Exchange.ExchangeInfo)"
           },
           "t_bytes32": {
             "label": "bytes32"
           },
-          "t_struct(ExchangeInfo)1629_storage": {
+          "t_struct(ExchangeInfo)1632_storage": {
             "label": "struct Exchange.ExchangeInfo",
             "members": [
               {
@@ -331,7 +331,7 @@
           "t_uint256": {
             "label": "uint256"
           },
-          "t_struct(AddressSet)7875_storage": {
+          "t_struct(AddressSet)7878_storage": {
             "label": "struct EnumerableSet.AddressSet",
             "members": [
               {
@@ -350,10 +350,10 @@
           "t_array(t_address)dyn_storage": {
             "label": "address[]"
           },
-          "t_mapping(t_address,t_struct(MerchantSafe)2000_storage)": {
+          "t_mapping(t_address,t_struct(MerchantSafe)2003_storage)": {
             "label": "mapping(address => struct MerchantManager.MerchantSafe)"
           },
-          "t_struct(MerchantSafe)2000_storage": {
+          "t_struct(MerchantSafe)2003_storage": {
             "label": "struct MerchantManager.MerchantSafe",
             "members": [
               {
@@ -548,7 +548,7 @@
           {
             "contract": "SPENDMinterRole",
             "label": "minter",
-            "type": "t_struct(AddressSet)7875_storage",
+            "type": "t_struct(AddressSet)7878_storage",
             "src": "roles/SPENDMinterRole.sol:10"
           },
           {
@@ -586,7 +586,7 @@
           "t_uint256": {
             "label": "uint256"
           },
-          "t_struct(AddressSet)7875_storage": {
+          "t_struct(AddressSet)7878_storage": {
             "label": "struct EnumerableSet.AddressSet",
             "members": [
               {
@@ -816,7 +816,7 @@
           {
             "contract": "ManualFeed",
             "label": "rounds",
-            "type": "t_mapping(t_uint80,t_struct(RoundData)2915_storage)",
+            "type": "t_mapping(t_uint80,t_struct(RoundData)2918_storage)",
             "src": "oracles/ManualFeed.sol:19"
           }
         ],
@@ -830,10 +830,10 @@
           "t_uint80": {
             "label": "uint80"
           },
-          "t_mapping(t_uint80,t_struct(RoundData)2915_storage)": {
+          "t_mapping(t_uint80,t_struct(RoundData)2918_storage)": {
             "label": "mapping(uint80 => struct ManualFeed.RoundData)"
           },
-          "t_struct(RoundData)2915_storage": {
+          "t_struct(RoundData)2918_storage": {
             "label": "struct ManualFeed.RoundData",
             "members": [
               {
@@ -868,6 +868,171 @@
           },
           "t_address": {
             "label": "address"
+          }
+        }
+      }
+    },
+    "0c84076f907c7d6aa57c3571ae342ef29a41d4c8fb6b3bf2e2b82b7733da565d": {
+      "address": "0xE2148EA0A009a29B2dC5A90625D985376A1eC846",
+      "txHash": "0x91d5a26ce1645b198ae8244205d1c305731dde968fb6729fecbace92c30539f3",
+      "layout": {
+        "storage": [
+          {
+            "contract": "Initializable",
+            "label": "initialized",
+            "type": "t_bool",
+            "src": "../@openzeppelin/upgrades/contracts/Initializable.sol:21"
+          },
+          {
+            "contract": "Initializable",
+            "label": "initializing",
+            "type": "t_bool",
+            "src": "../@openzeppelin/upgrades/contracts/Initializable.sol:26"
+          },
+          {
+            "contract": "Initializable",
+            "label": "______gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "../@openzeppelin/upgrades/contracts/Initializable.sol:61"
+          },
+          {
+            "contract": "Versionable",
+            "label": "____gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "core/Versionable.sol:8"
+          },
+          {
+            "contract": "Ownable",
+            "label": "_owner",
+            "type": "t_address",
+            "src": "../@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol:17"
+          },
+          {
+            "contract": "Ownable",
+            "label": "______gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "../@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol:80"
+          },
+          {
+            "contract": "PayableToken",
+            "label": "payableTokens",
+            "type": "t_struct(AddressSet)7878_storage",
+            "src": "roles/PayableToken.sol:9"
+          },
+          {
+            "contract": "PayableToken",
+            "label": "_bridgeUtils",
+            "type": "t_address",
+            "src": "roles/PayableToken.sol:10"
+          },
+          {
+            "contract": "PayableToken",
+            "label": "____gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "roles/PayableToken.sol:78"
+          },
+          {
+            "contract": "Safe",
+            "label": "gnosisSafe",
+            "type": "t_address",
+            "src": "core/Safe.sol:9"
+          },
+          {
+            "contract": "Safe",
+            "label": "gnosisProxyFactory",
+            "type": "t_address",
+            "src": "core/Safe.sol:10"
+          },
+          {
+            "contract": "Safe",
+            "label": "____gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "core/Safe.sol:51"
+          },
+          {
+            "contract": "PrepaidCardManager",
+            "label": "revenuePool",
+            "type": "t_address",
+            "src": "PrepaidCardManager.sol:38"
+          },
+          {
+            "contract": "PrepaidCardManager",
+            "label": "gasFeeReceiver",
+            "type": "t_address",
+            "src": "PrepaidCardManager.sol:39"
+          },
+          {
+            "contract": "PrepaidCardManager",
+            "label": "cardDetails",
+            "type": "t_mapping(t_address,t_struct(CardDetail)2364_storage)",
+            "src": "PrepaidCardManager.sol:40"
+          },
+          {
+            "contract": "PrepaidCardManager",
+            "label": "gasFeeCARDAmount",
+            "type": "t_uint256",
+            "src": "PrepaidCardManager.sol:41"
+          },
+          {
+            "contract": "PrepaidCardManager",
+            "label": "maxAmount",
+            "type": "t_uint256",
+            "src": "PrepaidCardManager.sol:42"
+          },
+          {
+            "contract": "PrepaidCardManager",
+            "label": "minAmount",
+            "type": "t_uint256",
+            "src": "PrepaidCardManager.sol:43"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address"
+          },
+          "t_mapping(t_address,t_struct(CardDetail)2364_storage)": {
+            "label": "mapping(address => struct IPrepaidCardManager.CardDetail)"
+          },
+          "t_struct(CardDetail)2364_storage": {
+            "label": "struct IPrepaidCardManager.CardDetail",
+            "members": [
+              {
+                "label": "issuer",
+                "type": "t_address"
+              },
+              {
+                "label": "issueToken",
+                "type": "t_address"
+              }
+            ]
+          },
+          "t_uint256": {
+            "label": "uint256"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]"
+          },
+          "t_struct(AddressSet)7878_storage": {
+            "label": "struct EnumerableSet.AddressSet",
+            "members": [
+              {
+                "label": "index",
+                "type": "t_mapping(t_address,t_uint256)"
+              },
+              {
+                "label": "values",
+                "type": "t_array(t_address)dyn_storage"
+              }
+            ]
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)"
+          },
+          "t_array(t_address)dyn_storage": {
+            "label": "address[]"
+          },
+          "t_bool": {
+            "label": "bool"
           }
         }
       }
