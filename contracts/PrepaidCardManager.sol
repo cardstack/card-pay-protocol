@@ -151,9 +151,9 @@ contract PrepaidCardManager is
     returns (uint256)
   {
     return
-      (RevenuePool(revenuePool).convertFromSpend(token, spendFaceValue)).add(
-        gasFee(token)
-      );
+      (RevenuePool(revenuePool).convertFromSpend(token, spendFaceValue))
+        .add(gasFee(token))
+        .add(100); // this is to deal with any rounding errors
   }
 
   /**

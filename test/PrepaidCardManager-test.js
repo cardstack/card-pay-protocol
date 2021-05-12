@@ -932,6 +932,7 @@ contract("PrepaidManager", (accounts) => {
         daicpxdToken.address,
         faceValueInSpend
       );
+      amount = new toBN(amount).sub(new toBN(100)).toString(); // subtract rounding error fudge factor
       expect(amount.toString()).to.equal(
         faceValueInDai.add(toTokenUnit(1)).toString() // gas fee is 1 DAI
       );
