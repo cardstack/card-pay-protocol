@@ -2,6 +2,7 @@ pragma solidity 0.5.17;
 
 interface IPrepaidCardManager {
   struct CardDetail {
+    uint256 blockNumber;
     address issuer;
     address issueToken;
   }
