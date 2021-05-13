@@ -10,18 +10,15 @@ import "./roles/TallyRole.sol";
 import "./roles/PayableToken.sol";
 import "./core/Safe.sol";
 import "./core/Versionable.sol";
-import "./interfaces/IPrepaidCardManager.sol";
 import "./RevenuePool.sol";
 
-contract PrepaidCardManager is
-  Initializable,
-  Versionable,
-  PayableToken,
-  Safe,
-  IPrepaidCardManager
-{
+contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
   using SafeMath for uint256;
-
+  struct CardDetail {
+    uint256 blockNumber;
+    address issuer;
+    address issueToken;
+  }
   event Setup();
   event CreatePrepaidCard(
     address issuer,

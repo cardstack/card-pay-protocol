@@ -15,12 +15,19 @@ contract MerchantManager is TallyRole, Safe {
     bool register;
     address merchant;
     string merchantExternalId; // offchain id
-    // mapping from token address to amount of tokens that belong to the safe
-    mapping(address => uint256) lockTotal;
+    EnumerableSet.AddressSet tokens;
+    // mapping from token address to revenue pool balance for merchant in that
+    // token
+    mapping(address => uint256) balance;
   }
 
   mapping(address => MerchantSafe) internal merchantSafes;
   mapping(address => address) internal merchants;
+
+  modifier onlyMerchantSafe() {
+    require(isMerchantSafe(msg.sender), "caller is not a merchant safe");
+    _;
+  }
 
   function setup(address _gsMasterCopy, address _gsProxyFactory) internal {
     Safe.setup(_gsMasterCopy, _gsProxyFactory);
