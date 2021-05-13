@@ -318,6 +318,10 @@ contract PrepaidCardManager is
     uint256 amount,
     bytes calldata signatures
   ) external returns (bool) {
+    require(
+      cardDetails[prepaidCard].blockNumber < block.number,
+      "Prepaid card used too soon"
+    );
     uint256 amountInSPEND =
       RevenuePool(revenuePool).convertToSpend(payableTokenAddr, amount);
     require(
@@ -474,6 +478,7 @@ contract PrepaidCardManager is
     address card = createSafe(owners, 2);
 
     // card was created
+    cardDetails[card].blockNumber = block.number;
     cardDetails[card].issuer = depot;
     cardDetails[card].issueToken = token;
     uint256 _gasFee = gasFee(token);
