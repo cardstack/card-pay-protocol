@@ -10,20 +10,30 @@ import "./roles/TallyRole.sol";
 import "./core/MerchantManager.sol";
 import "./core/Exchange.sol";
 import "./core/Versionable.sol";
-import "./interfaces/IRevenuePool.sol";
 
 contract RevenuePool is
   Versionable,
   Initializable,
   TallyRole,
   MerchantManager,
-  Exchange,
-  IRevenuePool
+  Exchange
 {
   using SafeMath for uint256;
 
   address public spendToken;
   event Setup();
+  event MerchantClaim(
+    address merchantSafe,
+    address payableToken,
+    uint256 amount
+  );
+
+  event CustomerPayment(
+    address prepaidCardArr,
+    address merchantSafe,
+    address payableToken,
+    uint256 amount
+  );
 
   /**
    * @dev set up revenue pool
@@ -77,17 +87,32 @@ contract RevenuePool is
   }
 
   /**
-   * @dev merchant claim token to their wallet, only tally account can call this method
-   * @param merchantSafe address of merchantSafe
+   * @dev merchant claims revenue with their safe
    * @param payableToken address of payable token
    * @param amount amount in payable token
    */
-  function claimToken(
-    address merchantSafe,
-    address payableToken,
-    uint256 amount
-  ) external onlyTallyOrOwner returns (bool) {
-    return _claimToken(merchantSafe, payableToken, amount);
+  function claimRevenue(address payableToken, uint256 amount)
+    external
+    onlyMerchantSafe
+    returns (bool)
+  {
+    return _claimRevenue(msg.sender, payableToken, amount);
+  }
+
+  function revenueTokens(address merchantSafe)
+    external
+    view
+    returns (address[] memory)
+  {
+    return merchantSafes[merchantSafe].tokens.enumerate();
+  }
+
+  function revenueBalance(address merchantSafe, address payableToken)
+    external
+    view
+    returns (uint256)
+  {
+    return merchantSafes[merchantSafe].balance[payableToken];
   }
 
   /**
@@ -103,8 +128,9 @@ contract RevenuePool is
   ) internal returns (bool) {
     require(isMerchantSafe(merchantSafe), "Invalid merchant");
 
-    uint256 lockTotal = merchantSafes[merchantSafe].lockTotal[payableToken];
-    merchantSafes[merchantSafe].lockTotal[payableToken] = lockTotal.add(amount);
+    uint256 balance = merchantSafes[merchantSafe].balance[payableToken];
+    merchantSafes[merchantSafe].balance[payableToken] = balance.add(amount);
+    merchantSafes[merchantSafe].tokens.add(payableToken);
 
     uint256 amountSPEND = convertToSpend(payableToken, amount);
 
@@ -119,20 +145,20 @@ contract RevenuePool is
    * @param payableToken address of payable token
    * @param amount amount in payable token
    */
-  function _claimToken(
+  function _claimRevenue(
     address merchantSafe,
     address payableToken,
     uint256 amount
   ) internal isValidTokenAddress(payableToken) returns (bool) {
     // ensure enough token for redeem
-    uint256 lockTotal = merchantSafes[merchantSafe].lockTotal[payableToken];
-    require(amount <= lockTotal, "Insufficient funds");
+    uint256 balance = merchantSafes[merchantSafe].balance[payableToken];
+    require(amount <= balance, "Insufficient funds");
 
     // unlock token of merchant
-    lockTotal = lockTotal.sub(amount);
+    balance = balance.sub(amount);
 
-    // update new lockTotal
-    merchantSafes[merchantSafe].lockTotal[payableToken] = lockTotal;
+    // update new balance
+    merchantSafes[merchantSafe].balance[payableToken] = balance;
 
     // transfer payable token from revenue pool to merchant's safe address. The
     // merchant's safe address is a gnosis safe contract, created by

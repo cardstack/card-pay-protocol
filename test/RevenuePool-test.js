@@ -12,12 +12,13 @@ const utils = require("./utils/general");
 const eventABIs = require("./utils/constant/eventABIs");
 
 const { expect, TOKEN_DETAIL_DATA } = require("./setup");
-const { BN, fromWei } = require("web3").utils;
+const { BN, fromWei, toBN } = require("web3").utils;
 
 const {
   toTokenUnit,
   shouldBeSameBalance,
   getBalance,
+  signAndSendSafeTransaction,
 } = require("./utils/helper");
 
 contract("RevenuePool", (accounts) => {
@@ -31,6 +32,7 @@ contract("RevenuePool", (accounts) => {
     daiOracle,
     cardOracle,
     owner,
+    relayer,
     merchant,
     anotherMerchant,
     merchantSafe,
@@ -45,6 +47,7 @@ contract("RevenuePool", (accounts) => {
     tally = accounts[1];
     merchant = accounts[2];
     anotherMerchant = accounts[3];
+    relayer = accounts[5];
 
     proxyFactory = await ProxyFactory.new();
     gnosisSafeMasterCopy = await utils.deployContract(
@@ -424,7 +427,22 @@ contract("RevenuePool", (accounts) => {
   });
 
   describe("claim token", () => {
-    it("allows a SPEND claim issued from tally (1 DAI CPXD)", async () => {
+    it("can get the tokens for which the merchant has received revenue", async () => {
+      let tokens = await revenuePool.revenueTokens(merchantSafe);
+      expect(tokens).to.deep.equal([daicpxdToken.address]);
+    });
+
+    it("can get the merchants revenue balance for a payment token", async () => {
+      let balance = await revenuePool.revenueBalance(
+        merchantSafe,
+        daicpxdToken.address
+      );
+      // The tests are stateful at this point the merchant has accumulated 5 DAI
+      // of customer payments
+      expect(balance.toString()).to.equal(toTokenUnit(5).toString());
+    });
+
+    it("allows a revenue claim issued from a merchant's safe (1 DAI CPXD)", async () => {
       let amount = toTokenUnit(1);
       let existingSPENDBalance = Number(
         BN(await getBalance(spendToken, merchantSafe)).toString()
@@ -432,14 +450,39 @@ contract("RevenuePool", (accounts) => {
       let existingDAIBalance = fromWei(
         BN(await getBalance(daicpxdToken, merchantSafe)).toString()
       );
-      await revenuePool.claimToken(merchantSafe, daicpxdToken.address, amount, {
-        from: tally,
-      }).should.be.fulfilled;
+
+      let claimRevenue = revenuePool.contract.methods.claimRevenue(
+        daicpxdToken.address,
+        amount
+      );
+      let payload = claimRevenue.encodeABI();
+      let gasEstimate = await claimRevenue.estimateGas({ from: merchantSafe });
+      let safeTxData = {
+        to: revenuePool.address,
+        data: payload,
+        txGasEstimate: gasEstimate,
+        gasPrice: 1000000000,
+        txGasToken: daicpxdToken.address,
+        refundReceive: relayer,
+      };
+      let merchantSafeContract = await GnosisSafe.at(merchantSafe);
+      let { safeTx } = await signAndSendSafeTransaction(
+        safeTxData,
+        merchant,
+        merchantSafeContract,
+        relayer
+      );
+      let executeSuccess = utils.getParamsFromEvent(
+        safeTx,
+        eventABIs.EXECUTION_SUCCESS,
+        merchantSafe
+      );
+      let gasFee = toBN(executeSuccess[0]["payment"]);
 
       await shouldBeSameBalance(
         daicpxdToken,
         merchantSafe,
-        toTokenUnit(existingDAIBalance + 1)
+        toTokenUnit(existingDAIBalance + 1).sub(gasFee)
       );
       await shouldBeSameBalance(
         spendToken,
@@ -448,29 +491,30 @@ contract("RevenuePool", (accounts) => {
       );
     });
 
-    it("rejects a claim with malformed data", async () => {
-      await revenuePool.claimToken(merchantSafe, daicpxdToken.address, [], {
-        from: tally,
-      }).should.be.rejected;
-    });
-
-    it("rejects a claim that is not issued from tally", async () => {
+    it("rejects a claim that is not issued from merchant's safe", async () => {
       let amount = toTokenUnit(1);
-      await revenuePool.claimToken(merchantSafe, daicpxdToken.address, amount, {
-        from: accounts[2],
-      }).should.be.rejected;
+      await revenuePool
+        .claimRevenue(daicpxdToken.address, amount, {
+          from: merchant,
+        })
+        .should.be.rejectedWith(Error, "caller is not a merchant safe");
     });
 
-    // The tests are stateful. At this point the merchant as redeemed 100 of the
-    // SPEND tokens they have accumulated.
     it("rejects a claim that is larger than the amount permissable for the merchant", async () => {
-      let invalidAmount = Math.ceil(
-        Number(BN(await getBalance(spendToken, merchantSafe)).toString()) / 100
+      let currentBalance = await revenuePool.revenueBalance(
+        merchantSafe,
+        daicpxdToken.address
       );
-      let amount = toTokenUnit(invalidAmount);
-      await revenuePool.claimToken(merchantSafe, daicpxdToken.address, amount, {
-        from: tally,
-      }).should.be.rejected;
+      let invalidAmount = currentBalance.add(new BN("100"));
+      let claimRevenue = revenuePool.contract.methods.claimRevenue(
+        daicpxdToken.address,
+        invalidAmount
+      );
+      // reverts are trigged via the gas estimation, so we'll never get far
+      // enough to actually issue the execTransaction on the safe
+      await claimRevenue
+        .estimateGas({ from: merchantSafe })
+        .should.be.rejectedWith(Error, "Insufficient funds");
     });
   });
 
