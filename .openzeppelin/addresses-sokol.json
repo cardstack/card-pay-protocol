@@ -1,12 +1,4 @@
 {
-  "PrepaidCardManager": {
-    "proxy": "0x0a8E59b0a616750093B36F0715d32ce2E72AEf7A",
-    "contractName": "PrepaidCardManager"
-  },
-  "RevenuePool": {
-    "proxy": "0x6bAba06A258104e2deB5406F53D0978Dc5C56575",
-    "contractName": "RevenuePool"
-  },
   "BridgeUtils": {
     "proxy": "0xB5a5236e71b33f1F327302ec49d8729CbB9E209F",
     "contractName": "BridgeUtils"
@@ -15,14 +7,6 @@
     "proxy": "0x96B42EAffcc086C1E2e9e7a534cBad94b723087d",
     "contractName": "SPEND"
   },
-  "DAIOracle": {
-    "proxy": "0x31ADd0e2Cf48f42E937413dE9a47d99732591795",
-    "contractName": "ChainlinkFeedAdapter"
-  },
-  "CARDOracle": {
-    "proxy": "0x57757a362E578e3Fe3e5984131F6b4CC3aC8af14",
-    "contractName": "DIAOracleAdapter"
-  },
   "DAIUSDFeed": {
     "proxy": "0x65eBb465b8275ba6BbA879c8002ac4c78bd1f4ba",
     "contractName": "ManualFeed"
@@ -30,5 +14,21 @@
   "ETHUSDFeed": {
     "proxy": "0x845edc191aF7202061De4c8919f2D535f2E92449",
     "contractName": "ManualFeed"
+  },
+  "PrepaidCardManager": {
+    "proxy": "0xE5b6aA7B3f4706ada5B710eC96bD2B8955989b6d",
+    "contractName": "PrepaidCardManager"
+  },
+  "RevenuePool": {
+    "proxy": "0xD24662777e39429c572dda63bBA5324d5c39A8EE",
+    "contractName": "RevenuePool"
+  },
+  "DAIOracle": {
+    "proxy": "0x1acf97099168E77996A097F54974c51F5F5E3a65",
+    "contractName": "ChainlinkFeedAdapter"
+  },
+  "CARDOracle": {
+    "proxy": "0xA4FA624480258138F8e2bAf18E80039aD3D45a91",
+    "contractName": "DIAOracleAdapter"
   }
 }
