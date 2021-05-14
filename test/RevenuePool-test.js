@@ -28,7 +28,7 @@ contract("RevenuePool", (accounts) => {
     fakeToken,
     lw,
     tally,
-    feed,
+    daiFeed,
     daiOracle,
     cardOracle,
     owner,
@@ -67,10 +67,10 @@ contract("RevenuePool", (accounts) => {
     await fakeToken.initialize(...TOKEN_DETAIL_DATA, owner);
     await fakeToken.mint(owner, toTokenUnit(100));
 
-    feed = await Feed.new();
-    await feed.initialize(owner);
-    await feed.setup("DAI.CPXD", 8);
-    await feed.addRound(100000000, 1618433281, 1618433281);
+    daiFeed = await Feed.new();
+    await daiFeed.initialize(owner);
+    await daiFeed.setup("DAI.CPXD", 8);
+    await daiFeed.addRound(100000000, 1618433281, 1618433281);
     let ethFeed = await Feed.new();
     await ethFeed.initialize(owner);
     await ethFeed.setup("ETH", 8);
@@ -78,14 +78,14 @@ contract("RevenuePool", (accounts) => {
 
     daiOracle = await ChainlinkOracle.new();
     daiOracle.initialize(owner);
-    await daiOracle.setup(feed.address, ethFeed.address);
+    await daiOracle.setup(daiFeed.address, ethFeed.address, daiFeed.address);
 
     let mockDiaOracle = await MockDIAOracle.new();
     await mockDiaOracle.initialize(owner);
     await mockDiaOracle.setValue("CARD/USD", 1000000, 1618433281);
     cardOracle = await DIAPriceOracle.new();
     await cardOracle.initialize(owner);
-    await cardOracle.setup(mockDiaOracle.address, "CARD");
+    await cardOracle.setup(mockDiaOracle.address, "CARD", daiFeed.address);
 
     await revenuePool.createExchange("DAI", daiOracle.address);
     await revenuePool.createExchange("CARD", cardOracle.address);
@@ -288,7 +288,7 @@ contract("RevenuePool", (accounts) => {
   describe("exchange rate", () => {
     afterEach(async () => {
       // reset the rate to 1:1
-      await feed.addRound(100000000, 1618435000, 1618435000);
+      await daiFeed.addRound(100000000, 1618435000, 1618435000);
     });
 
     it("can convert an amount of CARD to the specified token", async () => {
@@ -359,7 +359,7 @@ contract("RevenuePool", (accounts) => {
       let existingDAIBalance = fromWei(
         BN(await getBalance(daicpxdToken, owner)).toString()
       );
-      await feed.addRound(200000000, 1618435000, 1618435000);
+      await daiFeed.addRound(200000000, 1618435000, 1618435000);
       let amount = toTokenUnit(1);
       let data = web3.eth.abi.encodeParameters(["address"], [merchantSafe]);
 
@@ -385,7 +385,7 @@ contract("RevenuePool", (accounts) => {
       let existingDAIBalance = fromWei(
         BN(await getBalance(daicpxdToken, owner)).toString()
       );
-      await feed.addRound(50000000, 1618436000, 1618436000);
+      await daiFeed.addRound(50000000, 1618436000, 1618436000);
       let amount = toTokenUnit(1);
       let data = web3.eth.abi.encodeParameters(["address"], [merchantSafe]);
 
@@ -409,7 +409,7 @@ contract("RevenuePool", (accounts) => {
       let existingDAIBalance = fromWei(
         BN(await getBalance(daicpxdToken, owner)).toString()
       );
-      await feed.addRound(0, 1618436000, 1618436000);
+      await daiFeed.addRound(0, 1618436000, 1618436000);
       let data = web3.eth.abi.encodeParameters(["address"], [merchantSafe]);
       let amount = toTokenUnit(1);
 

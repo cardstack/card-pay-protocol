@@ -82,24 +82,28 @@ contract("PrepaidManager", (accounts) => {
     await fakeDaicpxdToken.initialize(...TOKEN_DETAIL_DATA, owner);
     await fakeDaicpxdToken.mint(accounts[0], toTokenUnit(1000));
 
-    let feed = await Feed.new();
-    await feed.initialize(owner);
-    await feed.setup("DAI.CPXD", 8);
-    await feed.addRound(100000000, 1618433281, 1618433281);
+    let daiFeed = await Feed.new();
+    await daiFeed.initialize(owner);
+    await daiFeed.setup("DAI.CPXD", 8);
+    await daiFeed.addRound(100000000, 1618433281, 1618433281);
     let ethFeed = await Feed.new();
     await ethFeed.initialize(owner);
     await ethFeed.setup("ETH", 8);
     await ethFeed.addRound(300000000000, 1618433281, 1618433281);
     let chainlinkOracle = await ChainlinkOracle.new();
     chainlinkOracle.initialize(owner);
-    await chainlinkOracle.setup(feed.address, ethFeed.address);
+    await chainlinkOracle.setup(
+      daiFeed.address,
+      ethFeed.address,
+      daiFeed.address
+    );
 
     let mockDiaOracle = await MockDIAOracle.new();
     await mockDiaOracle.initialize(owner);
     await mockDiaOracle.setValue("CARD/USD", 1000000, 1618433281);
     let diaPrice = await DIAPriceOracle.new();
     await diaPrice.initialize(owner);
-    await diaPrice.setup(mockDiaOracle.address, "CARD");
+    await diaPrice.setup(mockDiaOracle.address, "CARD", daiFeed.address);
 
     await revenuePool.createExchange("DAI", chainlinkOracle.address);
     await revenuePool.createExchange("CARD", diaPrice.address);

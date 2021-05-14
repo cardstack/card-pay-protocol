@@ -42,13 +42,18 @@ module.exports = async function (deployer, network) {
 Configuring DAIOracle ${daiOracleAddress}
   DAI/USD chainlink feed address: ${chainlinkDAIUSDAddress}
   ETH/USD chainlink feed address: ${chainlinkETHUSDAddress}`);
-  await daiOracle.setup(chainlinkDAIUSDAddress, chainlinkETHUSDAddress);
+  await daiOracle.setup(
+    chainlinkDAIUSDAddress,
+    chainlinkETHUSDAddress,
+    chainlinkDAIUSDAddress
+  );
 
   console.log(`
 ==================================================
 Configuring CARDOracle ${cardOracleAddress}
-  DIA oracle address: ${diaOracleAddress}`);
-  await cardOracle.setup(diaOracleAddress, "CARD");
+  DIA oracle address: ${diaOracleAddress}
+  DAI/USD chainlink feed address: ${chainlinkDAIUSDAddress}`);
+  await cardOracle.setup(diaOracleAddress, "CARD", chainlinkDAIUSDAddress);
 };
 
 function getAddress(contractId, addresses) {

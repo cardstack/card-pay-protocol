@@ -8,4 +8,6 @@ interface IPriceOracle {
   function usdPrice() external view returns (uint256 price, uint256 updatedAt);
 
   function ethPrice() external view returns (uint256 price, uint256 updatedAt);
+
+  function daiPrice() external view returns (uint256 price, uint256 updatedAt);
 }

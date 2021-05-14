@@ -8,12 +8,16 @@ contract("PriceOracle", async (accounts) => {
   let [owner, nonOwner] = accounts;
 
   describe("chainlink", () => {
-    let tokenFeed, ethFeed, chainlinkPrice;
+    let daiFeed, ethFeed, chainlinkPrice, chainlinkPrice2;
     before(async () => {
-      tokenFeed = await Feed.new();
-      await tokenFeed.initialize(owner);
-      await tokenFeed.setup("DAI", 8);
-      await tokenFeed.addRound(100000000, 1618433281, 1618433281);
+      daiFeed = await Feed.new();
+      await daiFeed.initialize(owner);
+      await daiFeed.setup("DAI", 8);
+      await daiFeed.addRound(100000000, 1618433281, 1618433281);
+      let token2Feed = await Feed.new();
+      await token2Feed.initialize(owner);
+      await token2Feed.setup("DAIx2", 8);
+      await token2Feed.addRound(200000000, 1618433281, 1618433281);
       ethFeed = await Feed.new();
       await ethFeed.initialize(owner);
       await ethFeed.setup("ETH", 8);
@@ -21,8 +25,19 @@ contract("PriceOracle", async (accounts) => {
 
       chainlinkPrice = await ChainlinkPriceOracle.new();
       await chainlinkPrice.initialize(owner);
+      await chainlinkPrice.setup(
+        daiFeed.address,
+        ethFeed.address,
+        daiFeed.address
+      );
 
-      await chainlinkPrice.setup(tokenFeed.address, ethFeed.address);
+      chainlinkPrice2 = await ChainlinkPriceOracle.new();
+      await chainlinkPrice2.initialize(owner);
+      await chainlinkPrice2.setup(
+        token2Feed.address,
+        ethFeed.address,
+        daiFeed.address
+      );
     });
 
     it("can get version of contract", async () => {
@@ -44,8 +59,18 @@ contract("PriceOracle", async (accounts) => {
       expect(price.toString()).to.equal("33333");
       expect(updatedAt.toString()).to.equal("1618433281");
     });
+    it("can get DAI token price for DAI token", async () => {
+      let { price, updatedAt } = await chainlinkPrice.daiPrice();
+      expect(price.toString()).to.equal("100000000");
+      expect(updatedAt.toString()).to.equal("1618433281");
+    });
+    it("can get DAI token price for non-DAI token", async () => {
+      let { price, updatedAt } = await chainlinkPrice2.daiPrice();
+      expect(price.toString()).to.equal("200000000");
+      expect(updatedAt.toString()).to.equal("1618433281");
+    });
     it("can reflect updated feed", async () => {
-      await tokenFeed.addRound(150000000, "1618453281", "1618453281");
+      await daiFeed.addRound(150000000, "1618453281", "1618453281");
       {
         let { price, updatedAt } = await chainlinkPrice.usdPrice();
         expect(price.toString()).to.equal("150000000");
@@ -59,7 +84,9 @@ contract("PriceOracle", async (accounts) => {
     });
     it("rejects when non-owner calls setup()", async () => {
       await chainlinkPrice
-        .setup(tokenFeed.address, ethFeed.address, { from: nonOwner })
+        .setup(daiFeed.address, ethFeed.address, daiFeed.address, {
+          from: nonOwner,
+        })
         .should.be.rejectedWith(Error, "Ownable: caller is not the owner");
     });
     it("rejects when token feed is not set", async () => {
@@ -80,21 +107,25 @@ contract("PriceOracle", async (accounts) => {
       let badOracle = await ChainlinkPriceOracle.new();
       await badOracle.initialize(owner);
       await badOracle
-        .setup(badFeed.address, ethFeed.address)
+        .setup(badFeed.address, ethFeed.address, daiFeed.address)
         .should.be.rejectedWith(Error, "feed decimals mismatch");
     });
   });
 
   describe("DIA", () => {
-    let mockDiaOracle, diaPrice;
+    let mockDiaOracle, diaPrice, daiFeed;
     before(async () => {
+      daiFeed = await Feed.new();
+      await daiFeed.initialize(owner);
+      await daiFeed.setup("DAI", 8);
+      await daiFeed.addRound(100000000, 1618433281, 1618433281);
       mockDiaOracle = await MockDIAOracle.new();
       await mockDiaOracle.initialize(owner);
       await mockDiaOracle.setValue("CARD/USD", 1500000, 1618433281);
       await mockDiaOracle.setValue("CARD/ETH", 500, 1618433281);
       diaPrice = await DIAPriceOracle.new();
       await diaPrice.initialize(owner);
-      await diaPrice.setup(mockDiaOracle.address, "CARD");
+      await diaPrice.setup(mockDiaOracle.address, "CARD", daiFeed.address);
     });
 
     it("can get version of contract", async () => {
@@ -116,6 +147,11 @@ contract("PriceOracle", async (accounts) => {
       expect(price.toString()).to.equal("500");
       expect(updatedAt.toString()).to.equal("1618433281");
     });
+    it("can get DAI token price", async () => {
+      let { price, updatedAt } = await diaPrice.daiPrice();
+      expect(price.toString()).to.equal("1500000");
+      expect(updatedAt.toString()).to.equal("1618433281");
+    });
     it("can reflect updated feed", async () => {
       await mockDiaOracle.setValue("CARD/USD", 2000000, 1618453281);
       await mockDiaOracle.setValue("CARD/ETH", 667, 1618453281);
@@ -132,7 +168,9 @@ contract("PriceOracle", async (accounts) => {
     });
     it("rejects when non-owner calls setup()", async () => {
       await diaPrice
-        .setup(mockDiaOracle.address, "CARD", { from: nonOwner })
+        .setup(mockDiaOracle.address, "CARD", daiFeed.address, {
+          from: nonOwner,
+        })
         .should.be.rejectedWith(Error, "Ownable: caller is not the owner");
     });
     it("rejects when oracle is not set", async () => {
