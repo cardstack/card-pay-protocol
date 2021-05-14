@@ -13,15 +13,31 @@ contract DIAOracleAdapter is Ownable, Versionable, IPriceOracle {
   uint8 internal constant DECIMALS = 8;
   address internal oracle;
   string internal tokenSymbol;
+  address internal daiUsdFeed;
 
-  event DAIOracleSetup(address tokenUsdOracle, string tokenSymbol);
+  event DAIOracleSetup(
+    address tokenUsdOracle,
+    string tokenSymbol,
+    address daiUsdFeed
+  );
 
-  function setup(address _oracle, string calldata _tokenSymbol) external onlyOwner {
-    require(_oracle != address(0), "oracle can't be zero address");
+  function setup(
+    address _oracle,
+    string calldata _tokenSymbol,
+    address _daiUsdFeed
+  ) external onlyOwner {
+    require(
+      _oracle != address(0) && _daiUsdFeed != address(0),
+      "oracle can't be zero address"
+    );
+    uint8 daiUsdDecimals = AggregatorV3Interface(_daiUsdFeed).decimals();
+    require(daiUsdDecimals == DECIMALS, "feed decimals mismatch");
+
     oracle = _oracle;
     tokenSymbol = _tokenSymbol;
+    daiUsdFeed = _daiUsdFeed;
 
-    emit DAIOracleSetup(oracle, _tokenSymbol);
+    emit DAIOracleSetup(oracle, _tokenSymbol, _daiUsdFeed);
   }
 
   function decimals() external view returns (uint8) {
@@ -38,6 +54,19 @@ contract DIAOracleAdapter is Ownable, Versionable, IPriceOracle {
 
   function ethPrice() external view returns (uint256 price, uint256 updatedAt) {
     return priceForPair(string(abi.encodePacked(tokenSymbol, "/ETH")));
+  }
+
+  function daiPrice() external view returns (uint256 price, uint256 updatedAt) {
+    (uint256 tokenUsdPrice, uint256 _updatedAt) =
+      priceForPair(string(abi.encodePacked(tokenSymbol, "/USD")));
+    (, int256 daiUsdPrice, , , ) =
+      AggregatorV3Interface(daiUsdFeed).latestRoundData();
+    // a quirk about exponents is that the result will be calculated in the type
+    // of the base, so in order to prevent overflows you should use a base of
+    // uint256
+    uint256 ten = 10;
+    price = (tokenUsdPrice.mul(ten**DECIMALS)).div(uint256(daiUsdPrice));
+    updatedAt = _updatedAt;
   }
 
   function priceForPair(string memory pair)

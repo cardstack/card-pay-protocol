@@ -9,22 +9,36 @@ import "../core/Versionable.sol";
 contract ChainlinkFeedAdapter is Ownable, Versionable, IPriceOracle {
   using SafeMath for uint256;
   address internal tokenUsdFeed;
-  address internal usdEthFeed;
+  address internal ethUsdFeed;
+  address internal daiUsdFeed;
 
-  event ChainlinkFeedSetup(address tokenUsdFeed, address usdEthFeed);
+  event ChainlinkFeedSetup(
+    address tokenUsdFeed,
+    address ethUsdFeed,
+    address daiUsdFeed
+  );
 
-  function setup(address _tokenUsdFeed, address _usdEthFeed) external onlyOwner {
+  function setup(
+    address _tokenUsdFeed,
+    address _ethUsdFeed,
+    address _daiUsdFeed
+  ) external onlyOwner {
     require(
-      _tokenUsdFeed != address(0) && _usdEthFeed != address(0),
+      _tokenUsdFeed != address(0) &&
+        _ethUsdFeed != address(0) &&
+        _daiUsdFeed != address(0),
       "feed can't be zero address"
     );
     uint8 tokenUsdDecimals = AggregatorV3Interface(_tokenUsdFeed).decimals();
-    uint8 usdEthDecimals = AggregatorV3Interface(_usdEthFeed).decimals();
-    require(tokenUsdDecimals == usdEthDecimals, "feed decimals mismatch");
+    uint8 ethUsdDecimals = AggregatorV3Interface(_ethUsdFeed).decimals();
+    uint8 daiUsdDecimals = AggregatorV3Interface(_daiUsdFeed).decimals();
+    require(tokenUsdDecimals == ethUsdDecimals, "feed decimals mismatch");
+    require(tokenUsdDecimals == daiUsdDecimals, "feed decimals mismatch");
 
     tokenUsdFeed = _tokenUsdFeed;
-    usdEthFeed = _usdEthFeed;
-    emit ChainlinkFeedSetup(_tokenUsdFeed, _usdEthFeed);
+    ethUsdFeed = _ethUsdFeed;
+    daiUsdFeed = _daiUsdFeed;
+    emit ChainlinkFeedSetup(_tokenUsdFeed, _ethUsdFeed, _daiUsdFeed);
   }
 
   function decimals() external view returns (uint8) {
@@ -45,22 +59,49 @@ contract ChainlinkFeedAdapter is Ownable, Versionable, IPriceOracle {
 
   function ethPrice() external view returns (uint256 price, uint256 updatedAt) {
     require(
-      tokenUsdFeed != address(0) && usdEthFeed != address(0),
+      tokenUsdFeed != address(0) && ethUsdFeed != address(0),
       "feed address is not specified"
     );
     AggregatorV3Interface tokenUsd = AggregatorV3Interface(tokenUsdFeed);
-    AggregatorV3Interface usdEth = AggregatorV3Interface(usdEthFeed);
+    AggregatorV3Interface ethUsd = AggregatorV3Interface(ethUsdFeed);
     uint8 tokenUsdDecimals = tokenUsd.decimals();
 
     (, int256 tokenUsdPrice, , uint256 _updatedAt, ) =
       tokenUsd.latestRoundData();
-    (, int256 ethUsdPrice, , , ) = usdEth.latestRoundData();
+    (, int256 ethUsdPrice, , , ) = ethUsd.latestRoundData();
     // a quirk about exponents is that the result will be calculated in the type
     // of the base, so in order to prevent overflows you should use a base of
     // uint256
     uint256 ten = 10;
     price = (uint256(tokenUsdPrice).mul(ten**tokenUsdDecimals)).div(
       uint256(ethUsdPrice)
+    );
+    updatedAt = _updatedAt;
+  }
+
+  function daiPrice() external view returns (uint256 price, uint256 updatedAt) {
+    require(
+      tokenUsdFeed != address(0) && daiUsdFeed != address(0),
+      "feed address is not specified"
+    );
+    uint256 ten = 10;
+    AggregatorV3Interface daiUsd = AggregatorV3Interface(daiUsdFeed);
+    // the token is question actually is DAI, so the price is just 1 DAI
+    if (tokenUsdFeed == daiUsdFeed) {
+      (, , , uint256 _updatedAt, ) = daiUsd.latestRoundData();
+      uint8 daiDecimals = daiUsd.decimals();
+      price = ten**daiDecimals;
+      updatedAt = _updatedAt;
+    }
+
+    AggregatorV3Interface tokenUsd = AggregatorV3Interface(tokenUsdFeed);
+    uint8 tokenUsdDecimals = tokenUsd.decimals();
+
+    (, int256 tokenUsdPrice, , uint256 _updatedAt, ) =
+      tokenUsd.latestRoundData();
+    (, int256 daiUsdPrice, , , ) = daiUsd.latestRoundData();
+    price = (uint256(tokenUsdPrice).mul(ten**tokenUsdDecimals)).div(
+      uint256(daiUsdPrice)
     );
     updatedAt = _updatedAt;
   }
