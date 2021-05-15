@@ -5,6 +5,7 @@ const { fromWei } = Web3.utils;
 const RevenuePool = artifacts.require("RevenuePool");
 const PrepaidCardManager = artifacts.require("PrepaidCardManager");
 const BridgeUtils = artifacts.require("BridgeUtils");
+const SPEND = artifacts.require("SPEND");
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const TALLY = process.env.TALLY ?? ZERO_ADDRESS;
@@ -111,6 +112,14 @@ Configuring BridgeUtils ${bridgeUtilsAddress}
     GNOSIS_SAFE_FACTORY,
     BRIDGE_MEDIATOR
   );
+
+  // SPEND configuration
+  let spend = await SPEND.at(spendTokenAddress);
+  console.log(`
+==================================================
+Configuring SPEND: ${spendTokenAddress}
+  adding minter: ${revenuePoolAddress} (revenue pool)`);
+  await spend.addMinter(revenuePoolAddress);
 };
 
 function getAddress(contractId, addresses) {

@@ -15,9 +15,8 @@ contract SPEND is Versionable, ISPEND, SPENDMinterRole {
 
   uint256 private _totalSupply;
 
-  function initialize(address owner, address _minter) public initializer {
+  function initialize(address owner) public initializer {
     initializeMinterRole(owner);
-    _addMinter(_minter);
   }
 
   function mint(address account, uint256 amount)

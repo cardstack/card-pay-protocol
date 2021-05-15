@@ -33,10 +33,7 @@ module.exports = async function (deployer, network, addresses) {
       },
       RevenuePool: { contractName: "RevenuePool", init: [addresses[0]] },
       BridgeUtils: { contractName: "BridgeUtils", init: [addresses[0]] },
-      SPEND: {
-        contractName: "SPEND",
-        init: [addresses[0], "RevenuePool.address"],
-      },
+      SPEND: { contractName: "SPEND", init: [addresses[0]] },
       DAIOracle: { contractName: "ChainlinkFeedAdapter", init: [addresses[0]] },
       CARDOracle: { contractName: "DIAOracleAdapter", init: [addresses[0]] },
     };
