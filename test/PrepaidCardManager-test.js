@@ -110,7 +110,8 @@ contract("PrepaidManager", (accounts) => {
 
     // create spendToken
     spendToken = await SPEND.new();
-    await spendToken.initialize(owner, revenuePool.address);
+    await spendToken.initialize(owner);
+    await spendToken.addMinter(revenuePool.address);
 
     let gnosisData = gnosisSafeMasterCopy.contract.methods
       .setup(

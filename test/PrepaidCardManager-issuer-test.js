@@ -57,7 +57,8 @@ contract("PrepaidCardManager - issuer tests", (accounts) => {
     revenuePool = await RevenuePool.new();
     await revenuePool.initialize(owner);
     spendToken = await SPEND.new();
-    await spendToken.initialize(owner, revenuePool.address);
+    await spendToken.initialize(owner);
+    await spendToken.addMinter(revenuePool.address);
 
     // Deploy and mint 100 daicpxd token for deployer as owner
     daicpxdToken = await ERC677Token.new();
