@@ -15,6 +15,7 @@ const BRIDGE_MEDIATOR = process.env.BRIDGE_MEDIATOR ?? ZERO_ADDRESS;
 const PAYABLE_TOKENS = (process.env.PAYABLE_TOKENS ?? "")
   .split(",")
   .map((t) => t.trim());
+const GAS_TOKEN = process.env.GAS_TOKEN ?? ZERO_ADDRESS;
 const GNOSIS_SAFE_MASTER_COPY =
   process.env.GNOSIS_SAFE_MASTER_COPY ??
   "0x6851d6fdfafd08c0295c392436245e5bc78b0185";
@@ -80,6 +81,7 @@ Configuring PrepaidCardManager ${prepaidCardManagerAddress}
   gas fee receiver: ${GAS_FEE_RECEIVER}
   gas fee: ${fromWei(GAS_FEE_CARD_WEI)} CARD
   payable tokens: ${PAYABLE_TOKENS.join(", ")}
+  gas token: ${GAS_TOKEN}
   minimum face value: ${MINIMUM_AMOUNT}
   maximum face value: ${MAXIMUM_AMOUNT}`);
   await prepaidCardManager.setup(
@@ -89,6 +91,7 @@ Configuring PrepaidCardManager ${prepaidCardManagerAddress}
     GAS_FEE_RECEIVER,
     GAS_FEE_CARD_WEI,
     PAYABLE_TOKENS,
+    GAS_TOKEN,
     MINIMUM_AMOUNT,
     MAXIMUM_AMOUNT
   );

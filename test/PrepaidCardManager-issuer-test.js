@@ -30,6 +30,7 @@ const {
 
 contract("PrepaidCardManager - issuer tests", (accounts) => {
   let daicpxdToken,
+    cardcpxdToken,
     revenuePool,
     spendToken,
     prepaidCardManager,
@@ -64,6 +65,8 @@ contract("PrepaidCardManager - issuer tests", (accounts) => {
     daicpxdToken = await ERC677Token.new();
     await daicpxdToken.initialize(...TOKEN_DETAIL_DATA, owner);
     await daicpxdToken.mint(accounts[0], toTokenUnit(1000));
+    cardcpxdToken = await ERC677Token.new();
+    await cardcpxdToken.initialize(...TOKEN_DETAIL_DATA, owner);
     // Deploy and mint 100 daicpxd token for deployer as owner
     fakeDaicpxdToken = await ERC677Token.new();
     await fakeDaicpxdToken.initialize(...TOKEN_DETAIL_DATA, owner);
@@ -142,7 +145,8 @@ contract("PrepaidCardManager - issuer tests", (accounts) => {
       revenuePool.address,
       gasFeeReceiver,
       0,
-      [daicpxdToken.address],
+      [daicpxdToken.address, cardcpxdToken.address],
+      cardcpxdToken.address,
       100,
       500000
     );

@@ -21,6 +21,7 @@ const { TOKEN_DETAIL_DATA, expect } = require("./setup");
 
 contract("PrepaidCardManager - EOA tests", (accounts) => {
   let daicpxdToken,
+    cardcpxdToken,
     revenuePool,
     spendToken,
     owner,
@@ -49,6 +50,9 @@ contract("PrepaidCardManager - EOA tests", (accounts) => {
     daicpxdToken = await ERC677Token.new();
     await daicpxdToken.initialize(...TOKEN_DETAIL_DATA, owner);
     await daicpxdToken.mint(supplierEOA, toTokenUnit(20));
+
+    cardcpxdToken = await ERC677Token.new();
+    await cardcpxdToken.initialize(...TOKEN_DETAIL_DATA, owner);
 
     prepaidCardManager = await PrepaidCardManager.new();
     await prepaidCardManager.initialize(owner);
@@ -94,7 +98,8 @@ contract("PrepaidCardManager - EOA tests", (accounts) => {
       revenuePool.address,
       gasFeeReceiver,
       0,
-      [daicpxdToken.address],
+      [daicpxdToken.address, cardcpxdToken.address],
+      cardcpxdToken.address,
       100,
       500000
     );
