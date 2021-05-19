@@ -26,7 +26,12 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
     address token,
     uint256 amount
   );
-  event GasFeeCollected(address issuer, address card, uint256 amount);
+  event GasFeeCollected(
+    address issuer,
+    address card,
+    address issuingToken,
+    uint256 amount
+  );
 
   bytes4 public constant SWAP_OWNER = 0xe318b52b; //swapOwner(address,address,address)
   bytes4 public constant TRANSER_AND_CALL = 0x4000aea0; //transferAndCall(address,uint256,bytes)
@@ -497,7 +502,7 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
     IERC677(token).transfer(card, amount - _gasFee);
 
     emit CreatePrepaidCard(depot, card, token, amount - _gasFee);
-    emit GasFeeCollected(depot, card, _gasFee);
+    emit GasFeeCollected(depot, card, token, _gasFee);
 
     return card;
   }
