@@ -10,8 +10,8 @@ const MockDIAOracle = artifacts.require("MockDIAOracle");
 const DIAPriceOracle = artifacts.require("DIAOracleAdapter");
 
 const utils = require("./utils/general");
-
 const { expect, TOKEN_DETAIL_DATA } = require("./setup");
+const { ZERO_ADDRESS } = utils;
 
 contract("BridgeUtils", async (accounts) => {
   let bridgeUtils,
@@ -87,6 +87,7 @@ contract("BridgeUtils", async (accounts) => {
       gasFeeReceiver,
       0,
       [],
+      ZERO_ADDRESS,
       MINIMUM_AMOUNT,
       MAXIMUM_AMOUNT
     );

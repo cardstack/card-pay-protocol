@@ -27,12 +27,13 @@ const {
   shouldBeSameBalance,
   encodeCreateCardsData,
   signAndSendSafeTransaction,
+  getBalance,
 } = require("./utils/helper");
 
 const { expect, TOKEN_DETAIL_DATA, toBN } = require("./setup");
 const { toWei } = require("web3").utils;
 
-contract("PrepaidManager", (accounts) => {
+contract("PrepaidCardManager", (accounts) => {
   let MINIMUM_AMOUNT,
     MAXIMUM_AMOUNT,
     revenuePool,
@@ -41,6 +42,7 @@ contract("PrepaidManager", (accounts) => {
     multiSend,
     merchant,
     daicpxdToken,
+    cardcpxdToken,
     fakeDaicpxdToken,
     gnosisSafeMasterCopy,
     proxyFactory,
@@ -75,7 +77,10 @@ contract("PrepaidManager", (accounts) => {
     // Deploy and mint 100 daicpxd token for deployer as owner
     daicpxdToken = await ERC677Token.new();
     await daicpxdToken.initialize(...TOKEN_DETAIL_DATA, owner);
-    await daicpxdToken.mint(accounts[0], toTokenUnit(1000));
+    await daicpxdToken.mint(owner, toTokenUnit(1000));
+
+    cardcpxdToken = await ERC677Token.new();
+    await cardcpxdToken.initialize(...TOKEN_DETAIL_DATA, owner);
 
     // Deploy and mint 100 daicpxd token for deployer as owner
     fakeDaicpxdToken = await ERC677Token.new();
@@ -156,17 +161,18 @@ contract("PrepaidManager", (accounts) => {
         revenuePool.address,
         gasFeeReceiver,
         0,
-        [daicpxdToken.address],
+        [daicpxdToken.address, cardcpxdToken.address],
+        cardcpxdToken.address,
         MINIMUM_AMOUNT,
         MAXIMUM_AMOUNT
       );
     });
 
     it("should initialize parameters", async () => {
-      expect(await cardManager.gnosisSafe()).to.deep.equal(
+      expect(await cardManager.gnosisSafe()).to.equal(
         gnosisSafeMasterCopy.address
       );
-      expect(await cardManager.gnosisProxyFactory()).to.deep.equal(
+      expect(await cardManager.gnosisProxyFactory()).to.equal(
         proxyFactory.address
       );
       expect(await cardManager.revenuePool()).to.deep.equal(
@@ -174,6 +180,7 @@ contract("PrepaidManager", (accounts) => {
       );
       expect(await cardManager.getTokens()).to.deep.equal([
         daicpxdToken.address,
+        cardcpxdToken.address,
       ]);
       expect(await cardManager.minimumFaceValue()).to.a.bignumber.equal(
         toBN(MINIMUM_AMOUNT)
@@ -181,6 +188,7 @@ contract("PrepaidManager", (accounts) => {
       expect(await cardManager.maximumFaceValue()).to.a.bignumber.equal(
         toBN(MAXIMUM_AMOUNT)
       );
+      expect(await cardManager.gasToken()).to.equal(cardcpxdToken.address);
     });
   });
 
@@ -662,7 +670,8 @@ contract("PrepaidManager", (accounts) => {
         // We are setting this value specifically, which with the configured
         // exchange rate is equal to 1 DAI (100 CARD:1 DAI)
         toTokenUnit(100),
-        [daicpxdToken.address],
+        [daicpxdToken.address, cardcpxdToken.address],
+        cardcpxdToken.address,
         MINIMUM_AMOUNT,
         MAXIMUM_AMOUNT
       );
@@ -681,7 +690,8 @@ contract("PrepaidManager", (accounts) => {
         revenuePool.address,
         gasFeeReceiver,
         0, // We are setting this value specifically
-        [daicpxdToken.address],
+        [daicpxdToken.address, cardcpxdToken.address],
+        cardcpxdToken.address,
         MINIMUM_AMOUNT,
         MAXIMUM_AMOUNT
       );
@@ -849,7 +859,8 @@ contract("PrepaidManager", (accounts) => {
         // We are setting this value specifically, which with the configured
         // exchange rate is equal to 1 DAI (100 CARD:1 DAI)
         toTokenUnit(100),
-        [daicpxdToken.address],
+        [daicpxdToken.address, cardcpxdToken.address],
+        cardcpxdToken.address,
         MINIMUM_AMOUNT,
         MAXIMUM_AMOUNT
       );
@@ -923,7 +934,8 @@ contract("PrepaidManager", (accounts) => {
         // We are setting this value specifically, which with the configured
         // exchange rate is equal to 1 DAI (100 CARD:1 DAI)
         toTokenUnit(100),
-        [daicpxdToken.address],
+        [daicpxdToken.address, cardcpxdToken.address],
+        cardcpxdToken.address,
         MINIMUM_AMOUNT,
         MAXIMUM_AMOUNT
       );
@@ -1200,9 +1212,31 @@ contract("PrepaidManager", (accounts) => {
       merchantSafe = merchantCreation[0]["merchantSafe"];
 
       cardAddress = prepaidCards[2].address;
+
+      await cardcpxdToken.mint(cardAddress, toTokenUnit(1000000));
     });
 
     it("can be used to pay a merchant", async () => {
+      let startingPrepaidCardDaicpxdBalance = await getBalance(
+        daicpxdToken,
+        cardAddress
+      );
+      let startingRevenuePoolDaicpxdBalance = await getBalance(
+        daicpxdToken,
+        revenuePool.address
+      );
+      let startingPrepaidCardCardcpxdBalance = await getBalance(
+        cardcpxdToken,
+        cardAddress
+      );
+      let startingRelayerCardcpxdBalance = await getBalance(
+        cardcpxdToken,
+        relayer
+      );
+      let startingRevenuePoolCardcpxdBalance = await getBalance(
+        cardcpxdToken,
+        revenuePool.address
+      );
       let data = await cardManager.getPayData(
         daicpxdToken.address,
         merchantSafe,
@@ -1217,8 +1251,8 @@ contract("PrepaidManager", (accounts) => {
         0,
         0,
         0,
-        ZERO_ADDRESS,
-        ZERO_ADDRESS,
+        cardcpxdToken.address,
+        cardAddress,
         await prepaidCards[2].nonce(),
         customer,
         prepaidCards[2]
@@ -1241,9 +1275,28 @@ contract("PrepaidManager", (accounts) => {
       await shouldBeSameBalance(
         daicpxdToken,
         revenuePool.address,
-        toTokenUnit(1)
+        startingRevenuePoolDaicpxdBalance.add(toTokenUnit(1))
       );
-      await shouldBeSameBalance(daicpxdToken, cardAddress, toTokenUnit(4));
+      await shouldBeSameBalance(
+        daicpxdToken,
+        cardAddress,
+        startingPrepaidCardDaicpxdBalance.sub(toTokenUnit(1))
+      );
+      await shouldBeSameBalance(
+        cardcpxdToken,
+        cardAddress,
+        startingPrepaidCardCardcpxdBalance
+      );
+      await shouldBeSameBalance(
+        cardcpxdToken,
+        relayer,
+        startingRelayerCardcpxdBalance
+      );
+      await shouldBeSameBalance(
+        cardcpxdToken,
+        revenuePool.address,
+        startingRevenuePoolCardcpxdBalance
+      );
     });
 
     // These tests are stateful (ugh), so the prepaidCards[2] balance is now 4
@@ -1263,8 +1316,8 @@ contract("PrepaidManager", (accounts) => {
         0,
         0,
         0,
-        ZERO_ADDRESS,
-        ZERO_ADDRESS,
+        cardcpxdToken.address,
+        cardAddress,
         await prepaidCards[2].nonce(),
         customer,
         prepaidCards[2]
@@ -1307,8 +1360,8 @@ contract("PrepaidManager", (accounts) => {
         0,
         0,
         0,
-        ZERO_ADDRESS,
-        ZERO_ADDRESS,
+        cardcpxdToken.address,
+        cardAddress,
         await prepaidCards[2].nonce(),
         customer,
         prepaidCards[2]
@@ -1347,6 +1400,8 @@ contract("PrepaidManager", (accounts) => {
         .fulfilled;
 
       await cardManager.removePayableToken(daicpxdToken.address).should.be
+        .fulfilled;
+      await cardManager.removePayableToken(cardcpxdToken.address).should.be
         .fulfilled;
 
       await cardManager.getTokens().should.become([mockPayableTokenAddr]);

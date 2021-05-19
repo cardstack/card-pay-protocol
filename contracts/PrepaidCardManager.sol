@@ -38,6 +38,7 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
   uint256 public gasFeeCARDAmount;
   uint256 internal maxAmount;
   uint256 internal minAmount;
+  address public gasToken;
 
   /**
    * @dev Setup function sets initial storage of contract.
@@ -57,6 +58,7 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
     address _gasFeeReceiver,
     uint256 _gasFeeCARDAmount,
     address[] calldata _payableTokens,
+    address _gasToken,
     uint256 _minAmount,
     uint256 _maxAmount
   ) external onlyOwner {
@@ -69,6 +71,7 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
     for (uint256 i = 0; i < _payableTokens.length; i++) {
       _addPayableToken(_payableTokens[i]);
     }
+    gasToken = _gasToken;
     // set limit of amount.
     minAmount = _minAmount;
     maxAmount = _maxAmount;
@@ -202,7 +205,9 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
         prepaidCard,
         prepaidCard,
         getSellCardData(depot, customer),
-        issuerSignatures
+        issuerSignatures,
+        address(0),
+        address(0)
       );
   }
 
@@ -315,6 +320,7 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
     uint256 amount,
     bytes calldata signatures
   ) external returns (bool) {
+    require(gasToken != address(0), "gasToken not configured");
     require(
       cardDetails[prepaidCard].blockNumber < block.number,
       "Prepaid card used too soon"
@@ -330,7 +336,9 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
         prepaidCard,
         payableTokenAddr,
         getPayData(payableTokenAddr, merchantSafe, amount),
-        signatures
+        signatures,
+        gasToken,
+        prepaidCard
       );
   }
 
@@ -443,7 +451,9 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
         prepaidCard,
         issueToken,
         getSplitCardData(depot, cardAmounts),
-        signatures
+        signatures,
+        address(0),
+        address(0)
       );
   }
 
@@ -503,7 +513,9 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
     address payable card,
     address to,
     bytes memory data,
-    bytes memory signatures
+    bytes memory signatures,
+    address _gasToken,
+    address payable _gasRecipient
   ) private returns (bool) {
     require(
       GnosisSafe(card).execTransaction(
@@ -514,8 +526,8 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
         0,
         0,
         0,
-        address(0),
-        address(0),
+        _gasToken,
+        _gasRecipient,
         signatures
       ),
       "safe transaction was reverted"

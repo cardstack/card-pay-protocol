@@ -16,6 +16,8 @@ const DIAOracle = artifacts.require("DIAOracleAdapter");
 module.exports = async function (deployer, network, addresses) {
   if (["ganache", "test", "soliditycoverage"].includes(network)) {
     await Promise.all([
+      // We use this to measure gas for all our contract creation. Please add
+      // any new contracts here:
       deployer.deploy(PrepaidCardManager),
       deployer.deploy(RevenuePool),
       deployer.deploy(BridgeUtils),
@@ -25,7 +27,12 @@ module.exports = async function (deployer, network, addresses) {
       deployer.deploy(DIAOracle),
     ]);
   } else {
-    // Contract init details
+    // Contract init details. For each upgradable contract provide a property
+    // name that represents the contract "ID" (this is useful when there are
+    // multiple instances of the same contract that need to be deployed), where
+    // the value is an object that specifies the contract's name (as specified
+    // in the solidity file), and an array of the initialize parameters to use
+    // when creating the upgradable contract.
     let contracts = {
       PrepaidCardManager: {
         contractName: "PrepaidCardManager",
