@@ -10,7 +10,9 @@ const SPEND = artifacts.require("SPEND");
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const TALLY = process.env.TALLY ?? ZERO_ADDRESS;
 const GAS_FEE_RECEIVER = process.env.GAS_FEE_RECEIVER ?? ZERO_ADDRESS;
-const GAS_FEE_CARD_WEI = String(process.env.GAS_FEE_CARD_WEI ?? 0);
+const GAS_FEE_CARD_WEI = String(
+  process.env.GAS_FEE_CARD_WEI ?? 1000000000000000000
+);
 const BRIDGE_MEDIATOR = process.env.BRIDGE_MEDIATOR ?? ZERO_ADDRESS;
 const PAYABLE_TOKENS = (process.env.PAYABLE_TOKENS ?? "")
   .split(",")
@@ -23,7 +25,7 @@ const GNOSIS_SAFE_FACTORY =
   process.env.GNOSIS_SAFE_FACTORY ??
   "0x76E2cFc1F5Fa8F6a5b3fC4c8F4788F0116861F9B";
 const MINIMUM_AMOUNT = process.env.MINIMUM_AMOUNT ?? "100"; // minimum face value (in SPEND) for new prepaid card
-const MAXIMUM_AMOUNT = process.env.MAXIMUM_AMOUNT ?? "10000000"; // maximum face value (in SPEND) for new prepaid card
+const MAXIMUM_AMOUNT = process.env.MAXIMUM_AMOUNT ?? "100000"; // maximum face value (in SPEND) for new prepaid card
 
 module.exports = async function (deployer, network) {
   if (["ganache", "test", "soliditycoverage"].includes(network)) {
