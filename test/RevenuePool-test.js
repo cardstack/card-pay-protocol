@@ -11,8 +11,9 @@ const DIAPriceOracle = artifacts.require("DIAOracleAdapter");
 const utils = require("./utils/general");
 const eventABIs = require("./utils/constant/eventABIs");
 
+const { ZERO_ADDRESS } = utils;
 const { expect, TOKEN_DETAIL_DATA } = require("./setup");
-const { BN, fromWei, toBN } = require("web3").utils;
+const { BN, fromWei, toBN, toWei } = require("web3").utils;
 
 const {
   toTokenUnit,
@@ -36,6 +37,7 @@ contract("RevenuePool", (accounts) => {
     merchant,
     anotherMerchant,
     merchantSafe,
+    merchantFeeReceiver,
     offchainId,
     proxyFactory,
     gnosisSafeMasterCopy;
@@ -48,6 +50,7 @@ contract("RevenuePool", (accounts) => {
     merchant = accounts[2];
     anotherMerchant = accounts[3];
     relayer = accounts[5];
+    merchantFeeReceiver = accounts[6];
 
     proxyFactory = await ProxyFactory.new();
     gnosisSafeMasterCopy = await utils.deployContract(
@@ -104,7 +107,9 @@ contract("RevenuePool", (accounts) => {
         gnosisSafeMasterCopy.address,
         proxyFactory.address,
         spendToken.address,
-        [daicpxdToken.address]
+        [daicpxdToken.address],
+        merchantFeeReceiver,
+        0
       );
     });
 
@@ -120,6 +125,12 @@ contract("RevenuePool", (accounts) => {
         daicpxdToken.address,
       ]);
       expect(await revenuePool.getTallys()).to.deep.equal([tally]);
+      expect(await revenuePool.merchantFeeReceiver()).to.equal(
+        merchantFeeReceiver
+      );
+      expect((await revenuePool.merchantFeePercentage()).toString()).to.equal(
+        "0"
+      );
     });
 
     it("check SPEND token parameters", async () => {
@@ -192,7 +203,9 @@ contract("RevenuePool", (accounts) => {
         accounts[9],
         accounts[4],
         spendToken.address,
-        [daicpxdToken.address]
+        [daicpxdToken.address],
+        merchantFeeReceiver,
+        0
       );
 
       await revenuePool.registerMerchant(accounts[4], offchainId, {
@@ -248,6 +261,168 @@ contract("RevenuePool", (accounts) => {
         spendToken,
         merchantSafe,
         String(existingSPENDBalance + 200)
+      );
+    });
+
+    it("can collect merchant fees from the customer payment to the merchant", async () => {
+      await revenuePool.setup(
+        tally,
+        gnosisSafeMasterCopy.address,
+        proxyFactory.address,
+        spendToken.address,
+        [daicpxdToken.address],
+        merchantFeeReceiver,
+        10000000 // 10% merchant fee
+      );
+      expect((await revenuePool.merchantFeePercentage()).toString()).to.equal(
+        "10000000"
+      );
+
+      let beginningMerchantSpendBalance = await getBalance(
+        spendToken,
+        merchantSafe
+      );
+      let beginningMerchantDaiClaim = BN(
+        await revenuePool.revenueBalance(merchantSafe, daicpxdToken.address)
+      );
+      let beginningSenderDaiBalance = await getBalance(daicpxdToken, owner);
+      let beginningRevenuePoolDaiBalance = await getBalance(
+        daicpxdToken,
+        revenuePool.address
+      );
+      let beginningMerchantFeeReceiverDaiBalance = await getBalance(
+        daicpxdToken,
+        merchantFeeReceiver
+      );
+
+      let amount = toTokenUnit(1);
+      let data = web3.eth.abi.encodeParameters(["address"], [merchantSafe]);
+
+      await daicpxdToken.transferAndCall(revenuePool.address, amount, data)
+        .should.be.fulfilled;
+
+      await shouldBeSameBalance(
+        daicpxdToken,
+        owner,
+        beginningSenderDaiBalance.sub(toTokenUnit(1))
+      );
+      await shouldBeSameBalance(
+        spendToken,
+        merchantSafe,
+        beginningMerchantSpendBalance.add(new BN("90"))
+      );
+      await shouldBeSameBalance(
+        daicpxdToken,
+        owner,
+        beginningSenderDaiBalance.sub(toTokenUnit(1))
+      );
+      await shouldBeSameBalance(
+        daicpxdToken,
+        revenuePool.address,
+        beginningRevenuePoolDaiBalance.add(new BN(toWei("0.9")))
+      );
+      await shouldBeSameBalance(
+        daicpxdToken,
+        merchantFeeReceiver,
+        beginningMerchantFeeReceiverDaiBalance.add(new BN(toWei("0.1")))
+      );
+      expect(
+        (
+          await revenuePool.revenueBalance(merchantSafe, daicpxdToken.address)
+        ).toString()
+      ).to.equal(
+        beginningMerchantDaiClaim.add(new BN(toWei("0.9"))).toString()
+      );
+
+      // reset state of the pool for the other tests
+      await revenuePool.setup(
+        tally,
+        gnosisSafeMasterCopy.address,
+        proxyFactory.address,
+        spendToken.address,
+        [daicpxdToken.address],
+        merchantFeeReceiver,
+        0
+      );
+    });
+
+    it("when no merchant fee receiver is set no fees are collected", async () => {
+      await revenuePool.setup(
+        tally,
+        gnosisSafeMasterCopy.address,
+        proxyFactory.address,
+        spendToken.address,
+        [daicpxdToken.address],
+        ZERO_ADDRESS,
+        10000000 // 10% merchant fee
+      );
+      expect((await revenuePool.merchantFeePercentage()).toString()).to.equal(
+        "10000000"
+      );
+
+      let beginningMerchantSpendBalance = await getBalance(
+        spendToken,
+        merchantSafe
+      );
+      let beginningMerchantDaiClaim = BN(
+        await revenuePool.revenueBalance(merchantSafe, daicpxdToken.address)
+      );
+      let beginningSenderDaiBalance = await getBalance(daicpxdToken, owner);
+      let beginningRevenuePoolDaiBalance = await getBalance(
+        daicpxdToken,
+        revenuePool.address
+      );
+      let beginningMerchantFeeReceiverDaiBalance = await getBalance(
+        daicpxdToken,
+        merchantFeeReceiver
+      );
+
+      let amount = toTokenUnit(1);
+      let data = web3.eth.abi.encodeParameters(["address"], [merchantSafe]);
+
+      await daicpxdToken.transferAndCall(revenuePool.address, amount, data)
+        .should.be.fulfilled;
+
+      await shouldBeSameBalance(
+        daicpxdToken,
+        owner,
+        beginningSenderDaiBalance.sub(toTokenUnit(1))
+      );
+      await shouldBeSameBalance(
+        spendToken,
+        merchantSafe,
+        beginningMerchantSpendBalance.add(new BN("100"))
+      );
+      await shouldBeSameBalance(
+        daicpxdToken,
+        owner,
+        beginningSenderDaiBalance.sub(toTokenUnit(1))
+      );
+      await shouldBeSameBalance(
+        daicpxdToken,
+        revenuePool.address,
+        beginningRevenuePoolDaiBalance.add(toTokenUnit(1))
+      );
+      await shouldBeSameBalance(
+        daicpxdToken,
+        merchantFeeReceiver,
+        beginningMerchantFeeReceiverDaiBalance
+      );
+      expect(
+        (
+          await revenuePool.revenueBalance(merchantSafe, daicpxdToken.address)
+        ).toString()
+      ).to.equal(beginningMerchantDaiClaim.add(toTokenUnit(1)).toString());
+
+      // reset state of the pool for the other tests
+      await revenuePool.setup(
+        tally,
+        gnosisSafeMasterCopy.address,
+        proxyFactory.address,
+        spendToken.address,
+        [daicpxdToken.address],
+        merchantFeeReceiver,
+        0
       );
     });
 
@@ -327,7 +502,9 @@ contract("RevenuePool", (accounts) => {
         gnosisSafeMasterCopy.address,
         proxyFactory.address,
         spendToken.address,
-        [daicpxdToken.address]
+        [daicpxdToken.address],
+        merchantFeeReceiver,
+        0
       );
       await badPool.createExchange("DAI", daiOracle.address);
 
@@ -344,7 +521,9 @@ contract("RevenuePool", (accounts) => {
         gnosisSafeMasterCopy.address,
         proxyFactory.address,
         spendToken.address,
-        [daicpxdToken.address]
+        [daicpxdToken.address],
+        merchantFeeReceiver,
+        0
       );
       await badPool.createExchange("CARD", cardOracle.address);
 
@@ -438,9 +617,9 @@ contract("RevenuePool", (accounts) => {
         merchantSafe,
         daicpxdToken.address
       );
-      // The tests are stateful at this point the merchant has accumulated 5 DAI
+      // The tests are stateful at this point the merchant has accumulated 6.9 DAI
       // of customer payments
-      expect(balance.toString()).to.equal(toTokenUnit(5).toString());
+      expect(balance.toString()).to.equal(toWei("6.9"));
     });
 
     it("allows a revenue claim issued from a merchant's safe (1 DAI CPXD)", async () => {

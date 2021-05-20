@@ -9,7 +9,7 @@ const ChainlinkOracle = artifacts.require("ChainlinkFeedAdapter");
 const MockDIAOracle = artifacts.require("MockDIAOracle");
 const DIAPriceOracle = artifacts.require("DIAOracleAdapter");
 
-const { getGnosisSafeFromEventLog } = require("./utils/general");
+const { getGnosisSafeFromEventLog, ZERO_ADDRESS } = require("./utils/general");
 
 const {
   toTokenUnit,
@@ -63,7 +63,9 @@ contract("PrepaidCardManager - EOA tests", (accounts) => {
       gnosisSafeMasterCopy.address,
       proxyFactory.address,
       spendToken.address,
-      [daicpxdToken.address]
+      [daicpxdToken.address],
+      ZERO_ADDRESS,
+      0
     );
 
     let daiFeed = await Feed.new();

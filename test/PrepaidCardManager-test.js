@@ -145,7 +145,9 @@ contract("PrepaidCardManager", (accounts) => {
       gnosisSafeMasterCopy.address,
       proxyFactory.address,
       spendToken.address,
-      [daicpxdToken.address]
+      [daicpxdToken.address],
+      ZERO_ADDRESS,
+      0
     );
 
     MINIMUM_AMOUNT = 100; // in spend <=> 1 USD
