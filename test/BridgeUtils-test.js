@@ -69,7 +69,9 @@ contract("BridgeUtils", async (accounts) => {
       gnosisMaster.address,
       gnosisFactory.address,
       utils.Address0,
-      []
+      [],
+      ZERO_ADDRESS,
+      0
     );
     await pool.createExchange("DAI", chainlinkOracle.address);
     await pool.createExchange("CARD", diaPrice.address);

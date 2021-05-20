@@ -21,6 +21,9 @@ contract RevenuePool is
   using SafeMath for uint256;
 
   address public spendToken;
+  address public merchantFeeReceiver;
+  uint256 public merchantFeePercentage;
+
   event Setup();
   event MerchantClaim(
     address merchantSafe,
@@ -29,9 +32,16 @@ contract RevenuePool is
   );
 
   event CustomerPayment(
-    address prepaidCardArr,
+    address card,
     address merchantSafe,
     address payableToken,
+    uint256 amount
+  );
+
+  event MerchantFeeCollected(
+    address merchantSafe,
+    address card,
+    address issuingToken,
     uint256 amount
   );
 
@@ -48,7 +58,9 @@ contract RevenuePool is
     address _gsMasterCopy,
     address _gsProxyFactory,
     address _spendToken,
-    address[] calldata _payableTokens
+    address[] calldata _payableTokens,
+    address _merchantFeeReceiver,
+    uint256 _merchantFeePercentage
   ) external onlyOwner {
     // setup tally user
     if (_tally != address(0)) {
@@ -58,6 +70,8 @@ contract RevenuePool is
     MerchantManager.setup(_gsMasterCopy, _gsProxyFactory);
 
     spendToken = _spendToken;
+    merchantFeeReceiver = _merchantFeeReceiver;
+    merchantFeePercentage = _merchantFeePercentage;
     // set token list payable.
     for (uint256 i = 0; i < _payableTokens.length; i++) {
       _addPayableToken(_payableTokens[i]);
@@ -79,10 +93,26 @@ contract RevenuePool is
   ) external isValidToken returns (bool) {
     // decode and get merchant address from the data
     address merchantSafe = abi.decode(data, (address));
+    // a quirk about exponents is that the result will be calculated in the type
+    // of the base, so in order to prevent overflows you should use a base of
+    // uint256
+    uint256 ten = 10;
+    uint256 merchantFee =
+      merchantFeeReceiver != address(0) && merchantFeePercentage > 0
+        ? (amount.mul(merchantFeePercentage)).div(ten**merchantFeeDecimals())
+        : 0;
 
-    handlePayment(merchantSafe, _msgSender(), amount);
+    uint256 merchantProceeds = amount.sub(merchantFee);
+    address issuingToken = _msgSender();
+    handlePayment(merchantSafe, issuingToken, merchantProceeds);
 
-    emit CustomerPayment(from, merchantSafe, _msgSender(), amount);
+    if (merchantFeeReceiver != address(0)) {
+      // The merchantFeeReceiver is a trusted address
+      IERC677(issuingToken).transfer(merchantFeeReceiver, merchantFee);
+      emit MerchantFeeCollected(merchantSafe, from, issuingToken, merchantFee);
+    }
+
+    emit CustomerPayment(from, merchantSafe, issuingToken, amount);
     return true;
   }
 
@@ -113,6 +143,10 @@ contract RevenuePool is
     returns (uint256)
   {
     return merchantSafes[merchantSafe].balance[payableToken];
+  }
+
+  function merchantFeeDecimals() public pure returns (uint8) {
+    return 8;
   }
 
   /**

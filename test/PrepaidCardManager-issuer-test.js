@@ -110,7 +110,9 @@ contract("PrepaidCardManager - issuer tests", (accounts) => {
       gnosisSafeMasterCopy.address,
       proxyFactory.address,
       spendToken.address,
-      [daicpxdToken.address]
+      [daicpxdToken.address],
+      ZERO_ADDRESS,
+      0
     );
 
     let daiFeed = await Feed.new();

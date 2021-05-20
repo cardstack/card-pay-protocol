@@ -34,7 +34,7 @@ const eventABIs = {
     abis: [
       {
         type: "address",
-        name: "supplier",
+        name: "issuer",
       },
       {
         type: "address",

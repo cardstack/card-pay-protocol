@@ -13,6 +13,8 @@ const GAS_FEE_RECEIVER = process.env.GAS_FEE_RECEIVER ?? ZERO_ADDRESS;
 const GAS_FEE_CARD_WEI = String(
   process.env.GAS_FEE_CARD_WEI ?? 1000000000000000000
 );
+const MERCHANT_FEE = process.env.MERCHANT_FEE ?? 0;
+const MERCHANT_FEE_RECEIVER = process.env.MERCHANT_FEE_RECEIVER ?? ZERO_ADDRESS;
 const BRIDGE_MEDIATOR = process.env.BRIDGE_MEDIATOR ?? ZERO_ADDRESS;
 const PAYABLE_TOKENS = (process.env.PAYABLE_TOKENS ?? "")
   .split(",")
@@ -55,13 +57,17 @@ Configuring RevenuePool ${revenuePoolAddress}
   gnosis master copy: ${GNOSIS_SAFE_MASTER_COPY}
   gnosis proxy factory: ${GNOSIS_SAFE_FACTORY}
   payable tokens: ${PAYABLE_TOKENS.join(", ")}
+  merchant fee receiver: ${MERCHANT_FEE_RECEIVER}
+  merchant fee percentage: ${(Number(MERCHANT_FEE) / 1000000).toFixed(4)}%
   SPEND token address: ${spendTokenAddress}`);
   await revenuePool.setup(
     TALLY,
     GNOSIS_SAFE_MASTER_COPY,
     GNOSIS_SAFE_FACTORY,
     spendTokenAddress,
-    PAYABLE_TOKENS
+    PAYABLE_TOKENS,
+    MERCHANT_FEE_RECEIVER,
+    MERCHANT_FEE
   );
   console.log(`  set BridgeUtils address to ${bridgeUtilsAddress}`);
   await revenuePool.setBridgeUtils(bridgeUtilsAddress);
