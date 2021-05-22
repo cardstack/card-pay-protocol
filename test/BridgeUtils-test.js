@@ -3,14 +3,11 @@ const PrepaidCardManager = artifacts.require("PrepaidCardManager");
 const RevenuePool = artifacts.require("RevenuePool");
 const GnosisFactory = artifacts.require("GnosisSafeProxyFactory");
 const GnosisMaster = artifacts.require("GnosisSafe");
-const Feed = artifacts.require("ManualFeed");
-const ChainlinkOracle = artifacts.require("ChainlinkFeedAdapter");
 const ERC677Token = artifacts.require("ERC677Token.sol");
-const MockDIAOracle = artifacts.require("MockDIAOracle");
-const DIAPriceOracle = artifacts.require("DIAOracleAdapter");
 
 const utils = require("./utils/general");
-const { expect, TOKEN_DETAIL_DATA } = require("./setup");
+const { setupExchanges } = require("./utils/helper");
+const { expect } = require("./setup");
 const { ZERO_ADDRESS } = utils;
 
 contract("BridgeUtils", async (accounts) => {
@@ -18,66 +15,46 @@ contract("BridgeUtils", async (accounts) => {
     pool,
     owner,
     gasFeeReceiver,
+    merchantFeeReceiver,
     prepaidCardManager,
     tokenMock,
     unlistedToken,
     mediatorBridgeMock,
     wallet;
   before(async () => {
-    let tallyAdmin = (owner = accounts[0]);
     mediatorBridgeMock = accounts[1];
     gasFeeReceiver = accounts[6];
-    let daicpxdToken = await ERC677Token.new();
-    await daicpxdToken.initialize(...TOKEN_DETAIL_DATA, owner);
-    tokenMock = daicpxdToken.address;
+    merchantFeeReceiver = accounts[7];
     unlistedToken = await ERC677Token.new();
     await unlistedToken.initialize("Kitty Token", "KITTY", 18, owner);
     bridgeUtils = await BridgeUtils.new();
     await bridgeUtils.initialize(owner);
     pool = await RevenuePool.new();
     await pool.initialize(owner);
+    prepaidCardManager = await PrepaidCardManager.new();
+    await prepaidCardManager.initialize(owner);
 
     let gnosisFactory = await GnosisFactory.new();
     let gnosisMaster = await GnosisMaster.new();
-    let daiFeed = await Feed.new();
-    await daiFeed.initialize(owner);
-    await daiFeed.setup("DAI.CPXD", 8);
-    await daiFeed.addRound(100000000, 1618433281, 1618433281);
 
-    let ethFeed = await Feed.new();
-    await ethFeed.initialize(owner);
-    await ethFeed.setup("ETH", 8);
-    await ethFeed.addRound(300000000000, 1618433281, 1618433281);
-
-    let chainlinkOracle = await ChainlinkOracle.new();
-    chainlinkOracle.initialize(owner);
-    await chainlinkOracle.setup(
-      daiFeed.address,
-      ethFeed.address,
-      daiFeed.address
-    );
-
-    let mockDiaOracle = await MockDIAOracle.new();
-    await mockDiaOracle.initialize(owner);
-    await mockDiaOracle.setValue("CARD/USD", 1000000, 1618433281);
-    let diaPrice = await DIAPriceOracle.new();
-    await diaPrice.initialize(owner);
-    await diaPrice.setup(mockDiaOracle.address, "CARD", daiFeed.address);
-
+    let {
+      daicpxdToken,
+      chainlinkOracle,
+      diaPriceOracle,
+    } = await setupExchanges(owner);
+    tokenMock = daicpxdToken.address;
     await pool.setup(
-      tallyAdmin,
+      prepaidCardManager.address,
       gnosisMaster.address,
       gnosisFactory.address,
       utils.Address0,
       [],
-      ZERO_ADDRESS,
-      0
+      merchantFeeReceiver,
+      0,
+      1000
     );
     await pool.createExchange("DAI", chainlinkOracle.address);
-    await pool.createExchange("CARD", diaPrice.address);
-
-    prepaidCardManager = await PrepaidCardManager.new();
-    await prepaidCardManager.initialize(owner);
+    await pool.createExchange("CARD", diaPriceOracle.address);
 
     const MINIMUM_AMOUNT = process.env.MINIMUM_AMOUNT ?? 100;
     const MAXIMUM_AMOUNT = process.env.MAXIMUM_AMOUNT ?? 100000 * 100;

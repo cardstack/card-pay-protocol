@@ -5,27 +5,15 @@ const SPEND = artifacts.require("SPEND.sol");
 const ProxyFactory = artifacts.require("GnosisSafeProxyFactory");
 const GnosisSafe = artifacts.require("GnosisSafe");
 const MultiSend = artifacts.require("MultiSend");
-const Feed = artifacts.require("ManualFeed");
-const ChainlinkOracle = artifacts.require("ChainlinkFeedAdapter");
-const MockDIAOracle = artifacts.require("MockDIAOracle");
-const DIAPriceOracle = artifacts.require("DIAOracleAdapter");
 
 const { TOKEN_DETAIL_DATA, toBN, expect } = require("./setup");
-
-const eventABIs = require("./utils/constant/eventABIs");
-const {
-  encodeMultiSendCall,
-  ZERO_ADDRESS,
-  getParamsFromEvent,
-  getParamFromTxEvent,
-  getGnosisSafeFromEventLog,
-} = require("./utils/general");
-
 const {
   toTokenUnit,
-  encodeCreateCardsData,
-  signAndSendSafeTransaction,
   shouldBeSameBalance,
+  createDepotSafe,
+  setupExchanges,
+  createPrepaidCards,
+  transferOwner,
 } = require("./utils/helper");
 
 contract("PrepaidCardManager - issuer tests", (accounts) => {
@@ -36,110 +24,69 @@ contract("PrepaidCardManager - issuer tests", (accounts) => {
     prepaidCardManager,
     multiSend,
     fakeDaicpxdToken,
-    tally,
     owner,
     issuer,
     customer,
     relayer,
     gasFeeReceiver,
-    walletOfIssuer,
+    merchantFeeReceiver,
+    depot,
     prepaidCards = [];
 
   before(async () => {
-    tally = owner = accounts[0];
+    owner = accounts[0];
     issuer = accounts[1];
     customer = accounts[2];
     relayer = accounts[4];
     gasFeeReceiver = accounts[5];
+    merchantFeeReceiver = accounts[7];
 
     let proxyFactory = await ProxyFactory.new();
     let gnosisSafeMasterCopy = await GnosisSafe.new();
     multiSend = await MultiSend.new();
     revenuePool = await RevenuePool.new();
     await revenuePool.initialize(owner);
+    prepaidCardManager = await PrepaidCardManager.new();
+    await prepaidCardManager.initialize(owner);
     spendToken = await SPEND.new();
     await spendToken.initialize(owner);
     await spendToken.addMinter(revenuePool.address);
 
-    // Deploy and mint 100 daicpxd token for deployer as owner
-    daicpxdToken = await ERC677Token.new();
-    await daicpxdToken.initialize(...TOKEN_DETAIL_DATA, owner);
-    await daicpxdToken.mint(accounts[0], toTokenUnit(1000));
-    cardcpxdToken = await ERC677Token.new();
-    await cardcpxdToken.initialize(...TOKEN_DETAIL_DATA, owner);
-    // Deploy and mint 100 daicpxd token for deployer as owner
+    let chainlinkOracle, diaPriceOracle;
+    ({
+      daicpxdToken,
+      cardcpxdToken,
+      chainlinkOracle,
+      diaPriceOracle,
+    } = await setupExchanges(owner));
+    await daicpxdToken.mint(owner, toTokenUnit(1000));
+
     fakeDaicpxdToken = await ERC677Token.new();
     await fakeDaicpxdToken.initialize(...TOKEN_DETAIL_DATA, owner);
-    await fakeDaicpxdToken.mint(accounts[0], toTokenUnit(1000));
+    await fakeDaicpxdToken.mint(owner, toTokenUnit(1000));
 
-    walletOfIssuer = await getParamFromTxEvent(
-      await proxyFactory.createProxy(
-        gnosisSafeMasterCopy.address,
-        gnosisSafeMasterCopy.contract.methods
-          .setup(
-            [issuer],
-            1,
-            ZERO_ADDRESS,
-            "0x",
-            ZERO_ADDRESS,
-            ZERO_ADDRESS,
-            0,
-            ZERO_ADDRESS
-          )
-          .encodeABI()
-      ),
-      "ProxyCreation",
-      "proxy",
-      proxyFactory.address,
-      GnosisSafe,
-      "create Gnosis Safe Proxy"
-    );
+    depot = await createDepotSafe(gnosisSafeMasterCopy, proxyFactory, issuer);
 
     // Transfer 20 daicpxd to issuer's wallet
-    await daicpxdToken.mint(walletOfIssuer.address, toTokenUnit(20));
+    await daicpxdToken.mint(depot.address, toTokenUnit(20));
 
     // Transfer 20 daicpxd to issuer's wallet
-    await fakeDaicpxdToken.mint(walletOfIssuer.address, toTokenUnit(20));
-
-    prepaidCardManager = await PrepaidCardManager.new();
-    await prepaidCardManager.initialize(owner);
+    await fakeDaicpxdToken.mint(depot.address, toTokenUnit(20));
 
     // Setup for revenue pool
     await revenuePool.setup(
-      tally,
+      prepaidCardManager.address,
       gnosisSafeMasterCopy.address,
       proxyFactory.address,
       spendToken.address,
       [daicpxdToken.address],
-      ZERO_ADDRESS,
-      0
+      merchantFeeReceiver,
+      0,
+      1000
     );
-
-    let daiFeed = await Feed.new();
-    await daiFeed.initialize(owner);
-    await daiFeed.setup("DAI.CPXD", 8);
-    await daiFeed.addRound(100000000, 1618433281, 1618433281);
-    let ethFeed = await Feed.new();
-    await ethFeed.initialize(owner);
-    await ethFeed.setup("ETH", 8);
-    await ethFeed.addRound(300000000000, 1618433281, 1618433281);
-    let chainlinkOracle = await ChainlinkOracle.new();
-    chainlinkOracle.initialize(owner);
-    await chainlinkOracle.setup(
-      daiFeed.address,
-      ethFeed.address,
-      daiFeed.address
-    );
-
-    let mockDiaOracle = await MockDIAOracle.new();
-    await mockDiaOracle.initialize(owner);
-    await mockDiaOracle.setValue("CARD/USD", 1000000, 1618433281);
-    let diaPrice = await DIAPriceOracle.new();
-    await diaPrice.initialize(owner);
-    await diaPrice.setup(mockDiaOracle.address, "CARD", daiFeed.address);
 
     await revenuePool.createExchange("DAI", chainlinkOracle.address);
-    await revenuePool.createExchange("CARD", diaPrice.address);
+    await revenuePool.createExchange("CARD", diaPriceOracle.address);
 
     await prepaidCardManager.setup(
       gnosisSafeMasterCopy.address,
@@ -155,155 +102,63 @@ contract("PrepaidCardManager - issuer tests", (accounts) => {
   });
 
   it("allows issuer to create cards", async () => {
-    let oldWalletBalance = await daicpxdToken.balanceOf(walletOfIssuer.address);
+    let oldWalletBalance = await daicpxdToken.balanceOf(depot.address);
     let oldRelayerBalance = await daicpxdToken.balanceOf(relayer);
     let amounts = [1, 2, 5].map((amount) => toTokenUnit(amount));
 
-    let payloads = daicpxdToken.contract.methods
-      .transferAndCall(
-        prepaidCardManager.address,
-        toTokenUnit(8),
-        encodeCreateCardsData(walletOfIssuer.address, amounts)
-      )
-      .encodeABI();
-
-    let gasEstimate = await daicpxdToken.contract.methods
-      .transferAndCall(
-        prepaidCardManager.address,
-        toTokenUnit(8),
-        encodeCreateCardsData(walletOfIssuer.address, amounts)
-      )
-      .estimateGas();
-
-    let safeTxData = {
-      to: daicpxdToken.address,
-      value: 0,
-      data: payloads,
-      operation: 0,
-      txGasEstimate: gasEstimate,
-      baseGasEstimate: 0,
-      gasPrice: 1000000000,
-      txGasToken: daicpxdToken.address,
-      refundReceive: relayer,
-    };
-
-    let { safeTxHash, safeTx } = await signAndSendSafeTransaction(
-      safeTxData,
+    let executionSucceeded;
+    let paymentActual;
+    ({
+      prepaidCards, // Warning! this is used in other tests
+      executionSucceeded,
+      paymentActual,
+    } = await createPrepaidCards(
+      depot,
+      prepaidCardManager,
+      daicpxdToken,
+      daicpxdToken,
       issuer,
-      walletOfIssuer,
-      relayer
-    );
+      relayer,
+      amounts
+    ));
 
-    prepaidCards = await getGnosisSafeFromEventLog(
-      safeTx,
-      prepaidCardManager.address
-    );
-
-    let executeSuccess = getParamsFromEvent(
-      safeTx,
-      eventABIs.EXECUTION_SUCCESS,
-      walletOfIssuer.address
-    );
-
-    expect(safeTxHash.toString()).to.be.equal(
-      executeSuccess[executeSuccess.length - 1]["txHash"].toString(),
-      "The event execute success should exist."
-    );
-
+    expect(executionSucceeded).to.equal(true);
     expect(prepaidCards.length).to.be.equal(
       3,
       "Should create a new 3 cards(gnosis safe)."
     );
-
     prepaidCards.forEach(async function (prepaidCard, index) {
-      expect(await prepaidCard.isOwner(walletOfIssuer.address)).to.be.equal(
-        true
-      );
+      expect(await prepaidCard.isOwner(depot.address)).to.be.equal(true);
       expect(await prepaidCard.isOwner(prepaidCardManager.address)).to.be.equal(
         true
       );
       shouldBeSameBalance(daicpxdToken, prepaidCard.address, amounts[index]);
     });
-
-    let payment = toBN(executeSuccess[executeSuccess.length - 1]["payment"]);
     await shouldBeSameBalance(
       daicpxdToken,
-      walletOfIssuer.address,
-      oldWalletBalance.sub(payment).sub(toBN(toTokenUnit(8)))
+      depot.address,
+      oldWalletBalance.sub(paymentActual).sub(toBN(toTokenUnit(8)))
     );
 
     await shouldBeSameBalance(
       daicpxdToken,
       relayer,
-      oldRelayerBalance.add(payment)
+      oldRelayerBalance.add(paymentActual)
     );
   });
 
   it("allows issuer to transfer card to customer", async () => {
-    let txs = [
-      {
-        to: prepaidCards[2].address,
-        value: 0,
-        data: prepaidCards[2].contract.methods
-          .approveHash(
-            await prepaidCardManager.getSellCardHash(
-              prepaidCards[2].address,
-              walletOfIssuer.address,
-              customer,
-              await prepaidCards[2].nonce.call()
-            )
-          )
-          .encodeABI(),
-      },
-      {
-        to: prepaidCardManager.address,
-        value: 0,
-        data: prepaidCardManager.contract.methods
-          .sellCard(
-            prepaidCards[2].address,
-            walletOfIssuer.address,
-            customer,
-            await prepaidCardManager.appendPrepaidCardAdminSignature(
-              walletOfIssuer.address,
-              `0x000000000000000000000000${walletOfIssuer.address.replace(
-                "0x",
-                ""
-              )}000000000000000000000000000000000000000000000000000000000000000001`
-            )
-          )
-          .encodeABI(),
-      },
-    ];
-
-    let payloads = encodeMultiSendCall(txs, multiSend);
-
-    let safeTxData = {
-      to: multiSend.address,
-      value: 0,
-      data: payloads,
-      operation: 1,
-      txGasEstimate: 0,
-      baseGasEstimate: 0,
-      gasPrice: 0,
-      txGasToken: ZERO_ADDRESS,
-      refundReceive: relayer,
-    };
-
-    let { safeTxHash, safeTx } = await signAndSendSafeTransaction(
-      safeTxData,
+    let { executionSucceeded } = await transferOwner(
+      multiSend,
+      prepaidCardManager,
+      prepaidCards[2],
+      relayer,
       issuer,
-      walletOfIssuer,
-      relayer
+      depot,
+      customer
     );
 
-    let executeSuccess = getParamsFromEvent(
-      safeTx,
-      eventABIs.EXECUTION_SUCCESS,
-      walletOfIssuer.address
-    );
-    expect(safeTxHash.toString()).to.be.equal(
-      executeSuccess[executeSuccess.length - 1]["txHash"].toString()
-    );
+    expect(executionSucceeded).to.equal(true);
     expect(await prepaidCards[2].isOwner(customer)).to.be.equal(true);
     await shouldBeSameBalance(
       daicpxdToken,

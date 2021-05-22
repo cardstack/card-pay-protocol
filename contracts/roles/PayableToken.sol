@@ -7,7 +7,7 @@ contract PayableToken is Ownable {
   using EnumerableSet for EnumerableSet.AddressSet;
 
   EnumerableSet.AddressSet internal payableTokens;
-  address private _bridgeUtils;
+  address public bridgeUtils;
 
   event PayableTokenAdded(address indexed token);
   event PayableTokenRemoved(address indexed token);
@@ -42,17 +42,21 @@ contract PayableToken is Ownable {
     return _addPayableToken(_token);
   }
 
-  function removePayableToken(address _token) external onlyOwner returns (bool) {
+  function removePayableToken(address _token)
+    external
+    onlyOwner
+    returns (bool)
+  {
     return _removePayableToken(_token);
   }
 
-  function setBridgeUtils(address bridgeUtils) external onlyOwner returns (bool) {
-    _bridgeUtils = bridgeUtils;
+  function setBridgeUtils(address _bridgeUtils)
+    external
+    onlyOwner
+    returns (bool)
+  {
+    bridgeUtils = _bridgeUtils;
     emit BridgeUtilsSet(bridgeUtils);
-  }
-
-  function bridgeUtils() external view returns (address) {
-    return _bridgeUtils;
   }
 
   function getTokens() external view returns (address[] memory) {
@@ -60,7 +64,7 @@ contract PayableToken is Ownable {
   }
 
   function isBridgeUtils() public view returns (bool) {
-    return _msgSender() == _bridgeUtils;
+    return _msgSender() == bridgeUtils;
   }
 
   function _addPayableToken(address _token) internal returns (bool) {

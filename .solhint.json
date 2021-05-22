@@ -1,4 +1,11 @@
 {
   "extends": "solhint:recommended",
-  "rules": {}
+  "rules": {
+    "reason-string": [
+      "warn",
+      {
+        "maxLength": 64
+      }
+    ]
+  }
 }

@@ -6,7 +6,6 @@ import "@openzeppelin/contract-upgradeable/contracts/math/SafeMath.sol";
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
 
 import "./token/IERC677.sol";
-import "./roles/TallyRole.sol";
 import "./roles/PayableToken.sol";
 import "./core/Safe.sol";
 import "./core/Versionable.sol";
@@ -15,9 +14,9 @@ import "./RevenuePool.sol";
 contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
   using SafeMath for uint256;
   struct CardDetail {
-    uint256 blockNumber;
     address issuer;
     address issueToken;
+    uint256 blockNumber;
   }
   event Setup();
   event CreatePrepaidCard(
@@ -37,10 +36,10 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
   bytes4 public constant TRANSER_AND_CALL = 0x4000aea0; //transferAndCall(address,uint256,bytes)
   uint8 public constant MAXIMUM_NUMBER_OF_CARD = 15;
   uint256 public constant MINIMUM_MERCHANT_PAYMENT = 50; //in units of SPEND
-  address public revenuePool;
-  address public gasFeeReceiver;
+  address payable public revenuePool;
+  address payable public gasFeeReceiver;
   mapping(address => CardDetail) public cardDetails;
-  uint256 public gasFeeCARDAmount;
+  uint256 public gasFeeInCARD;
   uint256 internal maxAmount;
   uint256 internal minAmount;
   address public gasToken;
@@ -51,7 +50,7 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
    * @param _gsProxyFactory Gnosis safe Proxy Factory address
    * @param _revenuePool Revenue Pool address
    * @param _gasFeeReceiver The addres that will receive the new prepaid card gas fee
-   * @param _gasFeeCARDAmount the amount to charge for the gas fee for new prepaid card in units of CARD wei
+   * @param _gasFeeInCARD the amount to charge for the gas fee for new prepaid card in units of CARD wei
    * @param _payableTokens Payable tokens are allowed to use (these are created by the token bridge, specify them here if there are existing tokens breaked by teh bridge to use)
    * @param _minAmount The minimum face value of a new prepaid card in units of SPEND
    * @param _maxAmount The maximum face value of a new prepaid card in units of SPEND
@@ -59,9 +58,9 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
   function setup(
     address _gsMasterCopy,
     address _gsProxyFactory,
-    address _revenuePool,
-    address _gasFeeReceiver,
-    uint256 _gasFeeCARDAmount,
+    address payable _revenuePool,
+    address payable _gasFeeReceiver,
+    uint256 _gasFeeInCARD,
     address[] calldata _payableTokens,
     address _gasToken,
     uint256 _minAmount,
@@ -69,7 +68,7 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
   ) external onlyOwner {
     revenuePool = _revenuePool;
     gasFeeReceiver = _gasFeeReceiver;
-    gasFeeCARDAmount = _gasFeeCARDAmount;
+    gasFeeInCARD = _gasFeeInCARD;
 
     Safe.setup(_gsMasterCopy, _gsProxyFactory);
     // set token list payable.
@@ -127,11 +126,14 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
     );
 
     for (uint256 i = 0; i < numberCard; i++) {
-      require(isValidAmount(token, amountOfCard[i]), "Amount invalid.");
+      require(isValidAmount(token, amountOfCard[i]), "Amount below threshold");
       neededAmount = neededAmount.add(amountOfCard[i]);
     }
 
-    require(amountReceived >= neededAmount, "Not enough token");
+    require(
+      amountReceived >= neededAmount,
+      "Insufficient funds sent for requested amounts"
+    );
     for (uint256 i = 0; i < numberCard; i++) {
       createPrepaidCard(depot, token, amountOfCard[i]);
     }
@@ -466,7 +468,7 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
     if (gasFeeReceiver == address(0)) {
       return 0;
     } else {
-      return RevenuePool(revenuePool).convertFromCARD(token, gasFeeCARDAmount);
+      return RevenuePool(revenuePool).convertFromCARD(token, gasFeeInCARD);
     }
   }
 
@@ -490,9 +492,9 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
     address card = createSafe(owners, 2);
 
     // card was created
-    cardDetails[card].blockNumber = block.number;
     cardDetails[card].issuer = depot;
     cardDetails[card].issueToken = token;
+    cardDetails[card].blockNumber = block.number;
     uint256 _gasFee = gasFee(token);
     if (gasFeeReceiver != address(0) && _gasFee > 0) {
       // The gasFeeReceiver is a trusted address that we control

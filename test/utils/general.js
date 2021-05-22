@@ -21,8 +21,8 @@ const signTypedData = async function (account, data) {
         id: new Date().getTime(),
       },
       function (err, response) {
-        if (err) {
-          return reject(err);
+        if (err || response.error) {
+          return reject(err || response.error);
         }
         resolve(response.result);
       }

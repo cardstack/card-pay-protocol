@@ -1,23 +1,19 @@
 const PrepaidCardManager = artifacts.require("PrepaidCardManager");
 const RevenuePool = artifacts.require("RevenuePool.sol");
-const ERC677Token = artifacts.require("ERC677Token.sol");
 const SPEND = artifacts.require("SPEND.sol");
 const ProxyFactory = artifacts.require("GnosisSafeProxyFactory");
 const GnosisSafe = artifacts.require("GnosisSafe");
-const Feed = artifacts.require("ManualFeed");
-const ChainlinkOracle = artifacts.require("ChainlinkFeedAdapter");
-const MockDIAOracle = artifacts.require("MockDIAOracle");
-const DIAPriceOracle = artifacts.require("DIAOracleAdapter");
 
-const { getGnosisSafeFromEventLog, ZERO_ADDRESS } = require("./utils/general");
+const { getGnosisSafeFromEventLog } = require("./utils/general");
 
 const {
   toTokenUnit,
   encodeCreateCardsData,
   shouldBeSameBalance,
+  setupExchanges,
 } = require("./utils/helper");
 
-const { TOKEN_DETAIL_DATA, expect } = require("./setup");
+const { expect } = require("./setup");
 
 contract("PrepaidCardManager - EOA tests", (accounts) => {
   let daicpxdToken,
@@ -26,13 +22,14 @@ contract("PrepaidCardManager - EOA tests", (accounts) => {
     spendToken,
     owner,
     prepaidCardManager,
-    tally,
+    merchantFeeReceiver,
     gasFeeReceiver,
     supplierEOA,
     cards = [];
 
   before(async () => {
-    tally = owner = accounts[0];
+    owner = accounts[0];
+    merchantFeeReceiver = accounts[7];
     supplierEOA = accounts[8];
     gasFeeReceiver = accounts[9];
 
@@ -41,58 +38,35 @@ contract("PrepaidCardManager - EOA tests", (accounts) => {
 
     revenuePool = await RevenuePool.new();
     await revenuePool.initialize(owner);
+    prepaidCardManager = await PrepaidCardManager.new();
+    await prepaidCardManager.initialize(owner);
 
     spendToken = await SPEND.new();
     await spendToken.initialize(owner);
     await spendToken.addMinter(revenuePool.address);
 
+    let chainlinkOracle, diaPriceOracle;
+    ({
+      daicpxdToken,
+      cardcpxdToken,
+      chainlinkOracle,
+      diaPriceOracle,
+    } = await setupExchanges(owner));
     // Deploy and mint 100 daicpxd token for deployer as owner
-    daicpxdToken = await ERC677Token.new();
-    await daicpxdToken.initialize(...TOKEN_DETAIL_DATA, owner);
     await daicpxdToken.mint(supplierEOA, toTokenUnit(20));
 
-    cardcpxdToken = await ERC677Token.new();
-    await cardcpxdToken.initialize(...TOKEN_DETAIL_DATA, owner);
-
-    prepaidCardManager = await PrepaidCardManager.new();
-    await prepaidCardManager.initialize(owner);
-
-    // Setup for revenue pool
     await revenuePool.setup(
-      tally,
+      prepaidCardManager.address,
       gnosisSafeMasterCopy.address,
       proxyFactory.address,
       spendToken.address,
       [daicpxdToken.address],
-      ZERO_ADDRESS,
-      0
+      merchantFeeReceiver,
+      0,
+      1000
     );
-
-    let daiFeed = await Feed.new();
-    await daiFeed.initialize(owner);
-    await daiFeed.setup("DAI.CPXD", 8);
-    await daiFeed.addRound(100000000, 1618433281, 1618433281);
-    let ethFeed = await Feed.new();
-    await ethFeed.initialize(owner);
-    await ethFeed.setup("ETH", 8);
-    await ethFeed.addRound(300000000000, 1618433281, 1618433281);
-    let chainlinkOracle = await ChainlinkOracle.new();
-    chainlinkOracle.initialize(owner);
-    await chainlinkOracle.setup(
-      daiFeed.address,
-      ethFeed.address,
-      daiFeed.address
-    );
-
-    let mockDiaOracle = await MockDIAOracle.new();
-    await mockDiaOracle.initialize(owner);
-    await mockDiaOracle.setValue("CARD/USD", 1000000, 1618433281);
-    let diaPrice = await DIAPriceOracle.new();
-    await diaPrice.initialize(owner);
-    await diaPrice.setup(mockDiaOracle.address, "CARD", daiFeed.address);
-
     await revenuePool.createExchange("DAI", chainlinkOracle.address);
-    await revenuePool.createExchange("CARD", diaPrice.address);
+    await revenuePool.createExchange("CARD", diaPriceOracle.address);
 
     await prepaidCardManager.setup(
       gnosisSafeMasterCopy.address,
@@ -172,7 +146,9 @@ contract("PrepaidCardManager - EOA tests", (accounts) => {
       );
       throw new Error(`call did not fail`);
     } catch (err) {
-      expect(err.reason).to.be.equal("Not enough token");
+      expect(err.reason).to.be.equal(
+        "Insufficient funds sent for requested amounts"
+      );
     }
   });
 });
