@@ -3,26 +3,24 @@ pragma solidity 0.5.17;
 import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contract-upgradeable/contracts/math/SafeMath.sol";
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
+import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 
 import "./token/IERC677.sol";
 import "./token/ISPEND.sol";
-import "./roles/TallyRole.sol";
 import "./core/MerchantManager.sol";
 import "./core/Exchange.sol";
 import "./core/Versionable.sol";
+import "./PrepaidCardManager.sol";
+import "./BridgeUtils.sol";
 
-contract RevenuePool is
-  Versionable,
-  Initializable,
-  TallyRole,
-  MerchantManager,
-  Exchange
-{
+contract RevenuePool is Versionable, Initializable, MerchantManager, Exchange {
   using SafeMath for uint256;
 
   address public spendToken;
-  address public merchantFeeReceiver;
+  address payable public merchantFeeReceiver;
   uint256 public merchantFeePercentage;
+  uint256 public merchantRegistrationFeeInSPEND;
+  address payable public prepaidCardManager;
 
   event Setup();
   event MerchantClaim(
@@ -47,31 +45,41 @@ contract RevenuePool is
 
   /**
    * @dev set up revenue pool
-   * @param _tally tally account - have admin permission.
+   * @param _prepaidCardManager the address of the PrepaidCardManager contract
    * @param _gsMasterCopy is masterCopy address
    * @param _gsProxyFactory is gnosis proxy factory address.
    * @param _spendToken SPEND token address.
-   * @param _payableTokens are a list of payable token supported by the revenue pool
+   * @param _payableTokens are a list of payable token supported by the revenue
+     pool
+   * @param _merchantFeeReceiver the address that receives the merchant fees
+   * @param _merchantFeePercentage the numerator of a decimals 8 fraction that
+     represents the merchant fee percentage that is charged for each merchant
+     payment
+   * @param _merchantRegistrationFeeInSPEND the amount in SPEND that is charged for a merchant to register
    */
   function setup(
-    address _tally,
+    address payable _prepaidCardManager,
     address _gsMasterCopy,
     address _gsProxyFactory,
     address _spendToken,
     address[] calldata _payableTokens,
-    address _merchantFeeReceiver,
-    uint256 _merchantFeePercentage
+    address payable _merchantFeeReceiver,
+    uint256 _merchantFeePercentage,
+    uint256 _merchantRegistrationFeeInSPEND
   ) external onlyOwner {
-    // setup tally user
-    if (_tally != address(0)) {
-      _addTally(_tally);
-    }
+    require(_merchantFeeReceiver != address(0), "merchantFeeReceiver not set");
+    require(
+      _merchantRegistrationFeeInSPEND > 0,
+      "merchantRegistrationFeeInSPEND is not set"
+    );
     // setup gnosis safe address
     MerchantManager.setup(_gsMasterCopy, _gsProxyFactory);
 
+    prepaidCardManager = _prepaidCardManager;
     spendToken = _spendToken;
     merchantFeeReceiver = _merchantFeeReceiver;
     merchantFeePercentage = _merchantFeePercentage;
+    merchantRegistrationFeeInSPEND = _merchantRegistrationFeeInSPEND;
     // set token list payable.
     for (uint256 i = 0; i < _payableTokens.length; i++) {
       _addPayableToken(_payableTokens[i]);
@@ -87,26 +95,32 @@ contract RevenuePool is
    * @param data - merchant safe in encode format.
    */
   function onTokenTransfer(
-    address from,
+    address payable from,
     uint256 amount,
     bytes calldata data
   ) external isValidToken returns (bool) {
+    require(merchantFeeReceiver != address(0), "merchantFeeReciever not set");
+    // The Revenue pool can only receive funds from prepaid cards
+    PrepaidCardManager prepaidCardMgr = PrepaidCardManager(prepaidCardManager);
+    (address issuer, , , , ) = prepaidCardMgr.cardDetails(from);
+    require(issuer != address(0), "Caller is not a prepaid card");
+
     // decode and get merchant address from the data
     address merchantSafe = abi.decode(data, (address));
-    // a quirk about exponents is that the result will be calculated in the type
-    // of the base, so in order to prevent overflows you should use a base of
-    // uint256
-    uint256 ten = 10;
-    uint256 merchantFee =
-      merchantFeeReceiver != address(0) && merchantFeePercentage > 0
-        ? (amount.mul(merchantFeePercentage)).div(ten**merchantFeeDecimals())
-        : 0;
-
-    uint256 merchantProceeds = amount.sub(merchantFee);
     address issuingToken = _msgSender();
-    handlePayment(merchantSafe, issuingToken, merchantProceeds);
 
-    if (merchantFeeReceiver != address(0)) {
+    if (merchantSafe == address(0)) {
+      // Merchant registration
+      return handleMerchantRegister(from, issuingToken, amount);
+    } else {
+      // Merchant payment
+      uint256 ten = 10;
+      uint256 merchantFee =
+        merchantSafe != address(0) && merchantFeePercentage > 0
+          ? (amount.mul(merchantFeePercentage)).div(ten**merchantFeeDecimals())
+          : 0;
+      uint256 merchantProceeds = amount.sub(merchantFee);
+      handlePayment(merchantSafe, issuingToken, merchantProceeds);
       // The merchantFeeReceiver is a trusted address
       IERC677(issuingToken).transfer(merchantFeeReceiver, merchantFee);
       emit MerchantFeeCollected(merchantSafe, from, issuingToken, merchantFee);
@@ -147,6 +161,36 @@ contract RevenuePool is
 
   function merchantFeeDecimals() public pure returns (uint8) {
     return 8;
+  }
+
+  function handleMerchantRegister(
+    address payable prepaidCard,
+    address issuingToken,
+    uint256 amount
+  ) internal returns (bool) {
+    uint256 merchantRegistrationFeeInToken =
+      convertFromSpend(issuingToken, merchantRegistrationFeeInSPEND);
+    require(
+      amount >= merchantRegistrationFeeInToken,
+      "Insufficient funds for merchant registration"
+    );
+    // The merchantFeeReceiver is a trusted address
+    IERC677(issuingToken).transfer(
+      merchantFeeReceiver,
+      merchantRegistrationFeeInToken
+    );
+    uint256 refund = amount.sub(merchantRegistrationFeeInToken);
+    if (refund > 0) {
+      // from is a trusted contract address (gnosis safe)
+      IERC677(issuingToken).transfer(prepaidCard, refund);
+    }
+
+    address[] memory owners = GnosisSafe(prepaidCard).getOwners();
+    require(owners.length == 2, "unexpected number of owners for prepaid card");
+
+    address merchant = owners[0] == prepaidCardManager ? owners[1] : owners[0];
+    registerMerchant(merchant);
+    return true;
   }
 
   /**

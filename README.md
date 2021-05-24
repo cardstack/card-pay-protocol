@@ -104,7 +104,8 @@ Determine the address that you are using to perform the deployment (usually we u
     - `GAS_FEE_RECEIVER` This is the address of an entity that will receive gas fees as prepaid cards are created. Ideally this is the relay gas payer address.
     - `GAS_FEE_CARD_WEI` This is the gas fee in units of CARD wei that is charged for the creation of each prepaid card.
     - `GAS_TOKEN` This is the gas token used for paying merchants. This should be the address of the CARD.CPXD token, which is our gas token.
-    - `MERCHANT_FEE` This is the numerator of the merchant fee percentage, where the denominator is 10<sup>8</sup>
+    - `MERCHANT_FEE_PERCENTAGE` This is the numerator of the merchant fee percentage, where the denominator is 10<sup>8</sup>
+    - `MERCHANT_REGISTRATION_FEE_IN_SPEND` This is the registration fee that merchants must pay to register in SPEND tokens.
     - `MERCHANT_FEE_RECEIVER` This is the address that will receive the merchant fees (presumably a gnosis safe on layer 2)
 
     The contract addresses that are created are saved in a `./openzeppelin/addresses-{network}.json` file.

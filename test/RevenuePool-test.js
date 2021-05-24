@@ -1,17 +1,15 @@
 const ERC677Token = artifacts.require("ERC677Token.sol");
 const RevenuePool = artifacts.require("RevenuePool.sol");
+const PrepaidCardManager = artifacts.require("PrepaidCardManager");
 const SPEND = artifacts.require("SPEND.sol");
 const ProxyFactory = artifacts.require("GnosisSafeProxyFactory");
 const GnosisSafe = artifacts.require("GnosisSafe");
-const Feed = artifacts.require("ManualFeed");
-const ChainlinkOracle = artifacts.require("ChainlinkFeedAdapter");
-const MockDIAOracle = artifacts.require("MockDIAOracle");
-const DIAPriceOracle = artifacts.require("DIAOracleAdapter");
+const BridgeUtils = artifacts.require("BridgeUtils");
 
 const utils = require("./utils/general");
 const eventABIs = require("./utils/constant/eventABIs");
 
-const { ZERO_ADDRESS } = utils;
+const { ZERO_ADDRESS, getParamsFromEvent } = utils;
 const { expect, TOKEN_DETAIL_DATA } = require("./setup");
 const { BN, fromWei, toBN, toWei } = require("web3").utils;
 
@@ -20,35 +18,41 @@ const {
   shouldBeSameBalance,
   getBalance,
   signAndSendSafeTransaction,
+  setupExchanges,
+  createDepotFromBridgeUtils,
+  createPrepaidCards,
+  registerMerchant,
+  transferOwner,
+  payMerchant,
 } = require("./utils/helper");
 
 contract("RevenuePool", (accounts) => {
   let daicpxdToken,
+    cardcpxdToken,
     revenuePool,
     spendToken,
     fakeToken,
-    lw,
-    tally,
+    issuer,
     daiFeed,
     daiOracle,
     cardOracle,
     owner,
     relayer,
     merchant,
-    anotherMerchant,
+    customer,
     merchantSafe,
     merchantFeeReceiver,
-    offchainId,
     proxyFactory,
-    gnosisSafeMasterCopy;
+    gnosisSafeMasterCopy,
+    prepaidCardManager,
+    bridgeUtils,
+    depot;
 
   before(async () => {
-    offchainId = "offchain";
-    lw = await utils.createLightwallet();
     owner = accounts[0];
-    tally = accounts[1];
+    issuer = accounts[1];
     merchant = accounts[2];
-    anotherMerchant = accounts[3];
+    customer = accounts[3];
     relayer = accounts[5];
     merchantFeeReceiver = accounts[6];
 
@@ -60,57 +64,116 @@ contract("RevenuePool", (accounts) => {
 
     revenuePool = await RevenuePool.new();
     await revenuePool.initialize(owner);
+    prepaidCardManager = await PrepaidCardManager.new();
+    await prepaidCardManager.initialize(owner);
+    bridgeUtils = await BridgeUtils.new();
+    await bridgeUtils.initialize(owner);
+    spendToken = await SPEND.new();
+    await spendToken.initialize(owner);
 
-    // deploy and mint 100 daicpxd token for deployer as owner
-    daicpxdToken = await ERC677Token.new();
-    await daicpxdToken.initialize(...TOKEN_DETAIL_DATA, owner);
+    ({
+      daiFeed,
+      daicpxdToken,
+      cardcpxdToken,
+      chainlinkOracle: daiOracle,
+      diaPriceOracle: cardOracle,
+    } = await setupExchanges(owner));
+
     await daicpxdToken.mint(owner, toTokenUnit(100));
-
     fakeToken = await ERC677Token.new();
     await fakeToken.initialize(...TOKEN_DETAIL_DATA, owner);
     await fakeToken.mint(owner, toTokenUnit(100));
 
-    daiFeed = await Feed.new();
-    await daiFeed.initialize(owner);
-    await daiFeed.setup("DAI.CPXD", 8);
-    await daiFeed.addRound(100000000, 1618433281, 1618433281);
-    let ethFeed = await Feed.new();
-    await ethFeed.initialize(owner);
-    await ethFeed.setup("ETH", 8);
-    await ethFeed.addRound(300000000000, 1618433281, 1618433281);
-
-    daiOracle = await ChainlinkOracle.new();
-    daiOracle.initialize(owner);
-    await daiOracle.setup(daiFeed.address, ethFeed.address, daiFeed.address);
-
-    let mockDiaOracle = await MockDIAOracle.new();
-    await mockDiaOracle.initialize(owner);
-    await mockDiaOracle.setValue("CARD/USD", 1000000, 1618433281);
-    cardOracle = await DIAPriceOracle.new();
-    await cardOracle.initialize(owner);
-    await cardOracle.setup(mockDiaOracle.address, "CARD", daiFeed.address);
-
     await revenuePool.createExchange("DAI", daiOracle.address);
     await revenuePool.createExchange("CARD", cardOracle.address);
+
+    await bridgeUtils.setup(
+      revenuePool.address,
+      prepaidCardManager.address,
+      gnosisSafeMasterCopy.address,
+      proxyFactory.address,
+      owner
+    );
+
+    await prepaidCardManager.setup(
+      gnosisSafeMasterCopy.address,
+      proxyFactory.address,
+      revenuePool.address,
+      ZERO_ADDRESS,
+      0,
+      [daicpxdToken.address, cardcpxdToken.address],
+      cardcpxdToken.address,
+      100,
+      500000
+    );
+
+    await spendToken.addMinter(revenuePool.address);
+    depot = await createDepotFromBridgeUtils(bridgeUtils, owner, issuer);
+    await daicpxdToken.mint(depot.address, toTokenUnit(1000));
   });
 
   describe("initial revenue pool contract", () => {
     beforeEach(async () => {
-      // deploy spend token
-      spendToken = await SPEND.new();
-      await spendToken.initialize(owner);
-      await spendToken.addMinter(revenuePool.address);
-
-      // setup for revenue pool
       await revenuePool.setup(
-        tally,
+        prepaidCardManager.address,
         gnosisSafeMasterCopy.address,
         proxyFactory.address,
         spendToken.address,
         [daicpxdToken.address],
         merchantFeeReceiver,
-        0
+        0,
+        1000
       );
+      await revenuePool.setBridgeUtils(bridgeUtils.address);
+    });
+
+    it("reverts when merchantFeeReceiver is set to zero address", async () => {
+      await revenuePool
+        .setup(
+          prepaidCardManager.address,
+          gnosisSafeMasterCopy.address,
+          proxyFactory.address,
+          spendToken.address,
+          [daicpxdToken.address],
+          ZERO_ADDRESS,
+          0,
+          1000
+        )
+        .should.be.rejectedWith(Error, "merchantFeeReceiver not set");
+    });
+
+    it("reverts when merchantRegistrationFeeInSPEND is not set", async () => {
+      await revenuePool
+        .setup(
+          prepaidCardManager.address,
+          gnosisSafeMasterCopy.address,
+          proxyFactory.address,
+          spendToken.address,
+          [daicpxdToken.address],
+          merchantFeeReceiver,
+          0,
+          0
+        )
+        .should.be.rejectedWith(
+          Error,
+          "merchantRegistrationFeeInSPEND is not set"
+        );
+    });
+
+    it("reverts when non-owner calls setup()", async () => {
+      await revenuePool
+        .setup(
+          prepaidCardManager.address,
+          gnosisSafeMasterCopy.address,
+          proxyFactory.address,
+          spendToken.address,
+          [daicpxdToken.address],
+          merchantFeeReceiver,
+          0,
+          1000,
+          { from: merchant }
+        )
+        .should.be.rejectedWith(Error, "Ownable: caller is not the owner");
     });
 
     it("check Revenue pool parameters", async () => {
@@ -124,12 +187,17 @@ contract("RevenuePool", (accounts) => {
       expect(await revenuePool.getTokens()).to.deep.equal([
         daicpxdToken.address,
       ]);
-      expect(await revenuePool.getTallys()).to.deep.equal([tally]);
       expect(await revenuePool.merchantFeeReceiver()).to.equal(
         merchantFeeReceiver
       );
       expect((await revenuePool.merchantFeePercentage()).toString()).to.equal(
         "0"
+      );
+      expect(
+        (await revenuePool.merchantRegistrationFeeInSPEND()).toString()
+      ).to.equal("1000");
+      expect(await revenuePool.prepaidCardManager()).to.equal(
+        prepaidCardManager.address
       );
     });
 
@@ -143,136 +211,484 @@ contract("RevenuePool", (accounts) => {
   describe("create merchant", () => {
     // Warning the merchant safe created in this test is used in all the
     // subsequent tests!
-    it("can register a merchant from tally", async () => {
-      let tx = await revenuePool.registerMerchant(merchant, offchainId, {
-        from: tally,
-      }).should.be.fulfilled;
-      let merchantCreation = await utils.getParamsFromEvent(
-        tx,
+    it("a merchant uses a prepaid card to register themselves", async () => {
+      let {
+        prepaidCards: [merchantPrepaidCard],
+      } = await createPrepaidCards(
+        depot,
+        prepaidCardManager,
+        daicpxdToken,
+        daicpxdToken,
+        issuer,
+        relayer,
+        [toTokenUnit(10)]
+      );
+      let startingPrepaidCardDaicpxdBalance = await getBalance(
+        daicpxdToken,
+        merchantPrepaidCard.address
+      );
+      let startingMerchantFeeReceiverDaicpxdBalance = await getBalance(
+        daicpxdToken,
+        merchantFeeReceiver
+      );
+      await transferOwner(
+        prepaidCardManager,
+        merchantPrepaidCard,
+        issuer,
+        merchant
+      );
+      let merchantTx = await registerMerchant(
+        prepaidCardManager,
+        merchantPrepaidCard,
+        daicpxdToken,
+        cardcpxdToken,
+        relayer,
+        merchant,
+        toTokenUnit(10)
+      );
+      let merchantCreation = await getParamsFromEvent(
+        merchantTx,
         eventABIs.MERCHANT_CREATION,
         revenuePool.address
       );
-      merchantSafe = merchantCreation[0]["merchantSafe"];
-      await revenuePool.isMerchantSafe(merchantSafe).should.become(true);
-    });
+      merchantSafe = merchantCreation[0]["merchantSafe"]; // Warning: this is reused in other tests
 
-    it("can register a merchant from owner", async () => {
-      let tx = await revenuePool.registerMerchant(anotherMerchant, offchainId, {
-        from: owner,
-      }).should.be.fulfilled;
-      let merchantCreation = await utils.getParamsFromEvent(
-        tx,
-        eventABIs.MERCHANT_CREATION,
-        revenuePool.address
+      expect(await revenuePool.safeForMerchant(merchant)).to.equal(
+        merchantSafe
       );
-      let safe = merchantCreation[0]["merchantSafe"];
-      await revenuePool.isMerchantSafe(safe).should.become(true);
-    });
+      expect(await revenuePool.isMerchantSafe(merchantSafe)).to.equal(true);
 
-    it("can return an already created safe for a merchant if they are already registered", async () => {
-      await revenuePool.isMerchantSafe(merchantSafe).should.become(true);
-      let tx = await revenuePool.registerMerchant(merchant, offchainId);
-      let merchantUpdate = await utils.getParamsFromEvent(
-        tx,
-        eventABIs.MERCHANT_UPDATE,
-        revenuePool.address
+      await shouldBeSameBalance(
+        daicpxdToken,
+        merchantPrepaidCard.address,
+        startingPrepaidCardDaicpxdBalance.sub(toTokenUnit(10))
       );
-      let existingSafe = merchantUpdate[0]["merchantSafe"];
-      expect(existingSafe).to.equal(merchantSafe);
-    });
-
-    it("should reject when the merchant address is zero", async () => {
-      await revenuePool
-        .registerMerchant(utils.ZERO_ADDRESS, offchainId, {
-          from: tally,
-        })
-        .should.be.rejectedWith(Error, "zero address not allowed");
-    });
-
-    it("should reject when a non-tally address tries to register a merchant", async () => {
-      await revenuePool
-        .registerMerchant(accounts[9], offchainId, {
-          from: merchant,
-        })
-        .should.be.rejectedWith(Error, "caller is not tally or owner");
-    });
-
-    it("set up with incorrect gnosis master copy and factory", async () => {
-      await revenuePool.setup(
-        tally,
-        accounts[9],
-        accounts[4],
-        spendToken.address,
-        [daicpxdToken.address],
+      await shouldBeSameBalance(
+        daicpxdToken,
         merchantFeeReceiver,
-        0
+        startingMerchantFeeReceiverDaicpxdBalance.add(toTokenUnit(10))
       );
-
-      await revenuePool.registerMerchant(accounts[4], offchainId, {
-        from: tally,
-      }).should.be.rejected;
     });
-  });
 
-  describe("pay token", () => {
-    it("can pay 1 DAI CPXD token to pool and mint SPEND token to the merchant's wallet", async () => {
-      let existingSPENDBalance = Number(
-        BN(await getBalance(spendToken, merchantSafe)).toString()
+    it("refunds the prepaid card if the merchant pays more than the registration fee", async () => {
+      let _merchant = accounts[9];
+      let {
+        prepaidCards: [merchantPrepaidCard],
+      } = await createPrepaidCards(
+        depot,
+        prepaidCardManager,
+        daicpxdToken,
+        daicpxdToken,
+        issuer,
+        relayer,
+        [toTokenUnit(11)]
       );
-      let existingDAIBalance = fromWei(
-        BN(await getBalance(daicpxdToken, owner)).toString()
+      let startingPrepaidCardDaicpxdBalance = await getBalance(
+        daicpxdToken,
+        merchantPrepaidCard.address
       );
-      let amount = toTokenUnit(1);
-      let data = web3.eth.abi.encodeParameters(["address"], [merchantSafe]);
-
-      await daicpxdToken.transferAndCall(revenuePool.address, amount, data)
-        .should.be.fulfilled;
-
+      let startingMerchantFeeReceiverDaicpxdBalance = await getBalance(
+        daicpxdToken,
+        merchantFeeReceiver
+      );
+      await transferOwner(
+        prepaidCardManager,
+        merchantPrepaidCard,
+        issuer,
+        _merchant
+      );
+      await registerMerchant(
+        prepaidCardManager,
+        merchantPrepaidCard,
+        daicpxdToken,
+        cardcpxdToken,
+        relayer,
+        _merchant,
+        toTokenUnit(11)
+      );
       await shouldBeSameBalance(
         daicpxdToken,
-        owner,
-        toTokenUnit(existingDAIBalance - 1)
+        merchantPrepaidCard.address,
+        startingPrepaidCardDaicpxdBalance.sub(toTokenUnit(10))
       );
-      await shouldBeSameBalance(
-        spendToken,
-        merchantSafe,
-        String(existingSPENDBalance + 100)
-      );
-    });
-
-    it("can pay 2 DAI CPXD token to pool and mint SPEND token to the merchant's wallet", async () => {
-      let existingSPENDBalance = Number(
-        BN(await getBalance(spendToken, merchantSafe)).toString()
-      );
-      let existingDAIBalance = fromWei(
-        BN(await getBalance(daicpxdToken, owner)).toString()
-      );
-      let amount = toTokenUnit(2); // equal 2 * 10^18
-      let data = web3.eth.abi.encodeParameters(["address"], [merchantSafe]);
-
-      await daicpxdToken.transferAndCall(revenuePool.address, amount, data);
-
       await shouldBeSameBalance(
         daicpxdToken,
-        owner,
-        toTokenUnit(existingDAIBalance - 2)
-      );
-      await shouldBeSameBalance(
-        spendToken,
-        merchantSafe,
-        String(existingSPENDBalance + 200)
+        merchantFeeReceiver,
+        startingMerchantFeeReceiverDaicpxdBalance.add(toTokenUnit(10))
       );
     });
 
-    it("can collect merchant fees from the customer payment to the merchant", async () => {
+    it("merchant registration does not collect the merchantFeePercentage (only the registration fee)", async () => {
+      let _merchant = accounts[8];
       await revenuePool.setup(
-        tally,
+        prepaidCardManager.address,
         gnosisSafeMasterCopy.address,
         proxyFactory.address,
         spendToken.address,
         [daicpxdToken.address],
         merchantFeeReceiver,
-        10000000 // 10% merchant fee
+        10000000,
+        1000
+      );
+      let {
+        prepaidCards: [merchantPrepaidCard],
+      } = await createPrepaidCards(
+        depot,
+        prepaidCardManager,
+        daicpxdToken,
+        daicpxdToken,
+        issuer,
+        relayer,
+        [toTokenUnit(10)]
+      );
+      let startingPrepaidCardDaicpxdBalance = await getBalance(
+        daicpxdToken,
+        merchantPrepaidCard.address
+      );
+      let startingMerchantFeeReceiverDaicpxdBalance = await getBalance(
+        daicpxdToken,
+        merchantFeeReceiver
+      );
+      await transferOwner(
+        prepaidCardManager,
+        merchantPrepaidCard,
+        issuer,
+        _merchant
+      );
+      await registerMerchant(
+        prepaidCardManager,
+        merchantPrepaidCard,
+        daicpxdToken,
+        cardcpxdToken,
+        relayer,
+        _merchant,
+        toTokenUnit(10)
+      );
+      await shouldBeSameBalance(
+        daicpxdToken,
+        merchantPrepaidCard.address,
+        startingPrepaidCardDaicpxdBalance.sub(toTokenUnit(10))
+      );
+      await shouldBeSameBalance(
+        daicpxdToken,
+        merchantFeeReceiver,
+        startingMerchantFeeReceiverDaicpxdBalance.add(toTokenUnit(10))
+      );
+
+      // Reset back for the subsequent tests
+      await revenuePool.setup(
+        prepaidCardManager.address,
+        gnosisSafeMasterCopy.address,
+        proxyFactory.address,
+        spendToken.address,
+        [daicpxdToken.address],
+        merchantFeeReceiver,
+        0,
+        1000
+      );
+    });
+
+    it("reverts when a merchant doesn't send the registration fee amount", async () => {
+      let _merchant = accounts[7];
+      let {
+        prepaidCards: [merchantPrepaidCard],
+      } = await createPrepaidCards(
+        depot,
+        prepaidCardManager,
+        daicpxdToken,
+        daicpxdToken,
+        issuer,
+        relayer,
+        [toTokenUnit(10)]
+      );
+      let startingPrepaidCardDaicpxdBalance = await getBalance(
+        daicpxdToken,
+        merchantPrepaidCard.address
+      );
+      let startingMerchantFeeReceiverDaicpxdBalance = await getBalance(
+        daicpxdToken,
+        merchantFeeReceiver
+      );
+      await transferOwner(
+        prepaidCardManager,
+        merchantPrepaidCard,
+        issuer,
+        _merchant
+      );
+      await registerMerchant(
+        prepaidCardManager,
+        merchantPrepaidCard,
+        daicpxdToken,
+        cardcpxdToken,
+        relayer,
+        _merchant,
+        toTokenUnit(9)
+      ).should.be.rejectedWith(
+        Error,
+        // the real revert reason is behind the gnosis safe execTransaction
+        // boundary, so we just get this generic error
+        "safe transaction was reverted"
+      );
+      await shouldBeSameBalance(
+        daicpxdToken,
+        merchantPrepaidCard.address,
+        startingPrepaidCardDaicpxdBalance
+      );
+      await shouldBeSameBalance(
+        daicpxdToken,
+        merchantFeeReceiver,
+        startingMerchantFeeReceiverDaicpxdBalance
+      );
+    });
+
+    it("reverts when a merchant doesn't have enough in their prepaid card for the registration fee amount", async () => {
+      let _merchant = accounts[7];
+      let {
+        prepaidCards: [merchantPrepaidCard],
+      } = await createPrepaidCards(
+        depot,
+        prepaidCardManager,
+        daicpxdToken,
+        daicpxdToken,
+        issuer,
+        relayer,
+        [toTokenUnit(9)]
+      );
+      let startingPrepaidCardDaicpxdBalance = await getBalance(
+        daicpxdToken,
+        merchantPrepaidCard.address
+      );
+      let startingMerchantFeeReceiverDaicpxdBalance = await getBalance(
+        daicpxdToken,
+        merchantFeeReceiver
+      );
+      await transferOwner(
+        prepaidCardManager,
+        merchantPrepaidCard,
+        issuer,
+        _merchant
+      );
+      await registerMerchant(
+        prepaidCardManager,
+        merchantPrepaidCard,
+        daicpxdToken,
+        cardcpxdToken,
+        relayer,
+        _merchant,
+        toTokenUnit(10)
+      ).should.be.rejectedWith(
+        Error,
+        // the real revert reason is behind the gnosis safe execTransaction
+        // boundary, so we just get this generic error
+        "safe transaction was reverted"
+      );
+      await shouldBeSameBalance(
+        daicpxdToken,
+        merchantPrepaidCard.address,
+        startingPrepaidCardDaicpxdBalance
+      );
+      await shouldBeSameBalance(
+        daicpxdToken,
+        merchantFeeReceiver,
+        startingMerchantFeeReceiverDaicpxdBalance
+      );
+    });
+
+    it("reverts when a merchant re-registers", async () => {
+      // This test assumes that 'merchant' has already been registered in previous test
+      let {
+        prepaidCards: [merchantPrepaidCard],
+      } = await createPrepaidCards(
+        depot,
+        prepaidCardManager,
+        daicpxdToken,
+        daicpxdToken,
+        issuer,
+        relayer,
+        [toTokenUnit(10)]
+      );
+      let startingPrepaidCardDaicpxdBalance = await getBalance(
+        daicpxdToken,
+        merchantPrepaidCard.address
+      );
+      let startingMerchantFeeReceiverDaicpxdBalance = await getBalance(
+        daicpxdToken,
+        merchantFeeReceiver
+      );
+      await transferOwner(
+        prepaidCardManager,
+        merchantPrepaidCard,
+        issuer,
+        merchant
+      );
+      await registerMerchant(
+        prepaidCardManager,
+        merchantPrepaidCard,
+        daicpxdToken,
+        cardcpxdToken,
+        relayer,
+        merchant,
+        toTokenUnit(10)
+      ).should.be.rejectedWith(
+        Error,
+        // the real revert reason is behind the gnosis safe execTransaction
+        // boundary, so we just get this generic error
+        "safe transaction was reverted"
+      );
+      await shouldBeSameBalance(
+        daicpxdToken,
+        merchantPrepaidCard.address,
+        startingPrepaidCardDaicpxdBalance
+      );
+      await shouldBeSameBalance(
+        daicpxdToken,
+        merchantFeeReceiver,
+        startingMerchantFeeReceiverDaicpxdBalance
+      );
+    });
+
+    it("reverts when set up with incorrect gnosis master copy and factory", async () => {
+      let _merchant = accounts[7];
+      await revenuePool.setup(
+        prepaidCardManager.address,
+        accounts[9],
+        accounts[4],
+        spendToken.address,
+        [daicpxdToken.address],
+        merchantFeeReceiver,
+        0,
+        1000
+      );
+      let {
+        prepaidCards: [merchantPrepaidCard],
+      } = await createPrepaidCards(
+        depot,
+        prepaidCardManager,
+        daicpxdToken,
+        daicpxdToken,
+        issuer,
+        relayer,
+        [toTokenUnit(10)]
+      );
+      await transferOwner(
+        prepaidCardManager,
+        merchantPrepaidCard,
+        issuer,
+        _merchant
+      );
+      await registerMerchant(
+        prepaidCardManager,
+        merchantPrepaidCard,
+        daicpxdToken,
+        cardcpxdToken,
+        relayer,
+        _merchant,
+        toTokenUnit(10)
+      ).should.be.rejectedWith(
+        Error,
+        // the real revert reason is behind the gnosis safe execTransaction
+        // boundary, so we just get this generic error
+        "safe transaction was reverted"
+      );
+
+      // Reset back for the subsequent tests
+      await revenuePool.setup(
+        prepaidCardManager.address,
+        gnosisSafeMasterCopy.address,
+        proxyFactory.address,
+        spendToken.address,
+        [daicpxdToken.address],
+        merchantFeeReceiver,
+        0,
+        1000
+      );
+    });
+  });
+
+  describe("pay token", () => {
+    let prepaidCard;
+    before(async () => {
+      ({
+        prepaidCards: [prepaidCard],
+      } = await createPrepaidCards(
+        depot,
+        prepaidCardManager,
+        daicpxdToken,
+        daicpxdToken,
+        issuer,
+        relayer,
+        [toTokenUnit(100)]
+      ));
+      await transferOwner(prepaidCardManager, prepaidCard, issuer, customer);
+      await cardcpxdToken.mint(prepaidCard.address, toTokenUnit(1000000));
+    });
+
+    it("can pay 1 DAI CPXD token to pool and mint SPEND token to the merchant's wallet", async () => {
+      let existingSPENDBalance = await getBalance(spendToken, merchantSafe);
+      let existingDAIBalance = await getBalance(
+        daicpxdToken,
+        prepaidCard.address
+      );
+      await payMerchant(
+        prepaidCardManager,
+        prepaidCard,
+        daicpxdToken,
+        cardcpxdToken,
+        relayer,
+        customer,
+        merchantSafe,
+        toTokenUnit(1)
+      );
+      await shouldBeSameBalance(
+        daicpxdToken,
+        prepaidCard.address,
+        existingDAIBalance.sub(toTokenUnit(1))
+      );
+      await shouldBeSameBalance(
+        spendToken,
+        merchantSafe,
+        existingSPENDBalance.add(toBN("100"))
+      );
+    });
+
+    it("can pay 2 DAI CPXD token to pool and mint SPEND token to the merchant's wallet", async () => {
+      let existingSPENDBalance = await getBalance(spendToken, merchantSafe);
+      let existingDAIBalance = await getBalance(
+        daicpxdToken,
+        prepaidCard.address
+      );
+      await payMerchant(
+        prepaidCardManager,
+        prepaidCard,
+        daicpxdToken,
+        cardcpxdToken,
+        relayer,
+        customer,
+        merchantSafe,
+        toTokenUnit(2)
+      );
+      await shouldBeSameBalance(
+        daicpxdToken,
+        prepaidCard.address,
+        existingDAIBalance.sub(toTokenUnit(2))
+      );
+      await shouldBeSameBalance(
+        spendToken,
+        merchantSafe,
+        existingSPENDBalance.add(toBN("200"))
+      );
+    });
+
+    it("can collect merchant fees from the customer payment to the merchant", async () => {
+      await revenuePool.setup(
+        prepaidCardManager.address,
+        gnosisSafeMasterCopy.address,
+        proxyFactory.address,
+        spendToken.address,
+        [daicpxdToken.address],
+        merchantFeeReceiver,
+        10000000, // 10% merchant fee
+        1000
       );
       expect((await revenuePool.merchantFeePercentage()).toString()).to.equal(
         "10000000"
@@ -285,7 +701,10 @@ contract("RevenuePool", (accounts) => {
       let beginningMerchantDaiClaim = BN(
         await revenuePool.revenueBalance(merchantSafe, daicpxdToken.address)
       );
-      let beginningSenderDaiBalance = await getBalance(daicpxdToken, owner);
+      let beginningSenderDaiBalance = await getBalance(
+        daicpxdToken,
+        prepaidCard.address
+      );
       let beginningRevenuePoolDaiBalance = await getBalance(
         daicpxdToken,
         revenuePool.address
@@ -294,17 +713,15 @@ contract("RevenuePool", (accounts) => {
         daicpxdToken,
         merchantFeeReceiver
       );
-
-      let amount = toTokenUnit(1);
-      let data = web3.eth.abi.encodeParameters(["address"], [merchantSafe]);
-
-      await daicpxdToken.transferAndCall(revenuePool.address, amount, data)
-        .should.be.fulfilled;
-
-      await shouldBeSameBalance(
+      await payMerchant(
+        prepaidCardManager,
+        prepaidCard,
         daicpxdToken,
-        owner,
-        beginningSenderDaiBalance.sub(toTokenUnit(1))
+        cardcpxdToken,
+        relayer,
+        customer,
+        merchantSafe,
+        toTokenUnit(1)
       );
       await shouldBeSameBalance(
         spendToken,
@@ -313,7 +730,7 @@ contract("RevenuePool", (accounts) => {
       );
       await shouldBeSameBalance(
         daicpxdToken,
-        owner,
+        prepaidCard.address,
         beginningSenderDaiBalance.sub(toTokenUnit(1))
       );
       await shouldBeSameBalance(
@@ -336,132 +753,93 @@ contract("RevenuePool", (accounts) => {
 
       // reset state of the pool for the other tests
       await revenuePool.setup(
-        tally,
+        prepaidCardManager.address,
         gnosisSafeMasterCopy.address,
         proxyFactory.address,
         spendToken.address,
         [daicpxdToken.address],
         merchantFeeReceiver,
-        0
+        0,
+        1000
       );
     });
 
-    it("when no merchant fee receiver is set no fees are collected", async () => {
-      await revenuePool.setup(
-        tally,
-        gnosisSafeMasterCopy.address,
-        proxyFactory.address,
-        spendToken.address,
-        [daicpxdToken.address],
-        ZERO_ADDRESS,
-        10000000 // 10% merchant fee
-      );
-      expect((await revenuePool.merchantFeePercentage()).toString()).to.equal(
-        "10000000"
-      );
-
-      let beginningMerchantSpendBalance = await getBalance(
-        spendToken,
-        merchantSafe
-      );
-      let beginningMerchantDaiClaim = BN(
-        await revenuePool.revenueBalance(merchantSafe, daicpxdToken.address)
-      );
-      let beginningSenderDaiBalance = await getBalance(daicpxdToken, owner);
-      let beginningRevenuePoolDaiBalance = await getBalance(
-        daicpxdToken,
-        revenuePool.address
-      );
-      let beginningMerchantFeeReceiverDaiBalance = await getBalance(
-        daicpxdToken,
-        merchantFeeReceiver
-      );
-
+    it("reverts when a non-prepaid card sends tokens", async () => {
       let amount = toTokenUnit(1);
       let data = web3.eth.abi.encodeParameters(["address"], [merchantSafe]);
 
-      await daicpxdToken.transferAndCall(revenuePool.address, amount, data)
-        .should.be.fulfilled;
-
-      await shouldBeSameBalance(
-        daicpxdToken,
-        owner,
-        beginningSenderDaiBalance.sub(toTokenUnit(1))
-      );
-      await shouldBeSameBalance(
-        spendToken,
-        merchantSafe,
-        beginningMerchantSpendBalance.add(new BN("100"))
-      );
-      await shouldBeSameBalance(
-        daicpxdToken,
-        owner,
-        beginningSenderDaiBalance.sub(toTokenUnit(1))
-      );
-      await shouldBeSameBalance(
-        daicpxdToken,
-        revenuePool.address,
-        beginningRevenuePoolDaiBalance.add(toTokenUnit(1))
-      );
-      await shouldBeSameBalance(
-        daicpxdToken,
-        merchantFeeReceiver,
-        beginningMerchantFeeReceiverDaiBalance
-      );
-      expect(
-        (
-          await revenuePool.revenueBalance(merchantSafe, daicpxdToken.address)
-        ).toString()
-      ).to.equal(beginningMerchantDaiClaim.add(toTokenUnit(1)).toString());
-
-      // reset state of the pool for the other tests
-      await revenuePool.setup(
-        tally,
-        gnosisSafeMasterCopy.address,
-        proxyFactory.address,
-        spendToken.address,
-        [daicpxdToken.address],
-        merchantFeeReceiver,
-        0
-      );
-    });
-
-    it("should reject if the recipient's address is not a registered merchant", async () => {
-      let existingSPENDBalance = await daicpxdToken.balanceOf(owner);
-      let existingDAIBalance = fromWei(
-        BN(await getBalance(daicpxdToken, owner)).toString()
-      );
-      //lw.accounts[1] is not merchant.
-      let data = web3.eth.abi.encodeParameters(["address"], [lw.accounts[1]]);
-      let amount = toTokenUnit(1); // 1 DAI CPXD
-
       await daicpxdToken
         .transferAndCall(revenuePool.address, amount, data)
-        .should.be.rejectedWith(Error, "Invalid merchant");
+        .should.be.rejectedWith(Error, "Caller is not a prepaid card");
+    });
 
-      await shouldBeSameBalance(daicpxdToken, owner, existingSPENDBalance);
+    it("should reject if the recipient's address is not a registered merchant safe", async () => {
+      let existingRecipientSPENDBalance = await daicpxdToken.balanceOf(
+        depot.address
+      );
+      let existingRecipientDaiBalance = await daicpxdToken.balanceOf(
+        depot.address
+      );
+      let existingDAISenderBalance = await getBalance(
+        daicpxdToken,
+        prepaidCard.address
+      );
+
+      await payMerchant(
+        prepaidCardManager,
+        prepaidCard,
+        daicpxdToken,
+        cardcpxdToken,
+        relayer,
+        customer,
+        depot.address, // the depot is not a merchant safe
+        toTokenUnit(1)
+      ).should.be.rejectedWith(
+        Error,
+        // the real revert reason is behind the gnosis safe execTransaction
+        // boundary, so we just get this generic error
+        "safe transaction was reverted"
+      );
+
       await shouldBeSameBalance(
         daicpxdToken,
-        owner,
-        toTokenUnit(existingDAIBalance)
+        depot.address,
+        existingRecipientDaiBalance
+      );
+      await shouldBeSameBalance(
+        daicpxdToken,
+        depot.address,
+        existingRecipientSPENDBalance
+      );
+      await shouldBeSameBalance(
+        daicpxdToken,
+        prepaidCard.address,
+        existingDAISenderBalance
       );
     });
 
     it("should reject a direct call to onTokenTransfer from a non-token contract", async () => {
       await revenuePool.onTokenTransfer(owner, 100, "0x").should.be.rejected;
     });
-
-    it("should reject the receipt of tokens from a non-approved token contract", async () => {
-      let amount = toTokenUnit("1"); // equal 1 * 10^18
-      let data = web3.eth.abi.encodeParameter("address", lw.accounts[0]);
-
-      await fakeToken
-        .transferAndCall(revenuePool.address, amount, data)
-        .should.be.rejectedWith(Error, "calling token is unaccepted");
-    });
   });
 
   describe("exchange rate", () => {
+    let prepaidCard;
+    before(async () => {
+      ({
+        prepaidCards: [prepaidCard],
+      } = await createPrepaidCards(
+        depot,
+        prepaidCardManager,
+        daicpxdToken,
+        daicpxdToken,
+        issuer,
+        relayer,
+        [toTokenUnit(100)]
+      ));
+      await transferOwner(prepaidCardManager, prepaidCard, issuer, customer);
+      await cardcpxdToken.mint(prepaidCard.address, toTokenUnit(1000000));
+    });
     afterEach(async () => {
       // reset the rate to 1:1
       await daiFeed.addRound(100000000, 1618435000, 1618435000);
@@ -498,13 +876,14 @@ contract("RevenuePool", (accounts) => {
       let badPool = await RevenuePool.new();
       await badPool.initialize(owner);
       await badPool.setup(
-        tally,
+        prepaidCardManager.address,
         gnosisSafeMasterCopy.address,
         proxyFactory.address,
         spendToken.address,
         [daicpxdToken.address],
         merchantFeeReceiver,
-        0
+        0,
+        1000
       );
       await badPool.createExchange("DAI", daiOracle.address);
 
@@ -517,13 +896,14 @@ contract("RevenuePool", (accounts) => {
       let badPool = await RevenuePool.new();
       await badPool.initialize(owner);
       await badPool.setup(
-        tally,
+        prepaidCardManager.address,
         gnosisSafeMasterCopy.address,
         proxyFactory.address,
         spendToken.address,
         [daicpxdToken.address],
         merchantFeeReceiver,
-        0
+        0,
+        1000
       );
       await badPool.createExchange("CARD", cardOracle.address);
 
@@ -533,75 +913,87 @@ contract("RevenuePool", (accounts) => {
     });
 
     it("when exchange rate is 2:1, a payment of 1 DAI token results in 200 SPEND tokens minted in merchant's wallet", async () => {
-      let existingSPENDBalance = Number(
-        BN(await getBalance(spendToken, merchantSafe)).toString()
-      );
-      let existingDAIBalance = fromWei(
-        BN(await getBalance(daicpxdToken, owner)).toString()
+      let existingSPENDBalance = await getBalance(spendToken, merchantSafe);
+      let existingDAIBalance = await getBalance(
+        daicpxdToken,
+        prepaidCard.address
       );
       await daiFeed.addRound(200000000, 1618435000, 1618435000);
-      let amount = toTokenUnit(1);
-      let data = web3.eth.abi.encodeParameters(["address"], [merchantSafe]);
-
-      await daicpxdToken.transferAndCall(revenuePool.address, amount, data)
-        .should.be.fulfilled;
+      await payMerchant(
+        prepaidCardManager,
+        prepaidCard,
+        daicpxdToken,
+        cardcpxdToken,
+        relayer,
+        customer,
+        merchantSafe,
+        toTokenUnit(1)
+      );
 
       await shouldBeSameBalance(
         daicpxdToken,
-        owner,
-        toTokenUnit(existingDAIBalance - 1)
+        prepaidCard.address,
+        existingDAIBalance.sub(toTokenUnit(1))
       );
       await shouldBeSameBalance(
         spendToken,
         merchantSafe,
-        String(existingSPENDBalance + 200)
+        existingSPENDBalance.add(toBN("200"))
       );
     });
 
     it("when exchange rate is 1:2, a payment of 1 DAI token results in 50 SPEND tokens minted in merchant's wallet", async () => {
-      let existingSPENDBalance = Number(
-        BN(await getBalance(spendToken, merchantSafe)).toString()
-      );
-      let existingDAIBalance = fromWei(
-        BN(await getBalance(daicpxdToken, owner)).toString()
+      let existingSPENDBalance = await getBalance(spendToken, merchantSafe);
+      let existingDAIBalance = await getBalance(
+        daicpxdToken,
+        prepaidCard.address
       );
       await daiFeed.addRound(50000000, 1618436000, 1618436000);
-      let amount = toTokenUnit(1);
-      let data = web3.eth.abi.encodeParameters(["address"], [merchantSafe]);
-
-      await daicpxdToken.transferAndCall(revenuePool.address, amount, data)
-        .should.be.fulfilled;
+      await payMerchant(
+        prepaidCardManager,
+        prepaidCard,
+        daicpxdToken,
+        cardcpxdToken,
+        relayer,
+        customer,
+        merchantSafe,
+        toTokenUnit(1)
+      );
 
       await shouldBeSameBalance(
         daicpxdToken,
-        owner,
-        toTokenUnit(existingDAIBalance - 1)
+        prepaidCard.address,
+        existingDAIBalance.sub(toTokenUnit(1))
       );
       await shouldBeSameBalance(
         spendToken,
         merchantSafe,
-        String(existingSPENDBalance + 50)
+        existingSPENDBalance.add(toBN("50"))
       );
     });
 
     it("rejects when exchange rate is 0", async () => {
-      let existingSPENDBalance = await daicpxdToken.balanceOf(owner);
-      let existingDAIBalance = fromWei(
-        BN(await getBalance(daicpxdToken, owner)).toString()
+      let existingSPENDBalance = await spendToken.balanceOf(merchantSafe);
+      let existingDAIBalance = await daicpxdToken.balanceOf(
+        prepaidCard.address
       );
       await daiFeed.addRound(0, 1618436000, 1618436000);
-      let data = web3.eth.abi.encodeParameters(["address"], [merchantSafe]);
-      let amount = toTokenUnit(1);
+      await payMerchant(
+        prepaidCardManager,
+        prepaidCard,
+        daicpxdToken,
+        cardcpxdToken,
+        relayer,
+        customer,
+        merchantSafe,
+        toTokenUnit(1)
+      ).should.be.rejectedWith(Error, "exchange rate cannot be 0");
 
-      await daicpxdToken
-        .transferAndCall(revenuePool.address, amount, data)
-        .should.be.rejectedWith(Error, "exchange rate cannot be 0");
-
-      await shouldBeSameBalance(daicpxdToken, owner, existingSPENDBalance);
+      await shouldBeSameBalance(spendToken, merchantSafe, existingSPENDBalance);
       await shouldBeSameBalance(
         daicpxdToken,
-        owner,
-        toTokenUnit(existingDAIBalance)
+        prepaidCard.address,
+        existingDAIBalance
       );
     });
   });
@@ -617,9 +1009,9 @@ contract("RevenuePool", (accounts) => {
         merchantSafe,
         daicpxdToken.address
       );
-      // The tests are stateful at this point the merchant has accumulated 6.9 DAI
+      // The tests are stateful at this point the merchant has accumulated 5.9 DAI
       // of customer payments
-      expect(balance.toString()).to.equal(toWei("6.9"));
+      expect(balance.toString()).to.equal(toWei("5.9"));
     });
 
     it("allows a revenue claim issued from a merchant's safe (1 DAI CPXD)", async () => {
@@ -699,14 +1091,6 @@ contract("RevenuePool", (accounts) => {
   });
 
   describe("roles", () => {
-    it("can create and remove a tally role", async () => {
-      let newTally = accounts[8];
-      await revenuePool.removeTally(tally).should.be.fulfilled;
-      await revenuePool.addTally(newTally).should.be.fulfilled;
-
-      await revenuePool.getTallys().should.become([newTally]);
-    });
-
     it("can add and remove a payable token", async () => {
       let mockPayableTokenAddr = accounts[9];
 

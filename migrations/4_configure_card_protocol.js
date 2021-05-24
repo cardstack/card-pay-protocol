@@ -8,12 +8,13 @@ const BridgeUtils = artifacts.require("BridgeUtils");
 const SPEND = artifacts.require("SPEND");
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
-const TALLY = process.env.TALLY ?? ZERO_ADDRESS;
 const GAS_FEE_RECEIVER = process.env.GAS_FEE_RECEIVER ?? ZERO_ADDRESS;
 const GAS_FEE_CARD_WEI = String(
   process.env.GAS_FEE_CARD_WEI ?? 1000000000000000000
 );
-const MERCHANT_FEE = process.env.MERCHANT_FEE ?? 0;
+const MERCHANT_FEE_PERCENTAGE = process.env.MERCHANT_FEE_PERCENTAGE ?? 2000000; // 2%
+const MERCHANT_REGISTRATION_FEE_IN_SPEND =
+  process.env.MERCHANT_REGISTRATION_FEE_IN_SPEND ?? 1000;
 const MERCHANT_FEE_RECEIVER = process.env.MERCHANT_FEE_RECEIVER ?? ZERO_ADDRESS;
 const BRIDGE_MEDIATOR = process.env.BRIDGE_MEDIATOR ?? ZERO_ADDRESS;
 const PAYABLE_TOKENS = (process.env.PAYABLE_TOKENS ?? "")
@@ -53,21 +54,25 @@ module.exports = async function (deployer, network) {
   console.log(`
 ==================================================
 Configuring RevenuePool ${revenuePoolAddress}
-  tally address: ${TALLY}
+  PrepaidCardManager address: ${prepaidCardManagerAddress}
   gnosis master copy: ${GNOSIS_SAFE_MASTER_COPY}
   gnosis proxy factory: ${GNOSIS_SAFE_FACTORY}
   payable tokens: ${PAYABLE_TOKENS.join(", ")}
   merchant fee receiver: ${MERCHANT_FEE_RECEIVER}
-  merchant fee percentage: ${(Number(MERCHANT_FEE) / 1000000).toFixed(4)}%
+  merchant fee percentage: ${(
+    Number(MERCHANT_FEE_PERCENTAGE) / 1000000
+  ).toFixed(4)}%
+  merchant registration fee: §${MERCHANT_REGISTRATION_FEE_IN_SPEND} SPEND
   SPEND token address: ${spendTokenAddress}`);
   await revenuePool.setup(
-    TALLY,
+    prepaidCardManagerAddress,
     GNOSIS_SAFE_MASTER_COPY,
     GNOSIS_SAFE_FACTORY,
     spendTokenAddress,
     PAYABLE_TOKENS,
     MERCHANT_FEE_RECEIVER,
-    MERCHANT_FEE
+    MERCHANT_FEE_PERCENTAGE,
+    MERCHANT_REGISTRATION_FEE_IN_SPEND
   );
   console.log(`  set BridgeUtils address to ${bridgeUtilsAddress}`);
   await revenuePool.setBridgeUtils(bridgeUtilsAddress);

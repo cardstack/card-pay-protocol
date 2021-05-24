@@ -3,18 +3,15 @@ pragma solidity 0.5.17;
 import "@openzeppelin/contract-upgradeable/contracts/utils/EnumerableSet.sol";
 
 import "./Safe.sol";
-import "../roles/TallyRole.sol";
 
-contract MerchantManager is TallyRole, Safe {
+contract MerchantManager is Safe {
   using EnumerableSet for EnumerableSet.AddressSet;
 
   event MerchantCreation(address merchant, address merchantSafe);
-  event MerchantUpdate(address merchant, address merchantSafe);
 
   struct MerchantSafe {
     bool register;
     address merchant;
-    string merchantExternalId; // offchain id
     EnumerableSet.AddressSet tokens;
     // mapping from token address to revenue pool balance for merchant in that
     // token
@@ -41,24 +38,16 @@ contract MerchantManager is TallyRole, Safe {
     return merchants[merchant];
   }
 
-  function registerMerchant(
-    address merchant,
-    string calldata merchantExternalId
-  ) external onlyTallyOrOwner returns (address) {
+  function registerMerchant(address merchant) internal returns (address) {
     require(merchant != address(0), "zero address not allowed");
 
     address merchantSafe = safeForMerchant(merchant);
-    if (merchantSafe != address(0)) {
-      merchantSafes[merchantSafe].merchantExternalId = merchantExternalId;
-      emit MerchantUpdate(merchant, merchantSafe);
-      return merchantSafe;
-    }
+    require(merchantSafe == address(0), "merchant is already registered");
 
     merchantSafe = createSafe(merchant);
 
     merchantSafes[merchantSafe].register = true;
     merchantSafes[merchantSafe].merchant = merchant;
-    merchantSafes[merchantSafe].merchantExternalId = merchantExternalId;
 
     merchants[merchant] = merchantSafe;
 
