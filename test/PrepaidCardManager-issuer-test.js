@@ -4,7 +4,6 @@ const ERC677Token = artifacts.require("ERC677Token.sol");
 const SPEND = artifacts.require("SPEND.sol");
 const ProxyFactory = artifacts.require("GnosisSafeProxyFactory");
 const GnosisSafe = artifacts.require("GnosisSafe");
-const MultiSend = artifacts.require("MultiSend");
 
 const { TOKEN_DETAIL_DATA, toBN, expect } = require("./setup");
 const {
@@ -22,7 +21,6 @@ contract("PrepaidCardManager - issuer tests", (accounts) => {
     revenuePool,
     spendToken,
     prepaidCardManager,
-    multiSend,
     fakeDaicpxdToken,
     owner,
     issuer,
@@ -43,7 +41,6 @@ contract("PrepaidCardManager - issuer tests", (accounts) => {
 
     let proxyFactory = await ProxyFactory.new();
     let gnosisSafeMasterCopy = await GnosisSafe.new();
-    multiSend = await MultiSend.new();
     revenuePool = await RevenuePool.new();
     await revenuePool.initialize(owner);
     prepaidCardManager = await PrepaidCardManager.new();
@@ -123,12 +120,9 @@ contract("PrepaidCardManager - issuer tests", (accounts) => {
     ));
 
     expect(executionSucceeded).to.equal(true);
-    expect(prepaidCards.length).to.be.equal(
-      3,
-      "Should create a new 3 cards(gnosis safe)."
-    );
+    expect(prepaidCards.length).to.be.equal(3);
     prepaidCards.forEach(async function (prepaidCard, index) {
-      expect(await prepaidCard.isOwner(depot.address)).to.be.equal(true);
+      expect(await prepaidCard.isOwner(issuer)).to.be.equal(true);
       expect(await prepaidCard.isOwner(prepaidCardManager.address)).to.be.equal(
         true
       );
@@ -148,17 +142,8 @@ contract("PrepaidCardManager - issuer tests", (accounts) => {
   });
 
   it("allows issuer to transfer card to customer", async () => {
-    let { executionSucceeded } = await transferOwner(
-      multiSend,
-      prepaidCardManager,
-      prepaidCards[2],
-      relayer,
-      issuer,
-      depot,
-      customer
-    );
+    await transferOwner(prepaidCardManager, prepaidCards[2], issuer, customer);
 
-    expect(executionSucceeded).to.equal(true);
     expect(await prepaidCards[2].isOwner(customer)).to.be.equal(true);
     await shouldBeSameBalance(
       daicpxdToken,

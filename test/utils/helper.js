@@ -10,7 +10,6 @@ const { TOKEN_DETAIL_DATA } = require("../setup");
 const eventABIs = require("./constant/eventABIs");
 
 const {
-  encodeMultiSendCall,
   getParamsFromEvent,
   getParamFromTxEvent,
   signSafeTransaction,
@@ -198,6 +197,9 @@ exports.setupExchanges = async function (owner) {
     cardcpxdToken,
     chainlinkOracle,
     diaPriceOracle,
+    daiFeed,
+    ethFeed,
+    mockDiaOracle,
   };
 };
 
@@ -254,7 +256,7 @@ exports.createPrepaidCards = async function (
   amountToSend
 ) {
   let createCardData = encodeCreateCardsData(
-    depot.address,
+    issuer,
     amounts.map((amount) =>
       typeof amount === "string" ? amount : amount.toString()
     )
@@ -319,6 +321,34 @@ exports.createPrepaidCards = async function (
   };
 };
 
+exports.transferOwner = async function (
+  prepaidCardManager,
+  prepaidCard,
+  oldOwner,
+  newOwner
+) {
+  let xferData = [prepaidCard.address, oldOwner, newOwner];
+  let packData = packExecutionData({
+    to: prepaidCard.address,
+    data: await prepaidCardManager.getSellCardData(oldOwner, newOwner),
+  });
+  let safeTxArr = Object.keys(packData).map((key) => packData[key]);
+  let signature = await signSafeTransaction(
+    ...safeTxArr,
+    await prepaidCard.nonce(),
+    oldOwner,
+    prepaidCard
+  );
+
+  await prepaidCardManager.sellCard(
+    ...xferData,
+    await prepaidCardManager.appendPrepaidCardAdminSignature(
+      oldOwner,
+      signature
+    )
+  );
+};
+
 exports.registerMerchant = async function (
   prepaidCardManager,
   prepaidCard,
@@ -338,76 +368,4 @@ exports.registerMerchant = async function (
     ZERO_ADDRESS,
     amount
   );
-};
-
-exports.transferOwner = async function (
-  multiSend,
-  prepaidCardManager,
-  prepaidCard,
-  relayer,
-  issuer,
-  currentOwner, // this should be a depot safe
-  newOwner
-) {
-  let signatures = await prepaidCardManager.appendPrepaidCardAdminSignature(
-    currentOwner.address,
-    `0x000000000000000000000000${currentOwner.address.replace(
-      "0x",
-      ""
-    )}000000000000000000000000000000000000000000000000000000000000000001`
-  );
-  let cardTransfer = [prepaidCard.address, currentOwner.address, newOwner];
-
-  let currentNonce = await prepaidCard.nonce();
-
-  let transferHash = await prepaidCardManager.getSellCardHash(
-    ...cardTransfer,
-    currentNonce
-  );
-
-  let approveHashBytecode = prepaidCard.contract.methods
-    .approveHash(transferHash)
-    .encodeABI();
-
-  let sellCardBytecode = prepaidCardManager.contract.methods
-    .sellCard(...cardTransfer, signatures)
-    .encodeABI();
-
-  let txs = [
-    {
-      to: prepaidCard.address,
-      value: 0,
-      data: approveHashBytecode,
-    },
-    {
-      to: prepaidCardManager.address,
-      value: 0,
-      data: sellCardBytecode,
-    },
-  ];
-
-  let payloads = encodeMultiSendCall(txs, multiSend);
-
-  let safeTxData = {
-    to: multiSend.address,
-    data: payloads,
-    operation: 1,
-    refundReceive: relayer,
-  };
-
-  let { safeTxHash, safeTx } = await signAndSendSafeTransaction(
-    safeTxData,
-    issuer,
-    currentOwner,
-    relayer
-  );
-
-  let executeSuccess = getParamsFromEvent(
-    safeTx,
-    eventABIs.EXECUTION_SUCCESS,
-    currentOwner.address
-  );
-
-  let executionSucceeded = executeSuccess[0].txHash === safeTxHash;
-  return { executionSucceeded, safeTxHash, safeTx };
 };

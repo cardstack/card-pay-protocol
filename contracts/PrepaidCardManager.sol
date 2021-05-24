@@ -194,21 +194,17 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
       cardDetails[prepaidCard].issuer == previousOwner,
       "Has already been transferred"
     );
+    execTransaction(
+      prepaidCard,
+      prepaidCard,
+      getSellCardData(previousOwner, newOwner),
+      issuerSignatures,
+      address(0),
+      address(0)
+    );
+    emit TransferredPrepaidCard(prepaidCard, previousOwner, newOwner);
 
-    if (
-      execTransaction(
-        prepaidCard,
-        prepaidCard,
-        getSellCardData(previousOwner, newOwner),
-        issuerSignatures,
-        address(0),
-        address(0)
-      )
-    ) {
-      emit TransferredPrepaidCard(prepaidCard, previousOwner, newOwner);
-      return true;
-    }
-    return false;
+    return true;
   }
 
   /**

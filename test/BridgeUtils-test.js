@@ -22,6 +22,7 @@ contract("BridgeUtils", async (accounts) => {
     mediatorBridgeMock,
     wallet;
   before(async () => {
+    owner = accounts[0];
     mediatorBridgeMock = accounts[1];
     gasFeeReceiver = accounts[6];
     merchantFeeReceiver = accounts[7];

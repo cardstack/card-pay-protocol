@@ -63,19 +63,6 @@ const eventABIs = {
       },
     ],
   },
-  MERCHANT_UPDATE: {
-    topic: web3EthAbi.encodeEventSignature("MerchantUpdate(address,address)"),
-    abis: [
-      {
-        type: "address",
-        name: "merchant",
-      },
-      {
-        type: "address",
-        name: "merchantSafe",
-      },
-    ],
-  },
 };
 
 module.exports = eventABIs;

@@ -67,7 +67,7 @@ contract RevenuePool is Versionable, Initializable, MerchantManager, Exchange {
     uint256 _merchantFeePercentage,
     uint256 _merchantRegistrationFeeInSPEND
   ) external onlyOwner {
-    require(_merchantFeeReceiver != address(0), "merchantFeeReciever not set");
+    require(_merchantFeeReceiver != address(0), "merchantFeeReceiver not set");
     require(
       _merchantRegistrationFeeInSPEND > 0,
       "merchantRegistrationFeeInSPEND is not set"
@@ -102,7 +102,7 @@ contract RevenuePool is Versionable, Initializable, MerchantManager, Exchange {
     require(merchantFeeReceiver != address(0), "merchantFeeReciever not set");
     // The Revenue pool can only receive funds from prepaid cards
     PrepaidCardManager prepaidCardMgr = PrepaidCardManager(prepaidCardManager);
-    (, address issuer, ) = prepaidCardMgr.cardDetails(from);
+    (address issuer, , , , ) = prepaidCardMgr.cardDetails(from);
     require(issuer != address(0), "Caller is not a prepaid card");
 
     // decode and get merchant address from the data
@@ -187,21 +187,9 @@ contract RevenuePool is Versionable, Initializable, MerchantManager, Exchange {
 
     address[] memory owners = GnosisSafe(prepaidCard).getOwners();
     require(owners.length == 2, "unexpected number of owners for prepaid card");
-    address merchantOrDepot =
-      owners[0] == prepaidCardManager ? owners[1] : owners[0];
 
-    // check for the scenario where the merchant issued their own prepaid card,
-    // in which case the owner here is actually a depot safe where the real
-    // merchant address is the owner of the depot safe.
-    if (BridgeUtils(bridgeUtils).safes(merchantOrDepot) == address(0)) {
-      registerMerchant(merchantOrDepot);
-      return true;
-    }
-
-    address payable depot = address(uint160(merchantOrDepot));
-    address[] memory depotOwners = GnosisSafe(depot).getOwners();
-    require(owners.length == 1, "unexpected number of owners for depot");
-    registerMerchant(depotOwners[0]);
+    address merchant = owners[0] == prepaidCardManager ? owners[1] : owners[0];
+    registerMerchant(merchant);
     return true;
   }
 

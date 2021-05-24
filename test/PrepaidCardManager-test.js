@@ -4,14 +4,12 @@ const ERC677Token = artifacts.require("ERC677Token.sol");
 const SPEND = artifacts.require("SPEND.sol");
 const ProxyFactory = artifacts.require("GnosisSafeProxyFactory");
 const GnosisSafe = artifacts.require("GnosisSafe");
-const MultiSend = artifacts.require("MultiSend");
 const BridgeUtils = artifacts.require("BridgeUtils");
 
 const eventABIs = require("./utils/constant/eventABIs");
 
 const {
   signSafeTransaction,
-  encodeMultiSendCall,
   ZERO_ADDRESS,
   getParamsFromEvent,
   getGnosisSafeFromEventLog,
@@ -29,6 +27,7 @@ const {
   registerMerchant,
   payMerchant,
   transferOwner,
+  packExecutionData,
   createDepotFromBridgeUtils,
 } = require("./utils/helper");
 
@@ -41,7 +40,6 @@ contract("PrepaidCardManager", (accounts) => {
     revenuePool,
     spendToken,
     cardManager,
-    multiSend,
     merchant,
     daicpxdToken,
     cardcpxdToken,
@@ -73,7 +71,6 @@ contract("PrepaidCardManager", (accounts) => {
     await revenuePool.initialize(owner);
     cardManager = await PrepaidCardManager.new();
     await cardManager.initialize(owner);
-    multiSend = await MultiSend.new();
     let bridgeUtils = await BridgeUtils.new();
     await bridgeUtils.initialize(owner);
 
@@ -118,6 +115,7 @@ contract("PrepaidCardManager", (accounts) => {
       owner
     );
     await revenuePool.setBridgeUtils(bridgeUtils.address);
+    await cardManager.setBridgeUtils(bridgeUtils.address);
     depot = await createDepotFromBridgeUtils(bridgeUtils, owner, issuer);
 
     MINIMUM_AMOUNT = 100; // in spend <=> 1 USD
@@ -246,12 +244,12 @@ contract("PrepaidCardManager", (accounts) => {
 
       expect(prepaidCards).to.have.lengthOf(1);
 
-      await prepaidCards[0].isOwner(depot.address).should.become(true);
+      await prepaidCards[0].isOwner(issuer).should.become(true);
 
       await cardManager
         .cardDetails(prepaidCards[0].address)
         .should.eventually.to.include({
-          issuer: depot.address,
+          issuer,
           issueToken: daicpxdToken.address,
         });
 
@@ -301,11 +299,11 @@ contract("PrepaidCardManager", (accounts) => {
         await cardManager
           .cardDetails(prepaidCard.address)
           .should.eventually.to.include({
-            issuer: depot.address,
+            issuer,
             issueToken: daicpxdToken.address,
           });
 
-        await prepaidCard.isOwner(depot.address).should.become(true);
+        await prepaidCard.isOwner(issuer).should.become(true);
         await prepaidCard.isOwner(cardManager.address).should.become(true);
 
         shouldBeSameBalance(daicpxdToken, prepaidCard.address, amounts[index]);
@@ -746,70 +744,28 @@ contract("PrepaidCardManager", (accounts) => {
   describe("split prepaid card", () => {
     it("can split a card (from 1 prepaid card with 2 tokens to 2 cards with 1 token each)", async () => {
       let amounts = [1, 1].map((amount) => toTokenUnit(amount).toString());
-
       let splitCardData = [
         prepaidCards[1].address,
-        depot.address,
+        issuer,
         daicpxdToken.address,
         amounts,
       ];
-
-      let txs = [
-        {
-          to: prepaidCards[1].address,
-          value: 0,
-          data: prepaidCards[1].contract.methods
-            .approveHash(
-              await cardManager.getSplitCardHash(
-                ...splitCardData,
-                await prepaidCards[1].nonce()
-              )
-            )
-            .encodeABI(),
-        },
-        {
-          to: cardManager.address,
-          value: 0,
-          data: cardManager.contract.methods
-            .splitCard(
-              ...splitCardData,
-              await cardManager.appendPrepaidCardAdminSignature(
-                depot.address,
-                `0x000000000000000000000000${depot.address.replace(
-                  "0x",
-                  ""
-                )}000000000000000000000000000000000000000000000000000000000000000001`
-              )
-            )
-            .encodeABI(),
-        },
-      ];
-
-      let payloads = encodeMultiSendCall(txs, multiSend);
-
-      let safeTxData = {
-        to: multiSend.address,
-        data: payloads,
-        operation: 1,
-        relayer: accounts[0],
-      };
-
-      let { safeTxHash, safeTx } = await signAndSendSafeTransaction(
-        safeTxData,
-        issuer,
-        depot,
-        relayer
-      );
-
-      let executeSuccess = getParamsFromEvent(
-        safeTx,
-        eventABIs.EXECUTION_SUCCESS,
-        depot.address
-      );
-
-      expect(executeSuccess[0]).to.include({
-        txHash: safeTxHash,
+      let packData = packExecutionData({
+        to: daicpxdToken.address,
+        data: await cardManager.getSplitCardData(issuer, amounts),
       });
+      let safeTxArr = Object.keys(packData).map((key) => packData[key]);
+      let signature = await signSafeTransaction(
+        ...safeTxArr,
+        await prepaidCards[1].nonce(),
+        issuer,
+        prepaidCards[1]
+      );
+
+      let safeTx = await cardManager.splitCard(
+        ...splitCardData,
+        await cardManager.appendPrepaidCardAdminSignature(issuer, signature)
+      );
 
       let cards = await getGnosisSafeFromEventLog(safeTx, cardManager.address);
       expect(cards).to.have.lengthOf(2);
@@ -818,11 +774,11 @@ contract("PrepaidCardManager", (accounts) => {
         await cardManager
           .cardDetails(prepaidCard.address)
           .should.eventually.to.include({
-            issuer: depot.address,
+            issuer,
             issueToken: daicpxdToken.address,
           });
 
-        await prepaidCard.isOwner(depot.address).should.become(true);
+        await prepaidCard.isOwner(issuer).should.become(true);
         await prepaidCard.isOwner(cardManager.address).should.become(true);
 
         shouldBeSameBalance(daicpxdToken, prepaidCard.address, amounts[index]);
@@ -831,115 +787,37 @@ contract("PrepaidCardManager", (accounts) => {
   });
 
   describe("transfer a prepaid card", () => {
-    let signatures, cardAddress;
-    before(async () => {
-      signatures = await cardManager.appendPrepaidCardAdminSignature(
-        depot.address,
-        `0x000000000000000000000000${depot.address.replace(
-          "0x",
-          ""
-        )}000000000000000000000000000000000000000000000000000000000000000001`
-      );
-      cardAddress = prepaidCards[2].address;
+    let prepaidCard;
+    before(() => {
+      prepaidCard = prepaidCards[2];
     });
 
     it("can transfer a card to a customer", async () => {
-      let cardSales = [cardAddress, depot.address, customer];
-      let currentNonce = await prepaidCards[2].nonce();
-
-      let sellCardHash = await cardManager.getSellCardHash(
-        ...cardSales,
-        currentNonce
+      let startingDaiBalance = await getBalance(
+        daicpxdToken,
+        prepaidCard.address
       );
 
-      let approveHashBytecode = prepaidCards[2].contract.methods
-        .approveHash(sellCardHash)
-        .encodeABI();
+      await transferOwner(cardManager, prepaidCard, issuer, customer);
 
-      let sellCardBytecode = cardManager.contract.methods
-        .sellCard(...cardSales, signatures)
-        .encodeABI();
-
-      let txs = [
-        {
-          to: cardAddress,
-          value: 0,
-          data: approveHashBytecode,
-        },
-        {
-          to: cardManager.address,
-          value: 0,
-          data: sellCardBytecode,
-        },
-      ];
-
-      let payloads = encodeMultiSendCall(txs, multiSend);
-
-      let safeTxData = {
-        to: multiSend.address,
-        data: payloads,
-        operation: 1,
-        refundReceive: relayer,
-      };
-
-      let { safeTxHash, safeTx } = await signAndSendSafeTransaction(
-        safeTxData,
-        issuer,
-        depot,
-        relayer
+      await prepaidCard.isOwner(customer).should.eventually.become(true);
+      await shouldBeSameBalance(
+        daicpxdToken,
+        prepaidCard.address,
+        startingDaiBalance
       );
-
-      let executeSuccess = getParamsFromEvent(
-        safeTx,
-        eventABIs.EXECUTION_SUCCESS,
-        depot.address
-      );
-
-      expect(executeSuccess[0]).to.include({ txHash: safeTxHash });
-
-      await prepaidCards[2].isOwner(customer).should.eventually.become(true);
-
-      await shouldBeSameBalance(daicpxdToken, cardAddress, toTokenUnit(5));
     });
 
     // These tests are stateful (ugh), so the transfer that happened in the
     // previous test counts against the transfer that is attempted in this test
     it("can not re-transfer a prepaid card that has already been transferred once", async () => {
-      let otherCustomer = accounts[0];
-
-      let payloads = prepaidCards[2].contract.methods
-        .swapOwner(cardManager.address, customer, otherCustomer)
-        .encodeABI();
-
-      const signature = await signSafeTransaction(
-        cardManager.address,
-        0,
-        payloads.toString(),
-        0,
-        0,
-        0,
-        0,
-        ZERO_ADDRESS,
-        ZERO_ADDRESS,
-        await prepaidCards[2].nonce(),
+      let otherCustomer = accounts[9];
+      await transferOwner(
+        cardManager,
+        prepaidCard,
         customer,
-        prepaidCards[2]
-      );
-
-      let signatures = await cardManager.appendPrepaidCardAdminSignature(
-        customer,
-        signature
-      );
-
-      await cardManager.sellCard(
-        cardAddress,
-        customer,
-        otherCustomer,
-        signatures,
-        {
-          from: relayer,
-        }
-      ).should.be.rejected;
+        otherCustomer
+      ).should.be.rejectedWith(Error, "Has already been transferred");
     });
   });
 
@@ -960,17 +838,9 @@ contract("PrepaidCardManager", (accounts) => {
         relayer,
         [toTokenUnit(10)]
       );
+      await transferOwner(cardManager, merchantPrepaidCard, issuer, merchant);
       // mint gas token token for prepaid card
       await cardcpxdToken.mint(merchantPrepaidCard.address, toTokenUnit(100));
-      await transferOwner(
-        multiSend,
-        cardManager,
-        merchantPrepaidCard,
-        relayer,
-        issuer,
-        depot,
-        merchant
-      );
       let merchantTx = await registerMerchant(
         cardManager,
         merchantPrepaidCard,
