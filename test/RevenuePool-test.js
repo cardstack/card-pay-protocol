@@ -235,7 +235,8 @@ contract("RevenuePool", (accounts) => {
         prepaidCardManager,
         merchantPrepaidCard,
         issuer,
-        merchant
+        merchant,
+        relayer
       );
       let merchantTx = await registerMerchant(
         prepaidCardManager,
@@ -295,7 +296,8 @@ contract("RevenuePool", (accounts) => {
         prepaidCardManager,
         merchantPrepaidCard,
         issuer,
-        _merchant
+        _merchant,
+        relayer
       );
       await registerMerchant(
         prepaidCardManager,
@@ -353,7 +355,8 @@ contract("RevenuePool", (accounts) => {
         prepaidCardManager,
         merchantPrepaidCard,
         issuer,
-        _merchant
+        _merchant,
+        relayer
       );
       await registerMerchant(
         prepaidCardManager,
@@ -413,7 +416,8 @@ contract("RevenuePool", (accounts) => {
         prepaidCardManager,
         merchantPrepaidCard,
         issuer,
-        _merchant
+        _merchant,
+        relayer
       );
       await registerMerchant(
         prepaidCardManager,
@@ -466,7 +470,8 @@ contract("RevenuePool", (accounts) => {
         prepaidCardManager,
         merchantPrepaidCard,
         issuer,
-        _merchant
+        _merchant,
+        relayer
       );
       await registerMerchant(
         prepaidCardManager,
@@ -519,7 +524,8 @@ contract("RevenuePool", (accounts) => {
         prepaidCardManager,
         merchantPrepaidCard,
         issuer,
-        merchant
+        merchant,
+        relayer
       );
       await registerMerchant(
         prepaidCardManager,
@@ -574,7 +580,8 @@ contract("RevenuePool", (accounts) => {
         prepaidCardManager,
         merchantPrepaidCard,
         issuer,
-        _merchant
+        _merchant,
+        relayer
       );
       await registerMerchant(
         prepaidCardManager,
@@ -619,7 +626,13 @@ contract("RevenuePool", (accounts) => {
         relayer,
         [toTokenUnit(100)]
       ));
-      await transferOwner(prepaidCardManager, prepaidCard, issuer, customer);
+      await transferOwner(
+        prepaidCardManager,
+        prepaidCard,
+        issuer,
+        customer,
+        relayer
+      );
       await cardcpxdToken.mint(prepaidCard.address, toTokenUnit(1000000));
     });
 
@@ -837,7 +850,13 @@ contract("RevenuePool", (accounts) => {
         relayer,
         [toTokenUnit(100)]
       ));
-      await transferOwner(prepaidCardManager, prepaidCard, issuer, customer);
+      await transferOwner(
+        prepaidCardManager,
+        prepaidCard,
+        issuer,
+        customer,
+        relayer
+      );
       await cardcpxdToken.mint(prepaidCard.address, toTokenUnit(1000000));
     });
     afterEach(async () => {

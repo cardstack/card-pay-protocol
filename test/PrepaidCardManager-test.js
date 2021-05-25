@@ -764,7 +764,8 @@ contract("PrepaidCardManager", (accounts) => {
 
       let safeTx = await cardManager.splitCard(
         ...splitCardData,
-        await cardManager.appendPrepaidCardAdminSignature(issuer, signature)
+        await cardManager.appendPrepaidCardAdminSignature(issuer, signature),
+        { from: relayer }
       );
 
       let cards = await getGnosisSafeFromEventLog(safeTx, cardManager.address);
@@ -798,7 +799,7 @@ contract("PrepaidCardManager", (accounts) => {
         prepaidCard.address
       );
 
-      await transferOwner(cardManager, prepaidCard, issuer, customer);
+      await transferOwner(cardManager, prepaidCard, issuer, customer, relayer);
 
       await prepaidCard.isOwner(customer).should.eventually.become(true);
       await shouldBeSameBalance(
@@ -816,7 +817,8 @@ contract("PrepaidCardManager", (accounts) => {
         cardManager,
         prepaidCard,
         customer,
-        otherCustomer
+        otherCustomer,
+        relayer
       ).should.be.rejectedWith(Error, "Has already been transferred");
     });
   });
@@ -838,7 +840,13 @@ contract("PrepaidCardManager", (accounts) => {
         relayer,
         [toTokenUnit(10)]
       );
-      await transferOwner(cardManager, merchantPrepaidCard, issuer, merchant);
+      await transferOwner(
+        cardManager,
+        merchantPrepaidCard,
+        issuer,
+        merchant,
+        relayer
+      );
       // mint gas token token for prepaid card
       await cardcpxdToken.mint(merchantPrepaidCard.address, toTokenUnit(100));
       let merchantTx = await registerMerchant(
