@@ -142,7 +142,13 @@ contract("PrepaidCardManager - issuer tests", (accounts) => {
   });
 
   it("allows issuer to transfer card to customer", async () => {
-    await transferOwner(prepaidCardManager, prepaidCards[2], issuer, customer);
+    await transferOwner(
+      prepaidCardManager,
+      prepaidCards[2],
+      issuer,
+      customer,
+      relayer
+    );
 
     expect(await prepaidCards[2].isOwner(customer)).to.be.equal(true);
     await shouldBeSameBalance(

@@ -325,7 +325,8 @@ exports.transferOwner = async function (
   prepaidCardManager,
   prepaidCard,
   oldOwner,
-  newOwner
+  newOwner,
+  relayer
 ) {
   let xferData = [prepaidCard.address, oldOwner, newOwner];
   let packData = packExecutionData({
@@ -345,7 +346,8 @@ exports.transferOwner = async function (
     await prepaidCardManager.appendPrepaidCardAdminSignature(
       oldOwner,
       signature
-    )
+    ),
+    { from: relayer }
   );
 };
 
