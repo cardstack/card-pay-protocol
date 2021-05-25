@@ -1021,7 +1021,7 @@ contract("PrepaidCardManager", (accounts) => {
   });
   describe("versioning", () => {
     it("can get version of contract", async () => {
-      expect(await cardManager.cardProtocolVersion()).to.match(/\d\.\d\.\d/);
+      expect(await cardManager.cardpayVersion()).to.match(/\d\.\d\.\d/);
     });
   });
 });

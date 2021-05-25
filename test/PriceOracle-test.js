@@ -41,7 +41,7 @@ contract("PriceOracle", async (accounts) => {
     });
 
     it("can get version of contract", async () => {
-      expect(await chainlinkPrice.cardProtocolVersion()).to.match(/\d\.\d\.\d/);
+      expect(await chainlinkPrice.cardpayVersion()).to.match(/\d\.\d\.\d/);
     });
     it("can get oracle decimals", async () => {
       expect((await chainlinkPrice.decimals()).toString()).to.equal("8");
@@ -129,7 +129,7 @@ contract("PriceOracle", async (accounts) => {
     });
 
     it("can get version of contract", async () => {
-      expect(await diaPrice.cardProtocolVersion()).to.match(/\d\.\d\.\d/);
+      expect(await diaPrice.cardpayVersion()).to.match(/\d\.\d\.\d/);
     });
     it("can get oracle decimals", async () => {
       expect((await diaPrice.decimals()).toString()).to.equal("8");
