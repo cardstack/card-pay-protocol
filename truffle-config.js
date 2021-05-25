@@ -53,6 +53,7 @@ module.exports = {
       },
       network_id: 77,
       skipDryRun: true,
+      gasPrice: 1000000000,
     },
     xdai: {
       provider: function () {
@@ -61,6 +62,7 @@ module.exports = {
         });
       },
       gasPrice: 1000000000,
+      skipDryRun: true,
       network_id: 100,
     },
     ganache: {

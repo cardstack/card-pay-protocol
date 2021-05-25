@@ -15,14 +15,6 @@
     "proxy": "0x845edc191aF7202061De4c8919f2D535f2E92449",
     "contractName": "ManualFeed"
   },
-  "PrepaidCardManager": {
-    "proxy": "0x4f40a6eD9CAE27Dc34b9bf733DBe062854815c8F",
-    "contractName": "PrepaidCardManager"
-  },
-  "RevenuePool": {
-    "proxy": "0xd44ff7a460A589bDc61Ab4e2642846ab8996c909",
-    "contractName": "RevenuePool"
-  },
   "DAIOracle": {
     "proxy": "0x42c9555F568D5b8898c78260dB26087549Ce98A9",
     "contractName": "ChainlinkFeedAdapter"
@@ -30,5 +22,13 @@
   "CARDOracle": {
     "proxy": "0xDefaB8C99e3259d8088DbB73Ab116156a3EBc747",
     "contractName": "DIAOracleAdapter"
+  },
+  "PrepaidCardManager": {
+    "proxy": "0xf7D6bd5e40E4836f0a5b892B0D62F2BE85AcB345",
+    "contractName": "PrepaidCardManager"
+  },
+  "RevenuePool": {
+    "proxy": "0x1dD894D65BE1a6e8A6E1Bb995e88f86D28Dd1bB7",
+    "contractName": "RevenuePool"
   }
 }

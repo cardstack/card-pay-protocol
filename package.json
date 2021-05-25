@@ -5,15 +5,15 @@
   "main": "index.js",
   "scripts": {
     "build": "./node_modules/.bin/truffle compile",
-    "build:clean": "rm -rf build && yarn build",
+    "build:clean": "rm -rf ./build && yarn build",
     "test": "yarn lint && yarn test:sol",
     "test:sol": "./node_modules/.bin/truffle test",
     "test:coverage": "./node_modules/.bin/truffle run coverage",
     "lint": "npm-run-all lint:*",
     "lint:js": "./node_modules/.bin/eslint .",
     "lint:sol": "./node_modules/.bin/solhint ./contracts/**/*.sol -w 0",
-    "deploy:sokol": "./node_modules/.bin/truffle migrate --network sokol --compile-all --reset",
-    "deploy:xdai": "./node_modules/.bin/truffle migrate --network xdai --compile-all --reset"
+    "deploy:sokol": "rm -rf ./build && ./node_modules/.bin/truffle migrate --network sokol --compile-all --reset",
+    "deploy:xdai": "rm -rf ./build && ./node_modules/.bin/truffle migrate --network xdai --compile-all --reset"
   },
   "repository": {
     "type": "git",

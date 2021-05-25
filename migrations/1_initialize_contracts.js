@@ -72,11 +72,13 @@ module.exports = async function (deployer, network, addresses) {
       let factory = artifacts.require(contractName);
       let proxyAddress;
       if (proxyAddresses[contractId]) {
-        console.log(`upgrading ${contractId}...`);
+        console.log(`
+Upgrading ${contractId}...`);
         ({ proxy: proxyAddress } = proxyAddresses[contractId]);
         await upgradeProxy(proxyAddress, factory, { deployer });
       } else {
-        console.log(`deploying new contract ${contractId}...`);
+        console.log(`
+Deploying new contract ${contractId}...`);
         init = init.map((i) => {
           if (typeof i !== "string") {
             return i;
