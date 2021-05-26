@@ -1035,12 +1035,15 @@ contract("RevenuePool", (accounts) => {
 
     it("allows a revenue claim issued from a merchant's safe (1 DAI CPXD)", async () => {
       let amount = toTokenUnit(1);
-      let existingSPENDBalance = Number(
+      let startingSPENDBalance = Number(
         BN(await getBalance(spendToken, merchantSafe)).toString()
       );
-      let existingDAIBalance = fromWei(
+      let startingDAIBalance = fromWei(
         BN(await getBalance(daicpxdToken, merchantSafe)).toString()
       );
+      let startingMerchantClaim = (
+        await revenuePool.revenueBalance(merchantSafe, daicpxdToken.address)
+      ).toString();
 
       let claimRevenue = revenuePool.contract.methods.claimRevenue(
         daicpxdToken.address,
@@ -1073,13 +1076,18 @@ contract("RevenuePool", (accounts) => {
       await shouldBeSameBalance(
         daicpxdToken,
         merchantSafe,
-        toTokenUnit(existingDAIBalance + 1).sub(gasFee)
+        toTokenUnit(startingDAIBalance + 1).sub(gasFee)
       );
       await shouldBeSameBalance(
         spendToken,
         merchantSafe,
-        String(existingSPENDBalance)
+        String(startingSPENDBalance)
       );
+      expect(
+        (
+          await revenuePool.revenueBalance(merchantSafe, daicpxdToken.address)
+        ).toString()
+      ).to.equal(new BN(startingMerchantClaim).sub(toTokenUnit(1)).toString());
     });
 
     it("rejects a claim that is not issued from merchant's safe", async () => {
