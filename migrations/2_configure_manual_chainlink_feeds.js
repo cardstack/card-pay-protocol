@@ -1,6 +1,7 @@
 const { readJSONSync, existsSync } = require("node-fs-extra");
+const { sendTxnWithRetry: sendTx } = require("../lib/utils");
 
-module.exports = async function (deployer, network) {
+module.exports = async function (_deployer, network) {
   // Only setup manual feeds in our test network
   if (network === "sokol") {
     let config = {
@@ -47,12 +48,14 @@ module.exports = async function (deployer, network) {
 Configuring ${contractId} ${proxy}
   setting description as '${feedConfig.description}'
   setting decimals as '${feedConfig.decimals}'`);
-      await instance.setup(feedConfig.description, feedConfig.decimals);
+      await sendTx(() =>
+        instance.setup(feedConfig.description, feedConfig.decimals)
+      );
       for (let { price, startedAt, updatedAt } of feedConfig.rounds) {
         console.log(
           `  adding round: price ${price}, startedAt(unix) ${startedAt}, updatedAt(unix) ${updatedAt}`
         );
-        await instance.addRound(price, startedAt, updatedAt);
+        await sendTx(() => instance.addRound(price, startedAt, updatedAt));
       }
     }
   }

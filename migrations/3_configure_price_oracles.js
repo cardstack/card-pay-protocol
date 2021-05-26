@@ -1,8 +1,9 @@
 const { readJSONSync, existsSync } = require("node-fs-extra");
 const ChainlinkOracle = artifacts.require("ChainlinkFeedAdapter");
 const DIAOracle = artifacts.require("DIAOracleAdapter");
+const { sendTxnWithRetry: sendTx } = require("../lib/utils");
 
-module.exports = async function (deployer, network) {
+module.exports = async function (_deployer, network) {
   if (["ganache", "test", "soliditycoverage"].includes(network)) {
     return;
   }
@@ -42,10 +43,12 @@ module.exports = async function (deployer, network) {
 Configuring DAIOracle ${daiOracleAddress}
   DAI/USD chainlink feed address: ${chainlinkDAIUSDAddress}
   ETH/USD chainlink feed address: ${chainlinkETHUSDAddress}`);
-  await daiOracle.setup(
-    chainlinkDAIUSDAddress,
-    chainlinkETHUSDAddress,
-    chainlinkDAIUSDAddress
+  await sendTx(() =>
+    daiOracle.setup(
+      chainlinkDAIUSDAddress,
+      chainlinkETHUSDAddress,
+      chainlinkDAIUSDAddress
+    )
   );
 
   console.log(`
@@ -53,7 +56,9 @@ Configuring DAIOracle ${daiOracleAddress}
 Configuring CARDOracle ${cardOracleAddress}
   DIA oracle address: ${diaOracleAddress}
   DAI/USD chainlink feed address: ${chainlinkDAIUSDAddress}`);
-  await cardOracle.setup(diaOracleAddress, "CARD", chainlinkDAIUSDAddress);
+  await sendTx(() =>
+    cardOracle.setup(diaOracleAddress, "CARD", chainlinkDAIUSDAddress)
+  );
 };
 
 function getAddress(contractId, addresses) {
