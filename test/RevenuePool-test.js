@@ -1133,7 +1133,7 @@ contract("RevenuePool", (accounts) => {
 
   describe("versioning", () => {
     it("can get version of contract", async () => {
-      expect(await revenuePool.cardProtocolVersion()).to.match(/\d\.\d\.\d/);
+      expect(await revenuePool.cardpayVersion()).to.match(/\d\.\d\.\d/);
     });
   });
 });

@@ -172,6 +172,6 @@ contract("BridgeUtils", async (accounts) => {
       .should.be.rejectedWith(Error, "Supplier is invalid");
   });
   it("can get version of contract", async () => {
-    expect(await bridgeUtils.cardProtocolVersion()).to.match(/\d\.\d\.\d/);
+    expect(await bridgeUtils.cardpayVersion()).to.match(/\d\.\d\.\d/);
   });
 });

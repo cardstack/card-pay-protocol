@@ -68,6 +68,6 @@ contract("Feed", async (accounts) => {
   });
 
   it("can get version of contract", async () => {
-    expect(await feed.cardProtocolVersion()).to.match(/\d\.\d\.\d/);
+    expect(await feed.cardpayVersion()).to.match(/\d\.\d\.\d/);
   });
 });
