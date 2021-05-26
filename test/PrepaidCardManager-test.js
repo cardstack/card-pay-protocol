@@ -13,7 +13,6 @@ const {
   ZERO_ADDRESS,
   getParamsFromEvent,
   getGnosisSafeFromEventLog,
-  padZero,
 } = require("./utils/general");
 
 const {
@@ -162,42 +161,11 @@ contract("PrepaidCardManager", (accounts) => {
     });
   });
 
-  describe("create signature method", () => {
-    it("can append the contract's signature", async () => {
-      let contractSignature =
-        padZero(cardManager.address, "0x") + padZero(ZERO_ADDRESS) + "01";
-      await cardManager
-        .getContractSignature()
-        .should.become(contractSignature.toLocaleLowerCase());
-
-      let mockSign = padZero(customer, "0x") + padZero(ZERO_ADDRESS) + "01",
-        expectSignature = mockSign + contractSignature.replace("0x", "");
-
-      await cardManager
-        .appendPrepaidCardAdminSignature(ZERO_ADDRESS, mockSign)
-        .should.become(expectSignature.toLocaleLowerCase());
-
-      expectSignature = contractSignature + mockSign.replace("0x", "");
-      await cardManager
-        .appendPrepaidCardAdminSignature(
-          "0xffffffffffffffffffffffffffffffffffffffff",
-          mockSign
-        )
-        .should.become(expectSignature.toLocaleLowerCase());
-    });
-
-    it("can reject when provided signature is invalid", async () => {
-      await cardManager
-        .appendPrepaidCardAdminSignature(customer, "0x01")
-        .should.be.rejectedWith(Error, "Invalid signature!");
-    });
-  });
-
   describe("create prepaid card", () => {
     let walletAmount;
 
     before(() => {
-      walletAmount = toTokenUnit(100);
+      walletAmount = toTokenUnit(1000);
     });
 
     beforeEach(async () => {
@@ -316,6 +284,41 @@ contract("PrepaidCardManager", (accounts) => {
       );
 
       await shouldBeSameBalance(daicpxdToken, relayer, paymentActual);
+    });
+
+    it("should create a large number of cards without exceeding the block gas limit (truffle limits tests to 6.7M block gas limit--the true block gas limit is closer to 12.5M)", async () => {
+      let numCards = 12;
+      let amounts = [];
+      for (let i = 0; i < numCards; i++) {
+        amounts.push(toTokenUnit(10));
+      }
+      let { prepaidCards } = await createPrepaidCards(
+        depot,
+        cardManager,
+        daicpxdToken,
+        daicpxdToken,
+        issuer,
+        relayer,
+        amounts
+      );
+      expect(prepaidCards.length).to.equal(numCards);
+    });
+
+    it("should not create more than the maximum number of cards", async () => {
+      let numCards = 16;
+      let amounts = [];
+      for (let i = 0; i < numCards; i++) {
+        amounts.push(toTokenUnit(10));
+      }
+      await createPrepaidCards(
+        depot,
+        cardManager,
+        daicpxdToken,
+        daicpxdToken,
+        issuer,
+        relayer,
+        amounts
+      ).should.be.rejectedWith(Error, "Too many prepaid cards requested");
     });
 
     it("should refund the supplier when the total amount specified to be applied to a prepaid card is less than the amount of tokens they send", async () => {
@@ -746,13 +749,15 @@ contract("PrepaidCardManager", (accounts) => {
       let amounts = [1, 1].map((amount) => toTokenUnit(amount).toString());
       let splitCardData = [
         prepaidCards[1].address,
-        issuer,
         daicpxdToken.address,
         amounts,
       ];
       let packData = packExecutionData({
         to: daicpxdToken.address,
-        data: await cardManager.getSplitCardData(issuer, amounts),
+        data: await cardManager.getSplitCardData(
+          prepaidCards[1].address,
+          amounts
+        ),
       });
       let safeTxArr = Object.keys(packData).map((key) => packData[key]);
       let signature = await signSafeTransaction(
@@ -762,11 +767,9 @@ contract("PrepaidCardManager", (accounts) => {
         prepaidCards[1]
       );
 
-      let safeTx = await cardManager.splitCard(
-        ...splitCardData,
-        await cardManager.appendPrepaidCardAdminSignature(issuer, signature),
-        { from: relayer }
-      );
+      let safeTx = await cardManager.splitCard(...splitCardData, signature, {
+        from: relayer,
+      });
 
       let cards = await getGnosisSafeFromEventLog(safeTx, cardManager.address);
       expect(cards).to.have.lengthOf(2);
@@ -784,6 +787,57 @@ contract("PrepaidCardManager", (accounts) => {
 
         shouldBeSameBalance(daicpxdToken, prepaidCard.address, amounts[index]);
       });
+    });
+
+    it("a prepaid card cannot be split after it is transferred", async () => {
+      await daicpxdToken.mint(depot.address, toTokenUnit(3));
+      let {
+        prepaidCards: [prepaidCard],
+      } = await createPrepaidCards(
+        depot,
+        cardManager,
+        daicpxdToken,
+        daicpxdToken,
+        issuer,
+        relayer,
+        [toTokenUnit(2)]
+      );
+
+      await transferOwner(cardManager, prepaidCard, issuer, customer, relayer);
+
+      let amounts = [1, 1].map((amount) => toTokenUnit(amount).toString());
+      let splitCardData = [prepaidCard.address, daicpxdToken.address, amounts];
+      let packData = packExecutionData({
+        to: daicpxdToken.address,
+        data: await cardManager.getSplitCardData(prepaidCard.address, amounts),
+      });
+      let safeTxArr = Object.keys(packData).map((key) => packData[key]);
+      let signature = await signSafeTransaction(
+        ...safeTxArr,
+        await prepaidCard.nonce(),
+        customer,
+        prepaidCard
+      );
+
+      await cardManager
+        .splitCard(...splitCardData, signature, {
+          from: relayer,
+        })
+        .should.be.rejectedWith(Error, "only issuer can split card");
+    });
+
+    it("can reject when provided signature is invalid", async () => {
+      let amounts = [2, 2].map((amount) => toTokenUnit(amount).toString());
+      let splitCardData = [
+        prepaidCards[2].address,
+        daicpxdToken.address,
+        amounts,
+      ];
+      await cardManager
+        .splitCard(...splitCardData, "0x01", {
+          from: relayer,
+        })
+        .should.be.rejectedWith(Error, "Invalid signature!");
     });
   });
 
