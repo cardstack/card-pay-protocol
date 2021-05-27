@@ -1,5 +1,6 @@
 const { readJSONSync, existsSync } = require("node-fs-extra");
 const Web3 = require("web3");
+const { sendTxnWithRetry: sendTx } = require("../lib/utils");
 const { fromWei } = Web3.utils;
 
 const RevenuePool = artifacts.require("RevenuePool");
@@ -30,7 +31,7 @@ const GNOSIS_SAFE_FACTORY =
 const MINIMUM_AMOUNT = process.env.MINIMUM_AMOUNT ?? "100"; // minimum face value (in SPEND) for new prepaid card
 const MAXIMUM_AMOUNT = process.env.MAXIMUM_AMOUNT ?? "100000"; // maximum face value (in SPEND) for new prepaid card
 
-module.exports = async function (deployer, network) {
+module.exports = async function (_deployer, network) {
   if (["ganache", "test", "soliditycoverage"].includes(network)) {
     return;
   }
@@ -64,22 +65,24 @@ Configuring RevenuePool ${revenuePoolAddress}
   ).toFixed(4)}%
   merchant registration fee: §${MERCHANT_REGISTRATION_FEE_IN_SPEND} SPEND
   SPEND token address: ${spendTokenAddress}`);
-  await revenuePool.setup(
-    prepaidCardManagerAddress,
-    GNOSIS_SAFE_MASTER_COPY,
-    GNOSIS_SAFE_FACTORY,
-    spendTokenAddress,
-    PAYABLE_TOKENS,
-    MERCHANT_FEE_RECEIVER,
-    MERCHANT_FEE_PERCENTAGE,
-    MERCHANT_REGISTRATION_FEE_IN_SPEND
+  await sendTx(() =>
+    revenuePool.setup(
+      prepaidCardManagerAddress,
+      GNOSIS_SAFE_MASTER_COPY,
+      GNOSIS_SAFE_FACTORY,
+      spendTokenAddress,
+      PAYABLE_TOKENS,
+      MERCHANT_FEE_RECEIVER,
+      MERCHANT_FEE_PERCENTAGE,
+      MERCHANT_REGISTRATION_FEE_IN_SPEND
+    )
   );
   console.log(`  set BridgeUtils address to ${bridgeUtilsAddress}`);
-  await revenuePool.setBridgeUtils(bridgeUtilsAddress);
+  await sendTx(() => revenuePool.setBridgeUtils(bridgeUtilsAddress));
   console.log(`  set DAI oracle to ${daiOracleAddress}`);
-  await revenuePool.createExchange("DAI", daiOracleAddress);
+  await sendTx(() => revenuePool.createExchange("DAI", daiOracleAddress));
   console.log(`  set CARD oracle to ${cardOracleAddress}`);
-  await revenuePool.createExchange("CARD", cardOracleAddress);
+  await sendTx(() => revenuePool.createExchange("CARD", cardOracleAddress));
 
   // PrepaidCardManager configuration
   let prepaidCardManager = await PrepaidCardManager.at(
@@ -97,19 +100,21 @@ Configuring PrepaidCardManager ${prepaidCardManagerAddress}
   gas token: ${GAS_TOKEN}
   minimum face value: ${MINIMUM_AMOUNT}
   maximum face value: ${MAXIMUM_AMOUNT}`);
-  await prepaidCardManager.setup(
-    GNOSIS_SAFE_MASTER_COPY,
-    GNOSIS_SAFE_FACTORY,
-    revenuePoolAddress,
-    GAS_FEE_RECEIVER,
-    GAS_FEE_CARD_WEI,
-    PAYABLE_TOKENS,
-    GAS_TOKEN,
-    MINIMUM_AMOUNT,
-    MAXIMUM_AMOUNT
+  await sendTx(() =>
+    prepaidCardManager.setup(
+      GNOSIS_SAFE_MASTER_COPY,
+      GNOSIS_SAFE_FACTORY,
+      revenuePoolAddress,
+      GAS_FEE_RECEIVER,
+      GAS_FEE_CARD_WEI,
+      PAYABLE_TOKENS,
+      GAS_TOKEN,
+      MINIMUM_AMOUNT,
+      MAXIMUM_AMOUNT
+    )
   );
   console.log(`  set BridgeUtils address to ${bridgeUtilsAddress}`);
-  await prepaidCardManager.setBridgeUtils(bridgeUtilsAddress);
+  await sendTx(() => prepaidCardManager.setBridgeUtils(bridgeUtilsAddress));
 
   // BridgeUtils configuration
   let bridgeUtils = await BridgeUtils.at(bridgeUtilsAddress);
@@ -121,12 +126,14 @@ Configuring BridgeUtils ${bridgeUtilsAddress}
   gnosis master copy: ${GNOSIS_SAFE_MASTER_COPY}
   gnosis proxy factory: ${GNOSIS_SAFE_FACTORY}
   bridge mediator address: ${BRIDGE_MEDIATOR}`);
-  await bridgeUtils.setup(
-    revenuePoolAddress,
-    prepaidCardManagerAddress,
-    GNOSIS_SAFE_MASTER_COPY,
-    GNOSIS_SAFE_FACTORY,
-    BRIDGE_MEDIATOR
+  await sendTx(() =>
+    bridgeUtils.setup(
+      revenuePoolAddress,
+      prepaidCardManagerAddress,
+      GNOSIS_SAFE_MASTER_COPY,
+      GNOSIS_SAFE_FACTORY,
+      BRIDGE_MEDIATOR
+    )
   );
 
   // SPEND configuration
@@ -135,7 +142,7 @@ Configuring BridgeUtils ${bridgeUtilsAddress}
 ==================================================
 Configuring SPEND: ${spendTokenAddress}
   adding minter: ${revenuePoolAddress} (revenue pool)`);
-  await spend.addMinter(revenuePoolAddress);
+  await sendTx(() => spend.addMinter(revenuePoolAddress));
 };
 
 function getAddress(contractId, addresses) {
