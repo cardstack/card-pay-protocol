@@ -1,6 +1,6 @@
 {
   "name": "card-protocol-xdai",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -13,9 +13,9 @@
     "lint:js": "./node_modules/.bin/eslint .",
     "lint:sol": "./node_modules/.bin/solhint ./contracts/**/*.sol -w 0",
     "deploy:sokol": "rm -rf ./build && ./node_modules/.bin/truffle migrate --network sokol --compile-all --reset",
-    "deploy:sokol:upgrade-only": "rm -rf ./build && ./node_modules/.bin/truffle migrate --network sokol --compile-all --reset --f 1 -to 1",
+    "deploy:sokol:upgrade-only": "rm -rf ./build && ./node_modules/.bin/truffle migrate --network sokol --compile-all --f 1 --to 1",
     "deploy:xdai": "rm -rf ./build && ./node_modules/.bin/truffle migrate --network xdai --compile-all --reset",
-    "deploy:xdai:upgrade-only": "rm -rf ./build && ./node_modules/.bin/truffle migrate --network xdai --compile-all --reset --f 1 -to 1",
+    "deploy:xdai:upgrade-only": "rm -rf ./build && ./node_modules/.bin/truffle migrate --network xdai --compile-all --f 1 --to 1",
     "release-sokol:patch:upgrade-only": "node ./lib/prerelease.js patch && yarn deploy:sokol:upgrade-only && node ./lib/release.js sokol patch",
     "release-sokol:patch": "node ./lib/prerelease.js patch && yarn deploy:sokol && node ./lib/release.js sokol patch",
     "release-sokol:minor": "node ./lib/prerelease.js minor && yarn deploy:sokol && node ./lib/release.js sokol minor",
