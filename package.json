@@ -13,7 +13,10 @@
     "lint:js": "./node_modules/.bin/eslint .",
     "lint:sol": "./node_modules/.bin/solhint ./contracts/**/*.sol -w 0",
     "deploy:sokol": "rm -rf ./build && ./node_modules/.bin/truffle migrate --network sokol --compile-all --reset",
-    "deploy:xdai": "rm -rf ./build && ./node_modules/.bin/truffle migrate --network xdai --compile-all --reset"
+    "deploy:xdai": "rm -rf ./build && ./node_modules/.bin/truffle migrate --network xdai --compile-all --reset",
+    "release-sokol:patch": "node ./lib/prerelease.js patch && yarn deploy:sokol && node ./lib/release.js sokol patch",
+    "release-sokol:minor": "node ./lib/prerelease.js minor && yarn deploy:sokol && node ./lib/release.js sokol minor",
+    "release-sokol:major": "node ./lib/prerelease.js major && yarn deploy:sokol && node ./lib/release.js sokol major"
   },
   "repository": {
     "type": "git",
@@ -45,6 +48,7 @@
     "eslint-config-prettier": "^8.1.0",
     "eth-gas-reporter": "^0.2.19",
     "eth-lightwallet": "^4.0.0",
+    "fs-extra": "^10.0.0",
     "ganache-cli": "^6.12.1",
     "glob": "^7.1.6",
     "lodash": "^4.17.21",
@@ -55,6 +59,7 @@
     "pify": "^5.0.0",
     "prettier": "^2.2.1",
     "prettier-plugin-solidity": "^1.0.0-beta.7",
+    "semver": "^7.3.5",
     "solc": "0.5.17",
     "solhint": "^3.3.4",
     "solidity-coverage": "^0.7.11",
