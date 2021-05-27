@@ -61,6 +61,7 @@ module.exports = async function (deployer, network, addresses) {
     let skipVerify = process.argv.includes("--skipVerify");
     let proxyAddresses = {};
     let newImpls = [];
+    let reverify = [];
     let previousImpls = implAddresses(network);
     if (existsSync(addressesFile)) {
       proxyAddresses = readJSONSync(addressesFile);
@@ -123,6 +124,7 @@ Deploying new contract ${contractId}...`);
           await verifyImpl(impl, contractName, network, "MIT");
         }
         newImpls.push(impl);
+        reverify.push({ name: contractName, address: impl });
       }
     }
 
@@ -130,6 +132,14 @@ Deploying new contract ${contractId}...`);
     console.log("Deployed Contracts:");
     for (let [name, { proxy: address }] of Object.entries(proxyAddresses)) {
       console.log(`  ${name}: ${address}`);
+    }
+
+    // This is to accommodate any 504 verification errors we might have received from blockscout
+    if (!skipVerify) {
+      console.log("Reverifying implementation contracts");
+      for (let { name, address } of reverify) {
+        await verifyImpl(address, name, network, "MIT");
+      }
     }
   }
 };
