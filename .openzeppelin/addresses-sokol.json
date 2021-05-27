@@ -1,34 +1,34 @@
 {
-  "BridgeUtils": {
-    "proxy": "0xB5a5236e71b33f1F327302ec49d8729CbB9E209F",
-    "contractName": "BridgeUtils"
-  },
-  "SPEND": {
-    "proxy": "0x96B42EAffcc086C1E2e9e7a534cBad94b723087d",
-    "contractName": "SPEND"
-  },
-  "DAIUSDFeed": {
-    "proxy": "0x65eBb465b8275ba6BbA879c8002ac4c78bd1f4ba",
-    "contractName": "ManualFeed"
-  },
-  "ETHUSDFeed": {
-    "proxy": "0x845edc191aF7202061De4c8919f2D535f2E92449",
-    "contractName": "ManualFeed"
-  },
-  "DAIOracle": {
-    "proxy": "0x42c9555F568D5b8898c78260dB26087549Ce98A9",
-    "contractName": "ChainlinkFeedAdapter"
-  },
-  "CARDOracle": {
-    "proxy": "0xDefaB8C99e3259d8088DbB73Ab116156a3EBc747",
-    "contractName": "DIAOracleAdapter"
-  },
   "PrepaidCardManager": {
-    "proxy": "0xf7D6bd5e40E4836f0a5b892B0D62F2BE85AcB345",
+    "proxy": "0x27b79501D45ef29512a00116D0D3922adEE8E716",
     "contractName": "PrepaidCardManager"
   },
   "RevenuePool": {
-    "proxy": "0x1dD894D65BE1a6e8A6E1Bb995e88f86D28Dd1bB7",
+    "proxy": "0x38AC1A9b96365a43CfFe306EaD1d354C25Ba6B7E",
     "contractName": "RevenuePool"
+  },
+  "BridgeUtils": {
+    "proxy": "0x83c9bF2b10bfc7445086e1bCc484594B740A31B1",
+    "contractName": "BridgeUtils"
+  },
+  "SPEND": {
+    "proxy": "0x913A6E0556F62516dEFd80838e962c9F937768Ea",
+    "contractName": "SPEND"
+  },
+  "DAIOracle": {
+    "proxy": "0xd0B8561Cb2802b5C4D0246198A82f87dEC990dF7",
+    "contractName": "ChainlinkFeedAdapter"
+  },
+  "CARDOracle": {
+    "proxy": "0xD3f035F8B7852A6487b27911e788E518109bf950",
+    "contractName": "DIAOracleAdapter"
+  },
+  "DAIUSDFeed": {
+    "proxy": "0x4CaFAc8A6d66aFc482d56f8023B5D86816a89D7e",
+    "contractName": "ManualFeed"
+  },
+  "ETHUSDFeed": {
+    "proxy": "0x0D7c1388E2e828901353725CcB4310336f783A90",
+    "contractName": "ManualFeed"
   }
 }
