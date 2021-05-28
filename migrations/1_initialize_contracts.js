@@ -14,6 +14,8 @@ const DIAOracle = artifacts.require("DIAOracleAdapter");
 // we only maintain these migrations purely to measure the amount of gas it
 // takes to perform a deployment for each contract
 module.exports = async function (deployer, network, addresses) {
+  console.log(`Deploying to ${network}`);
+
   if (["ganache", "test", "soliditycoverage"].includes(network)) {
     await Promise.all([
       // We use this to measure gas for all our contract creation. Please add
