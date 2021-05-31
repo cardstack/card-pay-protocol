@@ -903,6 +903,7 @@ contract("RewardPool", function (accounts) {
         paymentCycle = paymentCycle.toNumber();
         let updatedProof = updatedMerkleTree.hexProofForPayee(
           payee,
+          cardcpxdToken.address,
           paymentCycle
         );
         await rewardPool.submitPayeeMerkleRoot(updatedRoot);
