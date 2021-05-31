@@ -16,44 +16,13 @@ const ERC20Token = artifacts.require(
 const RewardPool = artifacts.require("RewardPool.sol");
 const ERC677Token = artifacts.require("ERC677Token.sol");
 
-contract("PaymentPool", function (accounts) {
-  describe("payment pool", function () {
-    let paymentPool;
-    let token;
-    let payments = [
-      {
-        payee: accounts[2],
-        amount: 10,
-      },
-      {
-        payee: accounts[3],
-        amount: 12,
-      },
-      {
-        payee: accounts[4],
-        amount: 2,
-      },
-      {
-        payee: accounts[5],
-        amount: 1,
-      },
-      {
-        payee: accounts[6],
-        amount: 32,
-      },
-      {
-        payee: accounts[7],
-        amount: 10,
-      },
-      {
-        payee: accounts[8],
-        amount: 9,
-      },
-      {
-        payee: accounts[9],
-        amount: 101, // this amount is used to test logic when the payment pool doesn't have sufficient funds
-      },
-    ];
+contract("RewardPool", function (accounts) {
+  describe("Reward Pool", function () {
+    let owner;
+    let rewardPool;
+    let daicpxdToken;
+    let cardcpxdToken;
+    let payments;
     let initialBlockNumber;
     beforeEach(async function () {
       let merkleProofLib = await MerkleProofLib.new();
