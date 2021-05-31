@@ -198,14 +198,14 @@ contract("RewardPool", function (accounts) {
     });
 
     describe("balanceForProof", function () {
-      let paymentPoolBalance;
+      let rewardPoolBalance;
       let paymentCycle;
-      let proof;
       let payeeIndex = 0;
-      let payee = payments[payeeIndex].payee;
-      let paymentAmount = payments[payeeIndex].amount;
-      let merkleTree = new CumulativePaymentTree(payments);
-      let root = merkleTree.getHexRoot();
+      let payee;
+      let paymentAmount;
+      let merkleTree;
+      let root;
+      let proof;
 
       beforeEach(async function () {
         paymentPoolBalance = 100;
