@@ -1,30 +1,42 @@
 pragma solidity 0.5.17;
 
-import '@openzeppelin/contracts/math/SafeMath.sol';
-import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
-import '@openzeppelin/contracts/token/ERC20/SafeERC20.sol';
-import '@openzeppelin/contracts/cryptography/MerkleProof.sol';
-import '@openzeppelin/contracts/ownership/Ownable.sol';
+import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
+import "@openzeppelin/contract-upgradeable/contracts/math/SafeMath.sol";
+import "@openzeppelin/contract-upgradeable/contracts/cryptography/MerkleProof.sol";
+import "@openzeppelin/contract-upgradeable/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/upgrades/contracts/Initializable.sol";
+import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 
-contract PaymentPool is Ownable {
+import "./token/IERC677.sol";
+import "./core/Exchange.sol";
+import "./core/Versionable.sol";
+import "./roles/PayableToken.sol";
+
+contract RewardPool is Versionable, Initializable, Ownable, PayableToken {
 
   using SafeMath for uint256;
-  using SafeERC20 for ERC20;
   using MerkleProof for bytes32[];
 
-  ERC20 public token;
+  string public name;
   uint256 public numPaymentCycles = 1;
-  mapping(address => uint256) public withdrawals;
+  uint256 public currentPaymentCycleStartBlock;
 
+  mapping(address => mapping(address => uint256)) public withdrawals;
   mapping(uint256 => bytes32) payeeRoots;
-  uint256 currentPaymentCycleStartBlock;
 
-  event PaymentCycleEnded(uint256 paymentCycle, uint256 startBlock, uint256 endBlock);
+  event Setup();
   event PayeeWithdraw(address indexed payee, uint256 amount);
+  event MerkleRootSubmission(bytes32 payeeRoot,uint256 numPaymentCycles);
+  event PaymentCycleEnded(uint256 paymentCycle, uint256 startBlock, uint256 endBlock);
 
-  constructor (ERC20 _token) public {
-    token = _token;
-    currentPaymentCycleStartBlock = block.number;
+  function setup(
+    address[] calldata _payableTokens
+    ) external onlyOwner {
+    for (uint256 i = 0; i < _payableTokens.length; i++) {
+      _addPayableToken(_payableTokens[i]);
+    }
+    currentPaymentCycleStartBlock = block.number; //this is a very dangerous line. should not adjust currentPaymenttCycleStartBlock everytime setup is called
+    emit Setup();
   }
 
   function startNewPaymentCycle() internal onlyOwner returns(bool) {
@@ -41,12 +53,13 @@ contract PaymentPool is Ownable {
   function submitPayeeMerkleRoot(bytes32 payeeRoot) public onlyOwner returns(bool) {
     payeeRoots[numPaymentCycles] = payeeRoot;
 
+    emit MerkleRootSubmission(payeeRoot, numPaymentCycles);
     startNewPaymentCycle();
 
     return true;
   }
 
-  function balanceForProofWithAddress(address _address, bytes memory proof) public view returns(uint256) {
+  function _balanceForProofWithAddress(address payableToken, address _address, bytes memory proof) internal view returns(uint256) {
     bytes32[] memory meta;
     bytes32[] memory _proof;
 
@@ -59,36 +72,41 @@ contract PaymentPool is Ownable {
 
     bytes32 leaf = keccak256(
                              abi.encodePacked(
+                                              payableToken,
                                               _address,
                                               cumulativeAmount
                                               )
                              );
-    if (withdrawals[_address] < cumulativeAmount &&
+    if (withdrawals[payableToken][_address] < cumulativeAmount &&
         _proof.verify(payeeRoots[paymentCycleNumber], leaf)) {
-      return cumulativeAmount.sub(withdrawals[_address]);
+      return cumulativeAmount.sub(withdrawals[payableToken][_address]);
     } else {
       return 0;
     }
   }
 
-
-  function balanceForProof(bytes memory proof) public view returns(uint256) {
-    return balanceForProofWithAddress(msg.sender, proof);
+  function balanceForProofWithAddress(address payableToken, address _address, bytes memory proof) public view returns(uint256) {
+    return _balanceForProofWithAddress(payableToken, _address, proof);
   }
 
-  function withdraw(uint256 amount, bytes memory proof) public returns(bool) {
-    require(amount > 0);
-    require(token.balanceOf(address(this)) >= amount);
+  function balanceForProof(address payableToken, bytes memory proof) public view returns(uint256) {
+    return _balanceForProofWithAddress(payableToken ,msg.sender, proof);
+  }
 
-    uint256 balance = balanceForProof(proof);
+  function withdraw(address payableToken , uint256 amount, bytes memory proof) public isValidTokenAddress(payableToken) returns(bool) {
+    require(amount > 0);
+    require(IERC677(payableToken).balanceOf(address(this)) >= amount);
+
+    uint256 balance = balanceForProof(payableToken,proof);
     require(balance >= amount);
 
-    withdrawals[msg.sender] = withdrawals[msg.sender].add(amount);
-    token.safeTransfer(msg.sender, amount);
+    withdrawals[payableToken][msg.sender] = withdrawals[payableToken][msg.sender].add(amount);
+    IERC677(payableToken).transfer(msg.sender, amount);
+
 
     emit PayeeWithdraw(msg.sender, amount);
+    return true;
   }
-
 
   function splitIntoBytes32(bytes memory byteArray, uint256 numBytes32) internal pure returns (bytes32[] memory bytes32Array,
                                                                                         bytes32[] memory remainder) {
