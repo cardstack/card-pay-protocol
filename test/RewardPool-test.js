@@ -439,9 +439,13 @@ contract("RewardPool", function (accounts) {
         let payeeBalance = await cardcpxdToken.balanceOf(payee);
         let poolBalance = await cardcpxdToken.balanceOf(rewardPool.address);
         let withdrawals = await rewardPool.withdrawals(payee);
-        let proofBalance = await rewardPool.balanceForProof(proof, {
-          from: payee,
-        });
+        let proofBalance = await rewardPool.balanceForProof(
+          cardcpxdToken.address,
+          proof,
+          {
+            from: payee,
+          }
+        );
 
         assert.equal(
           payeeBalance.toNumber(),
@@ -489,9 +493,13 @@ contract("RewardPool", function (accounts) {
         let payeeBalance = await cardcpxdToken.balanceOf(payee);
         let poolBalance = await cardcpxdToken.balanceOf(rewardPool.address);
         let withdrawals = await rewardPool.withdrawals(payee);
-        let proofBalance = await rewardPool.balanceForProof(proof, {
-          from: payee,
-        });
+        let proofBalance = await rewardPool.balanceForProof(
+          cardcpxdToken.address,
+          proof,
+          {
+            from: payee,
+          }
+        );
 
         assert.equal(
           payeeBalance.toNumber(),
@@ -527,9 +535,13 @@ contract("RewardPool", function (accounts) {
         let payeeBalance = await cardcpxdToken.balanceOf(payee);
         let poolBalance = await cardcpxdToken.balanceOf(rewardPool.address);
         let withdrawals = await rewardPool.withdrawals(payee);
-        let proofBalance = await rewardPool.balanceForProof(proof, {
-          from: payee,
-        });
+        let proofBalance = await rewardPool.balanceForProof(
+          cardcpxdToken.address,
+          proof,
+          {
+            from: payee,
+          }
+        );
 
         assert.equal(
           payeeBalance.toNumber(),
@@ -568,9 +580,13 @@ contract("RewardPool", function (accounts) {
         let payeeBalance = await cardcpxdToken.balanceOf(payee);
         let poolBalance = await cardcpxdToken.balanceOf(rewardPool.address);
         let withdrawals = await rewardPool.withdrawals(payee);
-        let proofBalance = await rewardPool.balanceForProof(proof, {
-          from: payee,
-        });
+        let proofBalance = await rewardPool.balanceForProof(
+          cardcpxdToken.address,
+          proof,
+          {
+            from: payee,
+          }
+        );
 
         assert.equal(
           payeeBalance.toNumber(),
@@ -615,10 +631,15 @@ contract("RewardPool", function (accounts) {
         let payeeBalance = await cardcpxdToken.balanceOf(payee);
         let poolBalance = await cardcpxdToken.balanceOf(rewardPool.address);
         let withdrawals = await rewardPool.withdrawals(payee);
-        let proofBalance = await rewardPool.balanceForProof(proof, {
-          from: payee,
-        });
+        let proofBalance = await rewardPool.balanceForProof(
+          cardcpxdToken.address,
+          proof,
+          {
+            from: payee,
+          }
+        );
         let tamperedProofBalance = await rewardPool.balanceForProof(
+          cardcpxdToken.address,
           tamperedProof,
           { from: payee }
         );
@@ -665,9 +686,13 @@ contract("RewardPool", function (accounts) {
         let payeeBalance = await cardcpxdToken.balanceOf(payee);
         let poolBalance = await cardcpxdToken.balanceOf(rewardPool.address);
         let withdrawals = await rewardPool.withdrawals(payee);
-        let proofBalance = await rewardPool.balanceForProof(proof, {
-          from: payee,
-        });
+        let proofBalance = await rewardPool.balanceForProof(
+          cardcpxdToken.address,
+          proof,
+          {
+            from: payee,
+          }
+        );
 
         assert.equal(
           payeeBalance.toNumber(),
@@ -706,9 +731,13 @@ contract("RewardPool", function (accounts) {
         let payeeBalance = await cardcpxdToken.balanceOf(payee);
         let poolBalance = await cardcpxdToken.balanceOf(rewardPool.address);
         let withdrawals = await rewardPool.withdrawals(payee);
-        let proofBalance = await rewardPool.balanceForProof(proof, {
-          from: payee,
-        });
+        let proofBalance = await rewardPool.balanceForProof(
+          cardcpxdToken.address,
+          proof,
+          {
+            from: payee,
+          }
+        );
 
         assert.equal(
           payeeBalance.toNumber(),
@@ -749,9 +778,13 @@ contract("RewardPool", function (accounts) {
         let payeeBalance = await cardcpxdToken.balanceOf(payee);
         let poolBalance = await cardcpxdToken.balanceOf(rewardPool.address);
         let withdrawals = await rewardPool.withdrawals(payee);
-        let proofBalance = await rewardPool.balanceForProof(proof, {
-          from: payee,
-        });
+        let proofBalance = await rewardPool.balanceForProof(
+          cardcpxdToken.address,
+          proof,
+          {
+            from: payee,
+          }
+        );
 
         assert.equal(
           payeeBalance.toNumber(),
@@ -801,6 +834,8 @@ contract("RewardPool", function (accounts) {
         let poolBalance = await cardcpxdToken.balanceOf(rewardPool.address);
         let withdrawals = await rewardPool.withdrawals(insufficientFundsPayee);
         let proofBalance = await rewardPool.balanceForProof(
+          cardcpxdToken.address,
+
           insufficientFundsProof,
           { from: insufficientFundsPayee }
         );
@@ -855,10 +890,15 @@ contract("RewardPool", function (accounts) {
         let payeeBalance = await cardcpxdToken.balanceOf(payee);
         let poolBalance = await cardcpxdToken.balanceOf(rewardPool.address);
         let withdrawals = await rewardPool.withdrawals(payee);
-        let proofBalance = await rewardPool.balanceForProof(proof, {
-          from: payee,
-        });
+        let proofBalance = await rewardPool.balanceForProof(
+          cardcpxdToken.address,
+          proof,
+          {
+            from: payee,
+          }
+        );
         let udpatedProofBalance = await rewardPool.balanceForProof(
+          cardcpxdToken.address,
           updatedProof,
           { from: payee }
         );
@@ -920,10 +960,15 @@ contract("RewardPool", function (accounts) {
         let payeeBalance = await cardcpxdToken.balanceOf(payee);
         let poolBalance = await cardcpxdToken.balanceOf(rewardPool.address);
         let withdrawals = await rewardPool.withdrawals(payee);
-        let proofBalance = await rewardPool.balanceForProof(proof, {
-          from: payee,
-        });
+        let proofBalance = await rewardPool.balanceForProof(
+          cardcpxdToken.address,
+          proof,
+          {
+            from: payee,
+          }
+        );
         let udpatedProofBalance = await rewardPool.balanceForProof(
+          cardcpxdToken.address,
           updatedProof,
           { from: payee }
         );
@@ -983,10 +1028,15 @@ contract("RewardPool", function (accounts) {
         let payeeBalance = await cardcpxdToken.balanceOf(payee);
         let poolBalance = await cardcpxdToken.balanceOf(rewardPool.address);
         let withdrawals = await rewardPool.withdrawals(payee);
-        let proofBalance = await rewardPool.balanceForProof(proof, {
-          from: payee,
-        });
+        let proofBalance = await rewardPool.balanceForProof(
+          cardcpxdToken.address,
+          proof,
+          {
+            from: payee,
+          }
+        );
         let udpatedProofBalance = await rewardPool.balanceForProof(
+          cardcpxdToken.address,
           updatedProof,
           { from: payee }
         );
@@ -1046,10 +1096,15 @@ contract("RewardPool", function (accounts) {
         let payeeBalance = await cardcpxdToken.balanceOf(payee);
         let poolBalance = await cardcpxdToken.balanceOf(rewardPool.address);
         let withdrawals = await rewardPool.withdrawals(payee);
-        let proofBalance = await rewardPool.balanceForProof(proof, {
-          from: payee,
-        });
+        let proofBalance = await rewardPool.balanceForProof(
+          cardcpxdToken.address,
+          proof,
+          {
+            from: payee,
+          }
+        );
         let udpatedProofBalance = await rewardPool.balanceForProof(
+          cardcpxdToken.address,
           updatedProof,
           { from: payee }
         );
