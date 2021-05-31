@@ -208,11 +208,22 @@ contract("RewardPool", function (accounts) {
       let proof;
 
       beforeEach(async function () {
+        payee = payments[payeeIndex].payee;
         rewardPoolBalance = 100;
-        await token.mint(rewardPool.address, rewardPoolBalance);
+        paymentAmount = payments[payeeIndex].amount;
+        await cardcpxdToken.mint(
+          rewardPool.address,
+          toTokenUnit(rewardPoolBalance)
+        );
         paymentCycle = await rewardPool.numPaymentCycles();
         paymentCycle = paymentCycle.toNumber();
-        proof = merkleTree.hexProofForPayee(payee, paymentCycle);
+        merkleTree = new CumulativePaymentTree(payments);
+        proof = merkleTree.hexProofForPayee(
+          payee,
+          cardcpxdToken.address,
+          paymentCycle
+        );
+        root = merkleTree.getHexRoot();
         await rewardPool.submitPayeeMerkleRoot(root);
       });
 
