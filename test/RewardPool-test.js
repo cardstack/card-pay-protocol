@@ -25,10 +25,53 @@ contract("RewardPool", function (accounts) {
     let payments;
     let initialBlockNumber;
     beforeEach(async function () {
-      let merkleProofLib = await MerkleProofLib.new();
-      token = await Token.new();
-      PaymentPool.link("MerkleProof", merkleProofLib.address);
-      paymentPool = await PaymentPool.new(token.address);
+      owner = accounts[0];
+      ({ daicpxdToken, cardcpxdToken } = await setupExchanges(owner));
+      payments = [
+        {
+          payee: accounts[2],
+          token: cardcpxdToken.address,
+          amount: 10,
+        },
+        {
+          payee: accounts[3],
+          token: cardcpxdToken.address,
+          amount: 12,
+        },
+        {
+          payee: accounts[4],
+          token: cardcpxdToken.address,
+          amount: 2,
+        },
+        {
+          payee: accounts[5],
+          token: cardcpxdToken.address,
+          amount: 1,
+        },
+        {
+          payee: accounts[6],
+          token: cardcpxdToken.address,
+          amount: 32,
+        },
+        {
+          payee: accounts[7],
+          token: cardcpxdToken.address,
+          amount: 10,
+        },
+        {
+          payee: accounts[8],
+          token: cardcpxdToken.address,
+          amount: 9,
+        },
+        {
+          payee: accounts[9],
+          token: cardcpxdToken.address,
+          amount: 101, // this amount is used to test logic when the payment pool doesn't have sufficient funds
+        },
+      ];
+      rewardPool = await RewardPool.new();
+      await rewardPool.initialize(owner);
+      await rewardPool.setup([cardcpxdToken.address, daicpxdToken.address]);
       initialBlockNumber = await web3.eth.getBlockNumber();
     });
 
