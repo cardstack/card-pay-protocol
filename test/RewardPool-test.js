@@ -241,7 +241,11 @@ contract("RewardPool", function (accounts) {
       });
 
       it("non-payee can get the available balance in the payment pool for an address and proof", async function () {
-        let balance = await rewardPool.balanceForProofWithAddress(payee, proof);
+        let balance = await rewardPool.balanceForProofWithAddress(
+          cardcpxdToken.address,
+          payee,
+          proof
+        );
         assert.equal(
           balance.toNumber(),
           paymentAmount,
@@ -256,6 +260,7 @@ contract("RewardPool", function (accounts) {
           paymentCycle
         );
         let balance = await rewardPool.balanceForProofWithAddress(
+          cardcpxdToken.address,
           payee,
           differentUsersProof
         );
@@ -265,6 +270,7 @@ contract("RewardPool", function (accounts) {
       it("garbage proof data returns a balance of 0 in payment pool", async function () {
         const randomProof = web3.utils.randomHex(32 * 5);
         let balance = await rewardPool.balanceForProofWithAddress(
+          cardcpxdToken.address,
           payee,
           randomProof
         );
