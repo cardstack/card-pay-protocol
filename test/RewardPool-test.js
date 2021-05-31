@@ -17,13 +17,13 @@ const RewardPool = artifacts.require("RewardPool.sol");
 const ERC677Token = artifacts.require("ERC677Token.sol");
 
 contract("RewardPool", function (accounts) {
+  let owner;
+  let rewardPool;
+  let daicpxdToken;
+  let cardcpxdToken;
+  let payments;
+  let initialBlockNumber;
   describe("Reward Pool", function () {
-    let owner;
-    let rewardPool;
-    let daicpxdToken;
-    let cardcpxdToken;
-    let payments;
-    let initialBlockNumber;
     beforeEach(async function () {
       owner = accounts[0];
       ({ daicpxdToken, cardcpxdToken } = await setupExchanges(owner));
