@@ -101,7 +101,7 @@ contract("RewardPool", function (accounts) {
         );
         assert.equal(
           txn.logs.length,
-          1,
+          2,
           "the correct number of events were fired"
         );
 
