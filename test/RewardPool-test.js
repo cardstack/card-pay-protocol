@@ -417,9 +417,14 @@ contract("RewardPool", function (accounts) {
       });
 
       it("payee can withdraw up to their allotted amount from pool", async function () {
-        let txn = await rewardPool.withdraw(paymentAmount, proof, {
-          from: payee,
-        });
+        let txn = await rewardPool.withdraw(
+          cardcpxdToken.address,
+          paymentAmount,
+          proof,
+          {
+            from: payee,
+          }
+        );
 
         let withdrawEvent = txn.logs.find(
           (log) => log.event === "PayeeWithdraw"
@@ -462,9 +467,14 @@ contract("RewardPool", function (accounts) {
 
       it("payee can make a withdrawal less than their allotted amount from the pool", async function () {
         let withdrawalAmount = 8;
-        let txn = await rewardPool.withdraw(withdrawalAmount, proof, {
-          from: payee,
-        });
+        let txn = await rewardPool.withdraw(
+          cardcpxdToken.address,
+          withdrawalAmount,
+          proof,
+          {
+            from: payee,
+          }
+        );
 
         let withdrawEvent = txn.logs.find(
           (log) => log.event === "PayeeWithdraw"
@@ -507,8 +517,12 @@ contract("RewardPool", function (accounts) {
 
       it("payee can make mulitple withdrawls within their allotted amount from the pool", async function () {
         let withdrawalAmount = 4 + 6;
-        await rewardPool.withdraw(4, proof, { from: payee });
-        await rewardPool.withdraw(6, proof, { from: payee });
+        await rewardPool.withdraw(cardcpxdToken.address, 4, proof, {
+          from: payee,
+        });
+        await rewardPool.withdraw(cardcpxdToken.address, 6, proof, {
+          from: payee,
+        });
 
         let payeeBalance = await token.balanceOf(payee);
         let poolBalance = await token.balanceOf(rewardPool.address);
@@ -543,7 +557,12 @@ contract("RewardPool", function (accounts) {
         let withdrawalAmount = 11;
         await assertRevert(
           async () =>
-            await rewardPool.withdraw(withdrawalAmount, proof, { from: payee })
+            await rewardPool.withdraw(
+              cardcpxdToken.address,
+              withdrawalAmount,
+              proof,
+              { from: payee }
+            )
         );
 
         let payeeBalance = await token.balanceOf(payee);
@@ -583,9 +602,14 @@ contract("RewardPool", function (accounts) {
 
         await assertRevert(
           async () =>
-            await rewardPool.withdraw(withdrawalAmount, tamperedProof, {
-              from: payee,
-            })
+            await rewardPool.withdraw(
+              cardcpxdToken.address,
+              withdrawalAmount,
+              tamperedProof,
+              {
+                from: payee,
+              }
+            )
         );
 
         let payeeBalance = await token.balanceOf(payee);
@@ -628,9 +652,14 @@ contract("RewardPool", function (accounts) {
 
       it("payee cannot make mulitple withdrawls that total to more than their allotted amount from the pool", async function () {
         let withdrawalAmount = 4;
-        await rewardPool.withdraw(4, proof, { from: payee });
+        await rewardPool.withdraw(cardcpxdToken.address, 4, proof, {
+          from: payee,
+        });
         await assertRevert(
-          async () => await rewardPool.withdraw(7, proof, { from: payee })
+          async () =>
+            await rewardPool.withdraw(cardcpxdToken.address, 7, proof, {
+              from: payee,
+            })
         );
 
         let payeeBalance = await token.balanceOf(payee);
@@ -666,7 +695,12 @@ contract("RewardPool", function (accounts) {
         let withdrawalAmount = 0;
         await assertRevert(
           async () =>
-            await rewardPool.withdraw(withdrawalAmount, proof, { from: payee })
+            await rewardPool.withdraw(
+              cardcpxdToken.address,
+              withdrawalAmount,
+              proof,
+              { from: payee }
+            )
         );
 
         let payeeBalance = await token.balanceOf(payee);
@@ -702,9 +736,14 @@ contract("RewardPool", function (accounts) {
         let withdrawalAmount = 10;
         await assertRevert(
           async () =>
-            await rewardPool.withdraw(withdrawalAmount, proof, {
-              from: accounts[0],
-            })
+            await rewardPool.withdraw(
+              cardcpxdToken.address,
+              withdrawalAmount,
+              proof,
+              {
+                from: accounts[0],
+              }
+            )
         );
 
         let payeeBalance = await token.balanceOf(payee);
@@ -804,7 +843,12 @@ contract("RewardPool", function (accounts) {
         await rewardPool.submitPayeeMerkleRoot(updatedRoot);
 
         let withdrawalAmount = 8;
-        await rewardPool.withdraw(withdrawalAmount, proof, { from: payee });
+        await rewardPool.withdraw(
+          cardcpxdToken.address,
+          withdrawalAmount,
+          proof,
+          { from: payee }
+        );
 
         let payeeBalance = await token.balanceOf(payee);
         let poolBalance = await token.balanceOf(rewardPool.address);
@@ -862,9 +906,14 @@ contract("RewardPool", function (accounts) {
         await rewardPool.submitPayeeMerkleRoot(updatedRoot);
 
         let withdrawalAmount = 8;
-        await rewardPool.withdraw(withdrawalAmount, updatedProof, {
-          from: payee,
-        });
+        await rewardPool.withdraw(
+          cardcpxdToken.address,
+          withdrawalAmount,
+          updatedProof,
+          {
+            from: payee,
+          }
+        );
 
         let payeeBalance = await token.balanceOf(payee);
         let poolBalance = await token.balanceOf(rewardPool.address);
@@ -922,8 +971,12 @@ contract("RewardPool", function (accounts) {
         await rewardPool.submitPayeeMerkleRoot(updatedRoot);
 
         let withdrawalAmount = 8 + 4;
-        await rewardPool.withdraw(8, proof, { from: payee });
-        await rewardPool.withdraw(4, updatedProof, { from: payee });
+        await rewardPool.withdraw(cardcpxdToken.address, 8, proof, {
+          from: payee,
+        });
+        await rewardPool.withdraw(cardcpxdToken.address, 4, updatedProof, {
+          from: payee,
+        });
 
         let payeeBalance = await token.balanceOf(payee);
         let poolBalance = await token.balanceOf(rewardPool.address);
@@ -981,9 +1034,11 @@ contract("RewardPool", function (accounts) {
         await rewardPool.submitPayeeMerkleRoot(updatedRoot);
 
         let withdrawalAmount = 8;
-        await rewardPool.withdraw(8, updatedProof, { from: payee });
+        await rewardPool.withdraw(cardcpxdToken.address, 8, updatedProof, {
+          from: payee,
+        });
         await assertRevert(async () =>
-          rewardPool.withdraw(4, proof, { from: payee })
+          rewardPool.withdraw(cardcpxdToken.address, 4, proof, { from: payee })
         ); // this proof only permits 10 - 8 tokens to be withdrawn, even though the newer proof permits 12 - 8 tokens to be withdrawn
 
         let payeeBalance = await token.balanceOf(payee);
