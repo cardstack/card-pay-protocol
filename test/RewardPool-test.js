@@ -105,24 +105,30 @@ contract("RewardPool", function (accounts) {
           "the correct number of events were fired"
         );
 
-        let event = txn.logs[0];
-        assert.equal(
-          event.event,
-          "PaymentCycleEnded",
-          "the event type is correct"
+        const eventsFired = txn.logs.map(({ event }) => event);
+        const paymentCycleEvent = _.find(txn.logs, {
+          event: "PaymentCycleEnded",
+        });
+
+        assert(
+          _.isEqual(
+            _.sortBy(eventsFired),
+            _.sortBy(["PaymentCycleEnded", "MerkleRootSubmission"])
+          )
         );
         assert.equal(
-          event.args.paymentCycle,
+          paymentCycleEvent.args.paymentCycle,
           1,
           "the payment cycle number is correct"
         );
+
         assert.equal(
-          event.args.startBlock,
+          Number(paymentCycleEvent.args.startBlock),
           initialBlockNumber,
           "the payment cycle start block is correct"
         );
         assert.equal(
-          event.args.endBlock,
+          Number(paymentCycleEvent.args.endBlock),
           currentBlockNumber,
           "the payment cycle end block is correct"
         );
