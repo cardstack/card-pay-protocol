@@ -357,6 +357,7 @@ contract("RewardPool", function (accounts) {
         let updatedPayments = payments.slice();
         updatedPayments.push({
           payee,
+          token: cardcpxdToken.address,
           amount: 8,
         });
         let updatedMerkleTree = new CumulativePaymentTree(updatedPayments);
