@@ -63,3 +63,5 @@ class CumulativePaymentTree extends MerkleTree {
     ]);
   }
 }
+
+module.exports = CumulativePaymentTree;
