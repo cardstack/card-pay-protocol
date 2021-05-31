@@ -816,6 +816,7 @@ contract("RewardPool", function (accounts) {
           payments[insufficientFundsPayeeIndex].amount;
         let insufficientFundsProof = merkleTree.hexProofForPayee(
           insufficientFundsPayee,
+          cardcpxdToken.address,
           paymentCycle
         );
 
@@ -943,6 +944,7 @@ contract("RewardPool", function (accounts) {
         paymentCycle = paymentCycle.toNumber();
         let updatedProof = updatedMerkleTree.hexProofForPayee(
           payee,
+          cardcpxdToken.address,
           paymentCycle
         );
         await rewardPool.submitPayeeMerkleRoot(updatedRoot);
@@ -1013,6 +1015,7 @@ contract("RewardPool", function (accounts) {
         paymentCycle = paymentCycle.toNumber();
         let updatedProof = updatedMerkleTree.hexProofForPayee(
           payee,
+          cardcpxdToken.address,
           paymentCycle
         );
         await rewardPool.submitPayeeMerkleRoot(updatedRoot);
@@ -1081,6 +1084,7 @@ contract("RewardPool", function (accounts) {
         paymentCycle = paymentCycle.toNumber();
         let updatedProof = updatedMerkleTree.hexProofForPayee(
           payee,
+          cardcpxdToken.address,
           paymentCycle
         );
         await rewardPool.submitPayeeMerkleRoot(updatedRoot);
