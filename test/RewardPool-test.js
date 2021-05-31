@@ -400,8 +400,8 @@ contract("RewardPool", function (accounts) {
       let root;
 
       beforeEach(async function () {
-        paymentPoolBalance = 100;
-        await token.mint(rewardPool.address, paymentPoolBalance);
+        rewardPoolBalance = 100;
+        await token.mint(rewardPool.address, rewardPoolBalance);
         paymentCycle = await rewardPool.numPaymentCycles();
         paymentCycle = paymentCycle.toNumber();
         proof = merkleTree.hexProofForPayee(payee, paymentCycle);
@@ -437,7 +437,7 @@ contract("RewardPool", function (accounts) {
         );
         assert.equal(
           poolBalance.toNumber(),
-          paymentPoolBalance - paymentAmount,
+          rewardPoolBalance - paymentAmount,
           "the pool balance is correct"
         );
         assert.equal(
@@ -482,7 +482,7 @@ contract("RewardPool", function (accounts) {
         );
         assert.equal(
           poolBalance.toNumber(),
-          paymentPoolBalance - withdrawalAmount,
+          rewardPoolBalance - withdrawalAmount,
           "the pool balance is correct"
         );
         assert.equal(
@@ -516,7 +516,7 @@ contract("RewardPool", function (accounts) {
         );
         assert.equal(
           poolBalance.toNumber(),
-          paymentPoolBalance - withdrawalAmount,
+          rewardPoolBalance - withdrawalAmount,
           "the pool balance is correct"
         );
         assert.equal(
@@ -552,7 +552,7 @@ contract("RewardPool", function (accounts) {
         );
         assert.equal(
           poolBalance.toNumber(),
-          paymentPoolBalance,
+          rewardPoolBalance,
           "the pool balance is correct"
         );
         assert.equal(
@@ -598,7 +598,7 @@ contract("RewardPool", function (accounts) {
         );
         assert.equal(
           poolBalance.toNumber(),
-          paymentPoolBalance,
+          rewardPoolBalance,
           "the pool balance is correct"
         );
         assert.equal(
@@ -639,7 +639,7 @@ contract("RewardPool", function (accounts) {
         );
         assert.equal(
           poolBalance.toNumber(),
-          paymentPoolBalance - withdrawalAmount,
+          rewardPoolBalance - withdrawalAmount,
           "the pool balance is correct"
         );
         assert.equal(
@@ -675,7 +675,7 @@ contract("RewardPool", function (accounts) {
         );
         assert.equal(
           poolBalance.toNumber(),
-          paymentPoolBalance,
+          rewardPoolBalance,
           "the pool balance is correct"
         );
         assert.equal(
@@ -713,7 +713,7 @@ contract("RewardPool", function (accounts) {
         );
         assert.equal(
           poolBalance.toNumber(),
-          paymentPoolBalance,
+          rewardPoolBalance,
           "the pool balance is correct"
         );
         assert.equal(
@@ -763,7 +763,7 @@ contract("RewardPool", function (accounts) {
         );
         assert.equal(
           poolBalance.toNumber(),
-          paymentPoolBalance,
+          rewardPoolBalance,
           "the pool balance is correct"
         );
         assert.equal(
@@ -816,7 +816,7 @@ contract("RewardPool", function (accounts) {
         );
         assert.equal(
           poolBalance.toNumber(),
-          paymentPoolBalance - withdrawalAmount,
+          rewardPoolBalance - withdrawalAmount,
           "the pool balance is correct"
         );
         assert.equal(
@@ -876,7 +876,7 @@ contract("RewardPool", function (accounts) {
         );
         assert.equal(
           poolBalance.toNumber(),
-          paymentPoolBalance - withdrawalAmount,
+          rewardPoolBalance - withdrawalAmount,
           "the pool balance is correct"
         );
         assert.equal(
@@ -935,7 +935,7 @@ contract("RewardPool", function (accounts) {
         );
         assert.equal(
           poolBalance.toNumber(),
-          paymentPoolBalance - withdrawalAmount,
+          rewardPoolBalance - withdrawalAmount,
           "the pool balance is correct"
         );
         assert.equal(
@@ -996,7 +996,7 @@ contract("RewardPool", function (accounts) {
         );
         assert.equal(
           poolBalance.toNumber(),
-          paymentPoolBalance - withdrawalAmount,
+          rewardPoolBalance - withdrawalAmount,
           "the pool balance is correct"
         );
         assert.equal(
