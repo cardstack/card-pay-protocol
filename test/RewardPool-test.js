@@ -9,6 +9,7 @@ const {
 } = require("./utils/helper");
 const assert = require("assert");
 const _ = require("lodash");
+const { soliditySha3 } = require("web3-utils");
 
 const ERC20Token = artifacts.require(
   "@openzeppelin/contract-upgradeable/contracts/token/ERC20/ERC20Mintable.sol"
@@ -1403,33 +1404,44 @@ contract("RewardPool", function (accounts) {
         node = payments[0];
       });
       it("checksum/non-checksum addresses output same hash", function () {
+        console.log(
+          soliditySha3(
+            { t: "address", v: node["token"] },
+            { t: "address", v: node["payee"] },
+            { t: "uint256", v: node["amount"] }
+          )
+        );
         assert.equal(
           soliditySha3(
+            { t: "address", v: node["token"] },
             { t: "address", v: node["payee"] },
             { t: "uint256", v: node["amount"] }
           ),
-          "0xdc1a3188990e6f49560e7f513c95ce1ef99669f20d04bf16e2d1f3e76480d8ef"
+          "0x2f1076cce52e3499f29b804e7d2411b7182c7ecc70d2d7defb7f47d52f6a8787"
         );
         assert.equal(
           soliditySha3(
+            { t: "address", v: node["token"] },
             { t: "address", v: toHex(node["payee"]) },
             { t: "uint256", v: node["amount"] }
           ),
-          "0xdc1a3188990e6f49560e7f513c95ce1ef99669f20d04bf16e2d1f3e76480d8ef"
+          "0x2f1076cce52e3499f29b804e7d2411b7182c7ecc70d2d7defb7f47d52f6a8787"
         );
         assert.equal(
           soliditySha3(
+            { t: "address", v: node["token"] },
             { t: "address", v: node["payee"].replace("0x", "") },
             { t: "uint256", v: node["amount"] }
           ),
-          "0xdc1a3188990e6f49560e7f513c95ce1ef99669f20d04bf16e2d1f3e76480d8ef"
+          "0x2f1076cce52e3499f29b804e7d2411b7182c7ecc70d2d7defb7f47d52f6a8787"
         );
         assert.equal(
           soliditySha3(
+            { t: "address", v: node["token"] },
             { t: "address", v: toHex(node["payee"]).replace("0x", "") },
             { t: "uint256", v: node["amount"] }
           ),
-          "0xdc1a3188990e6f49560e7f513c95ce1ef99669f20d04bf16e2d1f3e76480d8ef"
+          "0x2f1076cce52e3499f29b804e7d2411b7182c7ecc70d2d7defb7f47d52f6a8787"
         );
       });
     });
