@@ -208,8 +208,8 @@ contract("RewardPool", function (accounts) {
       let proof;
 
       beforeEach(async function () {
-        paymentPoolBalance = 100;
-        await token.mint(rewardPool.address, paymentPoolBalance);
+        rewardPoolBalance = 100;
+        await token.mint(rewardPool.address, rewardPoolBalance);
         paymentCycle = await rewardPool.numPaymentCycles();
         paymentCycle = paymentCycle.toNumber();
         proof = merkleTree.hexProofForPayee(payee, paymentCycle);
