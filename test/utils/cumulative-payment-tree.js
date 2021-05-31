@@ -62,6 +62,16 @@ class CumulativePaymentTree extends MerkleTree {
       this.amountForPayee(payee, token),
     ]);
   }
+
+  withdrawData(payee, paymentCycle) {
+    let leaves = _.filter(this.paymentNodes, { payee });
+    return leaves.map((leaf) => {
+      return {
+        ...leaf,
+        proof: this.hexProofForPayee(payee, leaf.token, paymentCycle),
+      };
+    });
+  }
 }
 
 module.exports = CumulativePaymentTree;
