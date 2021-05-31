@@ -400,11 +400,19 @@ contract("RewardPool", function (accounts) {
       let root;
 
       beforeEach(async function () {
+        payee = payments[payeeIndex].payee;
+        paymentAmount = payments[payeeIndex].amount;
+        merkleTree = new CumulativePaymentTree(payments);
+        root = merkleTree.getHexRoot();
         rewardPoolBalance = 100;
-        await token.mint(rewardPool.address, rewardPoolBalance);
+        await cardcpxdToken.mint(rewardPool.address, rewardPoolBalance);
         paymentCycle = await rewardPool.numPaymentCycles();
         paymentCycle = paymentCycle.toNumber();
-        proof = merkleTree.hexProofForPayee(payee, paymentCycle);
+        proof = merkleTree.hexProofForPayee(
+          payee,
+          cardcpxdToken.address,
+          paymentCycle
+        );
         await rewardPool.submitPayeeMerkleRoot(root);
       });
 
