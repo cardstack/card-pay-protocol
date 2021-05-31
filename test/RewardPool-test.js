@@ -228,7 +228,11 @@ contract("RewardPool", function (accounts) {
       });
 
       it("payee can get their available balance in the payment pool from their proof", async function () {
-        let balance = await rewardPool.balanceForProof(proof, { from: payee });
+        let balance = await rewardPool.balanceForProof(
+          cardcpxdToken.address,
+          proof,
+          { from: payee }
+        );
         assert.equal(
           balance.toNumber(),
           paymentAmount,
@@ -284,16 +288,24 @@ contract("RewardPool", function (accounts) {
         );
         await rewardPool.submitPayeeMerkleRoot(updatedRoot);
 
-        let balance = await rewardPool.balanceForProof(updatedProof, {
-          from: payee,
-        });
+        let balance = await rewardPool.balanceForProof(
+          cardcpxdToken.address,
+          updatedProof,
+          {
+            from: payee,
+          }
+        );
         assert.equal(
           balance.toNumber(),
           updatedPaymentAmount,
           "the balance is correct for the updated proof"
         );
 
-        balance = await rewardPool.balanceForProof(proof, { from: payee });
+        balance = await rewardPool.balanceForProof(
+          cardcpxdToken.address,
+          proof,
+          { from: payee }
+        );
         assert.equal(
           balance.toNumber(),
           paymentAmount,
@@ -318,9 +330,13 @@ contract("RewardPool", function (accounts) {
         );
         await rewardPool.submitPayeeMerkleRoot(updatedRoot);
 
-        let balance = await rewardPool.balanceForProof(updatedProof, {
-          from: aPayee,
-        });
+        let balance = await rewardPool.balanceForProof(
+          cardcpxdToken.address,
+          updatedProof,
+          {
+            from: aPayee,
+          }
+        );
         assert.equal(
           balance.toNumber(),
           0,
@@ -347,9 +363,13 @@ contract("RewardPool", function (accounts) {
         );
         await rewardPool.submitPayeeMerkleRoot(updatedRoot);
 
-        let balance = await rewardPool.balanceForProof(updatedProof, {
-          from: payee,
-        });
+        let balance = await rewardPool.balanceForProof(
+          cardcpxdToken.address,
+          updatedProof,
+          {
+            from: payee,
+          }
+        );
         assert.equal(
           balance.toNumber(),
           18,
