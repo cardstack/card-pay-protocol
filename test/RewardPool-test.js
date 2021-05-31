@@ -1,10 +1,20 @@
-import CumulativePaymentTree from "../lib/cumulative-payment-tree.js";
-import { assertRevert, advanceBlock } from "./helpers/utils";
-import { toHex, soliditySha3 } from "web3-utils";
+const CumulativePaymentTree = require("./utils/cumulative-payment-tree");
 
-const PaymentPool = artifacts.require("./PaymentPool.sol");
-const Token = artifacts.require("./Token.sol");
-const MerkleProofLib = artifacts.require("MerkleProof.sol");
+const { TOKEN_DETAIL_DATA } = require("./setup");
+const {
+  toTokenUnit,
+  setupExchanges,
+  advanceBlock,
+  assertRevert,
+} = require("./utils/helper");
+const assert = require("assert");
+const _ = require("lodash");
+
+const ERC20Token = artifacts.require(
+  "@openzeppelin/contract-upgradeable/contracts/token/ERC20/ERC20Mintable.sol"
+);
+const RewardPool = artifacts.require("RewardPool.sol");
+const ERC677Token = artifacts.require("ERC677Token.sol");
 
 contract("PaymentPool", function (accounts) {
   describe("payment pool", function () {
