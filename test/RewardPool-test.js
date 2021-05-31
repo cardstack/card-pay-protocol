@@ -847,6 +847,7 @@ contract("RewardPool", function (accounts) {
         await assertRevert(
           async () =>
             await rewardPool.withdraw(
+              cardcpxdToken.address,
               insufficientFundsPaymentAmount,
               insufficientFundsProof,
               { from: insufficientFundsPayee }
@@ -863,7 +864,6 @@ contract("RewardPool", function (accounts) {
         );
         let proofBalance = await rewardPool.balanceForProof(
           cardcpxdToken.address,
-
           insufficientFundsProof,
           { from: insufficientFundsPayee }
         );
