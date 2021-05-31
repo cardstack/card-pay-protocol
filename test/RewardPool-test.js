@@ -436,8 +436,8 @@ contract("RewardPool", function (accounts) {
           "event amount is correct"
         );
 
-        let payeeBalance = await token.balanceOf(payee);
-        let poolBalance = await token.balanceOf(rewardPool.address);
+        let payeeBalance = await cardcpxdToken.balanceOf(payee);
+        let poolBalance = await cardcpxdToken.balanceOf(rewardPool.address);
         let withdrawals = await rewardPool.withdrawals(payee);
         let proofBalance = await rewardPool.balanceForProof(proof, {
           from: payee,
@@ -486,8 +486,8 @@ contract("RewardPool", function (accounts) {
           "event amount is correct"
         );
 
-        let payeeBalance = await token.balanceOf(payee);
-        let poolBalance = await token.balanceOf(rewardPool.address);
+        let payeeBalance = await cardcpxdToken.balanceOf(payee);
+        let poolBalance = await cardcpxdToken.balanceOf(rewardPool.address);
         let withdrawals = await rewardPool.withdrawals(payee);
         let proofBalance = await rewardPool.balanceForProof(proof, {
           from: payee,
@@ -524,8 +524,8 @@ contract("RewardPool", function (accounts) {
           from: payee,
         });
 
-        let payeeBalance = await token.balanceOf(payee);
-        let poolBalance = await token.balanceOf(rewardPool.address);
+        let payeeBalance = await cardcpxdToken.balanceOf(payee);
+        let poolBalance = await cardcpxdToken.balanceOf(rewardPool.address);
         let withdrawals = await rewardPool.withdrawals(payee);
         let proofBalance = await rewardPool.balanceForProof(proof, {
           from: payee,
@@ -565,8 +565,8 @@ contract("RewardPool", function (accounts) {
             )
         );
 
-        let payeeBalance = await token.balanceOf(payee);
-        let poolBalance = await token.balanceOf(rewardPool.address);
+        let payeeBalance = await cardcpxdToken.balanceOf(payee);
+        let poolBalance = await cardcpxdToken.balanceOf(rewardPool.address);
         let withdrawals = await rewardPool.withdrawals(payee);
         let proofBalance = await rewardPool.balanceForProof(proof, {
           from: payee,
@@ -612,8 +612,8 @@ contract("RewardPool", function (accounts) {
             )
         );
 
-        let payeeBalance = await token.balanceOf(payee);
-        let poolBalance = await token.balanceOf(rewardPool.address);
+        let payeeBalance = await cardcpxdToken.balanceOf(payee);
+        let poolBalance = await cardcpxdToken.balanceOf(rewardPool.address);
         let withdrawals = await rewardPool.withdrawals(payee);
         let proofBalance = await rewardPool.balanceForProof(proof, {
           from: payee,
@@ -662,8 +662,8 @@ contract("RewardPool", function (accounts) {
             })
         );
 
-        let payeeBalance = await token.balanceOf(payee);
-        let poolBalance = await token.balanceOf(rewardPool.address);
+        let payeeBalance = await cardcpxdToken.balanceOf(payee);
+        let poolBalance = await cardcpxdToken.balanceOf(rewardPool.address);
         let withdrawals = await rewardPool.withdrawals(payee);
         let proofBalance = await rewardPool.balanceForProof(proof, {
           from: payee,
@@ -703,8 +703,8 @@ contract("RewardPool", function (accounts) {
             )
         );
 
-        let payeeBalance = await token.balanceOf(payee);
-        let poolBalance = await token.balanceOf(rewardPool.address);
+        let payeeBalance = await cardcpxdToken.balanceOf(payee);
+        let poolBalance = await cardcpxdToken.balanceOf(rewardPool.address);
         let withdrawals = await rewardPool.withdrawals(payee);
         let proofBalance = await rewardPool.balanceForProof(proof, {
           from: payee,
@@ -746,8 +746,8 @@ contract("RewardPool", function (accounts) {
             )
         );
 
-        let payeeBalance = await token.balanceOf(payee);
-        let poolBalance = await token.balanceOf(rewardPool.address);
+        let payeeBalance = await cardcpxdToken.balanceOf(payee);
+        let poolBalance = await cardcpxdToken.balanceOf(rewardPool.address);
         let withdrawals = await rewardPool.withdrawals(payee);
         let proofBalance = await rewardPool.balanceForProof(proof, {
           from: payee,
@@ -795,8 +795,10 @@ contract("RewardPool", function (accounts) {
             )
         );
 
-        let payeeBalance = await token.balanceOf(insufficientFundsPayee);
-        let poolBalance = await token.balanceOf(rewardPool.address);
+        let payeeBalance = await cardcpxdToken.balanceOf(
+          insufficientFundsPayee
+        );
+        let poolBalance = await cardcpxdToken.balanceOf(rewardPool.address);
         let withdrawals = await rewardPool.withdrawals(insufficientFundsPayee);
         let proofBalance = await rewardPool.balanceForProof(
           insufficientFundsProof,
@@ -850,8 +852,8 @@ contract("RewardPool", function (accounts) {
           { from: payee }
         );
 
-        let payeeBalance = await token.balanceOf(payee);
-        let poolBalance = await token.balanceOf(rewardPool.address);
+        let payeeBalance = await cardcpxdToken.balanceOf(payee);
+        let poolBalance = await cardcpxdToken.balanceOf(rewardPool.address);
         let withdrawals = await rewardPool.withdrawals(payee);
         let proofBalance = await rewardPool.balanceForProof(proof, {
           from: payee,
@@ -915,8 +917,8 @@ contract("RewardPool", function (accounts) {
           }
         );
 
-        let payeeBalance = await token.balanceOf(payee);
-        let poolBalance = await token.balanceOf(rewardPool.address);
+        let payeeBalance = await cardcpxdToken.balanceOf(payee);
+        let poolBalance = await cardcpxdToken.balanceOf(rewardPool.address);
         let withdrawals = await rewardPool.withdrawals(payee);
         let proofBalance = await rewardPool.balanceForProof(proof, {
           from: payee,
@@ -978,8 +980,8 @@ contract("RewardPool", function (accounts) {
           from: payee,
         });
 
-        let payeeBalance = await token.balanceOf(payee);
-        let poolBalance = await token.balanceOf(rewardPool.address);
+        let payeeBalance = await cardcpxdToken.balanceOf(payee);
+        let poolBalance = await cardcpxdToken.balanceOf(rewardPool.address);
         let withdrawals = await rewardPool.withdrawals(payee);
         let proofBalance = await rewardPool.balanceForProof(proof, {
           from: payee,
@@ -1041,8 +1043,8 @@ contract("RewardPool", function (accounts) {
           rewardPool.withdraw(cardcpxdToken.address, 4, proof, { from: payee })
         ); // this proof only permits 10 - 8 tokens to be withdrawn, even though the newer proof permits 12 - 8 tokens to be withdrawn
 
-        let payeeBalance = await token.balanceOf(payee);
-        let poolBalance = await token.balanceOf(rewardPool.address);
+        let payeeBalance = await cardcpxdToken.balanceOf(payee);
+        let poolBalance = await cardcpxdToken.balanceOf(rewardPool.address);
         let withdrawals = await rewardPool.withdrawals(payee);
         let proofBalance = await rewardPool.balanceForProof(proof, {
           from: payee,
