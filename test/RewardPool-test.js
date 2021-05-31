@@ -1181,6 +1181,222 @@ contract("RewardPool", function (accounts) {
       });
     });
 
+    describe("multi-token support", () => {
+      let rewardPoolBalance;
+      let paymentCycle;
+      let payee;
+      let merkleTree;
+      let root;
+      let erc20Token;
+
+      beforeEach(async function () {
+        payee = accounts[2];
+        erc20Token = await ERC20Token.new();
+        await erc20Token.initialize(owner);
+        payments = [
+          {
+            payee,
+            token: daicpxdToken.address,
+            amount: 10,
+          },
+          {
+            payee,
+            token: daicpxdToken.address,
+            amount: 12,
+          },
+          {
+            payee,
+            token: cardcpxdToken.address,
+            amount: 100,
+          },
+          {
+            payee,
+            token: erc20Token.address,
+            amount: 10,
+          },
+        ];
+
+        rewardPoolBalance = 500;
+        await cardcpxdToken.mint(
+          rewardPool.address,
+          toTokenUnit(rewardPoolBalance)
+        );
+        await daicpxdToken.mint(
+          rewardPool.address,
+          toTokenUnit(rewardPoolBalance)
+        );
+        await erc20Token.mint(
+          rewardPool.address,
+          toTokenUnit(rewardPoolBalance)
+        );
+        await rewardPool.addPayableToken(erc20Token.address);
+        merkleTree = new CumulativePaymentTree(payments);
+        root = merkleTree.getHexRoot();
+        paymentCycle = await rewardPool.numPaymentCycles();
+        paymentCycle = paymentCycle.toNumber();
+        const rewardPoolBalanceCard = await cardcpxdToken.balanceOf(
+          rewardPool.address
+        );
+        const rewardPoolBalanceDai = await daicpxdToken.balanceOf(
+          rewardPool.address
+        );
+        const rewardPoolBalanceErc20 = await erc20Token.balanceOf(
+          rewardPool.address
+        );
+        // console.log(Number(rewardPoolBalanceCard), rewardPoolBalance);
+        // console.log(Number(rewardPoolBalanceCard), rewardPoolBalance);
+        // assert.equal(Number(rewardPoolBalanceCard), rewardPoolBalance);
+        // assert.equal(Number(rewardPoolBalanceDai), rewardPoolBalance);
+      });
+
+      it("cannot withdraw if payable token not added", async () => {
+        ({ cardcpxdToken: newCardcpxdToken } = await setupExchanges(owner));
+        await newCardcpxdToken.mint(
+          rewardPool.address,
+          toTokenUnit(rewardPoolBalance)
+        );
+        payments.push({
+          payee,
+          token: newCardcpxdToken.address,
+          amount: rewardPoolBalance,
+        });
+        merkleTree = new CumulativePaymentTree(payments);
+        root = merkleTree.getHexRoot();
+        let registeredTokens = await rewardPool.getTokens();
+        assert(registeredTokens.length == 3);
+        assert(_.includes(registeredTokens, cardcpxdToken.address));
+        assert(_.includes(registeredTokens, daicpxdToken.address));
+        assert(!_.includes(registeredTokens, newCardcpxdToken.address));
+        await rewardPool.submitPayeeMerkleRoot(root);
+        const cardProof = merkleTree.hexProofForPayee(
+          payee,
+          newCardcpxdToken.address,
+          paymentCycle
+        );
+        const amountCard = 50;
+        await rewardPool
+          .withdraw(newCardcpxdToken.address, amountCard, cardProof, {
+            from: payee,
+          })
+          .should.be.rejectedWith(Error, "unaccepted token");
+        registeredTokens = await rewardPool.getTokens();
+      });
+
+      it("erc20 tokens supported", async () => {
+        let registeredTokens = await rewardPool.getTokens();
+        await rewardPool.submitPayeeMerkleRoot(root);
+        const erc20Proof = merkleTree.hexProofForPayee(
+          payee,
+          erc20Token.address,
+          paymentCycle
+        );
+        const erc20BalanceBefore = await rewardPool.balanceForProofWithAddress(
+          erc20Token.address,
+          payee,
+          erc20Proof
+        );
+        await rewardPool.withdraw(erc20Token.address, 5, erc20Proof, {
+          from: payee,
+        });
+      });
+
+      it("withdraw data aggregate is correct", async () => {
+        const daiProof = merkleTree.hexProofForPayee(
+          payee,
+          daicpxdToken.address,
+          paymentCycle
+        );
+        const cardProof = merkleTree.hexProofForPayee(
+          payee,
+          cardcpxdToken.address,
+          paymentCycle
+        );
+        const withdrawDataForPayee = merkleTree.withdrawData(
+          payee,
+          paymentCycle
+        );
+
+        const { proof: daiProofPrime, amount: daiAvailable } = _.find(
+          withdrawDataForPayee,
+          {
+            token: daicpxdToken.address,
+          }
+        );
+        const { proof: cardProofPrime, amount: cardAvailable } = _.find(
+          withdrawDataForPayee,
+          {
+            token: cardcpxdToken.address,
+          }
+        );
+        assert.equal(withdrawDataForPayee.length, 3);
+        assert.equal(daiProof, daiProofPrime);
+        assert.equal(cardProof, cardProofPrime);
+        assert.equal(cardAvailable, 100);
+        assert.equal(daiAvailable, 22);
+      });
+
+      it("withdraw from two different tokens", async () => {
+        await rewardPool.submitPayeeMerkleRoot(root);
+        const cardProof = merkleTree.hexProofForPayee(
+          payee,
+          cardcpxdToken.address,
+          paymentCycle
+        );
+        const daiProof = merkleTree.hexProofForPayee(
+          payee,
+          daicpxdToken.address,
+          paymentCycle
+        );
+        const daiBalanceBefore = await rewardPool.balanceForProofWithAddress(
+          daicpxdToken.address,
+          payee,
+          daiProof
+        );
+        const cardBalanceBefore = await rewardPool.balanceForProofWithAddress(
+          cardcpxdToken.address,
+          payee,
+          cardProof
+        );
+        const amountCard = 50;
+        const amountDai = daiBalanceBefore;
+        assert(amountCard <= Number(cardBalanceBefore));
+        assert(amountDai <= Number(daiBalanceBefore));
+        await rewardPool.withdraw(
+          cardcpxdToken.address,
+          amountCard,
+          cardProof,
+          {
+            from: payee,
+          }
+        );
+        await rewardPool.withdraw(daicpxdToken.address, amountDai, daiProof, {
+          from: payee,
+        });
+        const daiBalanceAfter = await rewardPool.balanceForProofWithAddress(
+          daicpxdToken.address,
+          payee,
+          daiProof
+        );
+        const cardBalanceAfter = await rewardPool.balanceForProofWithAddress(
+          cardcpxdToken.address,
+          payee,
+          cardProof
+        );
+        const payeeCardBalance = await cardcpxdToken.balanceOf(payee);
+        const payeeDaiBalance = await daicpxdToken.balanceOf(payee);
+        assert.equal(
+          Number(cardBalanceBefore),
+          Number(cardBalanceAfter) + amountCard
+        );
+        assert.equal(
+          Number(daiBalanceBefore),
+          Number(daiBalanceAfter) + amountDai
+        );
+        assert.equal(Number(payeeCardBalance), Number(amountCard));
+        assert.equal(Number(payeeDaiBalance), Number(amountDai));
+      });
+    });
+
     describe("hash functions are accurate", function () {
       let node;
       beforeEach(function () {
