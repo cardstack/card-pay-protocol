@@ -1,12 +1,12 @@
-import {
+const {
   bufferToHex,
   toBuffer,
   setLengthLeft,
   keccak256,
-} from "ethereumjs-util";
-import { soliditySha3, hexToBytes } from "web3-utils";
+} = require("ethereumjs-util");
+const { soliditySha3, hexToBytes } = require("web3-utils");
 
-export default class MerkleTree {
+class MerkleTree {
   constructor(elements) {
     // Filter empty strings and hash elements
     this.elements = elements.filter((el) => el).map((el) => this.sha3(el));
@@ -53,7 +53,7 @@ export default class MerkleTree {
     if (!second) {
       return first;
     }
-    return keccak256(this.sortAndConcat(first, second)); // Identical to: Buffer.from(hexToBytes(soliditySha3({t: 'bytes', v: this.sortAndConcat(first,second).toString("hex")})))
+    return keccak256(this.sortAndConcat(first, second));
   }
 
   getRoot() {
@@ -151,6 +151,7 @@ export default class MerkleTree {
     return Buffer.from(
       hexToBytes(
         soliditySha3(
+          { t: "address", v: node["token"] },
           { t: "address", v: node["payee"] },
           { t: "uint256", v: node["amount"] }
         )
@@ -158,3 +159,5 @@ export default class MerkleTree {
     );
   }
 }
+
+module.exports = MerkleTree;

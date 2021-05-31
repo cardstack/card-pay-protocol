@@ -1,6 +1,6 @@
-import MerkleTree from "./merkle-tree";
-import { bufferToHex, zeros } from "ethereumjs-util";
-import _ from "lodash/lodash";
+const MerkleTree = require("./merkle-tree");
+const { bufferToHex, zeros } = require("ethereumjs-util");
+const _ = require("lodash");
 
 /*
  * `paymentList` is an array of objects that have a property `payee` to hold the
@@ -20,30 +20,29 @@ import _ from "lodash/lodash";
  *
  */
 
-export default class CumulativePaymentTree extends MerkleTree {
+class CumulativePaymentTree extends MerkleTree {
   constructor(paymentList) {
     let filteredPaymentList = paymentList.filter(
-      (payment) => payment.payee && payment.amount
+      (payment) => payment.payee && payment.amount && payment.token
     );
-    let groupedPayees = _.groupBy(
-      filteredPaymentList,
-      (payment) => payment.payee
-    );
-    let reducedPaymentList = Object.keys(groupedPayees).map((payee) => {
-      let payments = groupedPayees[payee];
-      let amount = _.reduce(
-        payments,
-        (sum, payment) => sum + payment.amount,
-        0
-      );
-      return { payee, amount };
-    });
+    const o = {};
+    let reducedPaymentList = filteredPaymentList.reduce(function (r, e) {
+      const key = e.token + "|" + e.payee;
+      if (!o[key]) {
+        o[key] = e;
+        r.push(o[key]);
+      } else {
+        o[key].amount += e.amount;
+      }
+      return r;
+    }, []);
+
     super(reducedPaymentList);
     this.paymentNodes = reducedPaymentList;
   }
 
-  amountForPayee(payee) {
-    let payment = _.find(this.paymentNodes, { payee });
+  amountForPayee(payee, token) {
+    let payment = _.find(this.paymentNodes, { payee, token });
     if (!payment) {
       return 0;
     }
@@ -51,11 +50,28 @@ export default class CumulativePaymentTree extends MerkleTree {
     return payment.amount;
   }
 
-  hexProofForPayee(payee, paymentCycle) {
-    let leaf = _.find(this.paymentNodes, { payee });
+  hexProofForPayee(payee, token, paymentCycle) {
+    let leaf = _.find(this.paymentNodes, { payee, token });
+
+    // find a better way to check this
     if (!leaf) {
       return bufferToHex(zeros(32));
     }
-    return this.getHexProof(leaf, [paymentCycle, this.amountForPayee(payee)]);
+    return this.getHexProof(leaf, [
+      paymentCycle,
+      this.amountForPayee(payee, token),
+    ]);
+  }
+
+  withdrawData(payee, paymentCycle) {
+    let leaves = _.filter(this.paymentNodes, { payee });
+    return leaves.map((leaf) => {
+      return {
+        ...leaf,
+        proof: this.hexProofForPayee(payee, leaf.token, paymentCycle),
+      };
+    });
   }
 }
+
+module.exports = CumulativePaymentTree;
