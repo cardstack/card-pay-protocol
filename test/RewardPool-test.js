@@ -257,6 +257,7 @@ contract("RewardPool", function (accounts) {
         let differentPayee = payments[4].payee;
         let differentUsersProof = merkleTree.hexProofForPayee(
           differentPayee,
+          cardcpxdToken.address,
           paymentCycle
         );
         let balance = await rewardPool.balanceForProofWithAddress(
@@ -290,6 +291,7 @@ contract("RewardPool", function (accounts) {
         paymentCycle = paymentCycle.toNumber();
         let updatedProof = updatedMerkleTree.hexProofForPayee(
           payee,
+          cardcpxdToken.address,
           paymentCycle
         );
         await rewardPool.submitPayeeMerkleRoot(updatedRoot);
@@ -332,6 +334,7 @@ contract("RewardPool", function (accounts) {
         paymentCycle = paymentCycle.toNumber();
         let updatedProof = updatedMerkleTree.hexProofForPayee(
           aPayee,
+          cardcpxdToken.address,
           paymentCycle
         );
         await rewardPool.submitPayeeMerkleRoot(updatedRoot);
@@ -365,6 +368,7 @@ contract("RewardPool", function (accounts) {
         paymentCycle = paymentCycle.toNumber();
         let updatedProof = updatedMerkleTree.hexProofForPayee(
           payee,
+          cardcpxdToken.address,
           paymentCycle
         );
         await rewardPool.submitPayeeMerkleRoot(updatedRoot);
