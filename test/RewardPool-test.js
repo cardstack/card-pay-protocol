@@ -1,6 +1,5 @@
 const CumulativePaymentTree = require("./utils/cumulative-payment-tree");
 
-const { TOKEN_DETAIL_DATA } = require("./setup");
 const {
   toTokenUnit,
   setupExchanges,
@@ -14,7 +13,6 @@ const ERC20Token = artifacts.require(
   "@openzeppelin/contract-upgradeable/contracts/token/ERC20/ERC20Mintable.sol"
 );
 const RewardPool = artifacts.require("RewardPool.sol");
-const ERC677Token = artifacts.require("ERC677Token.sol");
 
 contract("RewardPool", function (accounts) {
   let owner;
@@ -30,42 +28,42 @@ contract("RewardPool", function (accounts) {
         {
           payee: accounts[2],
           token: cardcpxdToken.address,
-          amount: 10,
+          amount: toTokenUnit(10),
         },
         {
           payee: accounts[3],
           token: cardcpxdToken.address,
-          amount: 12,
+          amount: toTokenUnit(12),
         },
         {
           payee: accounts[4],
           token: cardcpxdToken.address,
-          amount: 2,
+          amount: toTokenUnit(2),
         },
         {
           payee: accounts[5],
           token: cardcpxdToken.address,
-          amount: 1,
+          amount: toTokenUnit(1),
         },
         {
           payee: accounts[6],
           token: cardcpxdToken.address,
-          amount: 32,
+          amount: toTokenUnit(32),
         },
         {
           payee: accounts[7],
           token: cardcpxdToken.address,
-          amount: 10,
+          amount: toTokenUnit(10),
         },
         {
           payee: accounts[8],
           token: cardcpxdToken.address,
-          amount: 9,
+          amount: toTokenUnit(9),
         },
         {
           payee: accounts[9],
           token: cardcpxdToken.address,
-          amount: 101, // this amount is used to test logic when the payment pool doesn't have sufficient funds
+          amount: toTokenUnit(101), // this amount is used to test logic when the payment pool doesn't have sufficient funds
         },
       ];
       rewardPool = await RewardPool.new();
@@ -74,7 +72,7 @@ contract("RewardPool", function (accounts) {
     });
 
     afterEach(async function () {
-      payments[0].amount = 10; // one of the tests is bleeding state...
+      payments[0].amount = toTokenUnit(10); // one of the tests is bleeding state...
     });
 
     describe("submitPayeeMerkleRoot", function () {
@@ -138,7 +136,9 @@ contract("RewardPool", function (accounts) {
         await rewardPool.submitPayeeMerkleRoot(root);
 
         let updatedPayments = payments.slice();
-        updatedPayments[0].amount += 10;
+        updatedPayments[0].amount = updatedPayments[0].amount.add(
+          toTokenUnit(10)
+        );
         let updatedMerkleTree = new CumulativePaymentTree(updatedPayments);
         let updatedRoot = updatedMerkleTree.getHexRoot();
 
@@ -161,7 +161,9 @@ contract("RewardPool", function (accounts) {
         await rewardPool.submitPayeeMerkleRoot(root);
 
         let updatedPayments = payments.slice();
-        updatedPayments[0].amount += 10;
+        updatedPayments[0].amount = updatedPayments[0].amount.add(
+          toTokenUnit(10)
+        );
         let updatedMerkleTree = new CumulativePaymentTree(updatedPayments);
         let updatedRoot = updatedMerkleTree.getHexRoot();
 
@@ -207,12 +209,9 @@ contract("RewardPool", function (accounts) {
 
       beforeEach(async function () {
         payee = payments[payeeIndex].payee;
-        rewardPoolBalance = 100;
+        rewardPoolBalance = toTokenUnit(100);
         paymentAmount = payments[payeeIndex].amount;
-        await cardcpxdToken.mint(
-          rewardPool.address,
-          toTokenUnit(rewardPoolBalance)
-        );
+        await cardcpxdToken.mint(rewardPool.address, rewardPoolBalance);
         paymentCycle = await rewardPool.numPaymentCycles();
         paymentCycle = paymentCycle.toNumber();
         merkleTree = new CumulativePaymentTree(payments);
@@ -231,11 +230,7 @@ contract("RewardPool", function (accounts) {
           proof,
           { from: payee }
         );
-        assert.equal(
-          balance.toNumber(),
-          paymentAmount,
-          "the balance is correct"
-        );
+        assert(balance.eq(paymentAmount), "the balance is correct");
       });
 
       it("non-payee can get the available balance in the payment pool for an address and proof", async function () {
@@ -244,11 +239,7 @@ contract("RewardPool", function (accounts) {
           payee,
           proof
         );
-        assert.equal(
-          balance.toNumber(),
-          paymentAmount,
-          "the balance is correct"
-        );
+        assert(balance.eq(paymentAmount), "the balance is correct");
       });
 
       it("an invalid proof/address pair returns a balance of 0 in the payment pool", async function () {
@@ -263,7 +254,7 @@ contract("RewardPool", function (accounts) {
           payee,
           differentUsersProof
         );
-        assert.equal(balance.toNumber(), 0, "the balance is correct");
+        assert.equal(Number(balance), 0, "the balance is correct");
       });
 
       it("garbage proof data returns a balance of 0 in payment pool", async function () {
@@ -273,12 +264,12 @@ contract("RewardPool", function (accounts) {
           payee,
           randomProof
         );
-        assert.equal(balance.toNumber(), 0, "the balance is correct");
+        assert.equal(Number(balance), 0, "the balance is correct");
       });
 
       it("can handle balance for proofs from different payment cycles", async function () {
         let updatedPayments = payments.slice();
-        let updatedPaymentAmount = 20;
+        let updatedPaymentAmount = toTokenUnit(20);
         updatedPayments[payeeIndex].amount = updatedPaymentAmount;
         let updatedMerkleTree = new CumulativePaymentTree(updatedPayments);
         let updatedRoot = updatedMerkleTree.getHexRoot();
@@ -301,9 +292,8 @@ contract("RewardPool", function (accounts) {
             from: payee,
           }
         );
-        assert.equal(
-          balance.toNumber(),
-          updatedPaymentAmount,
+        assert(
+          balance.eq(updatedPaymentAmount),
           "the balance is correct for the updated proof"
         );
 
@@ -312,9 +302,8 @@ contract("RewardPool", function (accounts) {
           proof,
           { from: payee }
         );
-        assert.equal(
-          balance.toNumber(),
-          paymentAmount,
+        assert(
+          balance.eq(paymentAmount),
           "the balance is correct for the original proof"
         );
       });
@@ -322,7 +311,11 @@ contract("RewardPool", function (accounts) {
       it("balance of payee that has 0 tokens in payment list returns 0 balance in payment pool", async function () {
         let aPayee = accounts[1];
         let updatedPayments = payments.slice();
-        updatedPayments.push({ payee: aPayee, amount: 0 });
+        updatedPayments.push({
+          payee: aPayee,
+          token: cardcpxdToken.address,
+          amount: toTokenUnit(0),
+        });
         let updatedMerkleTree = new CumulativePaymentTree(updatedPayments);
         let updatedRoot = updatedMerkleTree.getHexRoot();
 
@@ -345,7 +338,7 @@ contract("RewardPool", function (accounts) {
           }
         );
         assert.equal(
-          balance.toNumber(),
+          Number(balance),
           0,
           "the balance is correct for the updated proof"
         );
@@ -356,7 +349,7 @@ contract("RewardPool", function (accounts) {
         updatedPayments.push({
           payee,
           token: cardcpxdToken.address,
-          amount: 8,
+          amount: toTokenUnit(8),
         });
         let updatedMerkleTree = new CumulativePaymentTree(updatedPayments);
         let updatedRoot = updatedMerkleTree.getHexRoot();
@@ -380,8 +373,8 @@ contract("RewardPool", function (accounts) {
           }
         );
         assert.equal(
-          balance.toNumber(),
-          18,
+          Number(balance),
+          toTokenUnit(18),
           "the balance is correct for the updated proof"
         );
       });
@@ -402,7 +395,7 @@ contract("RewardPool", function (accounts) {
         paymentAmount = payments[payeeIndex].amount;
         merkleTree = new CumulativePaymentTree(payments);
         root = merkleTree.getHexRoot();
-        rewardPoolBalance = 100;
+        rewardPoolBalance = toTokenUnit(100);
         await cardcpxdToken.mint(rewardPool.address, rewardPoolBalance);
         paymentCycle = await rewardPool.numPaymentCycles();
         paymentCycle = paymentCycle.toNumber();
@@ -428,9 +421,8 @@ contract("RewardPool", function (accounts) {
           (log) => log.event === "PayeeWithdraw"
         );
         assert.equal(withdrawEvent.args.payee, payee, "event payee is correct");
-        assert.equal(
-          withdrawEvent.args.amount.toNumber(),
-          paymentAmount,
+        assert(
+          withdrawEvent.args.amount.eq(paymentAmount),
           "event amount is correct"
         );
 
@@ -448,30 +440,20 @@ contract("RewardPool", function (accounts) {
           }
         );
 
-        assert.equal(
-          payeeBalance.toNumber(),
-          paymentAmount,
-          "the payee balance is correct"
-        );
-        assert.equal(
-          poolBalance.toNumber(),
-          rewardPoolBalance - paymentAmount,
+        assert(payeeBalance.eq(paymentAmount), "the payee balance is correct");
+        assert(
+          poolBalance.eq(rewardPoolBalance.sub(paymentAmount)),
           "the pool balance is correct"
         );
-        assert.equal(
-          withdrawals.toNumber(),
-          paymentAmount,
+        assert(
+          withdrawals.eq(paymentAmount),
           "the withdrawals amount is correct"
         );
-        assert.equal(
-          proofBalance.toNumber(),
-          0,
-          "the proof balance is correct"
-        );
+        assert.equal(Number(proofBalance), 0, "the proof balance is correct");
       });
 
       it("payee can make a withdrawal less than their allotted amount from the pool", async function () {
-        let withdrawalAmount = 8;
+        let withdrawalAmount = toTokenUnit(8);
         let txn = await rewardPool.withdraw(
           cardcpxdToken.address,
           withdrawalAmount,
@@ -485,9 +467,8 @@ contract("RewardPool", function (accounts) {
           (log) => log.event === "PayeeWithdraw"
         );
         assert.equal(withdrawEvent.args.payee, payee, "event payee is correct");
-        assert.equal(
-          withdrawEvent.args.amount.toNumber(),
-          withdrawalAmount,
+        assert(
+          withdrawEvent.args.amount.eq(withdrawalAmount),
           "event amount is correct"
         );
 
@@ -506,35 +487,42 @@ contract("RewardPool", function (accounts) {
         );
 
         assert.equal(
-          payeeBalance.toNumber(),
+          Number(payeeBalance),
           withdrawalAmount,
           "the payee balance is correct"
         );
-        assert.equal(
-          poolBalance.toNumber(),
-          rewardPoolBalance - withdrawalAmount,
+        assert(
+          poolBalance.eq(rewardPoolBalance.sub(withdrawalAmount)),
           "the pool balance is correct"
         );
-        assert.equal(
-          withdrawals.toNumber(),
-          withdrawalAmount,
+        assert(
+          withdrawals.eq(withdrawalAmount),
           "the withdrawals amount is correct"
         );
-        assert.equal(
-          proofBalance.toNumber(),
-          paymentAmount - withdrawalAmount,
+        assert(
+          proofBalance.eq(paymentAmount.sub(withdrawalAmount)),
           "the proof balance is correct"
         );
       });
 
       it("payee can make mulitple withdrawls within their allotted amount from the pool", async function () {
-        let withdrawalAmount = 4 + 6;
-        await rewardPool.withdraw(cardcpxdToken.address, 4, proof, {
-          from: payee,
-        });
-        await rewardPool.withdraw(cardcpxdToken.address, 6, proof, {
-          from: payee,
-        });
+        let withdrawalAmount = toTokenUnit(4).add(toTokenUnit(6));
+        await rewardPool.withdraw(
+          cardcpxdToken.address,
+          toTokenUnit(4),
+          proof,
+          {
+            from: payee,
+          }
+        );
+        await rewardPool.withdraw(
+          cardcpxdToken.address,
+          toTokenUnit(6),
+          proof,
+          {
+            from: payee,
+          }
+        );
 
         let payeeBalance = await cardcpxdToken.balanceOf(payee);
         let poolBalance = await cardcpxdToken.balanceOf(rewardPool.address);
@@ -550,30 +538,26 @@ contract("RewardPool", function (accounts) {
           }
         );
 
-        assert.equal(
-          payeeBalance.toNumber(),
-          withdrawalAmount,
+        assert(
+          payeeBalance.eq(withdrawalAmount),
           "the payee balance is correct"
         );
-        assert.equal(
-          poolBalance.toNumber(),
-          rewardPoolBalance - withdrawalAmount,
+        assert(
+          poolBalance.eq(rewardPoolBalance.sub(withdrawalAmount)),
           "the pool balance is correct"
         );
-        assert.equal(
-          withdrawals.toNumber(),
-          withdrawalAmount,
+        assert(
+          withdrawals.eq(withdrawalAmount),
           "the withdrawals amount is correct"
         );
-        assert.equal(
-          proofBalance.toNumber(),
-          paymentAmount - withdrawalAmount,
+        assert(
+          proofBalance.eq(paymentAmount.sub(withdrawalAmount)),
           "the proof balance is correct"
         );
       });
 
       it("payee cannot withdraw more than their allotted amount from the pool", async function () {
-        let withdrawalAmount = 11;
+        let withdrawalAmount = toTokenUnit(11);
         await assertRevert(
           async () =>
             await rewardPool.withdraw(
@@ -598,26 +582,17 @@ contract("RewardPool", function (accounts) {
           }
         );
 
-        assert.equal(
-          payeeBalance.toNumber(),
-          0,
-          "the payee balance is correct"
-        );
-        assert.equal(
-          poolBalance.toNumber(),
-          rewardPoolBalance,
+        assert.equal(Number(payeeBalance), 0, "the payee balance is correct");
+        assert(
+          poolBalance.eq(rewardPoolBalance),
           "the pool balance is correct"
         );
         assert.equal(
-          withdrawals.toNumber(),
+          Number(withdrawals),
           0,
           "the withdrawals amount is correct"
         );
-        assert.equal(
-          proofBalance.toNumber(),
-          paymentAmount,
-          "the proof balance is correct"
-        );
+        assert(proofBalance.eq(paymentAmount), "the proof balance is correct");
       });
 
       it("payee cannot withdraw using a proof whose metadata has been tampered with", async function () {
@@ -657,43 +632,44 @@ contract("RewardPool", function (accounts) {
           { from: payee }
         );
 
-        assert.equal(
-          payeeBalance.toNumber(),
-          0,
-          "the payee balance is correct"
-        );
-        assert.equal(
-          poolBalance.toNumber(),
-          rewardPoolBalance,
+        assert.equal(payeeBalance, 0, "the payee balance is correct");
+        assert(
+          poolBalance.eq(rewardPoolBalance),
           "the pool balance is correct"
         );
         assert.equal(
-          withdrawals.toNumber(),
+          Number(withdrawals),
           0,
           "the withdrawals amount is correct"
         );
+        assert(proofBalance.eq(paymentAmount), "the proof balance is correct");
         assert.equal(
-          proofBalance.toNumber(),
-          paymentAmount,
-          "the proof balance is correct"
-        );
-        assert.equal(
-          tamperedProofBalance.toNumber(),
+          tamperedProofBalance,
           0,
           "the tampered proof balance is 0 tokens"
         );
       });
 
       it("payee cannot make mulitple withdrawls that total to more than their allotted amount from the pool", async function () {
-        let withdrawalAmount = 4;
-        await rewardPool.withdraw(cardcpxdToken.address, 4, proof, {
-          from: payee,
-        });
+        let withdrawalAmount = toTokenUnit(4);
+        await rewardPool.withdraw(
+          cardcpxdToken.address,
+          toTokenUnit(4),
+          proof,
+          {
+            from: payee,
+          }
+        );
         await assertRevert(
           async () =>
-            await rewardPool.withdraw(cardcpxdToken.address, 7, proof, {
-              from: payee,
-            })
+            await rewardPool.withdraw(
+              cardcpxdToken.address,
+              toTokenUnit(7),
+              proof,
+              {
+                from: payee,
+              }
+            )
         );
 
         let payeeBalance = await cardcpxdToken.balanceOf(payee);
@@ -710,30 +686,26 @@ contract("RewardPool", function (accounts) {
           }
         );
 
-        assert.equal(
-          payeeBalance.toNumber(),
-          withdrawalAmount,
+        assert(
+          payeeBalance.eq(withdrawalAmount),
           "the payee balance is correct"
         );
-        assert.equal(
-          poolBalance.toNumber(),
-          rewardPoolBalance - withdrawalAmount,
+        assert(
+          poolBalance.eq(rewardPoolBalance.sub(withdrawalAmount)),
           "the pool balance is correct"
         );
-        assert.equal(
-          withdrawals.toNumber(),
-          withdrawalAmount,
+        assert(
+          withdrawals.eq(withdrawalAmount),
           "the withdrawals amount is correct"
         );
-        assert.equal(
-          proofBalance.toNumber(),
-          paymentAmount - withdrawalAmount,
+        assert(
+          proofBalance.eq(paymentAmount.sub(withdrawalAmount)),
           "the proof balance is correct"
         );
       });
 
       it("payee cannot withdraw 0 tokens from payment pool", async function () {
-        let withdrawalAmount = 0;
+        let withdrawalAmount = toTokenUnit(0);
         await assertRevert(
           async () =>
             await rewardPool.withdraw(
@@ -758,30 +730,21 @@ contract("RewardPool", function (accounts) {
           }
         );
 
-        assert.equal(
-          payeeBalance.toNumber(),
-          0,
-          "the payee balance is correct"
-        );
-        assert.equal(
-          poolBalance.toNumber(),
-          rewardPoolBalance,
+        assert.equal(Number(payeeBalance), 0, "the payee balance is correct");
+        assert(
+          poolBalance.eq(rewardPoolBalance),
           "the pool balance is correct"
         );
         assert.equal(
-          withdrawals.toNumber(),
+          Number(withdrawals),
           0,
           "the withdrawals amount is correct"
         );
-        assert.equal(
-          proofBalance.toNumber(),
-          paymentAmount,
-          "the proof balance is correct"
-        );
+        assert(proofBalance.eq(paymentAmount), "the proof balance is correct");
       });
 
       it("non-payee cannot withdraw from pool", async function () {
-        let withdrawalAmount = 10;
+        let withdrawalAmount = toTokenUnit(10);
         await assertRevert(
           async () =>
             await rewardPool.withdraw(
@@ -808,26 +771,13 @@ contract("RewardPool", function (accounts) {
           }
         );
 
-        assert.equal(
-          payeeBalance.toNumber(),
-          0,
-          "the payee balance is correct"
-        );
-        assert.equal(
-          poolBalance.toNumber(),
-          rewardPoolBalance,
+        assert.equal(payeeBalance, 0, "the payee balance is correct");
+        assert(
+          poolBalance.eq(rewardPoolBalance),
           "the pool balance is correct"
         );
-        assert.equal(
-          withdrawals.toNumber(),
-          0,
-          "the withdrawals amount is correct"
-        );
-        assert.equal(
-          proofBalance.toNumber(),
-          paymentAmount,
-          "the proof balance is correct"
-        );
+        assert.equal(withdrawals, 0, "the withdrawals amount is correct");
+        assert(proofBalance.eq(paymentAmount), "the proof balance is correct");
       });
 
       it("payee cannot withdraw their allotted tokens from the pool when the pool does not have enough tokens", async function () {
@@ -866,31 +816,27 @@ contract("RewardPool", function (accounts) {
           { from: insufficientFundsPayee }
         );
 
-        assert.equal(
-          payeeBalance.toNumber(),
-          0,
-          "the payee balance is correct"
-        );
-        assert.equal(
-          poolBalance.toNumber(),
-          rewardPoolBalance,
+        assert.equal(Number(payeeBalance), 0, "the payee balance is correct");
+        assert(
+          poolBalance.eq(rewardPoolBalance),
           "the pool balance is correct"
         );
         assert.equal(
-          withdrawals.toNumber(),
+          Number(withdrawals),
           0,
           "the withdrawals amount is correct"
         );
-        assert.equal(
-          proofBalance.toNumber(),
-          insufficientFundsPaymentAmount,
+        assert(
+          proofBalance.eq(insufficientFundsPaymentAmount),
           "the proof balance is correct"
         );
       });
 
       it("payee withdraws their allotted amount from an older proof", async function () {
         let updatedPayments = payments.slice();
-        updatedPayments[payeeIndex].amount += 2;
+        updatedPayments[payeeIndex].amount = updatedPayments[
+          payeeIndex
+        ].amount.add(toTokenUnit(2));
         let updatedPaymentAmount = updatedPayments[payeeIndex].amount;
         let updatedMerkleTree = new CumulativePaymentTree(updatedPayments);
         let updatedRoot = updatedMerkleTree.getHexRoot();
@@ -906,7 +852,7 @@ contract("RewardPool", function (accounts) {
         );
         await rewardPool.submitPayeeMerkleRoot(updatedRoot);
 
-        let withdrawalAmount = 8;
+        let withdrawalAmount = toTokenUnit(8);
         await rewardPool.withdraw(
           cardcpxdToken.address,
           withdrawalAmount,
@@ -927,42 +873,39 @@ contract("RewardPool", function (accounts) {
             from: payee,
           }
         );
-        let udpatedProofBalance = await rewardPool.balanceForProof(
+        let updatedProofBalance = await rewardPool.balanceForProof(
           cardcpxdToken.address,
           updatedProof,
           { from: payee }
         );
 
-        assert.equal(
-          payeeBalance.toNumber(),
-          withdrawalAmount,
+        assert(
+          payeeBalance.eq(withdrawalAmount),
           "the payee balance is correct"
         );
-        assert.equal(
-          poolBalance.toNumber(),
-          rewardPoolBalance - withdrawalAmount,
+        assert(
+          poolBalance.eq(rewardPoolBalance.sub(withdrawalAmount)),
           "the pool balance is correct"
         );
-        assert.equal(
-          withdrawals.toNumber(),
-          withdrawalAmount,
+        assert(
+          withdrawals.eq(withdrawalAmount),
           "the withdrawals amount is correct"
         );
-        assert.equal(
-          proofBalance.toNumber(),
-          paymentAmount - withdrawalAmount,
+        assert(
+          proofBalance.eq(paymentAmount.sub(withdrawalAmount)),
           "the proof balance is correct"
         );
-        assert.equal(
-          udpatedProofBalance.toNumber(),
-          updatedPaymentAmount - withdrawalAmount,
+        assert(
+          updatedProofBalance.eq(updatedPaymentAmount.sub(withdrawalAmount)),
           "the updated proof balance is correct"
         );
       });
 
       it("payee withdraws their allotted amount from a newer proof", async function () {
         let updatedPayments = payments.slice();
-        updatedPayments[payeeIndex].amount += 2;
+        updatedPayments[payeeIndex].amount = updatedPayments[
+          payeeIndex
+        ].amount.add(toTokenUnit(2));
         let updatedPaymentAmount = updatedPayments[payeeIndex].amount;
         let updatedMerkleTree = new CumulativePaymentTree(updatedPayments);
         let updatedRoot = updatedMerkleTree.getHexRoot();
@@ -978,7 +921,7 @@ contract("RewardPool", function (accounts) {
         );
         await rewardPool.submitPayeeMerkleRoot(updatedRoot);
 
-        let withdrawalAmount = 8;
+        let withdrawalAmount = toTokenUnit(8);
         await rewardPool.withdraw(
           cardcpxdToken.address,
           withdrawalAmount,
@@ -1001,42 +944,39 @@ contract("RewardPool", function (accounts) {
             from: payee,
           }
         );
-        let udpatedProofBalance = await rewardPool.balanceForProof(
+        let updatedProofBalance = await rewardPool.balanceForProof(
           cardcpxdToken.address,
           updatedProof,
           { from: payee }
         );
 
-        assert.equal(
-          payeeBalance.toNumber(),
-          withdrawalAmount,
+        assert(
+          payeeBalance.eq(withdrawalAmount),
           "the payee balance is correct"
         );
-        assert.equal(
-          poolBalance.toNumber(),
-          rewardPoolBalance - withdrawalAmount,
+        assert(
+          poolBalance.eq(rewardPoolBalance.sub(withdrawalAmount)),
           "the pool balance is correct"
         );
-        assert.equal(
-          withdrawals.toNumber(),
-          withdrawalAmount,
+        assert(
+          withdrawals.eq(withdrawalAmount),
           "the withdrawals amount is correct"
         );
-        assert.equal(
-          proofBalance.toNumber(),
-          paymentAmount - withdrawalAmount,
+        assert(
+          proofBalance.eq(paymentAmount.sub(withdrawalAmount)),
           "the proof balance is correct"
         );
-        assert.equal(
-          udpatedProofBalance.toNumber(),
-          updatedPaymentAmount - withdrawalAmount,
+        assert(
+          updatedProofBalance.eq(updatedPaymentAmount.sub(withdrawalAmount)),
           "the updated proof balance is correct"
         );
       });
 
       it("payee withdraws their allotted amount from both an older and new proof", async function () {
         let updatedPayments = payments.slice();
-        updatedPayments[payeeIndex].amount += 2;
+        updatedPayments[payeeIndex].amount = updatedPayments[
+          payeeIndex
+        ].amount.add(toTokenUnit(2));
         let updatedPaymentAmount = updatedPayments[payeeIndex].amount;
         let updatedMerkleTree = new CumulativePaymentTree(updatedPayments);
         let updatedRoot = updatedMerkleTree.getHexRoot();
@@ -1052,13 +992,23 @@ contract("RewardPool", function (accounts) {
         );
         await rewardPool.submitPayeeMerkleRoot(updatedRoot);
 
-        let withdrawalAmount = 8 + 4;
-        await rewardPool.withdraw(cardcpxdToken.address, 8, proof, {
-          from: payee,
-        });
-        await rewardPool.withdraw(cardcpxdToken.address, 4, updatedProof, {
-          from: payee,
-        });
+        let withdrawalAmount = toTokenUnit(8).add(toTokenUnit(4));
+        await rewardPool.withdraw(
+          cardcpxdToken.address,
+          toTokenUnit(8),
+          proof,
+          {
+            from: payee,
+          }
+        );
+        await rewardPool.withdraw(
+          cardcpxdToken.address,
+          toTokenUnit(4),
+          updatedProof,
+          {
+            from: payee,
+          }
+        );
 
         let payeeBalance = await cardcpxdToken.balanceOf(payee);
         let poolBalance = await cardcpxdToken.balanceOf(rewardPool.address);
@@ -1073,42 +1023,37 @@ contract("RewardPool", function (accounts) {
             from: payee,
           }
         );
-        let udpatedProofBalance = await rewardPool.balanceForProof(
+        let updatedProofBalance = await rewardPool.balanceForProof(
           cardcpxdToken.address,
           updatedProof,
           { from: payee }
         );
 
-        assert.equal(
-          payeeBalance.toNumber(),
-          withdrawalAmount,
+        assert(
+          payeeBalance.eq(withdrawalAmount),
           "the payee balance is correct"
         );
-        assert.equal(
-          poolBalance.toNumber(),
-          rewardPoolBalance - withdrawalAmount,
+        assert(
+          poolBalance.eq(rewardPoolBalance.sub(withdrawalAmount)),
           "the pool balance is correct"
         );
-        assert.equal(
-          withdrawals.toNumber(),
-          withdrawalAmount,
+        assert(
+          withdrawals.eq(withdrawalAmount),
           "the withdrawals amount is correct"
         );
-        assert.equal(
-          proofBalance.toNumber(),
-          0,
-          "the proof balance is correct"
-        );
-        assert.equal(
-          udpatedProofBalance.toNumber(),
-          updatedPaymentAmount - withdrawalAmount,
+        assert.equal(Number(proofBalance), 0, "the proof balance is correct");
+        assert(
+          updatedProofBalance.eq(updatedPaymentAmount.sub(withdrawalAmount)),
+
           "the updated proof balance is correct"
         );
       });
 
       it("does not allow a payee to exceed their provided proof's allotted amount when withdrawing from an older proof and a newer proof", async function () {
         let updatedPayments = payments.slice();
-        updatedPayments[payeeIndex].amount += 2;
+        updatedPayments[payeeIndex].amount = updatedPayments[
+          payeeIndex
+        ].amount.add(toTokenUnit(2));
         let updatedPaymentAmount = updatedPayments[payeeIndex].amount;
         let updatedMerkleTree = new CumulativePaymentTree(updatedPayments);
         let updatedRoot = updatedMerkleTree.getHexRoot();
@@ -1124,12 +1069,19 @@ contract("RewardPool", function (accounts) {
         );
         await rewardPool.submitPayeeMerkleRoot(updatedRoot);
 
-        let withdrawalAmount = 8;
-        await rewardPool.withdraw(cardcpxdToken.address, 8, updatedProof, {
-          from: payee,
-        });
+        let withdrawalAmount = toTokenUnit(8);
+        await rewardPool.withdraw(
+          cardcpxdToken.address,
+          withdrawalAmount,
+          updatedProof,
+          {
+            from: payee,
+          }
+        );
         await assertRevert(async () =>
-          rewardPool.withdraw(cardcpxdToken.address, 4, proof, { from: payee })
+          rewardPool.withdraw(cardcpxdToken.address, toTokenUnit(4), proof, {
+            from: payee,
+          })
         ); // this proof only permits 10 - 8 tokens to be withdrawn, even though the newer proof permits 12 - 8 tokens to be withdrawn
 
         let payeeBalance = await cardcpxdToken.balanceOf(payee);
@@ -1145,35 +1097,30 @@ contract("RewardPool", function (accounts) {
             from: payee,
           }
         );
-        let udpatedProofBalance = await rewardPool.balanceForProof(
+        let updatedProofBalance = await rewardPool.balanceForProof(
           cardcpxdToken.address,
           updatedProof,
           { from: payee }
         );
 
-        assert.equal(
-          payeeBalance.toNumber(),
-          withdrawalAmount,
+        assert(
+          payeeBalance.eq(withdrawalAmount),
           "the payee balance is correct"
         );
-        assert.equal(
-          poolBalance.toNumber(),
-          rewardPoolBalance - withdrawalAmount,
+        assert(
+          poolBalance.eq(rewardPoolBalance.sub(withdrawalAmount)),
           "the pool balance is correct"
         );
-        assert.equal(
-          withdrawals.toNumber(),
-          withdrawalAmount,
+        assert(
+          withdrawals.eq(withdrawalAmount),
           "the withdrawals amount is correct"
         );
-        assert.equal(
-          proofBalance.toNumber(),
-          paymentAmount - withdrawalAmount,
+        assert(
+          proofBalance.eq(paymentAmount.sub(withdrawalAmount)),
           "the proof balance is correct"
         );
-        assert.equal(
-          udpatedProofBalance.toNumber(),
-          updatedPaymentAmount - withdrawalAmount,
+        assert(
+          updatedProofBalance.eq(updatedPaymentAmount.sub(withdrawalAmount)),
           "the updated proof balance is correct"
         );
       });
@@ -1195,38 +1142,29 @@ contract("RewardPool", function (accounts) {
           {
             payee,
             token: daicpxdToken.address,
-            amount: 10,
+            amount: toTokenUnit(10),
           },
           {
             payee,
             token: daicpxdToken.address,
-            amount: 12,
+            amount: toTokenUnit(12),
           },
           {
             payee,
             token: cardcpxdToken.address,
-            amount: 100,
+            amount: toTokenUnit(100),
           },
           {
             payee,
             token: erc20Token.address,
-            amount: 10,
+            amount: toTokenUnit(10),
           },
         ];
 
-        rewardPoolBalance = 500;
-        await cardcpxdToken.mint(
-          rewardPool.address,
-          toTokenUnit(rewardPoolBalance)
-        );
-        await daicpxdToken.mint(
-          rewardPool.address,
-          toTokenUnit(rewardPoolBalance)
-        );
-        await erc20Token.mint(
-          rewardPool.address,
-          toTokenUnit(rewardPoolBalance)
-        );
+        rewardPoolBalance = toTokenUnit(500);
+        await cardcpxdToken.mint(rewardPool.address, rewardPoolBalance);
+        await daicpxdToken.mint(rewardPool.address, rewardPoolBalance);
+        await erc20Token.mint(rewardPool.address, rewardPoolBalance);
         await rewardPool.addPayableToken(erc20Token.address);
         merkleTree = new CumulativePaymentTree(payments);
         root = merkleTree.getHexRoot();
@@ -1241,10 +1179,9 @@ contract("RewardPool", function (accounts) {
         const rewardPoolBalanceErc20 = await erc20Token.balanceOf(
           rewardPool.address
         );
-        // console.log(Number(rewardPoolBalanceCard), rewardPoolBalance);
-        // console.log(Number(rewardPoolBalanceCard), rewardPoolBalance);
-        // assert.equal(Number(rewardPoolBalanceCard), rewardPoolBalance);
-        // assert.equal(Number(rewardPoolBalanceDai), rewardPoolBalance);
+        assert(rewardPoolBalanceCard.eq(rewardPoolBalance));
+        assert(rewardPoolBalanceDai.eq(rewardPoolBalance));
+        assert(rewardPoolBalanceErc20.eq(rewardPoolBalance));
       });
 
       it("cannot withdraw if payable token not added", async () => {
@@ -1271,7 +1208,7 @@ contract("RewardPool", function (accounts) {
           newCardcpxdToken.address,
           paymentCycle
         );
-        const amountCard = 50;
+        const amountCard = toTokenUnit(50);
         await rewardPool
           .withdraw(newCardcpxdToken.address, amountCard, cardProof, {
             from: payee,
@@ -1329,8 +1266,8 @@ contract("RewardPool", function (accounts) {
         assert.equal(withdrawDataForPayee.length, 3);
         assert.equal(daiProof, daiProofPrime);
         assert.equal(cardProof, cardProofPrime);
-        assert.equal(cardAvailable, 100);
-        assert.equal(daiAvailable, 22);
+        assert(cardAvailable.eq(toTokenUnit(100)));
+        assert(daiAvailable.eq(toTokenUnit(22)));
       });
 
       it("withdraw from two different tokens", async () => {
@@ -1355,10 +1292,10 @@ contract("RewardPool", function (accounts) {
           payee,
           cardProof
         );
-        const amountCard = 50;
+        const amountCard = toTokenUnit(50);
         const amountDai = daiBalanceBefore;
-        assert(amountCard <= Number(cardBalanceBefore));
-        assert(amountDai <= Number(daiBalanceBefore));
+        assert(amountCard.lte(cardBalanceBefore));
+        assert(amountDai.lte(daiBalanceBefore));
         await rewardPool.withdraw(
           cardcpxdToken.address,
           amountCard,
@@ -1382,16 +1319,10 @@ contract("RewardPool", function (accounts) {
         );
         const payeeCardBalance = await cardcpxdToken.balanceOf(payee);
         const payeeDaiBalance = await daicpxdToken.balanceOf(payee);
-        assert.equal(
-          Number(cardBalanceBefore),
-          Number(cardBalanceAfter) + amountCard
-        );
-        assert.equal(
-          Number(daiBalanceBefore),
-          Number(daiBalanceAfter) + amountDai
-        );
-        assert.equal(Number(payeeCardBalance), Number(amountCard));
-        assert.equal(Number(payeeDaiBalance), Number(amountDai));
+        assert(cardBalanceBefore.eq(cardBalanceAfter.add(amountCard)));
+        assert(daiBalanceBefore.eq(daiBalanceAfter.add(amountDai)));
+        assert(payeeCardBalance.eq(amountCard));
+        assert(payeeDaiBalance.eq(amountDai));
       });
     });
   });

@@ -32,7 +32,7 @@ class CumulativePaymentTree extends MerkleTree {
         o[key] = e;
         r.push(o[key]);
       } else {
-        o[key].amount += e.amount;
+        o[key].amount = o[key].amount.add(e.amount); //using bn
       }
       return r;
     }, []);
