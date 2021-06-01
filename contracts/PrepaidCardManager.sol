@@ -40,7 +40,7 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
   );
 
   bytes4 public constant SWAP_OWNER = 0xe318b52b; //swapOwner(address,address,address)
-  bytes4 public constant TRANSER_AND_CALL = 0x4000aea0; //transferAndCall(address,uint256,bytes)
+  bytes4 public constant TRANSFER_AND_CALL = 0x4000aea0; //transferAndCall(address,uint256,bytes)
   uint8 public constant MAXIMUM_NUMBER_OF_CARD = 15;
   uint256 public constant MINIMUM_MERCHANT_PAYMENT = 50; //in units of SPEND
   address payable public revenuePool;
@@ -329,7 +329,7 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
   ) public view returns (bytes memory) {
     return
       abi.encodeWithSelector(
-        TRANSER_AND_CALL,
+        TRANSFER_AND_CALL,
         revenuePool,
         amount,
         abi.encode(merchantSafe)
@@ -379,7 +379,7 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
     // Transfer token to this contract and call _createMultiplePrepaidCards
     return
       abi.encodeWithSelector(
-        TRANSER_AND_CALL,
+        TRANSFER_AND_CALL,
         address(this),
         total,
         abi.encode(cardOwner, subCardAmount)
