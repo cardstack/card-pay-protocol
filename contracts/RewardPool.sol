@@ -109,14 +109,8 @@ contract RewardPool is Versionable, Initializable, Ownable, PayableToken {
 
   function splitIntoBytes32(bytes memory byteArray, uint256 numBytes32) internal pure returns (bytes32[] memory bytes32Array,
                                                                                         bytes32[] memory remainder) {
-    if ( byteArray.length % 32 != 0 ||
-         byteArray.length < numBytes32.mul(32) ||
-         byteArray.length.div(32) > 50) { // Arbitrarily limiting this function to an array of 50 bytes32's to conserve gas
-
-      bytes32Array = new bytes32[](0);
-      remainder = new bytes32[](0);
-      return (bytes32Array, remainder);
-    }
+    require(byteArray.length.div(32) <= 50);
+    require(byteArray.length % 32 == 0 && byteArray.length >= numBytes32.mul(32));
 
     bytes32Array = new bytes32[](numBytes32);
     remainder = new bytes32[](byteArray.length.sub(64).div(32));

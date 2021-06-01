@@ -1,11 +1,7 @@
 const CumulativePaymentTree = require("./utils/cumulative-payment-tree");
 
 const { TOKEN_DETAIL_DATA, assert } = require("./setup");
-const {
-  toTokenUnit,
-  advanceBlock,
-  assertRevert,
-} = require("./utils/helper");
+const { toTokenUnit, advanceBlock, assertRevert } = require("./utils/helper");
 const _ = require("lodash");
 
 const ERC20Token = artifacts.require(
@@ -268,6 +264,18 @@ contract("RewardPool", function (accounts) {
           randomProof
         );
         assert.equal(Number(balance), 0, "the balance is correct");
+      });
+
+      it("proof that is not the correct size returns revert", async function () {
+        const randomProof = web3.utils.randomHex(31 * 5);
+        await assertRevert(
+          async () =>
+            await rewardPool.balanceForProofWithAddress(
+              cardcpxdToken.address,
+              payee,
+              randomProof
+            )
+        );
       });
 
       it("can handle balance for proofs from different payment cycles", async function () {
