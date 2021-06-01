@@ -35,7 +35,6 @@ contract RewardPool is Versionable, Initializable, Ownable, PayableToken {
     for (uint256 i = 0; i < _payableTokens.length; i++) {
       _addPayableToken(_payableTokens[i]);
     }
-    currentPaymentCycleStartBlock = block.number; //this is a very dangerous line. should not adjust currentPaymenttCycleStartBlock everytime setup is called
     emit Setup();
   }
 

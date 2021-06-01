@@ -22,7 +22,6 @@ contract("RewardPool", function (accounts) {
   let daicpxdToken;
   let cardcpxdToken;
   let payments;
-  let initialBlockNumber;
   describe("Reward Pool", function () {
     beforeEach(async function () {
       owner = accounts[0];
@@ -72,7 +71,6 @@ contract("RewardPool", function (accounts) {
       rewardPool = await RewardPool.new();
       await rewardPool.initialize(owner);
       await rewardPool.setup([cardcpxdToken.address, daicpxdToken.address]);
-      initialBlockNumber = await web3.eth.getBlockNumber();
     });
 
     afterEach(async function () {
@@ -124,7 +122,7 @@ contract("RewardPool", function (accounts) {
 
         assert.equal(
           Number(paymentCycleEvent.args.startBlock),
-          initialBlockNumber,
+          0,
           "the payment cycle start block is correct"
         );
         assert.equal(
@@ -1394,43 +1392,6 @@ contract("RewardPool", function (accounts) {
         );
         assert.equal(Number(payeeCardBalance), Number(amountCard));
         assert.equal(Number(payeeDaiBalance), Number(amountDai));
-      });
-    });
-
-    describe("hash functions are accurate", function () {
-      let node;
-      beforeEach(function () {
-        node = payments[0];
-      });
-      it("checksum/non-checksum addresses output same hash", function () {
-        assert.equal(
-          soliditySha3(
-            { t: "address", v: node["payee"] },
-            { t: "uint256", v: node["amount"] }
-          ),
-          "0xdc1a3188990e6f49560e7f513c95ce1ef99669f20d04bf16e2d1f3e76480d8ef"
-        );
-        assert.equal(
-          soliditySha3(
-            { t: "address", v: toHex(node["payee"]) },
-            { t: "uint256", v: node["amount"] }
-          ),
-          "0xdc1a3188990e6f49560e7f513c95ce1ef99669f20d04bf16e2d1f3e76480d8ef"
-        );
-        assert.equal(
-          soliditySha3(
-            { t: "address", v: node["payee"].replace("0x", "") },
-            { t: "uint256", v: node["amount"] }
-          ),
-          "0xdc1a3188990e6f49560e7f513c95ce1ef99669f20d04bf16e2d1f3e76480d8ef"
-        );
-        assert.equal(
-          soliditySha3(
-            { t: "address", v: toHex(node["payee"]).replace("0x", "") },
-            { t: "uint256", v: node["amount"] }
-          ),
-          "0xdc1a3188990e6f49560e7f513c95ce1ef99669f20d04bf16e2d1f3e76480d8ef"
-        );
       });
     });
   });
