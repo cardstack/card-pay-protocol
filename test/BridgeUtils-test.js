@@ -85,7 +85,7 @@ contract("BridgeUtils", async (accounts) => {
   });
 
   it("can add new token to bridge", async () => {
-    await bridgeUtils.updateToken(tokenMock, { from: mediatorBridgeMock });
+    await bridgeUtils.addToken(tokenMock, { from: mediatorBridgeMock });
 
     let payableToken = await pool.getTokens();
     expect(payableToken.toString()).to.equal([tokenMock].toString());
@@ -93,7 +93,7 @@ contract("BridgeUtils", async (accounts) => {
 
   it("rejects when a token is added that we do not have an exchange for", async () => {
     await bridgeUtils
-      .updateToken(unlistedToken.address, { from: mediatorBridgeMock })
+      .addToken(unlistedToken.address, { from: mediatorBridgeMock })
       .should.be.rejectedWith(Error, "No exchange exists for token");
   });
 

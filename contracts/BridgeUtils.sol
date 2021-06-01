@@ -9,7 +9,7 @@ import "./roles/PayableToken.sol";
 contract BridgeUtils is Ownable, Versionable, Safe {
   event Setup();
   event SupplierWallet(address owner, address wallet);
-  event UpdateToken(address token);
+  event TokenAdded(address token);
   event SupplierUpdated(address supplier);
 
   struct Supplier {
@@ -56,6 +56,14 @@ contract BridgeUtils is Ownable, Versionable, Safe {
     return true;
   }
 
+  function addToken(address tokenAddr)
+    external
+    onlyBridgeMediator
+    returns (bool)
+  {
+    return _addToken(tokenAddr);
+  }
+
   function updateSupplier(
     string calldata brandName,
     string calldata brandProfileUrl
@@ -83,7 +91,7 @@ contract BridgeUtils is Ownable, Versionable, Safe {
     return _registerSupplier(ownerAddr);
   }
 
-  function _updateToken(address tokenAddr) internal returns (bool) {
+  function _addToken(address tokenAddr) internal returns (bool) {
     require(
       Exchange(revenuePool).hasExchange(tokenAddr),
       "No exchange exists for token"
@@ -91,16 +99,8 @@ contract BridgeUtils is Ownable, Versionable, Safe {
     // update payable token for token
     PayableToken(revenuePool).addPayableToken(tokenAddr);
     PayableToken(prepaidCardManager).addPayableToken(tokenAddr);
-    emit UpdateToken(tokenAddr);
+    emit TokenAdded(tokenAddr);
     return true;
-  }
-
-  function updateToken(address tokenAddr)
-    external
-    onlyBridgeMediator
-    returns (bool)
-  {
-    return _updateToken(tokenAddr);
   }
 
   function _registerSupplier(address ownerAddr) internal returns (address) {
