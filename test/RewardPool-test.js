@@ -1217,22 +1217,38 @@ contract("RewardPool", function (accounts) {
         registeredTokens = await rewardPool.getTokens();
       });
 
-      it("erc20 tokens supported", async () => {
-        let registeredTokens = await rewardPool.getTokens();
+      it("can withdraw erc20 tokens", async () => {
+        const erc20Amount = toTokenUnit(5);
         await rewardPool.submitPayeeMerkleRoot(root);
         const erc20Proof = merkleTree.hexProofForPayee(
           payee,
           erc20Token.address,
           paymentCycle
         );
-        const erc20BalanceBefore = await rewardPool.balanceForProofWithAddress(
+        const payeePoolBalanceBefore = await rewardPool.balanceForProofWithAddress(
           erc20Token.address,
           payee,
           erc20Proof
         );
-        await rewardPool.withdraw(erc20Token.address, 5, erc20Proof, {
+        await rewardPool.withdraw(erc20Token.address, erc20Amount, erc20Proof, {
           from: payee,
         });
+        const payeePoolBalanceAfter = await rewardPool.balanceForProofWithAddress(
+          erc20Token.address,
+          payee,
+          erc20Proof
+        );
+        const payeeBalanceAfter = await erc20Token.balanceOf(payee);
+        const rewardPoolBalanceErc20After = await erc20Token.balanceOf(
+          rewardPool.address
+        );
+        assert(
+          payeePoolBalanceBefore.eq(payeePoolBalanceAfter.add(erc20Amount))
+        );
+        assert(payeeBalanceAfter.eq(erc20Amount));
+        assert(
+          rewardPoolBalanceErc20After.eq(rewardPoolBalance.sub(erc20Amount))
+        );
       });
 
       it("withdraw data aggregate is correct", async () => {
