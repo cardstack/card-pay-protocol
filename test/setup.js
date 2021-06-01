@@ -18,11 +18,10 @@ chai.use(chaiBN(BN));
 chai.use(chaiExclude);
 chai.use(chaiAsPromised);
 
-chai.should();
+chai.should()
 
-const expect = chai.expect;
-
-exports.expect = expect;
+exports.expect = chai.expect;
+exports.assert = chai.assert;
 
 // token detail
 const TOKEN_DETAIL_DATA = ["DAI.CPXD", "DAI", 18];

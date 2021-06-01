@@ -6,7 +6,7 @@ const Feed = artifacts.require("ManualFeed");
 const ERC677Token = artifacts.require("ERC677Token.sol");
 const AbiCoder = require("web3-eth-abi");
 const { toBN } = require("web3-utils");
-const { TOKEN_DETAIL_DATA } = require("../setup");
+const { TOKEN_DETAIL_DATA, assert} = require("../setup");
 const eventABIs = require("./constant/eventABIs");
 
 const {
@@ -393,7 +393,7 @@ exports.advanceBlock = async function (web3) {
         method: "evm_mine",
         id: new Date().getTime(),
       },
-      (err, result) => {
+      (err) => {
         if (err) {
           return reject(err);
         }

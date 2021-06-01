@@ -1,17 +1,17 @@
 const CumulativePaymentTree = require("./utils/cumulative-payment-tree");
 
+const { TOKEN_DETAIL_DATA, assert } = require("./setup");
 const {
   toTokenUnit,
-  setupExchanges,
   advanceBlock,
   assertRevert,
 } = require("./utils/helper");
-const assert = require("assert");
 const _ = require("lodash");
 
 const ERC20Token = artifacts.require(
   "@openzeppelin/contract-upgradeable/contracts/token/ERC20/ERC20Mintable.sol"
 );
+const ERC677Token = artifacts.require("ERC677Token.sol");
 const RewardPool = artifacts.require("RewardPool.sol");
 
 contract("RewardPool", function (accounts) {
@@ -23,7 +23,10 @@ contract("RewardPool", function (accounts) {
   describe("Reward Pool", function () {
     beforeEach(async function () {
       owner = accounts[0];
-      ({ daicpxdToken, cardcpxdToken } = await setupExchanges(owner));
+      daicpxdToken = await ERC677Token.new();
+      await daicpxdToken.initialize(...TOKEN_DETAIL_DATA, owner);
+      cardcpxdToken = await ERC677Token.new();
+      await cardcpxdToken.initialize(...TOKEN_DETAIL_DATA, owner);
       payments = [
         {
           payee: accounts[2],
@@ -1185,7 +1188,8 @@ contract("RewardPool", function (accounts) {
       });
 
       it("cannot withdraw if payable token not added", async () => {
-        ({ cardcpxdToken: newCardcpxdToken } = await setupExchanges(owner));
+        const newCardcpxdToken = await ERC677Token.new();
+        await newCardcpxdToken.initialize(...TOKEN_DETAIL_DATA, owner);
         await newCardcpxdToken.mint(
           rewardPool.address,
           toTokenUnit(rewardPoolBalance)
