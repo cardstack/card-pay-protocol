@@ -124,17 +124,12 @@ async function payMerchant(
     prepaidCard
   );
 
-  let signatures = await prepaidCardManager.appendPrepaidCardAdminSignature(
-    customerAddress,
-    signature
-  );
-
   return await prepaidCardManager.payForMerchant(
     prepaidCard.address,
     issuingToken.address,
     merchantSafe,
     amount,
-    signatures,
+    signature,
     { from: relayer }
   );
 }
@@ -328,10 +323,12 @@ exports.transferOwner = async function (
   newOwner,
   relayer
 ) {
-  let xferData = [prepaidCard.address, oldOwner, newOwner];
   let packData = packExecutionData({
     to: prepaidCard.address,
-    data: await prepaidCardManager.getSellCardData(oldOwner, newOwner),
+    data: await prepaidCardManager.getSellCardData(
+      prepaidCard.address,
+      newOwner
+    ),
   });
   let safeTxArr = Object.keys(packData).map((key) => packData[key]);
   let signature = await signSafeTransaction(
@@ -341,14 +338,9 @@ exports.transferOwner = async function (
     prepaidCard
   );
 
-  await prepaidCardManager.sellCard(
-    ...xferData,
-    await prepaidCardManager.appendPrepaidCardAdminSignature(
-      oldOwner,
-      signature
-    ),
-    { from: relayer }
-  );
+  await prepaidCardManager.sellCard(prepaidCard.address, newOwner, signature, {
+    from: relayer,
+  });
 };
 
 exports.registerMerchant = async function (
