@@ -1,8 +1,4 @@
 {
-  "PrepaidCardManager": {
-    "proxy": "0x27b79501D45ef29512a00116D0D3922adEE8E716",
-    "contractName": "PrepaidCardManager"
-  },
   "RevenuePool": {
     "proxy": "0x38AC1A9b96365a43CfFe306EaD1d354C25Ba6B7E",
     "contractName": "RevenuePool"
@@ -30,5 +26,9 @@
   "ETHUSDFeed": {
     "proxy": "0x3443eFb3fE8c20cD133A0eAc6033E219dE47bAA8",
     "contractName": "ManualFeed"
+  },
+  "PrepaidCardManager": {
+    "proxy": "0x996dC325E81af6912F212294e12cfd727C4e06A5",
+    "contractName": "PrepaidCardManager"
   }
 }
