@@ -7,6 +7,7 @@ const RevenuePool = artifacts.require("RevenuePool");
 const PrepaidCardManager = artifacts.require("PrepaidCardManager");
 const BridgeUtils = artifacts.require("BridgeUtils");
 const SPEND = artifacts.require("SPEND");
+const RewardPool = artifacts.require("RewardPool");
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const GAS_FEE_RECEIVER = process.env.GAS_FEE_RECEIVER ?? ZERO_ADDRESS;
@@ -53,6 +54,7 @@ module.exports = async function (_deployer, network) {
   let daiOracleAddress = getAddress("DAIOracle", proxyAddresses);
   let cardOracleAddress = getAddress("CARDOracle", proxyAddresses);
   let bridgeUtilsAddress = getAddress("BridgeUtils", proxyAddresses);
+  let rewardPoolAddress = getAddress("RewardPool", proxyAddresses);
   console.log(`
 ==================================================
 Configuring RevenuePool ${revenuePoolAddress}
@@ -148,6 +150,14 @@ Configuring BridgeUtils ${bridgeUtilsAddress}
 Configuring SPEND: ${spendTokenAddress}
   adding minter: ${revenuePoolAddress} (revenue pool)`);
   await sendTx(() => spend.addMinter(revenuePoolAddress));
+
+  let rewardPool = await RewardPool.at(rewardPoolAddress);
+  console.log(`
+==================================================
+Configuring RewardPool ${rewardPoolAddress}
+  payable tokens: ${PAYABLE_TOKENS.join(", ")}
+`);
+  await sendTx(() => rewardPool.setup(PAYABLE_TOKENS));
 };
 
 function getAddress(contractId, addresses) {

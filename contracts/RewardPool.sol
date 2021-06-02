@@ -17,16 +17,23 @@ contract RewardPool is Versionable, Initializable, Ownable, PayableToken {
   using SafeMath for uint256;
   using MerkleProof for bytes32[];
 
-  string public name;
-  uint256 public numPaymentCycles = 1;
+  uint256 private _numPaymentCycles;
   uint256 public currentPaymentCycleStartBlock;
+
+  function initialize(
+    uint256 numPaymentCycles,
+    address owner
+  ) public initializer {
+    _numPaymentCycles = numPaymentCycles;
+    initialize(owner);
+  }
 
   mapping(address => mapping(address => uint256)) public withdrawals;
   mapping(uint256 => bytes32) payeeRoots;
 
   event Setup();
   event PayeeWithdraw(address indexed payee, uint256 amount);
-  event MerkleRootSubmission(bytes32 payeeRoot,uint256 numPaymentCycles);
+  event MerkleRootSubmission(bytes32 payeeRoot,uint256 _numPaymentCycles);
   event PaymentCycleEnded(uint256 paymentCycle, uint256 startBlock, uint256 endBlock);
 
   function setup(
@@ -38,21 +45,25 @@ contract RewardPool is Versionable, Initializable, Ownable, PayableToken {
     emit Setup();
   }
 
+  function numPaymentCycles() public view returns (uint256) {
+    return _numPaymentCycles;
+  }
+
   function startNewPaymentCycle() internal onlyOwner returns(bool) {
     require(block.number > currentPaymentCycleStartBlock);
 
-    emit PaymentCycleEnded(numPaymentCycles, currentPaymentCycleStartBlock, block.number);
+    emit PaymentCycleEnded(_numPaymentCycles, currentPaymentCycleStartBlock, block.number);
 
-    numPaymentCycles = numPaymentCycles.add(1);
+    _numPaymentCycles = _numPaymentCycles.add(1);
     currentPaymentCycleStartBlock = block.number.add(1);
 
     return true;
   }
 
   function submitPayeeMerkleRoot(bytes32 payeeRoot) public onlyOwner returns(bool) {
-    payeeRoots[numPaymentCycles] = payeeRoot;
+    payeeRoots[_numPaymentCycles] = payeeRoot;
 
-    emit MerkleRootSubmission(payeeRoot, numPaymentCycles);
+    emit MerkleRootSubmission(payeeRoot, _numPaymentCycles);
     startNewPaymentCycle();
 
     return true;
