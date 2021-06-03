@@ -7,7 +7,11 @@ import "./Safe.sol";
 contract MerchantManager is Safe {
   using EnumerableSet for EnumerableSet.AddressSet;
 
-  event MerchantCreation(address merchant, address merchantSafe);
+  event MerchantCreation(
+    address merchant,
+    address merchantSafe,
+    string infoDID
+  );
 
   struct MerchantSafe {
     bool register;
@@ -17,9 +21,13 @@ contract MerchantManager is Safe {
     // token
     mapping(address => uint256) balance;
   }
+  struct Merchant {
+    address merchantSafe;
+    string infoDID;
+  }
 
   mapping(address => MerchantSafe) internal merchantSafes;
-  mapping(address => address) internal merchants;
+  mapping(address => Merchant) public merchants;
 
   modifier onlyMerchantSafe() {
     require(isMerchantSafe(msg.sender), "caller is not a merchant safe");
@@ -35,10 +43,15 @@ contract MerchantManager is Safe {
   }
 
   function safeForMerchant(address merchant) public view returns (address) {
-    return merchants[merchant];
+    return merchants[merchant].merchantSafe;
   }
 
-  function registerMerchant(address merchant) internal returns (address) {
+  event Debug(address merchantSafe, string infoDID);
+
+  function registerMerchant(address merchant, string memory infoDID)
+    internal
+    returns (address)
+  {
     require(merchant != address(0), "zero address not allowed");
 
     address merchantSafe = safeForMerchant(merchant);
@@ -48,10 +61,10 @@ contract MerchantManager is Safe {
 
     merchantSafes[merchantSafe].register = true;
     merchantSafes[merchantSafe].merchant = merchant;
+    merchants[merchant].merchantSafe = merchantSafe;
+    merchants[merchant].infoDID = infoDID;
 
-    merchants[merchant] = merchantSafe;
-
-    emit MerchantCreation(merchant, merchantSafe);
+    emit MerchantCreation(merchant, merchantSafe, infoDID);
 
     return merchantSafe;
   }

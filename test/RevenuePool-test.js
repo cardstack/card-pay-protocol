@@ -245,7 +245,8 @@ contract("RevenuePool", (accounts) => {
         cardcpxdToken,
         relayer,
         merchant,
-        toTokenUnit(10)
+        toTokenUnit(10),
+        "did:cardstack:56d6fc54-d399-443b-8778-d7e4512d3a49"
       );
       let merchantCreation = await getParamsFromEvent(
         merchantTx,
@@ -258,6 +259,9 @@ contract("RevenuePool", (accounts) => {
         merchantSafe
       );
       expect(await revenuePool.isMerchantSafe(merchantSafe)).to.equal(true);
+      expect((await revenuePool.merchants(merchant)).infoDID).to.equal(
+        "did:cardstack:56d6fc54-d399-443b-8778-d7e4512d3a49"
+      );
 
       await shouldBeSameBalance(
         daicpxdToken,

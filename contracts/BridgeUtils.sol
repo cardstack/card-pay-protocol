@@ -10,13 +10,12 @@ contract BridgeUtils is Ownable, Versionable, Safe {
   event Setup();
   event SupplierWallet(address owner, address wallet);
   event TokenAdded(address token);
-  event SupplierUpdated(address supplier);
+  event SupplierInfoDID(address supplier, string infoDID);
 
   struct Supplier {
     bool registered;
     address safe;
-    string brandName;
-    string brandProfileUrl;
+    string infoDID;
   }
 
   mapping(address => Supplier) public suppliers;
@@ -28,6 +27,11 @@ contract BridgeUtils is Ownable, Versionable, Safe {
 
   modifier onlyBridgeMediator() {
     require(msg.sender == bridgeMediator, "caller is not a bridge mediator");
+    _;
+  }
+
+  modifier onlySupplierSafe() {
+    require(safes[msg.sender] != address(0), "caller is not a supplier safe");
     _;
   }
 
@@ -64,22 +68,18 @@ contract BridgeUtils is Ownable, Versionable, Safe {
     return _addToken(tokenAddr);
   }
 
-  function updateSupplier(
-    string calldata brandName,
-    string calldata brandProfileUrl
-  ) external returns (bool) {
+  function setSupplierInfoDID(string calldata infoDID)
+    external
+    onlySupplierSafe
+    returns (bool)
+  {
     address safeAddr = msg.sender;
-
-    // perhaps we want to allow the owner of the contract to be able to set
-    // this as well just in case?
     address supplier = safes[safeAddr];
     require(supplier != address(0), "Supplier is invalid");
     require(suppliers[supplier].registered, "Do not have supplier for safe");
 
-    suppliers[supplier].brandName = brandName;
-    suppliers[supplier].brandProfileUrl = brandProfileUrl;
-
-    emit SupplierUpdated(supplier);
+    suppliers[supplier].infoDID = infoDID;
+    emit SupplierInfoDID(supplier, infoDID);
     return true;
   }
 

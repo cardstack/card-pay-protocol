@@ -92,7 +92,7 @@ contract RevenuePool is Versionable, Initializable, MerchantManager, Exchange {
    * we will exchange receive token to SPEND token and mint it for the wallet of merchant.
    * @param from - who transfer token (should from prepaid card).
    * @param amount - number token customer pay for merchant.
-   * @param data - merchant safe in encode format.
+   * @param data - merchant safe and infoDID in encode format.
    */
   function onTokenTransfer(
     address payable from,
@@ -102,21 +102,22 @@ contract RevenuePool is Versionable, Initializable, MerchantManager, Exchange {
     require(merchantFeeReceiver != address(0), "merchantFeeReciever not set");
     // The Revenue pool can only receive funds from prepaid cards
     PrepaidCardManager prepaidCardMgr = PrepaidCardManager(prepaidCardManager);
-    (address issuer, , , , ) = prepaidCardMgr.cardDetails(from);
+    (address issuer, , , , , ) = prepaidCardMgr.cardDetails(from);
     require(issuer != address(0), "Caller is not a prepaid card");
 
-    // decode and get merchant address from the data
-    address merchantSafe = abi.decode(data, (address));
+    // decode and get merchant address and infoDID from the data
+    (address merchantSafe, string memory infoDID) =
+      abi.decode(data, (address, string));
     address issuingToken = _msgSender();
 
     if (merchantSafe == address(0)) {
       // Merchant registration
-      return handleMerchantRegister(from, issuingToken, amount);
+      return handleMerchantRegister(from, issuingToken, amount, infoDID);
     } else {
       // Merchant payment
       uint256 ten = 10;
       uint256 merchantFee =
-        merchantSafe != address(0) && merchantFeePercentage > 0
+        merchantFeePercentage > 0
           ? (amount.mul(merchantFeePercentage)).div(ten**merchantFeeDecimals())
           : 0;
       uint256 merchantProceeds = amount.sub(merchantFee);
@@ -166,7 +167,8 @@ contract RevenuePool is Versionable, Initializable, MerchantManager, Exchange {
   function handleMerchantRegister(
     address payable prepaidCard,
     address issuingToken,
-    uint256 amount
+    uint256 amount,
+    string memory infoDID
   ) internal returns (bool) {
     uint256 merchantRegistrationFeeInToken =
       convertFromSpend(issuingToken, merchantRegistrationFeeInSPEND);
@@ -189,7 +191,7 @@ contract RevenuePool is Versionable, Initializable, MerchantManager, Exchange {
     require(owners.length == 2, "unexpected number of owners for prepaid card");
 
     address merchant = owners[0] == prepaidCardManager ? owners[1] : owners[0];
-    registerMerchant(merchant);
+    registerMerchant(merchant, infoDID);
     return true;
   }
 
