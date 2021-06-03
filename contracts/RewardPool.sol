@@ -17,28 +17,28 @@ contract RewardPool is Initializable, Versionable, Ownable, PayableToken {
   using SafeMath for uint256;
   using MerkleProof for bytes32[];
 
+  event Setup(address tally, address[] payableTokens);
+  event PayeeWithdraw(address indexed payee, uint256 amount);
+  event MerkleRootSubmission(bytes32 payeeRoot,uint256 numPaymentCycles);
+  event PaymentCycleEnded(uint256 paymentCycle, uint256 startBlock, uint256 endBlock);
+
   address public tally;
   uint256 public numPaymentCycles;
   uint256 public currentPaymentCycleStartBlock;
+
+  mapping(address => mapping(address => uint256)) public withdrawals;
+  mapping(uint256 => bytes32) payeeRoots;
+
+  modifier onlyTally(){
+    require(tally == msg.sender, "Caller is not tally");
+    _;
+  }
 
   function initialize(
     address owner
   ) public initializer {
     numPaymentCycles = 1;
     Ownable.initialize(owner);
-  }
-
-  mapping(address => mapping(address => uint256)) public withdrawals;
-  mapping(uint256 => bytes32) payeeRoots;
-
-  event Setup(address tally, address[] payableTokens);
-  event PayeeWithdraw(address indexed payee, uint256 amount);
-  event MerkleRootSubmission(bytes32 payeeRoot,uint256 numPaymentCycles);
-  event PaymentCycleEnded(uint256 paymentCycle, uint256 startBlock, uint256 endBlock);
-
-  modifier onlyTally(){
-    require(tally == msg.sender, "Caller is not tally");
-    _;
   }
 
   function setup(
@@ -52,6 +52,39 @@ contract RewardPool is Initializable, Versionable, Ownable, PayableToken {
     emit Setup(_tally, _payableTokens);
   }
 
+  function submitPayeeMerkleRoot(bytes32 payeeRoot) external onlyTally returns(bool) {
+    payeeRoots[numPaymentCycles] = payeeRoot;
+
+    emit MerkleRootSubmission(payeeRoot, numPaymentCycles);
+    startNewPaymentCycle();
+
+    return true;
+  }
+
+  function withdraw(address payableToken , uint256 amount, bytes calldata proof) external isValidTokenAddress(payableToken) returns(bool) {
+    require(amount > 0, "Cannot withdraw non-positive amount");
+
+    uint256 balance = balanceForProof(payableToken,proof);
+    require(balance >= amount, "Insufficient balance for proof");
+    require(IERC677(payableToken).balanceOf(address(this)) >= amount, "Reward pool has insufficient balance");
+
+    withdrawals[payableToken][msg.sender] = withdrawals[payableToken][msg.sender].add(amount);
+    IERC677(payableToken).transfer(msg.sender, amount);
+
+
+    emit PayeeWithdraw(msg.sender, amount);
+    return true;
+  }
+
+  function balanceForProofWithAddress(address payableToken, address _address, bytes calldata proof) external view returns(uint256) {
+    return _balanceForProofWithAddress(payableToken, _address, proof);
+  }
+
+  function balanceForProof(address payableToken, bytes memory proof) public view returns(uint256) {
+    return _balanceForProofWithAddress(payableToken ,msg.sender, proof);
+  }
+
+
   function startNewPaymentCycle() internal onlyTally returns(bool) {
     require(block.number > currentPaymentCycleStartBlock, "Cannot start new payment cycle before currentPaymentCycleStartBlock");
 
@@ -59,15 +92,6 @@ contract RewardPool is Initializable, Versionable, Ownable, PayableToken {
 
     numPaymentCycles = numPaymentCycles.add(1);
     currentPaymentCycleStartBlock = block.number.add(1);
-
-    return true;
-  }
-
-  function submitPayeeMerkleRoot(bytes32 payeeRoot) external onlyTally returns(bool) {
-    payeeRoots[numPaymentCycles] = payeeRoot;
-
-    emit MerkleRootSubmission(payeeRoot, numPaymentCycles);
-    startNewPaymentCycle();
 
     return true;
   }
@@ -96,29 +120,6 @@ contract RewardPool is Initializable, Versionable, Ownable, PayableToken {
     } else {
       return 0;
     }
-  }
-
-  function balanceForProofWithAddress(address payableToken, address _address, bytes calldata proof) external view returns(uint256) {
-    return _balanceForProofWithAddress(payableToken, _address, proof);
-  }
-
-  function balanceForProof(address payableToken, bytes memory proof) public view returns(uint256) {
-    return _balanceForProofWithAddress(payableToken ,msg.sender, proof);
-  }
-
-  function withdraw(address payableToken , uint256 amount, bytes calldata proof) external isValidTokenAddress(payableToken) returns(bool) {
-    require(amount > 0, "Cannot withdraw non-positive amount");
-
-    uint256 balance = balanceForProof(payableToken,proof);
-    require(balance >= amount, "Insufficient balance for proof");
-    require(IERC677(payableToken).balanceOf(address(this)) >= amount, "Reward pool has insufficient balance");
-
-    withdrawals[payableToken][msg.sender] = withdrawals[payableToken][msg.sender].add(amount);
-    IERC677(payableToken).transfer(msg.sender, amount);
-
-
-    emit PayeeWithdraw(msg.sender, amount);
-    return true;
   }
 
   function splitIntoBytes32(bytes memory byteArray, uint256 numBytes32) internal pure returns (bytes32[] memory bytes32Array,
