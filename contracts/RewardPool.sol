@@ -50,7 +50,7 @@ contract RewardPool is Versionable, Initializable, Ownable, PayableToken {
   }
 
   function startNewPaymentCycle() internal onlyOwner returns(bool) {
-    require(block.number > currentPaymentCycleStartBlock);
+    require(block.number > currentPaymentCycleStartBlock, "Cannot start new payment cycle before currentPaymentCycleStartBlock");
 
     emit PaymentCycleEnded(_numPaymentCycles, currentPaymentCycleStartBlock, block.number);
 
@@ -104,11 +104,11 @@ contract RewardPool is Versionable, Initializable, Ownable, PayableToken {
   }
 
   function withdraw(address payableToken , uint256 amount, bytes memory proof) public isValidTokenAddress(payableToken) returns(bool) {
-    require(amount > 0);
-    require(IERC677(payableToken).balanceOf(address(this)) >= amount);
+    require(amount > 0, "Cannot withdraw non-positive amount");
 
     uint256 balance = balanceForProof(payableToken,proof);
-    require(balance >= amount);
+    require(balance >= amount, "Insufficient balance for proof");
+    require(IERC677(payableToken).balanceOf(address(this)) >= amount, "Reward pool has insufficient balance");
 
     withdrawals[payableToken][msg.sender] = withdrawals[payableToken][msg.sender].add(amount);
     IERC677(payableToken).transfer(msg.sender, amount);
@@ -120,8 +120,8 @@ contract RewardPool is Versionable, Initializable, Ownable, PayableToken {
 
   function splitIntoBytes32(bytes memory byteArray, uint256 numBytes32) internal pure returns (bytes32[] memory bytes32Array,
                                                                                         bytes32[] memory remainder) {
-    require(byteArray.length.div(32) <= 50);
-    require(byteArray.length % 32 == 0 && byteArray.length >= numBytes32.mul(32));
+    require(byteArray.length.div(32) <= 50, "Bytearray provided is too big");
+    require(byteArray.length % 32 == 0 && byteArray.length >= numBytes32.mul(32), "Bytearray provided has wrong shape");
 
     bytes32Array = new bytes32[](numBytes32);
     remainder = new bytes32[](byteArray.length.sub(64).div(32));
