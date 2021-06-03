@@ -41,7 +41,7 @@
     "@gnosis.pm/safe-contracts": "^1.2.0",
     "@openzeppelin/cli": "^2.8.2",
     "@openzeppelin/contract-upgradeable": "OpenZeppelin/openzeppelin-contracts-upgradeable#v2.5.0",
-    "@openzeppelin/truffle-upgrades": "^1.5.2",
+    "@openzeppelin/truffle-upgrades": "^1.7.0",
     "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
     "chai-bn": "^0.2.1",
