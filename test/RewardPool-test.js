@@ -12,6 +12,7 @@ const RewardPool = artifacts.require("RewardPool.sol");
 
 contract("RewardPool", function (accounts) {
   let owner;
+  let tally;
   let rewardPool;
   let daicpxdToken;
   let cardcpxdToken;
@@ -19,6 +20,7 @@ contract("RewardPool", function (accounts) {
   describe("Reward Pool", function () {
     beforeEach(async function () {
       owner = accounts[0];
+      tally = accounts[1];
       daicpxdToken = await ERC677Token.new();
       await daicpxdToken.initialize(...TOKEN_DETAIL_DATA, owner);
       cardcpxdToken = await ERC677Token.new();
@@ -67,7 +69,10 @@ contract("RewardPool", function (accounts) {
       ];
       rewardPool = await RewardPool.new();
       await rewardPool.initialize(owner);
-      await rewardPool.setup([cardcpxdToken.address, daicpxdToken.address]);
+      await rewardPool.setup(tally, [
+        cardcpxdToken.address,
+        daicpxdToken.address,
+      ]);
     });
 
     afterEach(async function () {
@@ -85,7 +90,9 @@ contract("RewardPool", function (accounts) {
           "the payment cycle number is correct"
         );
 
-        let txn = await rewardPool.submitPayeeMerkleRoot(root);
+        let txn = await rewardPool.submitPayeeMerkleRoot(root, {
+          from: tally,
+        });
         let currentBlockNumber = await web3.eth.getBlockNumber();
         paymentCycleNumber = await rewardPool.numPaymentCycles();
 
@@ -132,7 +139,7 @@ contract("RewardPool", function (accounts) {
       it("allows a new merkle root to be submitted in a block after the previous payment cycle has ended", async function () {
         let merkleTree = new CumulativePaymentTree(payments);
         let root = merkleTree.getHexRoot();
-        await rewardPool.submitPayeeMerkleRoot(root);
+        await rewardPool.submitPayeeMerkleRoot(root, { from: tally });
 
         let updatedPayments = payments.slice();
         updatedPayments[0].amount = updatedPayments[0].amount.add(
@@ -143,7 +150,9 @@ contract("RewardPool", function (accounts) {
 
         await advanceBlock(web3);
 
-        await rewardPool.submitPayeeMerkleRoot(updatedRoot);
+        await rewardPool.submitPayeeMerkleRoot(updatedRoot, {
+          from: tally,
+        });
 
         let paymentCycleNumber = await rewardPool.numPaymentCycles();
 
@@ -157,7 +166,7 @@ contract("RewardPool", function (accounts) {
       it("does not allow 2 merkle roots to be submitted in the same block after the previous payment cycle has ended", async function () {
         let merkleTree = new CumulativePaymentTree(payments);
         let root = merkleTree.getHexRoot();
-        await rewardPool.submitPayeeMerkleRoot(root);
+        await rewardPool.submitPayeeMerkleRoot(root, { from: tally });
 
         let updatedPayments = payments.slice();
         updatedPayments[0].amount = updatedPayments[0].amount.add(
@@ -167,7 +176,7 @@ contract("RewardPool", function (accounts) {
         let updatedRoot = updatedMerkleTree.getHexRoot();
 
         await rewardPool
-          .submitPayeeMerkleRoot(updatedRoot)
+          .submitPayeeMerkleRoot(updatedRoot, { from: tally })
           .should.be.rejectedWith(
             Error,
             "Cannot start new payment cycle before currentPaymentCycleStartBlock"
@@ -181,13 +190,17 @@ contract("RewardPool", function (accounts) {
         );
       });
 
-      it("does not allow non-owner to submit merkle root", async function () {
+      it("does not allow non-tally to submit merkle root", async function () {
         let merkleTree = new CumulativePaymentTree(payments);
         let root = merkleTree.getHexRoot();
 
         await rewardPool
           .submitPayeeMerkleRoot(root, { from: accounts[2] })
-          .should.be.rejectedWith(Error, "Ownable: caller is not the owner");
+          .should.be.rejectedWith(Error, "Caller is not tally");
+
+        await rewardPool
+          .submitPayeeMerkleRoot(root, { from: owner }) // also doesn't allow owner to submit merkle root
+          .should.be.rejectedWith(Error, "Caller is not tally");
 
         let paymentCycleNumber = await rewardPool.numPaymentCycles();
 
@@ -223,7 +236,7 @@ contract("RewardPool", function (accounts) {
           paymentCycle
         );
         root = merkleTree.getHexRoot();
-        await rewardPool.submitPayeeMerkleRoot(root);
+        await rewardPool.submitPayeeMerkleRoot(root, { from: tally });
       });
 
       it("payee can get their available balance in the payment pool from their proof", async function () {
@@ -292,7 +305,7 @@ contract("RewardPool", function (accounts) {
           cardcpxdToken.address,
           paymentCycle
         );
-        await rewardPool.submitPayeeMerkleRoot(updatedRoot);
+        await rewardPool.submitPayeeMerkleRoot(updatedRoot, { from: tally });
 
         let balance = await rewardPool.balanceForProof(
           cardcpxdToken.address,
@@ -337,7 +350,7 @@ contract("RewardPool", function (accounts) {
           cardcpxdToken.address,
           paymentCycle
         );
-        await rewardPool.submitPayeeMerkleRoot(updatedRoot);
+        await rewardPool.submitPayeeMerkleRoot(updatedRoot, { from: tally });
 
         let balance = await rewardPool.balanceForProof(
           cardcpxdToken.address,
@@ -372,7 +385,7 @@ contract("RewardPool", function (accounts) {
           cardcpxdToken.address,
           paymentCycle
         );
-        await rewardPool.submitPayeeMerkleRoot(updatedRoot);
+        await rewardPool.submitPayeeMerkleRoot(updatedRoot, { from: tally });
 
         let balance = await rewardPool.balanceForProof(
           cardcpxdToken.address,
@@ -413,7 +426,7 @@ contract("RewardPool", function (accounts) {
           cardcpxdToken.address,
           paymentCycle
         );
-        await rewardPool.submitPayeeMerkleRoot(root);
+        await rewardPool.submitPayeeMerkleRoot(root, { from: tally });
       });
 
       it("payee can withdraw up to their allotted amount from pool", async function () {
@@ -835,7 +848,7 @@ contract("RewardPool", function (accounts) {
           cardcpxdToken.address,
           paymentCycle
         );
-        await rewardPool.submitPayeeMerkleRoot(updatedRoot);
+        await rewardPool.submitPayeeMerkleRoot(updatedRoot, { from: tally });
 
         let withdrawalAmount = toTokenUnit(8);
         await rewardPool.withdraw(
@@ -904,7 +917,7 @@ contract("RewardPool", function (accounts) {
           cardcpxdToken.address,
           paymentCycle
         );
-        await rewardPool.submitPayeeMerkleRoot(updatedRoot);
+        await rewardPool.submitPayeeMerkleRoot(updatedRoot, { from: tally });
 
         let withdrawalAmount = toTokenUnit(8);
         await rewardPool.withdraw(
@@ -975,7 +988,7 @@ contract("RewardPool", function (accounts) {
           cardcpxdToken.address,
           paymentCycle
         );
-        await rewardPool.submitPayeeMerkleRoot(updatedRoot);
+        await rewardPool.submitPayeeMerkleRoot(updatedRoot, { from: tally });
 
         let withdrawalAmount = toTokenUnit(8).add(toTokenUnit(4));
         await rewardPool.withdraw(
@@ -1052,7 +1065,7 @@ contract("RewardPool", function (accounts) {
           cardcpxdToken.address,
           paymentCycle
         );
-        await rewardPool.submitPayeeMerkleRoot(updatedRoot);
+        await rewardPool.submitPayeeMerkleRoot(updatedRoot, { from: tally });
 
         let withdrawalAmount = toTokenUnit(8);
         await rewardPool.withdraw(
@@ -1189,7 +1202,7 @@ contract("RewardPool", function (accounts) {
         assert(_.includes(registeredTokens, cardcpxdToken.address));
         assert(_.includes(registeredTokens, daicpxdToken.address));
         assert(!_.includes(registeredTokens, newCardcpxdToken.address));
-        await rewardPool.submitPayeeMerkleRoot(root);
+        await rewardPool.submitPayeeMerkleRoot(root, { from: tally });
         const cardProof = merkleTree.hexProofForPayee(
           payee,
           newCardcpxdToken.address,
@@ -1206,7 +1219,7 @@ contract("RewardPool", function (accounts) {
 
       it("can withdraw erc20 tokens", async () => {
         const erc20Amount = toTokenUnit(5);
-        await rewardPool.submitPayeeMerkleRoot(root);
+        await rewardPool.submitPayeeMerkleRoot(root, { from: tally });
         const erc20Proof = merkleTree.hexProofForPayee(
           payee,
           erc20Token.address,
@@ -1274,7 +1287,7 @@ contract("RewardPool", function (accounts) {
       });
 
       it("withdraw from two different tokens", async () => {
-        await rewardPool.submitPayeeMerkleRoot(root);
+        await rewardPool.submitPayeeMerkleRoot(root, { from: tally });
         const cardProof = merkleTree.hexProofForPayee(
           payee,
           cardcpxdToken.address,

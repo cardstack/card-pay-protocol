@@ -17,6 +17,7 @@ contract RewardPool is Initializable, Versionable, Ownable, PayableToken {
   using SafeMath for uint256;
   using MerkleProof for bytes32[];
 
+  address public tally;
   uint256 public numPaymentCycles;
   uint256 public currentPaymentCycleStartBlock;
 
@@ -30,21 +31,28 @@ contract RewardPool is Initializable, Versionable, Ownable, PayableToken {
   mapping(address => mapping(address => uint256)) public withdrawals;
   mapping(uint256 => bytes32) payeeRoots;
 
-  event Setup();
+  event Setup(address tally, address[] payableTokens);
   event PayeeWithdraw(address indexed payee, uint256 amount);
   event MerkleRootSubmission(bytes32 payeeRoot,uint256 numPaymentCycles);
   event PaymentCycleEnded(uint256 paymentCycle, uint256 startBlock, uint256 endBlock);
 
+  modifier onlyTally(){
+    require(tally == msg.sender, "Caller is not tally");
+    _;
+  }
+
   function setup(
+    address _tally,
     address[] calldata _payableTokens
     ) external onlyOwner {
+    tally = _tally;
     for (uint256 i = 0; i < _payableTokens.length; i++) {
       _addPayableToken(_payableTokens[i]);
     }
-    emit Setup();
+    emit Setup(_tally, _payableTokens);
   }
 
-  function startNewPaymentCycle() internal onlyOwner returns(bool) {
+  function startNewPaymentCycle() internal onlyTally returns(bool) {
     require(block.number > currentPaymentCycleStartBlock, "Cannot start new payment cycle before currentPaymentCycleStartBlock");
 
     emit PaymentCycleEnded(numPaymentCycles, currentPaymentCycleStartBlock, block.number);
@@ -55,7 +63,7 @@ contract RewardPool is Initializable, Versionable, Ownable, PayableToken {
     return true;
   }
 
-  function submitPayeeMerkleRoot(bytes32 payeeRoot) external onlyOwner returns(bool) {
+  function submitPayeeMerkleRoot(bytes32 payeeRoot) external onlyTally returns(bool) {
     payeeRoots[numPaymentCycles] = payeeRoot;
 
     emit MerkleRootSubmission(payeeRoot, numPaymentCycles);

@@ -32,6 +32,7 @@ const GNOSIS_SAFE_FACTORY =
   "0x76E2cFc1F5Fa8F6a5b3fC4c8F4788F0116861F9B";
 const MINIMUM_AMOUNT = process.env.MINIMUM_AMOUNT ?? "100"; // minimum face value (in SPEND) for new prepaid card
 const MAXIMUM_AMOUNT = process.env.MAXIMUM_AMOUNT ?? "100000"; // maximum face value (in SPEND) for new prepaid card
+const TALLY = process.env.TALLY ?? "0x853fD3376b6f0b2b839Bd841FbdC6C1f93B3BFBD";
 
 module.exports = async function (_deployer, network) {
   if (["ganache", "test", "soliditycoverage"].includes(network)) {
@@ -157,7 +158,7 @@ Configuring SPEND: ${spendTokenAddress}
 Configuring RewardPool ${rewardPoolAddress}
   payable tokens: ${PAYABLE_TOKENS.join(", ")}
 `);
-  await sendTx(() => rewardPool.setup(PAYABLE_TOKENS));
+  await sendTx(() => rewardPool.setup(TALLY, PAYABLE_TOKENS));
 };
 
 function getAddress(contractId, addresses) {
