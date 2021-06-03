@@ -1,7 +1,7 @@
 const CumulativePaymentTree = require("./utils/cumulative-payment-tree");
 
 const { TOKEN_DETAIL_DATA, assert } = require("./setup");
-const { toTokenUnit, advanceBlock, assertRevert } = require("./utils/helper");
+const { toTokenUnit, advanceBlock } = require("./utils/helper");
 const _ = require("lodash");
 
 const ERC20Token = artifacts.require(
@@ -166,10 +166,12 @@ contract("RewardPool", function (accounts) {
         let updatedMerkleTree = new CumulativePaymentTree(updatedPayments);
         let updatedRoot = updatedMerkleTree.getHexRoot();
 
-        await assertRevert(
-          async () => await rewardPool.submitPayeeMerkleRoot(updatedRoot)
-        );
-
+        await rewardPool
+          .submitPayeeMerkleRoot(updatedRoot)
+          .should.be.rejectedWith(
+            Error,
+            "Cannot start new payment cycle before currentPaymentCycleStartBlock"
+          );
         let paymentCycleNumber = await rewardPool.numPaymentCycles();
 
         assert.equal(
@@ -183,9 +185,10 @@ contract("RewardPool", function (accounts) {
         let merkleTree = new CumulativePaymentTree(payments);
         let root = merkleTree.getHexRoot();
 
-        await assertRevert(async () =>
-          rewardPool.submitPayeeMerkleRoot(root, { from: accounts[2] })
-        );
+        await rewardPool
+          .submitPayeeMerkleRoot(root, { from: accounts[2] })
+          .should.be.rejectedWith(Error, "Ownable: caller is not the owner");
+
         let paymentCycleNumber = await rewardPool.numPaymentCycles();
 
         assert.equal(
@@ -268,14 +271,9 @@ contract("RewardPool", function (accounts) {
 
       it("proof that is not the correct size returns revert", async function () {
         const randomProof = web3.utils.randomHex(31 * 5);
-        await assertRevert(
-          async () =>
-            await rewardPool.balanceForProofWithAddress(
-              cardcpxdToken.address,
-              payee,
-              randomProof
-            )
-        );
+        await rewardPool
+          .balanceForProofWithAddress(cardcpxdToken.address, payee, randomProof)
+          .should.be.rejectedWith(Error, "Bytearray provided has wrong shape");
       });
 
       it("can handle balance for proofs from different payment cycles", async function () {
@@ -569,15 +567,11 @@ contract("RewardPool", function (accounts) {
 
       it("payee cannot withdraw more than their allotted amount from the pool", async function () {
         let withdrawalAmount = toTokenUnit(11);
-        await assertRevert(
-          async () =>
-            await rewardPool.withdraw(
-              cardcpxdToken.address,
-              withdrawalAmount,
-              proof,
-              { from: payee }
-            )
-        );
+        await rewardPool
+          .withdraw(cardcpxdToken.address, withdrawalAmount, proof, {
+            from: payee,
+          })
+          .should.be.rejectedWith(Error, "Insufficient balance for proof");
 
         let payeeBalance = await cardcpxdToken.balanceOf(payee);
         let poolBalance = await cardcpxdToken.balanceOf(rewardPool.address);
@@ -612,17 +606,11 @@ contract("RewardPool", function (accounts) {
         let tamperedProof =
           "0x0000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000c2e46ed0464b1e11097030a04086c9f068606b4c9808ccdac0343863c5e4f8244749e106fa8d91408f2578e5d93447f727f59279be85ce491faf212a7201d3b836b94214bff74426647e9cf0b5c5c3cbc9cef25b7e08759ca2b85357ec22c9b40";
 
-        await assertRevert(
-          async () =>
-            await rewardPool.withdraw(
-              cardcpxdToken.address,
-              withdrawalAmount,
-              tamperedProof,
-              {
-                from: payee,
-              }
-            )
-        );
+        await rewardPool
+          .withdraw(cardcpxdToken.address, withdrawalAmount, tamperedProof, {
+            from: payee,
+          })
+          .should.be.rejectedWith(Error, "Insufficient balance for proof");
 
         let payeeBalance = await cardcpxdToken.balanceOf(payee);
         let poolBalance = await cardcpxdToken.balanceOf(rewardPool.address);
@@ -671,17 +659,11 @@ contract("RewardPool", function (accounts) {
             from: payee,
           }
         );
-        await assertRevert(
-          async () =>
-            await rewardPool.withdraw(
-              cardcpxdToken.address,
-              toTokenUnit(7),
-              proof,
-              {
-                from: payee,
-              }
-            )
-        );
+        await rewardPool
+          .withdraw(cardcpxdToken.address, toTokenUnit(7), proof, {
+            from: payee,
+          })
+          .should.be.rejectedWith(Error, "Insufficient balance for proof");
 
         let payeeBalance = await cardcpxdToken.balanceOf(payee);
         let poolBalance = await cardcpxdToken.balanceOf(rewardPool.address);
@@ -717,15 +699,11 @@ contract("RewardPool", function (accounts) {
 
       it("payee cannot withdraw 0 tokens from payment pool", async function () {
         let withdrawalAmount = toTokenUnit(0);
-        await assertRevert(
-          async () =>
-            await rewardPool.withdraw(
-              cardcpxdToken.address,
-              withdrawalAmount,
-              proof,
-              { from: payee }
-            )
-        );
+        await rewardPool
+          .withdraw(cardcpxdToken.address, withdrawalAmount, proof, {
+            from: payee,
+          })
+          .should.be.rejectedWith(Error, "Cannot withdraw non-positive amount");
 
         let payeeBalance = await cardcpxdToken.balanceOf(payee);
         let poolBalance = await cardcpxdToken.balanceOf(rewardPool.address);
@@ -756,17 +734,11 @@ contract("RewardPool", function (accounts) {
 
       it("non-payee cannot withdraw from pool", async function () {
         let withdrawalAmount = toTokenUnit(10);
-        await assertRevert(
-          async () =>
-            await rewardPool.withdraw(
-              cardcpxdToken.address,
-              withdrawalAmount,
-              proof,
-              {
-                from: accounts[0],
-              }
-            )
-        );
+        await rewardPool
+          .withdraw(cardcpxdToken.address, withdrawalAmount, proof, {
+            from: accounts[0],
+          })
+          .should.be.rejectedWith(Error, "Insufficient balance for proof");
 
         let payeeBalance = await cardcpxdToken.balanceOf(payee);
         let poolBalance = await cardcpxdToken.balanceOf(rewardPool.address);
@@ -803,15 +775,17 @@ contract("RewardPool", function (accounts) {
           paymentCycle
         );
 
-        await assertRevert(
-          async () =>
-            await rewardPool.withdraw(
-              cardcpxdToken.address,
-              insufficientFundsPaymentAmount,
-              insufficientFundsProof,
-              { from: insufficientFundsPayee }
-            )
-        );
+        await rewardPool
+          .withdraw(
+            cardcpxdToken.address,
+            insufficientFundsPaymentAmount,
+            insufficientFundsProof,
+            { from: insufficientFundsPayee }
+          )
+          .should.be.rejectedWith(
+            Error,
+            "Reward pool has insufficient balance"
+          );
 
         let payeeBalance = await cardcpxdToken.balanceOf(
           insufficientFundsPayee
@@ -1089,11 +1063,12 @@ contract("RewardPool", function (accounts) {
             from: payee,
           }
         );
-        await assertRevert(async () =>
-          rewardPool.withdraw(cardcpxdToken.address, toTokenUnit(4), proof, {
+        rewardPool
+          .withdraw(cardcpxdToken.address, toTokenUnit(4), proof, {
             from: payee,
           })
-        ); // this proof only permits 10 - 8 tokens to be withdrawn, even though the newer proof permits 12 - 8 tokens to be withdrawn
+          .should.be.rejectedWith(Error, "Insufficient balance for proof");
+        // this proof only permits 10 - 8 tokens to be withdrawn, even though the newer proof permits 12 - 8 tokens to be withdrawn
 
         let payeeBalance = await cardcpxdToken.balanceOf(payee);
         let poolBalance = await cardcpxdToken.balanceOf(rewardPool.address);
