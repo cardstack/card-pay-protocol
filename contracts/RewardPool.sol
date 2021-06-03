@@ -60,7 +60,7 @@ contract RewardPool is Versionable, Initializable, Ownable, PayableToken {
     return true;
   }
 
-  function submitPayeeMerkleRoot(bytes32 payeeRoot) public onlyOwner returns(bool) {
+  function submitPayeeMerkleRoot(bytes32 payeeRoot) external onlyOwner returns(bool) {
     payeeRoots[_numPaymentCycles] = payeeRoot;
 
     emit MerkleRootSubmission(payeeRoot, _numPaymentCycles);
@@ -95,7 +95,7 @@ contract RewardPool is Versionable, Initializable, Ownable, PayableToken {
     }
   }
 
-  function balanceForProofWithAddress(address payableToken, address _address, bytes memory proof) public view returns(uint256) {
+  function balanceForProofWithAddress(address payableToken, address _address, bytes calldata proof) external view returns(uint256) {
     return _balanceForProofWithAddress(payableToken, _address, proof);
   }
 
@@ -103,7 +103,7 @@ contract RewardPool is Versionable, Initializable, Ownable, PayableToken {
     return _balanceForProofWithAddress(payableToken ,msg.sender, proof);
   }
 
-  function withdraw(address payableToken , uint256 amount, bytes memory proof) public isValidTokenAddress(payableToken) returns(bool) {
+  function withdraw(address payableToken , uint256 amount, bytes calldata proof) external isValidTokenAddress(payableToken) returns(bool) {
     require(amount > 0, "Cannot withdraw non-positive amount");
 
     uint256 balance = balanceForProof(payableToken,proof);
