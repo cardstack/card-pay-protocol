@@ -141,4 +141,5 @@ contract RewardPool is Initializable, Versionable, Ownable, PayableToken {
     }
   }
 
+  uint256[50] private ____gap;
 }
