@@ -4,6 +4,7 @@ const RevenuePool = artifacts.require("RevenuePool");
 const GnosisFactory = artifacts.require("GnosisSafeProxyFactory");
 const GnosisSafe = artifacts.require("GnosisSafe");
 const ERC677Token = artifacts.require("ERC677Token.sol");
+const RewardPool = artifacts.require("RewardPool.sol");
 
 const utils = require("./utils/general");
 const eventABIs = require("./utils/constant/eventABIs");
@@ -27,7 +28,8 @@ contract("BridgeUtils", async (accounts) => {
     mediatorBridgeMock,
     daicpxdToken,
     relayer,
-    depot;
+    depot,
+    rewardPool;
   before(async () => {
     owner = accounts[0];
     mediatorBridgeMock = accounts[1];
@@ -42,6 +44,8 @@ contract("BridgeUtils", async (accounts) => {
     await pool.initialize(owner);
     prepaidCardManager = await PrepaidCardManager.new();
     await prepaidCardManager.initialize(owner);
+    rewardPool = await RewardPool.new();
+    await rewardPool.initialize(owner);
 
     let gnosisFactory = await GnosisFactory.new();
     let gnosisMaster = await GnosisSafe.new();
@@ -82,13 +86,15 @@ contract("BridgeUtils", async (accounts) => {
 
     await pool.setBridgeUtils(bridgeUtils.address);
     await prepaidCardManager.setBridgeUtils(bridgeUtils.address);
+    await rewardPool.setBridgeUtils(bridgeUtils.address);
 
     await bridgeUtils.setup(
       pool.address,
       prepaidCardManager.address,
       gnosisMaster.address,
       gnosisFactory.address,
-      mediatorBridgeMock
+      mediatorBridgeMock,
+      rewardPool.address
     );
   });
 

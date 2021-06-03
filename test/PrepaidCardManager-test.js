@@ -5,6 +5,7 @@ const SPEND = artifacts.require("SPEND.sol");
 const ProxyFactory = artifacts.require("GnosisSafeProxyFactory");
 const GnosisSafe = artifacts.require("GnosisSafe");
 const BridgeUtils = artifacts.require("BridgeUtils");
+const RewardPool = artifacts.require("RewardPool.sol");
 
 const eventABIs = require("./utils/constant/eventABIs");
 
@@ -52,7 +53,8 @@ contract("PrepaidCardManager", (accounts) => {
     merchantSafe,
     relayer,
     depot,
-    prepaidCards = [];
+    prepaidCards = [],
+    rewardPool;
 
   before(async () => {
     owner = accounts[0];
@@ -71,6 +73,8 @@ contract("PrepaidCardManager", (accounts) => {
     await cardManager.initialize(owner);
     let bridgeUtils = await BridgeUtils.new();
     await bridgeUtils.initialize(owner);
+    rewardPool = await RewardPool.new();
+    await rewardPool.initialize(owner);
 
     let chainlinkOracle, diaPriceOracle;
     ({
@@ -111,10 +115,12 @@ contract("PrepaidCardManager", (accounts) => {
       cardManager.address,
       gnosisSafeMasterCopy.address,
       proxyFactory.address,
-      owner
+      owner,
+      rewardPool.address
     );
     await revenuePool.setBridgeUtils(bridgeUtils.address);
     await cardManager.setBridgeUtils(bridgeUtils.address);
+    await rewardPool.setBridgeUtils(bridgeUtils.address);
     depot = await createDepotFromBridgeUtils(bridgeUtils, owner, issuer);
 
     MINIMUM_AMOUNT = 100; // in spend <=> 1 USD

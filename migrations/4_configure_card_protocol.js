@@ -124,6 +124,25 @@ Configuring PrepaidCardManager ${prepaidCardManagerAddress}
   console.log(`  set BridgeUtils address to ${bridgeUtilsAddress}`);
   await sendTx(() => prepaidCardManager.setBridgeUtils(bridgeUtilsAddress));
 
+  // RewardPool configuration
+  let rewardPool = await RewardPool.at(
+    rewardPoolAddress
+  );
+  console.log(`
+==================================================
+Configuring RewardPool ${rewardPoolAddress}
+  tally ${TALLY}
+  payable tokens: ${PAYABLE_TOKENS.join(", ")}`
+             );
+  await sendTx(() =>
+    rewardPool.setup(
+      TALLY,
+      PAYABLE_TOKENS
+    )
+  );
+  console.log(`  set BridgeUtils address to ${bridgeUtilsAddress}`);
+  await sendTx(() => rewardPool.setBridgeUtils(bridgeUtilsAddress));
+
   // BridgeUtils configuration
   let bridgeUtils = await BridgeUtils.at(bridgeUtilsAddress);
   console.log(`
@@ -133,14 +152,17 @@ Configuring BridgeUtils ${bridgeUtilsAddress}
   PrepaidCardManager address: ${prepaidCardManagerAddress}
   gnosis master copy: ${GNOSIS_SAFE_MASTER_COPY}
   gnosis proxy factory: ${GNOSIS_SAFE_FACTORY}
-  bridge mediator address: ${BRIDGE_MEDIATOR}`);
+  bridge mediator address: ${BRIDGE_MEDIATOR}
+  RewardPool address: ${rewardPoolAddress}`
+             );
   await sendTx(() =>
     bridgeUtils.setup(
       revenuePoolAddress,
       prepaidCardManagerAddress,
       GNOSIS_SAFE_MASTER_COPY,
       GNOSIS_SAFE_FACTORY,
-      BRIDGE_MEDIATOR
+      BRIDGE_MEDIATOR,
+      rewardPoolAddress
     )
   );
 
@@ -151,14 +173,6 @@ Configuring BridgeUtils ${bridgeUtilsAddress}
 Configuring SPEND: ${spendTokenAddress}
   adding minter: ${revenuePoolAddress} (revenue pool)`);
   await sendTx(() => spend.addMinter(revenuePoolAddress));
-
-  let rewardPool = await RewardPool.at(rewardPoolAddress);
-  console.log(`
-==================================================
-Configuring RewardPool ${rewardPoolAddress}
-  payable tokens: ${PAYABLE_TOKENS.join(", ")}
-`);
-  await sendTx(() => rewardPool.setup(TALLY, PAYABLE_TOKENS));
 };
 
 function getAddress(contractId, addresses) {
