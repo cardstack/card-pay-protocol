@@ -66,7 +66,7 @@ contract("RewardPool", function (accounts) {
         },
       ];
       rewardPool = await RewardPool.new();
-      await rewardPool.initialize(1, owner);
+      await rewardPool.initialize(owner);
       await rewardPool.setup([cardcpxdToken.address, daicpxdToken.address]);
     });
 

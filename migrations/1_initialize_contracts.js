@@ -47,7 +47,7 @@ module.exports = async function (deployer, network, addresses) {
       SPEND: { contractName: "SPEND", init: [addresses[0]] },
       DAIOracle: { contractName: "ChainlinkFeedAdapter", init: [addresses[0]] },
       CARDOracle: { contractName: "DIAOracleAdapter", init: [addresses[0]] },
-      RewardPool: { contractName: "RewardPool", init: [1 , addresses[0]] },
+      RewardPool: { contractName: "RewardPool", init: [addresses[0]] },
     };
 
     // Use manual feeds in sokol

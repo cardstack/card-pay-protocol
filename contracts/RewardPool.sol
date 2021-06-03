@@ -12,20 +12,19 @@ import "./core/Exchange.sol";
 import "./core/Versionable.sol";
 import "./roles/PayableToken.sol";
 
-contract RewardPool is Versionable, Initializable, Ownable, PayableToken {
+contract RewardPool is Initializable, Versionable, Ownable, PayableToken {
 
   using SafeMath for uint256;
   using MerkleProof for bytes32[];
 
-  uint256 private _numPaymentCycles;
+  uint256 public numPaymentCycles;
   uint256 public currentPaymentCycleStartBlock;
 
   function initialize(
-    uint256 numPaymentCycles,
     address owner
   ) public initializer {
-    _numPaymentCycles = numPaymentCycles;
-    initialize(owner);
+    numPaymentCycles = 1;
+    Ownable.initialize(owner);
   }
 
   mapping(address => mapping(address => uint256)) public withdrawals;
@@ -33,7 +32,7 @@ contract RewardPool is Versionable, Initializable, Ownable, PayableToken {
 
   event Setup();
   event PayeeWithdraw(address indexed payee, uint256 amount);
-  event MerkleRootSubmission(bytes32 payeeRoot,uint256 _numPaymentCycles);
+  event MerkleRootSubmission(bytes32 payeeRoot,uint256 numPaymentCycles);
   event PaymentCycleEnded(uint256 paymentCycle, uint256 startBlock, uint256 endBlock);
 
   function setup(
@@ -45,25 +44,21 @@ contract RewardPool is Versionable, Initializable, Ownable, PayableToken {
     emit Setup();
   }
 
-  function numPaymentCycles() public view returns (uint256) {
-    return _numPaymentCycles;
-  }
-
   function startNewPaymentCycle() internal onlyOwner returns(bool) {
     require(block.number > currentPaymentCycleStartBlock, "Cannot start new payment cycle before currentPaymentCycleStartBlock");
 
-    emit PaymentCycleEnded(_numPaymentCycles, currentPaymentCycleStartBlock, block.number);
+    emit PaymentCycleEnded(numPaymentCycles, currentPaymentCycleStartBlock, block.number);
 
-    _numPaymentCycles = _numPaymentCycles.add(1);
+    numPaymentCycles = numPaymentCycles.add(1);
     currentPaymentCycleStartBlock = block.number.add(1);
 
     return true;
   }
 
   function submitPayeeMerkleRoot(bytes32 payeeRoot) external onlyOwner returns(bool) {
-    payeeRoots[_numPaymentCycles] = payeeRoot;
+    payeeRoots[numPaymentCycles] = payeeRoot;
 
-    emit MerkleRootSubmission(payeeRoot, _numPaymentCycles);
+    emit MerkleRootSubmission(payeeRoot, numPaymentCycles);
     startNewPaymentCycle();
 
     return true;
