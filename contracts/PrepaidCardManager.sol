@@ -220,7 +220,7 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
       execTransaction(
         prepaidCard,
         payableTokenAddr,
-        _getPayData(payableTokenAddr, merchantSafe, amount, infoDID),
+        getPayData(payableTokenAddr, merchantSafe, amount, infoDID),
         addContractSignature(prepaidCard, ownerSignature),
         gasToken,
         prepaidCard
@@ -232,37 +232,9 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
    * @param token Token merchant
    * @param merchantSafe Merchant's safe address
    * @param amount amount need pay to merchant
+   * @param infoDID the merchant's info DID for merchange registration
    */
   function getPayData(
-    address token, // solhint-disable-line no-unused-vars
-    address merchantSafe,
-    uint256 amount
-  ) external view returns (bytes memory) {
-    return _getPayData(token, merchantSafe, amount, "");
-  }
-
-  /**
-   * @dev Returns the bytes that are hashed to be signed by owner.
-   * @param token Token merchant
-   * @param amount amount need pay to merchant
-   * @param infoDID the merchant's info DID for merchange registration
-   */
-  function getMerchantRegisterData(
-    address token, // solhint-disable-line no-unused-vars
-    uint256 amount, //TODO remove this after we have implemented rate lock
-    string calldata infoDID
-  ) external view returns (bytes memory) {
-    return _getPayData(token, address(0), amount, infoDID);
-  }
-
-  /**
-   * @dev Returns the bytes that are hashed to be signed by owner.
-   * @param token Token merchant
-   * @param merchantSafe Merchant's safe address
-   * @param amount amount need pay to merchant
-   * @param infoDID the merchant's info DID for merchange registration
-   */
-  function _getPayData(
     address token, // solhint-disable-line no-unused-vars
     address merchantSafe,
     uint256 amount,

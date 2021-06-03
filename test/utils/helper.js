@@ -101,12 +101,14 @@ async function payMerchant(
   relayer,
   customerAddress,
   merchantSafe,
-  amount
+  amount,
+  infoDID = ""
 ) {
   let data = await prepaidCardManager.getPayData(
     issuingToken.address,
     merchantSafe,
-    amount
+    amount,
+    infoDID
   );
 
   let signature = await signSafeTransaction(
@@ -129,7 +131,7 @@ async function payMerchant(
     issuingToken.address,
     merchantSafe,
     amount,
-    "",
+    infoDID,
     signature,
     { from: relayer }
   );
@@ -356,34 +358,15 @@ exports.registerMerchant = async function (
   amount,
   infoDID = ""
 ) {
-  let data = await prepaidCardManager.getMerchantRegisterData(
-    issuingToken.address,
-    amount,
-    infoDID
-  );
-
-  let signature = await signSafeTransaction(
-    issuingToken.address,
-    0,
-    data,
-    0,
-    0,
-    0,
-    0,
-    gasToken.address,
-    prepaidCard.address,
-    await prepaidCard.nonce(),
+  return await payMerchant(
+    prepaidCardManager,
+    prepaidCard,
+    issuingToken,
+    gasToken,
+    relayer,
     merchant,
-    prepaidCard
-  );
-
-  return await prepaidCardManager.payForMerchant(
-    prepaidCard.address,
-    issuingToken.address,
     ZERO_ADDRESS,
     amount,
-    infoDID,
-    signature,
-    { from: relayer }
+    infoDID
   );
 };
