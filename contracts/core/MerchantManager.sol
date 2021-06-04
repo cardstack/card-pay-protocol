@@ -46,8 +46,6 @@ contract MerchantManager is Safe {
     return merchants[merchant].merchantSafe;
   }
 
-  event Debug(address merchantSafe, string infoDID);
-
   function registerMerchant(address merchant, string memory infoDID)
     internal
     returns (address)
