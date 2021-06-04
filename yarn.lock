@@ -1532,19 +1532,19 @@
   resolved "https://registry.yarnpkg.com/@openzeppelin/fuzzy-solidity-import-parser/-/fuzzy-solidity-import-parser-0.1.2.tgz#3b9f524d6028ca73df60474a313e0295e5610c51"
   integrity sha512-leqEwfs8GlrPDrVcVc8Hv6LJ62ZzR0RgjwQNCkpT6H5jW9RB8YdR0a3inHoricSvw+sKI1b1hOqsCtPPZNnhng==
 
-"@openzeppelin/truffle-upgrades@^1.7.0":
-  version "1.7.0"
-  resolved "https://registry.yarnpkg.com/@openzeppelin/truffle-upgrades/-/truffle-upgrades-1.7.0.tgz#cbc0d3a2f32d1acb8a31bcc9b8c8f0f7eb01f510"
-  integrity sha512-0Bb7Qr6ULUYKB//TJF7s0++z4QKONR9b5/UCnqb+po1TYqxEBwftjebVR4rj7C1tWH8cj+igEMkyQb0ep9r9Lw==
+"@openzeppelin/truffle-upgrades@^1.5.2":
+  version "1.5.2"
+  resolved "https://registry.yarnpkg.com/@openzeppelin/truffle-upgrades/-/truffle-upgrades-1.5.2.tgz#a94160f2fe9f16e167b76319344199ea6f964ebb"
+  integrity sha512-tPOh4TartanHlIzinrelxWC6GGkFR1rOEYODUUgeS8cZi77j8cIYfWVut/qG8LIKr4ha8tU06AKDwkr5DK3ivA==
   dependencies:
-    "@openzeppelin/upgrades-core" "^1.7.0"
+    "@openzeppelin/upgrades-core" "^1.5.0"
     "@truffle/contract" "^4.2.12"
     solidity-ast "^0.4.15"
 
-"@openzeppelin/upgrades-core@^1.7.0":
-  version "1.7.6"
-  resolved "https://registry.yarnpkg.com/@openzeppelin/upgrades-core/-/upgrades-core-1.7.6.tgz#2c5e89b272aaf2164f51ca99167ffeecdab13749"
-  integrity sha512-xXoUJGWI2MHLtMwS2GN3PiymZ9WIj+uRAMrm8HIz0genGSIO6PwPMlmaUyq3O8/JzTMgpVV92aMcPjOkvI5SmQ==
+"@openzeppelin/upgrades-core@^1.5.0":
+  version "1.5.1"
+  resolved "https://registry.yarnpkg.com/@openzeppelin/upgrades-core/-/upgrades-core-1.5.1.tgz#2165f0c2961cc748e7d1c2bce1ba96589d31390b"
+  integrity sha512-rL0h/+Yfcky98XaxLRcxKunmC2uVP+dr9tVxzZfbjDpIco7VkmyODsI1YBPZTn3e5kCj7A6cmgNrFmao/UkQyA==
   dependencies:
     bn.js "^5.1.2"
     cbor "^7.0.0"
@@ -1552,6 +1552,8 @@
     compare-versions "^3.6.0"
     debug "^4.1.1"
     ethereumjs-util "^7.0.3"
+    fp-ts "^2.7.1"
+    io-ts "^2.2.9"
     proper-lockfile "^4.1.1"
     solidity-ast "^0.4.15"
 
@@ -7106,6 +7108,11 @@ forwarded@~0.1.2:
   resolved "https://registry.yarnpkg.com/forwarded/-/forwarded-0.1.2.tgz#98c23dab1175657b8c0573e8ceccd91b0ff18c84"
   integrity sha1-mMI9qxF1ZXuMBXPozszZGw/xjIQ=
 
+fp-ts@^2.7.1:
+  version "2.9.5"
+  resolved "https://registry.yarnpkg.com/fp-ts/-/fp-ts-2.9.5.tgz#6690cd8b76b84214a38fc77cbbbd04a38f86ea90"
+  integrity sha512-MiHrA5teO6t8zKArE3DdMPT/Db6v2GUt5yfWnhBTrrsVfeCJUUnV6sgFvjGNBKDmEMqVwRFkEePL7wPwqrLKKA==
+
 fresh@0.5.2:
   version "0.5.2"
   resolved "https://registry.yarnpkg.com/fresh/-/fresh-0.5.2.tgz#3d8cadd90d976569fa835ab1f8e4b23a105605a7"
@@ -8160,6 +8167,11 @@ invert-kv@^2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/invert-kv/-/invert-kv-2.0.0.tgz#7393f5afa59ec9ff5f67a27620d11c226e3eec02"
   integrity sha512-wPVv/y/QQ/Uiirj/vh3oP+1Ww+AWehmi1g5fFWGPF6IpCBCDVrhgHRMvrLfdYcwDh3QJbGXDW4JAuzxElLSqKA==
+
+io-ts@^2.2.9:
+  version "2.2.16"
+  resolved "https://registry.yarnpkg.com/io-ts/-/io-ts-2.2.16.tgz#597dffa03db1913fc318c9c6df6931cb4ed808b2"
+  integrity sha512-y5TTSa6VP6le0hhmIyN0dqEXkrZeJLeC5KApJq6VLci3UEKF80lZ+KuoUs02RhBxNWlrqSNxzfI7otLX1Euv8Q==
 
 ip-regex@^4.0.0:
   version "4.3.0"
