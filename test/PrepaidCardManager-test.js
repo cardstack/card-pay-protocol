@@ -219,6 +219,7 @@ contract("PrepaidCardManager", (accounts) => {
         .should.eventually.to.include({
           issuer,
           issueToken: daicpxdToken.address,
+          customizationDID: "",
         });
 
       await shouldBeSameBalance(
@@ -231,6 +232,32 @@ contract("PrepaidCardManager", (accounts) => {
         depot.address,
         walletAmount.sub(toTokenUnit(1)).sub(paymentActual)
       );
+    });
+
+    it("should create prepaid card with customization DID", async () => {
+      let amount = toTokenUnit(1);
+      let { prepaidCards, executionSucceeded } = await createPrepaidCards(
+        depot,
+        cardManager,
+        daicpxdToken,
+        daicpxdToken,
+        issuer,
+        relayer,
+        [amount],
+        undefined,
+        "did:cardstack:56d6fc54-d399-443b-8778-d7e4512d3a49"
+      );
+
+      expect(executionSucceeded).to.equal(true);
+
+      await cardManager
+        .cardDetails(prepaidCards[0].address)
+        .should.eventually.to.include({
+          issuer,
+          issueToken: daicpxdToken.address,
+          customizationDID:
+            "did:cardstack:56d6fc54-d399-443b-8778-d7e4512d3a49",
+        });
     });
 
     // Note that these prepaid cards are used in the subsequent tests:
@@ -269,6 +296,7 @@ contract("PrepaidCardManager", (accounts) => {
           .should.eventually.to.include({
             issuer,
             issueToken: daicpxdToken.address,
+            customizationDID: "",
           });
 
         await prepaidCard.isOwner(issuer).should.become(true);
@@ -284,6 +312,34 @@ contract("PrepaidCardManager", (accounts) => {
       );
 
       await shouldBeSameBalance(daicpxdToken, relayer, paymentActual);
+    });
+
+    it("should create multi Prepaid Cards with the same customization DID ", async () => {
+      let amounts = [1, 2, 5].map((amount) => toTokenUnit(amount));
+      let { prepaidCards, executionSucceeded } = await createPrepaidCards(
+        depot,
+        cardManager,
+        daicpxdToken,
+        daicpxdToken,
+        issuer,
+        relayer,
+        amounts,
+        undefined,
+        "did:cardstack:56d6fc54-d399-443b-8778-d7e4512d3a49"
+      );
+
+      expect(executionSucceeded).to.equal(true);
+
+      prepaidCards.forEach(async (prepaidCard) => {
+        await cardManager
+          .cardDetails(prepaidCard.address)
+          .should.eventually.to.include({
+            issuer,
+            issueToken: daicpxdToken.address,
+            customizationDID:
+              "did:cardstack:56d6fc54-d399-443b-8778-d7e4512d3a49",
+          });
+      });
     });
 
     it("should create a large number of cards without exceeding the block gas limit (truffle limits tests to 6.7M block gas limit--the true block gas limit is closer to 12.5M)", async () => {
@@ -749,15 +805,12 @@ contract("PrepaidCardManager", (accounts) => {
       let amounts = [1, 1].map((amount) => toTokenUnit(amount).toString());
       let splitCardData = [
         prepaidCards[1].address,
-        daicpxdToken.address,
         amounts,
+        "did:cardstack:56d6fc54-d399-443b-8778-d7e4512d3a49",
       ];
       let packData = packExecutionData({
         to: daicpxdToken.address,
-        data: await cardManager.getSplitCardData(
-          prepaidCards[1].address,
-          amounts
-        ),
+        data: await cardManager.getSplitCardData(...splitCardData),
       });
       let safeTxArr = Object.keys(packData).map((key) => packData[key]);
       let signature = await signSafeTransaction(
@@ -780,6 +833,8 @@ contract("PrepaidCardManager", (accounts) => {
           .should.eventually.to.include({
             issuer,
             issueToken: daicpxdToken.address,
+            customizationDID:
+              "did:cardstack:56d6fc54-d399-443b-8778-d7e4512d3a49",
           });
 
         await prepaidCard.isOwner(issuer).should.become(true);
@@ -806,10 +861,10 @@ contract("PrepaidCardManager", (accounts) => {
       await transferOwner(cardManager, prepaidCard, issuer, customer, relayer);
 
       let amounts = [1, 1].map((amount) => toTokenUnit(amount).toString());
-      let splitCardData = [prepaidCard.address, daicpxdToken.address, amounts];
+      let splitCardData = [prepaidCard.address, amounts, ""];
       let packData = packExecutionData({
         to: daicpxdToken.address,
-        data: await cardManager.getSplitCardData(prepaidCard.address, amounts),
+        data: await cardManager.getSplitCardData(...splitCardData),
       });
       let safeTxArr = Object.keys(packData).map((key) => packData[key]);
       let signature = await signSafeTransaction(
@@ -828,11 +883,7 @@ contract("PrepaidCardManager", (accounts) => {
 
     it("can reject when provided signature is invalid", async () => {
       let amounts = [2, 2].map((amount) => toTokenUnit(amount).toString());
-      let splitCardData = [
-        prepaidCards[2].address,
-        daicpxdToken.address,
-        amounts,
-      ];
+      let splitCardData = [prepaidCards[2].address, amounts, ""];
       await cardManager
         .splitCard(...splitCardData, "0x01", {
           from: relayer,

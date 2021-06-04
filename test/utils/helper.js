@@ -23,10 +23,10 @@ function toTokenUnit(_numberToken, _decimals = 18) {
   return number.mul(dec);
 }
 
-function encodeCreateCardsData(account, amounts = []) {
+function encodeCreateCardsData(account, amounts = [], customizationDID = "") {
   return AbiCoder.encodeParameters(
-    ["address", "uint256[]"],
-    [account, amounts]
+    ["address", "uint256[]", "string"],
+    [account, amounts, customizationDID]
   );
 }
 
@@ -101,12 +101,14 @@ async function payMerchant(
   relayer,
   customerAddress,
   merchantSafe,
-  amount
+  amount,
+  infoDID = ""
 ) {
   let data = await prepaidCardManager.getPayData(
     issuingToken.address,
     merchantSafe,
-    amount
+    amount,
+    infoDID
   );
 
   let signature = await signSafeTransaction(
@@ -129,6 +131,7 @@ async function payMerchant(
     issuingToken.address,
     merchantSafe,
     amount,
+    infoDID,
     signature,
     { from: relayer }
   );
@@ -248,13 +251,15 @@ exports.createPrepaidCards = async function (
   issuer,
   relayer,
   amounts,
-  amountToSend
+  amountToSend,
+  customizationDID
 ) {
   let createCardData = encodeCreateCardsData(
     issuer,
     amounts.map((amount) =>
       typeof amount === "string" ? amount : amount.toString()
-    )
+    ),
+    customizationDID
   );
 
   if (amountToSend == null) {
@@ -350,7 +355,8 @@ exports.registerMerchant = async function (
   gasToken,
   relayer,
   merchant,
-  amount
+  amount,
+  infoDID = ""
 ) {
   return await payMerchant(
     prepaidCardManager,
@@ -360,6 +366,7 @@ exports.registerMerchant = async function (
     relayer,
     merchant,
     ZERO_ADDRESS,
-    amount
+    amount,
+    infoDID
   );
 };

@@ -29,7 +29,7 @@ const eventABIs = {
   },
   CREATE_PREPAID_CARD: {
     topic: web3EthAbi.encodeEventSignature(
-      "CreatePrepaidCard(address,address,address,uint256)"
+      "CreatePrepaidCard(address,address,address,uint256,string)"
     ),
     abis: [
       {
@@ -48,10 +48,16 @@ const eventABIs = {
         type: "uint256",
         name: "amount",
       },
+      {
+        type: "string",
+        name: "customizationDID",
+      },
     ],
   },
   MERCHANT_CREATION: {
-    topic: web3EthAbi.encodeEventSignature("MerchantCreation(address,address)"),
+    topic: web3EthAbi.encodeEventSignature(
+      "MerchantCreation(address,address,string)"
+    ),
     abis: [
       {
         type: "address",
@@ -60,6 +66,10 @@ const eventABIs = {
       {
         type: "address",
         name: "merchantSafe",
+      },
+      {
+        type: "string",
+        name: "infoDID",
       },
     ],
   },

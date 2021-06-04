@@ -17,6 +17,7 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
     address issuer;
     address issueToken;
     uint256 blockNumber;
+    string customizationDID;
     bool reloadable;
     bool canPayNonMerchants;
   }
@@ -25,7 +26,8 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
     address issuer,
     address card,
     address token,
-    uint256 amount
+    uint256 amount,
+    string customizationDID
   );
   event GasFeeCollected(
     address issuer,
@@ -100,13 +102,23 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
     uint256 amount,
     bytes calldata data
   ) external isValidToken returns (bool) {
-    (address owner, uint256[] memory cardAmounts) =
-      abi.decode(data, (address, uint256[]));
+    (
+      address owner,
+      uint256[] memory cardAmounts,
+      string memory customizationDID
+    ) = abi.decode(data, (address, uint256[], string));
     require(
       owner != address(0) && cardAmounts.length > 0,
       "Prepaid card data invalid"
     );
-    createMultiplePrepaidCards(owner, from, _msgSender(), amount, cardAmounts);
+    createMultiplePrepaidCards(
+      owner,
+      from,
+      _msgSender(),
+      amount,
+      cardAmounts,
+      customizationDID
+    );
     return true;
   }
 
@@ -182,14 +194,15 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
    * @param payableTokenAddr payable token address
    * @param merchantSafe Merchant's safe address
    * @param amount value to pay to merchant
+   * @param infoDID the merchant's info DID for merchant registration
    * @param ownerSignature Packed signature data ({bytes32 r}{bytes32 s}{uint8 v})
-   * TODO: relayer should verify request will fulfill the requires() before calling this method
    */
   function payForMerchant(
     address payable prepaidCard,
     address payableTokenAddr,
     address merchantSafe,
     uint256 amount,
+    string calldata infoDID,
     bytes calldata ownerSignature
   ) external returns (bool) {
     require(gasToken != address(0), "gasToken not configured");
@@ -207,7 +220,7 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
       execTransaction(
         prepaidCard,
         payableTokenAddr,
-        getPayData(payableTokenAddr, merchantSafe, amount),
+        getPayData(payableTokenAddr, merchantSafe, amount, infoDID),
         addContractSignature(prepaidCard, ownerSignature),
         gasToken,
         prepaidCard
@@ -219,32 +232,34 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
    * @param token Token merchant
    * @param merchantSafe Merchant's safe address
    * @param amount amount need pay to merchant
+   * @param infoDID the merchant's info DID for merchange registration
    */
   function getPayData(
     address token, // solhint-disable-line no-unused-vars
     address merchantSafe,
-    uint256 amount
+    uint256 amount,
+    string memory infoDID
   ) public view returns (bytes memory) {
     return
       abi.encodeWithSelector(
         TRANSFER_AND_CALL,
         revenuePool,
         amount,
-        abi.encode(merchantSafe)
+        abi.encode(merchantSafe, infoDID)
       );
   }
 
   /**
    * @dev Split Current Prepaid Card into Multiple Cards
    * @param prepaidCard Prepaid Card's address
-   * @param issuingToken Token's address
    * @param cardAmounts Array of new card's amount
+   * @param customizationDID the customization DID for the new prepaid cards
    * @param ownerSignature Packed signature data ({bytes32 r}{bytes32 s}{uint8 v})
    */
   function splitCard(
     address payable prepaidCard,
-    address issuingToken,
     uint256[] calldata cardAmounts,
+    string calldata customizationDID,
     bytes calldata ownerSignature
   ) external payable returns (bool) {
     address owner = getPrepaidCardOwner(prepaidCard);
@@ -252,11 +267,12 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
       cardDetails[prepaidCard].issuer == owner,
       "only issuer can split card"
     );
+    address issuingToken = cardDetails[prepaidCard].issueToken;
     return
       execTransaction(
         prepaidCard,
         issuingToken,
-        getSplitCardData(prepaidCard, cardAmounts),
+        getSplitCardData(prepaidCard, cardAmounts, customizationDID),
         addContractSignature(prepaidCard, ownerSignature),
         address(0),
         address(0)
@@ -267,10 +283,12 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
    * @dev Returns the bytes that are hashed to be signed by owner.
    * @param prepaidCard the prepaid card address
    * @param amounts Array of new prepaid card amounts to create
+   * @param customizationDID the customization DID for the new prepaid cards
    */
   function getSplitCardData(
     address payable prepaidCard,
-    uint256[] memory amounts
+    uint256[] memory amounts,
+    string memory customizationDID
   ) public view returns (bytes memory) {
     address owner = getPrepaidCardOwner(prepaidCard);
     uint256 total = 0;
@@ -285,7 +303,7 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
         TRANSFER_AND_CALL,
         address(this),
         total,
-        abi.encode(owner, amounts)
+        abi.encode(owner, amounts, customizationDID)
       );
   }
 
@@ -325,7 +343,8 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
     address depot,
     address token,
     uint256 amountReceived,
-    uint256[] memory amountOfCard
+    uint256[] memory amountOfCard,
+    string memory customizationDID
   ) private returns (bool) {
     uint256 neededAmount = 0;
     uint256 numberCard = amountOfCard.length;
@@ -344,7 +363,7 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
       "Insufficient funds sent for requested amounts"
     );
     for (uint256 i = 0; i < numberCard; i++) {
-      createPrepaidCard(owner, token, amountOfCard[i]);
+      createPrepaidCard(owner, token, amountOfCard[i], customizationDID);
     }
 
     // refund the supplier any excess funds that they provided
@@ -371,7 +390,8 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
   function createPrepaidCard(
     address owner,
     address token,
-    uint256 amount
+    uint256 amount,
+    string memory customizationDID
   ) private returns (address) {
     address[] memory owners = new address[](2);
 
@@ -383,6 +403,7 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
     // card was created
     cardDetails[card].issuer = owner;
     cardDetails[card].issueToken = token;
+    cardDetails[card].customizationDID = customizationDID;
     cardDetails[card].blockNumber = block.number;
     cardDetails[card].reloadable = false; // future functionality
     cardDetails[card].canPayNonMerchants = false; // future functionality
@@ -394,7 +415,13 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
     // The card is a trusted contract (gnosis safe)
     IERC677(token).transfer(card, amount - _gasFee);
 
-    emit CreatePrepaidCard(owner, card, token, amount - _gasFee);
+    emit CreatePrepaidCard(
+      owner,
+      card,
+      token,
+      amount - _gasFee,
+      customizationDID
+    );
     emit GasFeeCollected(owner, card, token, _gasFee);
 
     return card;
