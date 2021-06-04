@@ -144,7 +144,7 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
    * @param newOwner the new owner of the prepaid card (the customer)
    * @param previousOwnerSignature Packed signature data ({bytes32 r}{bytes32 s}{uint8 v})
    */
-  function sellCard(
+  function transferCard(
     address payable prepaidCard,
     address newOwner,
     bytes calldata previousOwnerSignature
@@ -157,7 +157,7 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
     execTransaction(
       prepaidCard,
       prepaidCard,
-      getSellCardData(prepaidCard, newOwner),
+      getTransferCardData(prepaidCard, newOwner),
       addContractSignature(prepaidCard, previousOwnerSignature),
       address(0),
       address(0)
@@ -172,7 +172,7 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
    * @param prepaidCard the prepaid card address
    * @param newOwner Customer's address
    */
-  function getSellCardData(address payable prepaidCard, address newOwner)
+  function getTransferCardData(address payable prepaidCard, address newOwner)
     public
     view
     returns (bytes memory)
@@ -197,7 +197,7 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
    * @param infoDID the merchant's info DID for merchant registration
    * @param ownerSignature Packed signature data ({bytes32 r}{bytes32 s}{uint8 v})
    */
-  function payForMerchant(
+  function payMerchant(
     address payable prepaidCard,
     address payableTokenAddr,
     address merchantSafe,
@@ -220,7 +220,7 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
       execTransaction(
         prepaidCard,
         payableTokenAddr,
-        getPayData(payableTokenAddr, merchantSafe, amount, infoDID),
+        getPayMerchantData(payableTokenAddr, merchantSafe, amount, infoDID),
         addContractSignature(prepaidCard, ownerSignature),
         gasToken,
         prepaidCard
@@ -234,7 +234,7 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
    * @param amount amount need pay to merchant
    * @param infoDID the merchant's info DID for merchange registration
    */
-  function getPayData(
+  function getPayMerchantData(
     address token, // solhint-disable-line no-unused-vars
     address merchantSafe,
     uint256 amount,

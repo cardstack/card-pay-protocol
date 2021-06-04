@@ -104,7 +104,7 @@ async function payMerchant(
   amount,
   infoDID = ""
 ) {
-  let data = await prepaidCardManager.getPayData(
+  let data = await prepaidCardManager.getPayMerchantData(
     issuingToken.address,
     merchantSafe,
     amount,
@@ -126,7 +126,7 @@ async function payMerchant(
     prepaidCard
   );
 
-  return await prepaidCardManager.payForMerchant(
+  return await prepaidCardManager.payMerchant(
     prepaidCard.address,
     issuingToken.address,
     merchantSafe,
@@ -330,7 +330,7 @@ exports.transferOwner = async function (
 ) {
   let packData = packExecutionData({
     to: prepaidCard.address,
-    data: await prepaidCardManager.getSellCardData(
+    data: await prepaidCardManager.getTransferCardData(
       prepaidCard.address,
       newOwner
     ),
@@ -343,9 +343,14 @@ exports.transferOwner = async function (
     prepaidCard
   );
 
-  await prepaidCardManager.sellCard(prepaidCard.address, newOwner, signature, {
-    from: relayer,
-  });
+  await prepaidCardManager.transferCard(
+    prepaidCard.address,
+    newOwner,
+    signature,
+    {
+      from: relayer,
+    }
+  );
 };
 
 exports.registerMerchant = async function (
