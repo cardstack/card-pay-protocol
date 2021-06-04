@@ -518,6 +518,8 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
         signatures[i.add(65)] = contractSignature[i];
       }
     } else {
+      // For test coverage, unsure how to test in this branch since the address
+      // of this contract is pretty arbitrary
       for (uint256 i = 0; i < contractSignature.length; i++) {
         signatures[i] = contractSignature[i];
       }
