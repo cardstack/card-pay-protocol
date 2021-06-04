@@ -46,6 +46,10 @@ contract MerchantManager is Safe {
     return merchants[merchant].merchantSafe;
   }
 
+  function merchantForSafe(address merchantSafe) public view returns (address) {
+    return merchantSafes[merchantSafe].merchant;
+  }
+
   function registerMerchant(address merchant, string memory infoDID)
     internal
     returns (address)
