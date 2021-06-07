@@ -101,13 +101,18 @@ async function payMerchant(
   relayer,
   customerAddress,
   merchantSafe,
-  amount,
+  spendAmount,
+  usdRate,
   infoDID = ""
 ) {
+  if (usdRate == null) {
+    usdRate = 100000000; // 1 DAI = 1 USD
+  }
   let data = await prepaidCardManager.getPayMerchantData(
     issuingToken.address,
     merchantSafe,
-    amount,
+    spendAmount,
+    usdRate,
     infoDID
   );
 
@@ -130,7 +135,8 @@ async function payMerchant(
     prepaidCard.address,
     issuingToken.address,
     merchantSafe,
-    amount,
+    spendAmount,
+    usdRate,
     infoDID,
     signature,
     { from: relayer }
@@ -360,7 +366,8 @@ exports.registerMerchant = async function (
   gasToken,
   relayer,
   merchant,
-  amount,
+  spendAmount,
+  usdRate,
   infoDID = ""
 ) {
   return await payMerchant(
@@ -371,7 +378,8 @@ exports.registerMerchant = async function (
     relayer,
     merchant,
     ZERO_ADDRESS,
-    amount,
+    spendAmount,
+    usdRate,
     infoDID
   );
 };

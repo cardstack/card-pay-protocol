@@ -13,6 +13,7 @@ const GAS_FEE_RECEIVER = process.env.GAS_FEE_RECEIVER ?? ZERO_ADDRESS;
 const GAS_FEE_CARD_WEI = String(
   process.env.GAS_FEE_CARD_WEI ?? 1000000000000000000
 );
+const RATE_DRIFT_PERCENTAGE = process.env.RATE_DRIFT_PERCENTAGE ?? 500000; // 0.5%
 const MERCHANT_FEE_PERCENTAGE = process.env.MERCHANT_FEE_PERCENTAGE ?? 2000000; // 2%
 const MERCHANT_REGISTRATION_FEE_IN_SPEND =
   process.env.MERCHANT_REGISTRATION_FEE_IN_SPEND ?? 1000;
@@ -59,6 +60,9 @@ Configuring RevenuePool ${revenuePoolAddress}
   gnosis master copy: ${GNOSIS_SAFE_MASTER_COPY}
   gnosis proxy factory: ${GNOSIS_SAFE_FACTORY}
   payable tokens: ${PAYABLE_TOKENS.join(", ")}
+  rate drift percentage: ${(Number(RATE_DRIFT_PERCENTAGE) / 1000000).toFixed(
+    4
+  )}%
   merchant fee receiver: ${MERCHANT_FEE_RECEIVER}
   merchant fee percentage: ${(
     Number(MERCHANT_FEE_PERCENTAGE) / 1000000
@@ -74,7 +78,8 @@ Configuring RevenuePool ${revenuePoolAddress}
       PAYABLE_TOKENS,
       MERCHANT_FEE_RECEIVER,
       MERCHANT_FEE_PERCENTAGE,
-      MERCHANT_REGISTRATION_FEE_IN_SPEND
+      MERCHANT_REGISTRATION_FEE_IN_SPEND,
+      RATE_DRIFT_PERCENTAGE
     )
   );
   console.log(`  set BridgeUtils address to ${bridgeUtilsAddress}`);

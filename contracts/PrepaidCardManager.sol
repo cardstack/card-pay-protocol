@@ -191,17 +191,19 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
   /**
    * @dev Pay token to merchant
    * @param prepaidCard Prepaid Card's address
-   * @param payableTokenAddr payable token address
+   * @param token payable token address
    * @param merchantSafe Merchant's safe address
-   * @param amount value to pay to merchant
+   * @param spendAmount The amount of SPEND to pay the merchant
+   * @param rateLock the price of the issuing token in USD
    * @param infoDID the merchant's info DID for merchant registration
    * @param ownerSignature Packed signature data ({bytes32 r}{bytes32 s}{uint8 v})
    */
   function payMerchant(
     address payable prepaidCard,
-    address payableTokenAddr,
+    address token,
     address merchantSafe,
-    uint256 amount,
+    uint256 spendAmount,
+    uint256 rateLock,
     string calldata infoDID,
     bytes calldata ownerSignature
   ) external returns (bool) {
@@ -210,17 +212,19 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
       cardDetails[prepaidCard].blockNumber < block.number,
       "Prepaid card used too soon"
     );
-    uint256 amountInSPEND =
-      RevenuePool(revenuePool).convertToSpend(payableTokenAddr, amount);
     require(
-      amountInSPEND >= MINIMUM_MERCHANT_PAYMENT,
+      spendAmount >= MINIMUM_MERCHANT_PAYMENT,
       "merchant payment too small"
     ); // protect against spamming contract with too low a price
+    require(
+      RevenuePool(revenuePool).isAllowableRate(token, rateLock),
+      "requested rate is beyond the allowable bounds"
+    );
     return
       execTransaction(
         prepaidCard,
-        payableTokenAddr,
-        getPayMerchantData(payableTokenAddr, merchantSafe, amount, infoDID),
+        token,
+        getPayMerchantData(token, merchantSafe, spendAmount, rateLock, infoDID),
         addContractSignature(prepaidCard, ownerSignature),
         gasToken,
         prepaidCard
@@ -231,21 +235,29 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
    * @dev Returns the bytes that are hashed to be signed by owner.
    * @param token Token merchant
    * @param merchantSafe Merchant's safe address
-   * @param amount amount need pay to merchant
+   * @param spendAmount The amount of SPEND to pay the merchant
+   * @param rateLock the price of the issuing token in USD
    * @param infoDID the merchant's info DID for merchange registration
    */
   function getPayMerchantData(
     address token, // solhint-disable-line no-unused-vars
     address merchantSafe,
-    uint256 amount,
+    uint256 spendAmount,
+    uint256 rateLock,
     string memory infoDID
   ) public view returns (bytes memory) {
+    uint256 tokenAmount =
+      RevenuePool(revenuePool).convertFromSpendWithRate(
+        token,
+        spendAmount,
+        rateLock
+      );
     return
       abi.encodeWithSelector(
         TRANSFER_AND_CALL,
         revenuePool,
-        amount,
-        abi.encode(merchantSafe, infoDID)
+        tokenAmount,
+        abi.encode(merchantSafe, spendAmount, rateLock, infoDID)
       );
   }
 

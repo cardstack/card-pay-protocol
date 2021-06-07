@@ -31,7 +31,6 @@ const {
 } = require("./utils/helper");
 
 const { expect, TOKEN_DETAIL_DATA, toBN } = require("./setup");
-const { toWei } = require("web3").utils;
 
 contract("PrepaidCardManager", (accounts) => {
   let MINIMUM_AMOUNT,
@@ -104,7 +103,8 @@ contract("PrepaidCardManager", (accounts) => {
       [daicpxdToken.address],
       merchantFeeReceiver,
       0,
-      1000
+      1000,
+      1000000
     );
     await bridgeUtils.setup(
       revenuePool.address,
@@ -961,7 +961,7 @@ contract("PrepaidCardManager", (accounts) => {
         cardcpxdToken,
         relayer,
         merchant,
-        toTokenUnit(10)
+        1000
       );
       let merchantCreation = await getParamsFromEvent(
         merchantTx,
@@ -1025,7 +1025,7 @@ contract("PrepaidCardManager", (accounts) => {
         relayer,
         customer,
         merchantSafe,
-        toTokenUnit(1)
+        100
       );
 
       await shouldBeSameBalance(
@@ -1066,7 +1066,7 @@ contract("PrepaidCardManager", (accounts) => {
         relayer,
         customer,
         merchantSafe,
-        toTokenUnit(10)
+        1000
       ).should.be.rejectedWith(
         Error,
         // the real revert reason is behind the gnosis safe execTransaction
@@ -1094,7 +1094,7 @@ contract("PrepaidCardManager", (accounts) => {
         relayer,
         customer,
         merchantSafe,
-        toWei("0.4")
+        40
       ).should.be.rejectedWith(Error, "merchant payment too small");
       await shouldBeSameBalance(
         daicpxdToken,
