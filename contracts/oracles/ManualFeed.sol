@@ -1,11 +1,10 @@
 pragma solidity 0.5.17;
 
+import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
 import "@chainlink/contracts/src/v0.5/interfaces/AggregatorV3Interface.sol";
-import "@openzeppelin/upgrades/contracts/Initializable.sol";
-import "../roles/OwnableMixin.sol";
 import "../core/Versionable.sol";
 
-contract ManualFeed is OwnableMixin, Versionable, AggregatorV3Interface {
+contract ManualFeed is Ownable, Versionable, AggregatorV3Interface {
   struct RoundData {
     bool exists;
     int256 price;
@@ -24,7 +23,7 @@ contract ManualFeed is OwnableMixin, Versionable, AggregatorV3Interface {
 
   function initialize(address owner) public initializer {
     _currentRound = 0;
-    initializeOwnable(owner);
+    Ownable.initialize(owner);
   }
 
   function setup(string calldata description, uint8 decimals)
