@@ -24,11 +24,11 @@
     "contractName": "DIAOracleAdapter"
   },
   "DAIUSDFeed": {
-    "proxy": "0x68b3e815F955B62fD3736f7B2ab03476F3Daa453",
+    "proxy": "0xd9f3b9601f78562D87f29Ee24Aa6a33FE0933D87",
     "contractName": "ManualFeed"
   },
   "ETHUSDFeed": {
-    "proxy": "0x0D268f863120A332277bCb31862b311a07860E7b",
+    "proxy": "0x9Dc9Eb1753B0C8d5B0CdC4f44088bB45FC466302",
     "contractName": "ManualFeed"
   }
 }
