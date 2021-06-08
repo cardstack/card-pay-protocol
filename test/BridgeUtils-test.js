@@ -59,7 +59,8 @@ contract("BridgeUtils", async (accounts) => {
       [],
       merchantFeeReceiver,
       0,
-      1000
+      1000,
+      1000000
     );
     await pool.createExchange("DAI", chainlinkOracle.address);
     await pool.createExchange("CARD", diaPriceOracle.address);

@@ -36,7 +36,7 @@ contract Exchange is Ownable, PayableToken {
   }
 
   /**
-   * @dev query exchange rate of payable token
+   * @dev query USD exchange rate of payable token
    * @param token address of payableToken
    * @return exchange rate
    */
@@ -54,21 +54,25 @@ contract Exchange is Ownable, PayableToken {
   }
 
   /**
-   * @dev convert amount in payableToken to amount in SPEND
-   * @param payableTokenAddr address of payableToken
-   * @param amount amount in payableToken
+   * @dev convert amount in token to amount in SPEND
+   * @param token address of token
+   * @param amount amount in token
    * @return amount
    */
-  function convertToSpend(address payableTokenAddr, uint256 amount)
+  function convertToSpend(address token, uint256 amount)
     public
     view
     returns (uint256)
   {
-    (uint256 price, uint8 decimals) = exchangeRateOf(payableTokenAddr);
+    (uint256 price, uint8 decimals) = exchangeRateOf(token);
+    require(
+      decimals == exchangeRateDecimals(),
+      "unexpected decimals value for token price"
+    );
     require(price > 0, "exchange rate cannot be 0");
     // SPEND is equivalent to USD cents, so we move the decimal point 2
     // places to the right after obtaining the USD value of the token amount
-    uint8 spendDecimals = IERC677(payableTokenAddr).decimals() + decimals - 2;
+    uint8 spendDecimals = IERC677(token).decimals() + decimals - 2;
     require(spendDecimals <= 30, "exponent overflow is likely");
     // a quirk about exponents is that the result will be calculated in the type
     // of the base, so in order to prevent overflows you should use a base of
@@ -78,42 +82,63 @@ contract Exchange is Ownable, PayableToken {
   }
 
   /**
-   * @dev convert amount in SPEND to the amount in payableToken
-   * @param payableTokenAddr address of payableToken
+   * @dev convert amount in SPEND to the amount in token
+   * @param token address of token
    * @param amount amount in SPEND
    * @return amount
    */
-  function convertFromSpend(address payableTokenAddr, uint256 amount)
+  function convertFromSpend(address token, uint256 amount)
     public
     view
     returns (uint256)
   {
-    (uint256 price, uint8 decimals) = exchangeRateOf(payableTokenAddr);
-    require(price > 0, "exchange rate cannot be 0");
+    (uint256 price, uint8 decimals) = exchangeRateOf(token);
+    require(
+      decimals == exchangeRateDecimals(),
+      "unexpected decimals value for token price"
+    );
+    return convertFromSpendWithRate(token, amount, price);
+  }
+
+  /**
+   * @dev convert amount in SPEND to the amount in token using the
+   * provided rate. Note that the rate needs to use decimals 8
+   * @param token address of token
+   * @param amount amount in SPEND
+   * @param usdRate the token rate in decimal 8
+   * @return amount
+   */
+  function convertFromSpendWithRate(
+    address token,
+    uint256 amount,
+    uint256 usdRate
+  ) public view returns (uint256) {
+    require(usdRate > 0, "exchange rate cannot be 0");
     // SPEND is equivalent to USD cents, so we move the decimal point 2
     // places to the right after obtaining the USD value of the token amount
-    uint8 spendDecimals = IERC677(payableTokenAddr).decimals() + decimals - 2;
+    uint8 spendDecimals =
+      IERC677(token).decimals() + exchangeRateDecimals() - 2;
     require(spendDecimals <= 30, "exponent overflow is likely");
     // a quirk about exponents is that the result will be calculated in the type
     // of the base, so in order to prevent overflows you should use a base of
     // uint256
     uint256 ten = 10;
-    return (amount.mul(ten**spendDecimals)).div(price);
+    return (amount.mul(ten**spendDecimals)).div(usdRate);
   }
 
   /**
    * @dev concert amount from CARD to the specified token
-   * @param tokenAddress the address of the token you are converting to
+   * @param token the address of the token you are converting to
    * @param amount in CARD that you are converting
    */
-  function convertFromCARD(address tokenAddress, uint256 amount)
+  function convertFromCARD(address token, uint256 amount)
     public
     view
     returns (uint256)
   {
     bytes32 cardKey = keccak256(bytes("CARD"));
     require(exchanges[cardKey].exists, "no exchange exists for CARD");
-    require(hasExchange(tokenAddress), "no exchange exists for token");
+    require(hasExchange(token), "no exchange exists for token");
 
     // convert through USD to specified token
     IPriceOracle oracle = IPriceOracle(exchanges[cardKey].feed);
@@ -122,12 +147,16 @@ contract Exchange is Ownable, PayableToken {
     uint256 rawUsdValue = amount.mul(cardUSDPrice);
 
     (uint256 tokenUSDPrice, uint8 tokenExchangeDecimals) =
-      exchangeRateOf(tokenAddress);
+      exchangeRateOf(token);
     uint256 ten = 10;
     return
       (rawUsdValue.mul(ten**tokenExchangeDecimals)).div(
         tokenUSDPrice.mul(ten**cardExchangeDecimals)
       );
+  }
+
+  function exchangeRateDecimals() public pure returns (uint8) {
+    return 8;
   }
 
   uint256[50] private ____gap;

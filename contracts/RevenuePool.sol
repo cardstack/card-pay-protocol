@@ -18,9 +18,10 @@ contract RevenuePool is Versionable, Initializable, MerchantManager, Exchange {
 
   address public spendToken;
   address payable public merchantFeeReceiver;
-  uint256 public merchantFeePercentage;
+  uint256 public merchantFeePercentage; // decimals 8
   uint256 public merchantRegistrationFeeInSPEND;
   address payable public prepaidCardManager;
+  uint256 public rateDriftPercentage; // decimals 8
 
   event Setup();
   event MerchantClaim(
@@ -50,12 +51,16 @@ contract RevenuePool is Versionable, Initializable, MerchantManager, Exchange {
    * @param _gsProxyFactory is gnosis proxy factory address.
    * @param _spendToken SPEND token address.
    * @param _payableTokens are a list of payable token supported by the revenue
-     pool
+   * pool
    * @param _merchantFeeReceiver the address that receives the merchant fees
    * @param _merchantFeePercentage the numerator of a decimals 8 fraction that
-     represents the merchant fee percentage that is charged for each merchant
-     payment
-   * @param _merchantRegistrationFeeInSPEND the amount in SPEND that is charged for a merchant to register
+   * represents the merchant fee percentage that is charged for each merchant
+   * payment
+   * @param _merchantRegistrationFeeInSPEND the amount in SPEND that is charged
+   * for a merchant to register
+   * @param _rateDriftPercentage the numberator of a decimals 8 fraction that
+   * represents the percentage of how much a requested rate lock is allowed to
+   * drift from the actual rate
    */
   function setup(
     address payable _prepaidCardManager,
@@ -65,7 +70,8 @@ contract RevenuePool is Versionable, Initializable, MerchantManager, Exchange {
     address[] calldata _payableTokens,
     address payable _merchantFeeReceiver,
     uint256 _merchantFeePercentage,
-    uint256 _merchantRegistrationFeeInSPEND
+    uint256 _merchantRegistrationFeeInSPEND,
+    uint256 _rateDriftPercentage
   ) external onlyOwner {
     require(_merchantFeeReceiver != address(0), "merchantFeeReceiver not set");
     require(
@@ -80,6 +86,7 @@ contract RevenuePool is Versionable, Initializable, MerchantManager, Exchange {
     merchantFeeReceiver = _merchantFeeReceiver;
     merchantFeePercentage = _merchantFeePercentage;
     merchantRegistrationFeeInSPEND = _merchantRegistrationFeeInSPEND;
+    rateDriftPercentage = _rateDriftPercentage;
     // set token list payable.
     for (uint256 i = 0; i < _payableTokens.length; i++) {
       _addPayableToken(_payableTokens[i]);
@@ -105,30 +112,23 @@ contract RevenuePool is Versionable, Initializable, MerchantManager, Exchange {
     (address issuer, , , , , ) = prepaidCardMgr.cardDetails(from);
     require(issuer != address(0), "Caller is not a prepaid card");
 
-    // decode and get merchant address and infoDID from the data
-    (address merchantSafe, string memory infoDID) =
-      abi.decode(data, (address, string));
+    // decode data and validate that the payment details are within bounds
+    (
+      address merchantSafe,
+      uint256 spendAmount,
+      uint256 requestedRate,
+      string memory infoDID
+    ) = abi.decode(data, (address, uint256, uint256, string));
     address issuingToken = _msgSender();
-
-    if (merchantSafe == address(0)) {
-      // Merchant registration
-      return handleMerchantRegister(from, issuingToken, amount, infoDID);
-    } else {
-      // Merchant payment
-      uint256 ten = 10;
-      uint256 merchantFee =
-        merchantFeePercentage > 0
-          ? (amount.mul(merchantFeePercentage)).div(ten**merchantFeeDecimals())
-          : 0;
-      uint256 merchantProceeds = amount.sub(merchantFee);
-      handlePayment(merchantSafe, issuingToken, merchantProceeds);
-      // The merchantFeeReceiver is a trusted address
-      IERC677(issuingToken).transfer(merchantFeeReceiver, merchantFee);
-      emit MerchantFeeCollected(merchantSafe, from, issuingToken, merchantFee);
-    }
+    validatePayment(issuingToken, amount, spendAmount, requestedRate);
 
     emit CustomerPayment(from, merchantSafe, issuingToken, amount);
-    return true;
+    if (merchantSafe == address(0)) {
+      return handleMerchantRegister(from, issuingToken, amount, infoDID);
+    } else {
+      return
+        handlePayment(from, merchantSafe, issuingToken, amount, spendAmount);
+    }
   }
 
   /**
@@ -144,6 +144,10 @@ contract RevenuePool is Versionable, Initializable, MerchantManager, Exchange {
     return _claimRevenue(msg.sender, payableToken, amount);
   }
 
+  /**
+   * @dev get the list of tokens that a merchant has collected revenue in
+   * @param merchantSafe the safe of the merchant to query
+   */
   function revenueTokens(address merchantSafe)
     external
     view
@@ -152,14 +156,46 @@ contract RevenuePool is Versionable, Initializable, MerchantManager, Exchange {
     return merchantSafes[merchantSafe].tokens.enumerate();
   }
 
-  function revenueBalance(address merchantSafe, address payableToken)
+  /**
+   * @dev get the unclaimed revenue for a merchant in a specific token
+   * @param merchantSafe the safe of the merchant to query
+   * @param token the particular token to check for revenue against
+   */
+  function revenueBalance(address merchantSafe, address token)
     external
     view
     returns (uint256)
   {
-    return merchantSafes[merchantSafe].balance[payableToken];
+    return merchantSafes[merchantSafe].balance[token];
   }
 
+  /**
+   * @dev determine whether the requested rate falls within the acceptable safety
+   * margin
+   * @param token the issuing token address
+   * @param requestedRate the requested price of the issuing token in USD
+   */
+
+  function isAllowableRate(address token, uint256 requestedRate)
+    public
+    view
+    returns (bool)
+  {
+    (uint256 actualRate, ) = exchangeRateOf(token);
+    uint256 drift =
+      actualRate > requestedRate
+        ? actualRate.sub(requestedRate)
+        : requestedRate.sub(actualRate);
+    uint256 ten = 10;
+    uint256 observedDriftPercentage =
+      (drift.mul(ten**exchangeRateDecimals())).div(actualRate);
+    return observedDriftPercentage <= rateDriftPercentage;
+  }
+
+  /**
+   * @dev the decimals to use for the merchant fee percentage (the denominator of
+   * the fraction used for the merchant fee percentage)
+   */
   function merchantFeeDecimals() public pure returns (uint8) {
     return 8;
   }
@@ -197,55 +233,87 @@ contract RevenuePool is Versionable, Initializable, MerchantManager, Exchange {
 
   /**
    * @dev mint SPEND for merchant wallet when customer pay token for them.
+   * @param prepaidCard the prepaid card address
    * @param merchantSafe merchant safe address
-   * @param payableToken payableToken contract address
-   * @param amount amount in payableToken
+   * @param token token contract address
+   * @param tokenAmount amount in token
+   * @param spendAmount amount in SPEND
    */
   function handlePayment(
+    address prepaidCard,
     address merchantSafe,
-    address payableToken,
-    uint256 amount
+    address token,
+    uint256 tokenAmount,
+    uint256 spendAmount
   ) internal returns (bool) {
     require(isMerchantSafe(merchantSafe), "Invalid merchant");
 
-    uint256 balance = merchantSafes[merchantSafe].balance[payableToken];
-    merchantSafes[merchantSafe].balance[payableToken] = balance.add(amount);
-    merchantSafes[merchantSafe].tokens.add(payableToken);
+    uint256 ten = 10;
+    uint256 merchantFee =
+      merchantFeePercentage > 0
+        ? (tokenAmount.mul(merchantFeePercentage)).div(
+          ten**merchantFeeDecimals()
+        )
+        : 0;
+    uint256 merchantProceeds = tokenAmount.sub(merchantFee);
+    uint256 balance = merchantSafes[merchantSafe].balance[token];
+    merchantSafes[merchantSafe].balance[token] = balance.add(merchantProceeds);
+    merchantSafes[merchantSafe].tokens.add(token);
 
-    uint256 amountSPEND = convertToSpend(payableToken, amount);
+    ISPEND(spendToken).mint(merchantSafe, spendAmount);
 
-    ISPEND(spendToken).mint(merchantSafe, amountSPEND);
-
+    // The merchantFeeReceiver is a trusted address
+    IERC677(token).transfer(merchantFeeReceiver, merchantFee);
+    emit MerchantFeeCollected(merchantSafe, prepaidCard, token, merchantFee);
     return true;
   }
 
   /**
    * @dev merchant claim token
    * @param merchantSafe address of merchant
-   * @param payableToken address of payable token
+   * @param token address of payable token
    * @param amount amount in payable token
    */
   function _claimRevenue(
     address merchantSafe,
-    address payableToken,
+    address token,
     uint256 amount
-  ) internal isValidTokenAddress(payableToken) returns (bool) {
+  ) internal isValidTokenAddress(token) returns (bool) {
     // ensure enough token for redeem
-    uint256 balance = merchantSafes[merchantSafe].balance[payableToken];
+    uint256 balance = merchantSafes[merchantSafe].balance[token];
     require(amount <= balance, "Insufficient funds");
 
     // unlock token of merchant
     balance = balance.sub(amount);
 
     // update new balance
-    merchantSafes[merchantSafe].balance[payableToken] = balance;
+    merchantSafes[merchantSafe].balance[token] = balance;
 
     // transfer payable token from revenue pool to merchant's safe address. The
     // merchant's safe address is a gnosis safe contract, created by
     // registerMerchant(), so this is a trusted contract transfer
-    IERC677(payableToken).transfer(merchantSafe, amount);
+    IERC677(token).transfer(merchantSafe, amount);
 
-    emit MerchantClaim(merchantSafe, payableToken, amount);
+    emit MerchantClaim(merchantSafe, token, amount);
+    return true;
+  }
+
+  function validatePayment(
+    address token,
+    uint256 tokenAmount,
+    uint256 spendAmount,
+    uint256 requestedRate
+  ) internal view returns (bool) {
+    uint256 expectedTokenAmount =
+      convertFromSpendWithRate(token, spendAmount, requestedRate);
+    require(
+      expectedTokenAmount == tokenAmount,
+      "amount received does not match requested rate"
+    );
+    require(
+      isAllowableRate(token, requestedRate),
+      "requested rate is beyond the allowable bounds"
+    );
     return true;
   }
 }

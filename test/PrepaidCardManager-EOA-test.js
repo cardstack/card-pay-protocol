@@ -63,7 +63,8 @@ contract("PrepaidCardManager - EOA tests", (accounts) => {
       [daicpxdToken.address],
       merchantFeeReceiver,
       0,
-      1000
+      1000,
+      1000000
     );
     await revenuePool.createExchange("DAI", chainlinkOracle.address);
     await revenuePool.createExchange("CARD", diaPriceOracle.address);
