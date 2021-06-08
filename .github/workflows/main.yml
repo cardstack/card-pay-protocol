@@ -36,4 +36,8 @@ jobs:
         uses: VeryGoodOpenSource/very_good_coverage@v1.1.1
         with:
           path: "./coverage/lcov.info"
-          min_coverage: 100
+          # skips coverage for branch that in PrepaidCardManager that looks like
+          # it's not possible to instrument--as it relies on the sort order of
+          # the contract address of contracts deployed in tests vs test EOA
+          # addresses
+          min_coverage: 99.04
