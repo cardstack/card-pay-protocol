@@ -6,6 +6,7 @@ const ProxyFactory = artifacts.require("GnosisSafeProxyFactory");
 const GnosisSafe = artifacts.require("GnosisSafe");
 const BridgeUtils = artifacts.require("BridgeUtils");
 const AbiCoder = require("web3-eth-abi");
+const RewardPool = artifacts.require("RewardPool.sol");
 
 const utils = require("./utils/general");
 const eventABIs = require("./utils/constant/eventABIs");
@@ -47,7 +48,8 @@ contract("RevenuePool", (accounts) => {
     gnosisSafeMasterCopy,
     prepaidCardManager,
     bridgeUtils,
-    depot;
+    depot,
+    rewardPool;
 
   before(async () => {
     owner = accounts[0];
@@ -71,6 +73,8 @@ contract("RevenuePool", (accounts) => {
     await bridgeUtils.initialize(owner);
     spendToken = await SPEND.new();
     await spendToken.initialize(owner);
+    rewardPool = await RewardPool.new();
+    await rewardPool.initialize(owner);
 
     ({
       daiFeed,
@@ -93,7 +97,8 @@ contract("RevenuePool", (accounts) => {
       prepaidCardManager.address,
       gnosisSafeMasterCopy.address,
       proxyFactory.address,
-      owner
+      owner,
+      rewardPool.address
     );
 
     await prepaidCardManager.setup(

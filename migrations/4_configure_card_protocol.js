@@ -7,6 +7,7 @@ const RevenuePool = artifacts.require("RevenuePool");
 const PrepaidCardManager = artifacts.require("PrepaidCardManager");
 const BridgeUtils = artifacts.require("BridgeUtils");
 const SPEND = artifacts.require("SPEND");
+const RewardPool = artifacts.require("RewardPool");
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const GAS_FEE_RECEIVER = process.env.GAS_FEE_RECEIVER ?? ZERO_ADDRESS;
@@ -31,6 +32,7 @@ const GNOSIS_SAFE_FACTORY =
   "0x76E2cFc1F5Fa8F6a5b3fC4c8F4788F0116861F9B";
 const MINIMUM_AMOUNT = process.env.MINIMUM_AMOUNT ?? "100"; // minimum face value (in SPEND) for new prepaid card
 const MAXIMUM_AMOUNT = process.env.MAXIMUM_AMOUNT ?? "100000"; // maximum face value (in SPEND) for new prepaid card
+const TALLY = process.env.TALLY ?? ZERO_ADDRESS;
 
 module.exports = async function (_deployer, network) {
   if (["ganache", "test", "soliditycoverage"].includes(network)) {
@@ -53,6 +55,7 @@ module.exports = async function (_deployer, network) {
   let daiOracleAddress = getAddress("DAIOracle", proxyAddresses);
   let cardOracleAddress = getAddress("CARDOracle", proxyAddresses);
   let bridgeUtilsAddress = getAddress("BridgeUtils", proxyAddresses);
+  let rewardPoolAddress = getAddress("RewardPool", proxyAddresses);
   console.log(`
 ==================================================
 Configuring RevenuePool ${revenuePoolAddress}
@@ -121,6 +124,25 @@ Configuring PrepaidCardManager ${prepaidCardManagerAddress}
   console.log(`  set BridgeUtils address to ${bridgeUtilsAddress}`);
   await sendTx(() => prepaidCardManager.setBridgeUtils(bridgeUtilsAddress));
 
+  // RewardPool configuration
+  let rewardPool = await RewardPool.at(
+    rewardPoolAddress
+  );
+  console.log(`
+==================================================
+Configuring RewardPool ${rewardPoolAddress}
+  tally ${TALLY}
+  payable tokens: ${PAYABLE_TOKENS.join(", ")}`
+             );
+  await sendTx(() =>
+    rewardPool.setup(
+      TALLY,
+      PAYABLE_TOKENS
+    )
+  );
+  console.log(`  set BridgeUtils address to ${bridgeUtilsAddress}`);
+  await sendTx(() => rewardPool.setBridgeUtils(bridgeUtilsAddress));
+
   // BridgeUtils configuration
   let bridgeUtils = await BridgeUtils.at(bridgeUtilsAddress);
   console.log(`
@@ -130,14 +152,17 @@ Configuring BridgeUtils ${bridgeUtilsAddress}
   PrepaidCardManager address: ${prepaidCardManagerAddress}
   gnosis master copy: ${GNOSIS_SAFE_MASTER_COPY}
   gnosis proxy factory: ${GNOSIS_SAFE_FACTORY}
-  bridge mediator address: ${BRIDGE_MEDIATOR}`);
+  bridge mediator address: ${BRIDGE_MEDIATOR}
+  RewardPool address: ${rewardPoolAddress}`
+             );
   await sendTx(() =>
     bridgeUtils.setup(
       revenuePoolAddress,
       prepaidCardManagerAddress,
       GNOSIS_SAFE_MASTER_COPY,
       GNOSIS_SAFE_FACTORY,
-      BRIDGE_MEDIATOR
+      BRIDGE_MEDIATOR,
+      rewardPoolAddress
     )
   );
 

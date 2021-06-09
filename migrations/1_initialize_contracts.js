@@ -10,6 +10,7 @@ const SPEND = artifacts.require("SPEND");
 const Feed = artifacts.require("ManualFeed");
 const ChainlinkOracle = artifacts.require("ChainlinkFeedAdapter");
 const DIAOracle = artifacts.require("DIAOracleAdapter");
+const RewardPool = artifacts.require("RewardPool");
 
 // we only maintain these migrations purely to measure the amount of gas it
 // takes to perform a deployment for each contract
@@ -27,6 +28,7 @@ module.exports = async function (deployer, network, addresses) {
       deployer.deploy(Feed),
       deployer.deploy(ChainlinkOracle),
       deployer.deploy(DIAOracle),
+      deployer.deploy(RewardPool),
     ]);
   } else {
     // Contract init details. For each upgradable contract provide a property
@@ -45,6 +47,7 @@ module.exports = async function (deployer, network, addresses) {
       SPEND: { contractName: "SPEND", init: [addresses[0]] },
       DAIOracle: { contractName: "ChainlinkFeedAdapter", init: [addresses[0]] },
       CARDOracle: { contractName: "DIAOracleAdapter", init: [addresses[0]] },
+      RewardPool: { contractName: "RewardPool", init: [addresses[0]] },
     };
 
     // Use manual feeds in sokol
