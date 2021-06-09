@@ -22,6 +22,7 @@ contract RewardPool is Initializable, Versionable, Ownable, PayableToken {
   event MerkleRootSubmission(bytes32 payeeRoot,uint256 numPaymentCycles);
   event PaymentCycleEnded(uint256 paymentCycle, uint256 startBlock, uint256 endBlock);
 
+  address internal constant ZERO_ADDRESS = address(0);
   address public tally;
   uint256 public numPaymentCycles;
   uint256 public currentPaymentCycleStartBlock;
