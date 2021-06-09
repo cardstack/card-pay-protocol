@@ -46,6 +46,7 @@ contract RewardPool is Initializable, Versionable, Ownable, PayableToken {
     address[] calldata _payableTokens
     ) external onlyOwner {
     tally = _tally;
+    require(tally != ZERO_ADDRESS, "Tally should not be zero address");
     for (uint256 i = 0; i < _payableTokens.length; i++) {
       _addPayableToken(_payableTokens[i]);
     }

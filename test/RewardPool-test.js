@@ -9,6 +9,7 @@ const ERC20Token = artifacts.require(
 );
 const ERC677Token = artifacts.require("ERC677Token.sol");
 const RewardPool = artifacts.require("RewardPool.sol");
+const { ZERO_ADDRESS } = require("./utils/general");
 
 contract("RewardPool", function (accounts) {
   let owner;
@@ -77,6 +78,14 @@ contract("RewardPool", function (accounts) {
 
     afterEach(async function () {
       payments[0].amount = toTokenUnit(10); // one of the tests is bleeding state...
+    });
+
+    describe("initial reward pool contract", () => {
+      it("reverts when tally is set to zero address", async () => {
+        await rewardPool
+          .setup(ZERO_ADDRESS, [cardcpxdToken.address, daicpxdToken.address])
+          .should.be.rejectedWith(Error, "Tally should not be zero address");
+      });
     });
 
     describe("submitPayeeMerkleRoot", function () {
