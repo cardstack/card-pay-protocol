@@ -9,7 +9,7 @@ import "../core/Versionable.sol";
 /**
  * @dev reference from https://github.com/smartcontractkit/LinkToken
  */
-contract ERC677Token is Versionable, IERC677, ERC20Burnable, ERC20Mintable {
+contract ERC677Token is IERC677, ERC20Burnable, ERC20Mintable {
   string private _name;
   string private _symbol;
   uint8 private _decimals;
