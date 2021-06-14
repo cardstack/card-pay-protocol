@@ -28,13 +28,8 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
     address token,
     uint256 issuingTokenAmount,
     uint256 spendAmount,
+    uint256 gasFeeCollected,
     string customizationDID
-  );
-  event GasFeeCollected(
-    address issuer,
-    address card,
-    address issuingToken,
-    uint256 amount
   );
   event TransferredPrepaidCard(
     address prepaidCard,
@@ -474,9 +469,9 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
       token,
       issuingTokenAmount - _gasFee,
       spendAmount,
+      _gasFee,
       customizationDID
     );
-    emit GasFeeCollected(owner, card, token, _gasFee);
 
     return card;
   }
