@@ -30,5 +30,9 @@
   "ETHUSDFeed": {
     "proxy": "0x9Dc9Eb1753B0C8d5B0CdC4f44088bB45FC466302",
     "contractName": "ManualFeed"
+  },
+  "RewardPool": {
+    "proxy": "0xc7865297Dd3281F1Ac869BEb708910582F7cdBA1",
+    "contractName": "RewardPool"
   }
 }
