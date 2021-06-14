@@ -535,7 +535,11 @@ contract("PrepaidCardManager", (accounts) => {
     it("gasFeeReceiver should receive gas fee when prepaid card is created", async () => {
       let amount = toTokenUnit(5);
 
-      let createCardData = encodeCreateCardsData(depot.address, [amount]);
+      let createCardData = encodeCreateCardsData(
+        depot.address,
+        [amount],
+        [amount]
+      );
 
       let transferAndCall = daicpxdToken.contract.methods.transferAndCall(
         cardManager.address,
@@ -598,7 +602,11 @@ contract("PrepaidCardManager", (accounts) => {
       let amounts = [2, 4, 6].map((amount) => toTokenUnit(amount));
       let totalAmount = 12;
 
-      let createCardData = encodeCreateCardsData(depot.address, amounts);
+      let createCardData = encodeCreateCardsData(
+        depot.address,
+        amounts,
+        amounts
+      );
 
       let payloads = daicpxdToken.contract.methods
         .transferAndCall(
@@ -679,7 +687,11 @@ contract("PrepaidCardManager", (accounts) => {
 
       let amount = toTokenUnit(5);
 
-      let createCardData = encodeCreateCardsData(depot.address, [amount]);
+      let createCardData = encodeCreateCardsData(
+        depot.address,
+        [amount],
+        [amount]
+      );
 
       let transferAndCall = daicpxdToken.contract.methods.transferAndCall(
         cardManager.address,
@@ -766,7 +778,11 @@ contract("PrepaidCardManager", (accounts) => {
         faceValueInDai.add(toTokenUnit(1)).toString() // gas fee is 1 DAI
       );
 
-      let createCardData = encodeCreateCardsData(depot.address, [amount]);
+      let createCardData = encodeCreateCardsData(
+        depot.address,
+        [amount],
+        [amount]
+      );
 
       let transferAndCall = daicpxdToken.contract.methods.transferAndCall(
         cardManager.address,
@@ -811,6 +827,7 @@ contract("PrepaidCardManager", (accounts) => {
       let amounts = [1, 1].map((amount) => toTokenUnit(amount).toString());
       let splitCardData = [
         prepaidCards[1].address,
+        amounts,
         amounts,
         "did:cardstack:56d6fc54-d399-443b-8778-d7e4512d3a49",
       ];
@@ -867,7 +884,7 @@ contract("PrepaidCardManager", (accounts) => {
       await transferOwner(cardManager, prepaidCard, issuer, customer, relayer);
 
       let amounts = [1, 1].map((amount) => toTokenUnit(amount).toString());
-      let splitCardData = [prepaidCard.address, amounts, ""];
+      let splitCardData = [prepaidCard.address, amounts, amounts, ""];
       let packData = packExecutionData({
         to: daicpxdToken.address,
         data: await cardManager.getSplitCardData(...splitCardData),
@@ -889,7 +906,7 @@ contract("PrepaidCardManager", (accounts) => {
 
     it("can reject when provided signature is invalid", async () => {
       let amounts = [2, 2].map((amount) => toTokenUnit(amount).toString());
-      let splitCardData = [prepaidCards[2].address, amounts, ""];
+      let splitCardData = [prepaidCards[2].address, amounts, amounts, ""];
       await cardManager
         .splitCard(...splitCardData, "0x01", {
           from: relayer,

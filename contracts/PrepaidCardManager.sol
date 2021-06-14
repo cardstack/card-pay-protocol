@@ -26,7 +26,8 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
     address issuer,
     address card,
     address token,
-    uint256 amount,
+    uint256 issuingTokenAmount,
+    uint256 spendAmount,
     string customizationDID
   );
   event GasFeeCollected(
@@ -104,19 +105,29 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
   ) external isValidToken returns (bool) {
     (
       address owner,
-      uint256[] memory cardAmounts,
+      uint256[] memory issuingTokenAmounts,
+      uint256[] memory spendAmounts,
       string memory customizationDID
-    ) = abi.decode(data, (address, uint256[], string));
+    ) = abi.decode(data, (address, uint256[], uint256[], string));
     require(
-      owner != address(0) && cardAmounts.length > 0,
+      owner != address(0) && issuingTokenAmounts.length > 0,
       "Prepaid card data invalid"
     );
+    require(
+      issuingTokenAmounts.length == spendAmounts.length,
+      "the amount arrays have differing lengths"
+    );
+    // The spend amounts are for reporting purposes only, there is no on-chain
+    // effect from this value. Although, it might not be a bad idea that spend
+    // amounts line up with the issuing token amounts--albiet we'd need to
+    // introduce a rate lock mechanism if we wanted to validate this
     createMultiplePrepaidCards(
       owner,
       from,
       _msgSender(),
       amount,
-      cardAmounts,
+      issuingTokenAmounts,
+      spendAmounts,
       customizationDID
     );
     return true;
@@ -264,27 +275,36 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
   /**
    * @dev Split Current Prepaid Card into Multiple Cards
    * @param prepaidCard Prepaid Card's address
-   * @param cardAmounts Array of new card's amount
+   * @param issuingTokenAmounts Array of issuing token maounts to fund the new prepaid cards
+   * @param spendAmounts array of spend amounts that represent the desired face value (for reporting only)
    * @param customizationDID the customization DID for the new prepaid cards
    * @param ownerSignature Packed signature data ({bytes32 r}{bytes32 s}{uint8 v})
    */
   function splitCard(
     address payable prepaidCard,
-    uint256[] calldata cardAmounts,
+    uint256[] calldata issuingTokenAmounts,
+    uint256[] calldata spendAmounts,
     string calldata customizationDID,
     bytes calldata ownerSignature
   ) external payable returns (bool) {
-    address owner = getPrepaidCardOwner(prepaidCard);
     require(
-      cardDetails[prepaidCard].issuer == owner,
+      cardDetails[prepaidCard].issuer == getPrepaidCardOwner(prepaidCard),
       "only issuer can split card"
     );
-    address issuingToken = cardDetails[prepaidCard].issueToken;
+    require(
+      issuingTokenAmounts.length == spendAmounts.length,
+      "the amount arrays have differing lengths"
+    );
     return
       execTransaction(
         prepaidCard,
-        issuingToken,
-        getSplitCardData(prepaidCard, cardAmounts, customizationDID),
+        cardDetails[prepaidCard].issueToken,
+        getSplitCardData(
+          prepaidCard,
+          issuingTokenAmounts,
+          spendAmounts,
+          customizationDID
+        ),
         addContractSignature(prepaidCard, ownerSignature),
         address(0),
         address(0)
@@ -294,19 +314,25 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
   /**
    * @dev Returns the bytes that are hashed to be signed by owner.
    * @param prepaidCard the prepaid card address
-   * @param amounts Array of new prepaid card amounts to create
+   * @param issuingTokenAmounts Array of issuing token maounts to fund the new prepaid cards
+   * @param spendAmounts array of spend amounts that represent the desired face value (for reporting only)
    * @param customizationDID the customization DID for the new prepaid cards
    */
   function getSplitCardData(
     address payable prepaidCard,
-    uint256[] memory amounts,
+    uint256[] memory issuingTokenAmounts,
+    uint256[] memory spendAmounts,
     string memory customizationDID
   ) public view returns (bytes memory) {
+    require(
+      issuingTokenAmounts.length == spendAmounts.length,
+      "the amount arrays have differing lengths"
+    );
     address owner = getPrepaidCardOwner(prepaidCard);
     uint256 total = 0;
 
-    for (uint256 i = 0; i < amounts.length; i++) {
-      total = total.add(amounts[i]);
+    for (uint256 i = 0; i < issuingTokenAmounts.length; i++) {
+      total = total.add(issuingTokenAmounts[i]);
     }
 
     // Transfer token to this contract and call _createMultiplePrepaidCards
@@ -315,7 +341,7 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
         TRANSFER_AND_CALL,
         address(this),
         total,
-        abi.encode(owner, amounts, customizationDID)
+        abi.encode(owner, issuingTokenAmounts, spendAmounts, customizationDID)
       );
   }
 
@@ -348,26 +374,32 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
    * @param depot The Supplier's depot safe
    * @param token Token address
    * @param amountReceived Amount to split
-   * @param amountOfCard array which performing face value of card
+   * @param issuingTokenAmounts array of issuing token amounts to use to fund the creation of the prepaid card
+   * @param spendAmounts array of spend amounts that represent the desired face value (for reporting only)
+   * @param customizationDID the customization DID for the new prepaid cards
    */
   function createMultiplePrepaidCards(
     address owner,
     address depot,
     address token,
     uint256 amountReceived,
-    uint256[] memory amountOfCard,
+    uint256[] memory issuingTokenAmounts,
+    uint256[] memory spendAmounts,
     string memory customizationDID
   ) private returns (bool) {
     uint256 neededAmount = 0;
-    uint256 numberCard = amountOfCard.length;
+    uint256 numberCard = issuingTokenAmounts.length;
     require(
       numberCard <= MAXIMUM_NUMBER_OF_CARD,
       "Too many prepaid cards requested"
     );
 
     for (uint256 i = 0; i < numberCard; i++) {
-      require(isValidAmount(token, amountOfCard[i]), "Amount below threshold");
-      neededAmount = neededAmount.add(amountOfCard[i]);
+      require(
+        isValidAmount(token, issuingTokenAmounts[i]),
+        "Amount below threshold"
+      );
+      neededAmount = neededAmount.add(issuingTokenAmounts[i]);
     }
 
     require(
@@ -375,7 +407,13 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
       "Insufficient funds sent for requested amounts"
     );
     for (uint256 i = 0; i < numberCard; i++) {
-      createPrepaidCard(owner, token, amountOfCard[i], customizationDID);
+      createPrepaidCard(
+        owner,
+        token,
+        issuingTokenAmounts[i],
+        spendAmounts[i],
+        customizationDID
+      );
     }
 
     // refund the supplier any excess funds that they provided
@@ -396,13 +434,16 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
    * @dev Create Prepaid card
    * @param owner owner address
    * @param token token address
-   * @param amount amount of prepaid card
+   * @param issuingTokenAmount amount of issuing token to use to fund the new prepaid card
+   * @param spendAmount the desired face value for the new prepaid card (for reporting purposes only)
+   * @param customizationDID the customization DID for the new prepaid cards
    * @return PrepaidCard address
    */
   function createPrepaidCard(
     address owner,
     address token,
-    uint256 amount,
+    uint256 issuingTokenAmount,
+    uint256 spendAmount,
     string memory customizationDID
   ) private returns (address) {
     address[] memory owners = new address[](2);
@@ -425,13 +466,14 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
       IERC677(token).transfer(gasFeeReceiver, _gasFee);
     }
     // The card is a trusted contract (gnosis safe)
-    IERC677(token).transfer(card, amount - _gasFee);
+    IERC677(token).transfer(card, issuingTokenAmount - _gasFee);
 
     emit CreatePrepaidCard(
       owner,
       card,
       token,
-      amount - _gasFee,
+      issuingTokenAmount - _gasFee,
+      spendAmount,
       customizationDID
     );
     emit GasFeeCollected(owner, card, token, _gasFee);

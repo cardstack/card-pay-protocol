@@ -85,7 +85,7 @@ contract("PrepaidCardManager - EOA tests", (accounts) => {
   it("create multiple cards by EOA account", async () => {
     let amounts = [1, 2, 10].map((amount) => toTokenUnit(amount));
 
-    let data = encodeCreateCardsData(supplierEOA, amounts);
+    let data = encodeCreateCardsData(supplierEOA, amounts, amounts);
 
     let tx = await daicpxdToken.transferAndCall(
       prepaidCardManager.address,
@@ -115,7 +115,7 @@ contract("PrepaidCardManager - EOA tests", (accounts) => {
     try {
       let amounts = [1, 2, 3].map((amount) => toTokenUnit(amount));
 
-      let data = encodeCreateCardsData(supplierEOA, amounts);
+      let data = encodeCreateCardsData(supplierEOA, amounts, amounts);
 
       await daicpxdToken.transferAndCall(
         prepaidCardManager.address,
@@ -135,7 +135,7 @@ contract("PrepaidCardManager - EOA tests", (accounts) => {
     try {
       let amounts = [1, 2, 9].map((amount) => toTokenUnit(amount));
 
-      let data = encodeCreateCardsData(supplierEOA, amounts);
+      let data = encodeCreateCardsData(supplierEOA, amounts, amounts);
 
       await daicpxdToken.transferAndCall(
         prepaidCardManager.address,
