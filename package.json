@@ -1,6 +1,6 @@
 {
   "name": "card-protocol-xdai",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -14,9 +14,11 @@
     "lint:sol": "./node_modules/.bin/solhint ./contracts/**/*.sol -w 0",
     "deploy:sokol": "rm -rf ./build && ./node_modules/.bin/truffle migrate --network sokol --compile-all --reset",
     "deploy:sokol:upgrade-only": "rm -rf ./build && ./node_modules/.bin/truffle migrate --network sokol --compile-all --f 1 --to 1",
+    "deploy:sokol:upgrade-only:skip-verify": "rm -rf ./build && ./node_modules/.bin/truffle migrate --network sokol --compile-all --f 1 --to 1 --skipVerify",
     "deploy:xdai": "rm -rf ./build && ./node_modules/.bin/truffle migrate --network xdai --compile-all --reset",
     "deploy:xdai:upgrade-only": "rm -rf ./build && ./node_modules/.bin/truffle migrate --network xdai --compile-all --f 1 --to 1",
     "release-sokol:patch:upgrade-only": "node ./lib/prerelease.js patch && yarn deploy:sokol:upgrade-only && node ./lib/release.js sokol patch",
+    "release-sokol:patch:upgrade-only:skip-verify": "node ./lib/prerelease.js patch && yarn deploy:sokol:upgrade-only:skip-verify && node ./lib/release.js sokol patch",
     "release-sokol:patch": "node ./lib/prerelease.js patch && yarn deploy:sokol && node ./lib/release.js sokol patch",
     "release-sokol:minor": "node ./lib/prerelease.js minor && yarn deploy:sokol && node ./lib/release.js sokol minor",
     "release-sokol:major": "node ./lib/prerelease.js major && yarn deploy:sokol && node ./lib/release.js sokol major"
