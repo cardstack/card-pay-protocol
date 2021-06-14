@@ -23,10 +23,15 @@ function toTokenUnit(_numberToken, _decimals = 18) {
   return number.mul(dec);
 }
 
-function encodeCreateCardsData(account, amounts = [], customizationDID = "") {
+function encodeCreateCardsData(
+  account,
+  issuingTokenAmounts = [],
+  spendAmounts = [],
+  customizationDID = ""
+) {
   return AbiCoder.encodeParameters(
-    ["address", "uint256[]", "string"],
-    [account, amounts, customizationDID]
+    ["address", "uint256[]", "uint256[]", "string"],
+    [account, issuingTokenAmounts, spendAmounts, customizationDID]
   );
 }
 
@@ -256,13 +261,16 @@ exports.createPrepaidCards = async function (
   gasToken,
   issuer,
   relayer,
-  amounts,
+  issuingTokenAmounts,
   amountToSend,
   customizationDID
 ) {
   let createCardData = encodeCreateCardsData(
     issuer,
-    amounts.map((amount) =>
+    issuingTokenAmounts.map((amount) =>
+      typeof amount === "string" ? amount : amount.toString()
+    ),
+    issuingTokenAmounts.map((amount) =>
       typeof amount === "string" ? amount : amount.toString()
     ),
     customizationDID
@@ -270,7 +278,9 @@ exports.createPrepaidCards = async function (
 
   if (amountToSend == null) {
     amountToSend = toBN("0");
-    amounts.forEach((amount) => (amountToSend = amountToSend.add(amount)));
+    issuingTokenAmounts.forEach(
+      (amount) => (amountToSend = amountToSend.add(amount))
+    );
   }
 
   let payloads = issuingToken.contract.methods

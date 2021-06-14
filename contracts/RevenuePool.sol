@@ -33,8 +33,9 @@ contract RevenuePool is Versionable, Initializable, MerchantManager, Exchange {
   event CustomerPayment(
     address card,
     address merchantSafe,
-    address payableToken,
-    uint256 amount
+    address issuingToken,
+    uint256 issuingTokenAmount,
+    uint256 spendAmount
   );
 
   event MerchantFeeCollected(
@@ -122,7 +123,7 @@ contract RevenuePool is Versionable, Initializable, MerchantManager, Exchange {
     address issuingToken = _msgSender();
     validatePayment(issuingToken, amount, spendAmount, requestedRate);
 
-    emit CustomerPayment(from, merchantSafe, issuingToken, amount);
+    emit CustomerPayment(from, merchantSafe, issuingToken, amount, spendAmount);
     if (merchantSafe == address(0)) {
       return handleMerchantRegister(from, issuingToken, amount, infoDID);
     } else {

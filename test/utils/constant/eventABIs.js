@@ -29,7 +29,7 @@ const eventABIs = {
   },
   CREATE_PREPAID_CARD: {
     topic: web3EthAbi.encodeEventSignature(
-      "CreatePrepaidCard(address,address,address,uint256,string)"
+      "CreatePrepaidCard(address,address,address,uint256,uint256,string)"
     ),
     abis: [
       {
@@ -46,7 +46,11 @@ const eventABIs = {
       },
       {
         type: "uint256",
-        name: "amount",
+        name: "issuingTokenAmount",
+      },
+      {
+        type: "uint256",
+        name: "spendAmount",
       },
       {
         type: "string",
