@@ -1041,23 +1041,29 @@ contract("RevenuePool", (accounts) => {
 
       let spendAmount = 100;
       let requestedRate = 100000000; // 1 DAI = 1 USD
-      let data = daicpxdToken.contract.methods
+      let data = AbiCoder.encodeParameters(
+        ["uint256", "uint256", "string", "bytes"],
+        [
+          spendAmount,
+          requestedRate,
+          "payMerchant",
+          AbiCoder.encodeParameters(["address"], [merchantSafe]),
+        ]
+      );
+      let payload = daicpxdToken.contract.methods
         .transferAndCall(
           revenuePool.address,
           // here we are maliciously manipulating the payload so that we are
           // transferring less DAI than what we promised via the requested rate
           // lock and specified spend amount
           toWei("0.5"), // the actual amount that we should be sending is 1 DAI
-          AbiCoder.encodeParameters(
-            ["address", "uint256", "uint256", "string"],
-            [merchantSafe, spendAmount, requestedRate, ""]
-          )
+          data
         )
         .encodeABI();
       let signature = await signSafeTransaction(
         daicpxdToken.address,
         0,
-        data,
+        payload,
         0,
         0,
         0,
@@ -1069,13 +1075,12 @@ contract("RevenuePool", (accounts) => {
         prepaidCard
       );
       await prepaidCardManager
-        .payMerchant(
+        .send(
           prepaidCard.address,
-          daicpxdToken.address,
-          merchantSafe,
           spendAmount,
           requestedRate,
-          "",
+          "payMerchant",
+          data,
           signature,
           { from: relayer }
         )

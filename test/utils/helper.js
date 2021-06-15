@@ -107,18 +107,17 @@ async function payMerchant(
   customerAddress,
   merchantSafe,
   spendAmount,
-  usdRate,
-  infoDID = ""
+  usdRate
 ) {
   if (usdRate == null) {
     usdRate = 100000000; // 1 DAI = 1 USD
   }
-  let data = await prepaidCardManager.getPayMerchantData(
-    issuingToken.address,
-    merchantSafe,
+  let data = await prepaidCardManager.getSendData(
+    prepaidCard.address,
     spendAmount,
     usdRate,
-    infoDID
+    "payMerchant",
+    AbiCoder.encodeParameters(["address"], [merchantSafe])
   );
 
   let signature = await signSafeTransaction(
@@ -136,13 +135,12 @@ async function payMerchant(
     prepaidCard
   );
 
-  return await prepaidCardManager.payMerchant(
+  return await prepaidCardManager.send(
     prepaidCard.address,
-    issuingToken.address,
-    merchantSafe,
     spendAmount,
     usdRate,
-    infoDID,
+    "payMerchant",
+    AbiCoder.encodeParameters(["address"], [merchantSafe]),
     signature,
     { from: relayer }
   );
@@ -380,17 +378,40 @@ exports.registerMerchant = async function (
   usdRate,
   infoDID = ""
 ) {
-  return await payMerchant(
-    prepaidCardManager,
-    prepaidCard,
-    issuingToken,
-    gasToken,
-    relayer,
-    merchant,
-    ZERO_ADDRESS,
+  if (usdRate == null) {
+    usdRate = 100000000; // 1 DAI = 1 USD
+  }
+  let data = await prepaidCardManager.getSendData(
+    prepaidCard.address,
     spendAmount,
     usdRate,
-    infoDID
+    "registerMerchant",
+    AbiCoder.encodeParameters(["string"], [infoDID])
+  );
+
+  let signature = await signSafeTransaction(
+    issuingToken.address,
+    0,
+    data,
+    0,
+    0,
+    0,
+    0,
+    gasToken.address,
+    prepaidCard.address,
+    await prepaidCard.nonce(),
+    merchant,
+    prepaidCard
+  );
+
+  return await prepaidCardManager.send(
+    prepaidCard.address,
+    spendAmount,
+    usdRate,
+    "registerMerchant",
+    AbiCoder.encodeParameters(["string"], [infoDID]),
+    signature,
+    { from: relayer }
   );
 };
 

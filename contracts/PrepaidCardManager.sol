@@ -21,6 +21,7 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
     bool reloadable;
     bool canPayNonMerchants;
   }
+
   event Setup();
   event CreatePrepaidCard(
     address issuer,
@@ -197,20 +198,19 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
   /**
    * @dev Pay token to merchant
    * @param prepaidCard Prepaid Card's address
-   * @param token payable token address
-   * @param merchantSafe Merchant's safe address
-   * @param spendAmount The amount of SPEND to pay the merchant
+   * @param spendAmount The amount of SPEND to send
    * @param rateLock the price of the issuing token in USD
-   * @param infoDID the merchant's info DID for merchant registration
-   * @param ownerSignature Packed signature data ({bytes32 r}{bytes32 s}{uint8 v})
+   * @param action the name of the prepaid card action to perform, e.g. "payMerchant", "registerMerchant", "claimRevenue", etc.
+   * @param data encoded data that is specific to the action being performed, e.g. the merchant safe address for the "payMerchant" action, the info DID for the "registerMerchant", etc.
+   * @param ownerSignature Packed signature data ({bytes32 r}{bytes32 s}{uint8
+     v})
    */
-  function payMerchant(
+  function send(
     address payable prepaidCard,
-    address token,
-    address merchantSafe,
     uint256 spendAmount,
     uint256 rateLock,
-    string calldata infoDID,
+    string calldata action,
+    bytes calldata data,
     bytes calldata ownerSignature
   ) external returns (bool) {
     require(gasToken != address(0), "gasToken not configured");
@@ -223,14 +223,17 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
       "merchant payment too small"
     ); // protect against spamming contract with too low a price
     require(
-      RevenuePool(revenuePool).isAllowableRate(token, rateLock),
+      RevenuePool(revenuePool).isAllowableRate(
+        cardDetails[prepaidCard].issueToken,
+        rateLock
+      ),
       "requested rate is beyond the allowable bounds"
     );
     return
       execTransaction(
         prepaidCard,
-        token,
-        getPayMerchantData(token, merchantSafe, spendAmount, rateLock, infoDID),
+        cardDetails[prepaidCard].issueToken,
+        getSendData(prepaidCard, spendAmount, rateLock, action, data),
         addContractSignature(prepaidCard, ownerSignature),
         gasToken,
         prepaidCard
@@ -239,22 +242,22 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
 
   /**
    * @dev Returns the bytes that are hashed to be signed by owner.
-   * @param token Token merchant
-   * @param merchantSafe Merchant's safe address
+   * @param prepaidCard The prepaid card to use for sending
    * @param spendAmount The amount of SPEND to pay the merchant
    * @param rateLock the price of the issuing token in USD
-   * @param infoDID the merchant's info DID for merchange registration
+   * @param action the name of the prepaid card action to perform, e.g. "payMerchant", "registerMerchant", "claimRevenue", etc.
+   * @param data encoded data that is specific to the action being performed, e.g. the merchant safe address for the "payMerchant" action, the info DID for the "registerMerchant", etc.
    */
-  function getPayMerchantData(
-    address token, // solhint-disable-line no-unused-vars
-    address merchantSafe,
+  function getSendData(
+    address payable prepaidCard,
     uint256 spendAmount,
     uint256 rateLock,
-    string memory infoDID
+    string memory action,
+    bytes memory data
   ) public view returns (bytes memory) {
     uint256 tokenAmount =
       RevenuePool(revenuePool).convertFromSpendWithRate(
-        token,
+        cardDetails[prepaidCard].issueToken,
         spendAmount,
         rateLock
       );
@@ -263,7 +266,7 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
         TRANSFER_AND_CALL,
         revenuePool,
         tokenAmount,
-        abi.encode(merchantSafe, spendAmount, rateLock, infoDID)
+        abi.encode(spendAmount, rateLock, action, data)
       );
   }
 
