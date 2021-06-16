@@ -16,6 +16,17 @@ import "./BridgeUtils.sol";
 contract RevenuePool is Versionable, Initializable, MerchantManager, Exchange {
   using SafeMath for uint256;
 
+  struct Action {
+    string name;
+    address payable prepaidCard;
+    address issuingToken;
+    uint256 tokenAmount;
+    uint256 spendAmount;
+    uint256 requestedRate;
+    bytes32 nameHash;
+    bytes data;
+  }
+
   address public spendToken;
   address payable public merchantFeeReceiver;
   uint256 public merchantFeePercentage; // decimals 8
@@ -96,8 +107,9 @@ contract RevenuePool is Versionable, Initializable, MerchantManager, Exchange {
   }
 
   /**
-   * @dev onTokenTransfer(ERC677) - call when token receive pool.
-   * we will exchange receive token to SPEND token and mint it for the wallet of merchant.
+   * @dev onTokenTransfer(ERC677) - this is the ERC677 token transfer callback.
+   * This will interrogate and perform the requested action from the prepaid
+   * card using the token amount sent.
    * @param from - who transfer token (should from prepaid card).
    * @param amount - number token customer pay for merchant.
    * @param data - merchant safe and infoDID in encode format.
@@ -113,23 +125,24 @@ contract RevenuePool is Versionable, Initializable, MerchantManager, Exchange {
     (address issuer, , , , , ) = prepaidCardMgr.cardDetails(from);
     require(issuer != address(0), "Caller is not a prepaid card");
 
-    // decode data and validate that the payment details are within bounds
     (
-      address merchantSafe,
       uint256 spendAmount,
       uint256 requestedRate,
-      string memory infoDID
-    ) = abi.decode(data, (address, uint256, uint256, string));
-    address issuingToken = _msgSender();
-    validatePayment(issuingToken, amount, spendAmount, requestedRate);
+      string memory actionName,
+      bytes memory actionData
+    ) = abi.decode(data, (uint256, uint256, string, bytes));
+    Action memory action =
+      makeAction(
+        actionName,
+        from,
+        _msgSender(),
+        amount,
+        spendAmount,
+        requestedRate,
+        actionData
+      );
 
-    emit CustomerPayment(from, merchantSafe, issuingToken, amount, spendAmount);
-    if (merchantSafe == address(0)) {
-      return handleMerchantRegister(from, issuingToken, amount, infoDID);
-    } else {
-      return
-        handlePayment(from, merchantSafe, issuingToken, amount, spendAmount);
-    }
+    return dispatchAction(action);
   }
 
   /**
@@ -201,71 +214,132 @@ contract RevenuePool is Versionable, Initializable, MerchantManager, Exchange {
     return 8;
   }
 
-  function handleMerchantRegister(
+  function makeAction(
+    string memory actionName,
     address payable prepaidCard,
     address issuingToken,
-    uint256 amount,
-    string memory infoDID
-  ) internal returns (bool) {
+    uint256 tokenAmount,
+    uint256 spendAmount,
+    uint256 requestedRate,
+    bytes memory actionData
+  ) internal pure returns (Action memory) {
+    bytes32 nameHash = keccak256(abi.encodePacked(actionName));
+    return
+      Action(
+        actionName,
+        prepaidCard,
+        issuingToken,
+        tokenAmount,
+        spendAmount,
+        requestedRate,
+        nameHash,
+        actionData
+      );
+  }
+
+  function dispatchAction(Action memory action) internal returns (bool) {
+    validatePayment(
+      action.issuingToken,
+      action.tokenAmount,
+      action.spendAmount,
+      action.requestedRate
+    );
+
+    if (action.nameHash == keccak256(abi.encodePacked("registerMerchant"))) {
+      return handleMerchantRegister(action);
+    } else if (action.nameHash == keccak256(abi.encodePacked("payMerchant"))) {
+      return handlePayment(action);
+    } else {
+      require(false, "invalid prepaid card action");
+    }
+  }
+
+  /**
+   * @dev register a merchant account
+   * @param action the action object decoded from the onTransferToken
+   * expecting data to be encoded as "(string)" where string is the info DID
+   * for the merchant
+   */
+  function handleMerchantRegister(Action memory action)
+    internal
+    returns (bool)
+  {
     uint256 merchantRegistrationFeeInToken =
-      convertFromSpend(issuingToken, merchantRegistrationFeeInSPEND);
+      convertFromSpend(action.issuingToken, merchantRegistrationFeeInSPEND);
     require(
-      amount >= merchantRegistrationFeeInToken,
+      action.tokenAmount >= merchantRegistrationFeeInToken,
       "Insufficient funds for merchant registration"
     );
+    string memory infoDID = abi.decode(action.data, (string));
     // The merchantFeeReceiver is a trusted address
-    IERC677(issuingToken).transfer(
+    IERC677(action.issuingToken).transfer(
       merchantFeeReceiver,
       merchantRegistrationFeeInToken
     );
-    uint256 refund = amount.sub(merchantRegistrationFeeInToken);
+    uint256 refund = action.tokenAmount.sub(merchantRegistrationFeeInToken);
     if (refund > 0) {
       // from is a trusted contract address (gnosis safe)
-      IERC677(issuingToken).transfer(prepaidCard, refund);
+      IERC677(action.issuingToken).transfer(action.prepaidCard, refund);
     }
 
-    address[] memory owners = GnosisSafe(prepaidCard).getOwners();
+    address[] memory owners = GnosisSafe(action.prepaidCard).getOwners();
     require(owners.length == 2, "unexpected number of owners for prepaid card");
 
     address merchant = owners[0] == prepaidCardManager ? owners[1] : owners[0];
+    emit CustomerPayment(
+      action.prepaidCard,
+      address(0),
+      action.issuingToken,
+      action.tokenAmount,
+      merchantRegistrationFeeInSPEND
+    );
     registerMerchant(merchant, infoDID);
     return true;
   }
 
   /**
-   * @dev mint SPEND for merchant wallet when customer pay token for them.
-   * @param prepaidCard the prepaid card address
-   * @param merchantSafe merchant safe address
-   * @param token token contract address
-   * @param tokenAmount amount in token
-   * @param spendAmount amount in SPEND
+   * @dev handle a prepaid card payment to a merchant which includes minting
+   * spend into the merchant's safe, collecting protocol fees, and increases the
+   * merchants unclaimed revenue by the issuing token amount minus fees
+   * @param action the action object decoded from the onTransferToken
+   * expecting data to be encoded as "(address)" where the address is the
+   * merchant's safe address
    */
-  function handlePayment(
-    address prepaidCard,
-    address merchantSafe,
-    address token,
-    uint256 tokenAmount,
-    uint256 spendAmount
-  ) internal returns (bool) {
+  function handlePayment(Action memory action) internal returns (bool) {
+    address merchantSafe = abi.decode(action.data, (address));
     require(isMerchantSafe(merchantSafe), "Invalid merchant");
 
     uint256 ten = 10;
     uint256 merchantFee =
       merchantFeePercentage > 0
-        ? (tokenAmount.mul(merchantFeePercentage)).div(
+        ? (action.tokenAmount.mul(merchantFeePercentage)).div(
           ten**merchantFeeDecimals()
         )
         : 0;
-    uint256 merchantProceeds = tokenAmount.sub(merchantFee);
-    uint256 balance = merchantSafes[merchantSafe].balance[token];
-    merchantSafes[merchantSafe].balance[token] = balance.add(merchantProceeds);
-    merchantSafes[merchantSafe].tokens.add(token);
+    uint256 merchantProceeds = action.tokenAmount.sub(merchantFee);
+    uint256 balance = merchantSafes[merchantSafe].balance[action.issuingToken];
+    merchantSafes[merchantSafe].balance[action.issuingToken] = balance.add(
+      merchantProceeds
+    );
+    merchantSafes[merchantSafe].tokens.add(action.issuingToken);
 
-    ISPEND(spendToken).mint(merchantSafe, spendAmount);
+    ISPEND(spendToken).mint(merchantSafe, action.spendAmount);
 
     // The merchantFeeReceiver is a trusted address
-    IERC677(token).transfer(merchantFeeReceiver, merchantFee);
-    emit MerchantFeeCollected(merchantSafe, prepaidCard, token, merchantFee);
+    IERC677(action.issuingToken).transfer(merchantFeeReceiver, merchantFee);
+    emit CustomerPayment(
+      action.prepaidCard,
+      merchantSafe,
+      action.issuingToken,
+      action.tokenAmount,
+      action.spendAmount
+    );
+    emit MerchantFeeCollected(
+      merchantSafe,
+      action.prepaidCard,
+      action.issuingToken,
+      merchantFee
+    );
     return true;
   }
 
@@ -305,6 +379,10 @@ contract RevenuePool is Versionable, Initializable, MerchantManager, Exchange {
     uint256 spendAmount,
     uint256 requestedRate
   ) internal view returns (bool) {
+    // TODO add this as soon as we handle merchant claims via prepaid card
+    // if (tokenAmount == 0 && spendAmount == 0) {
+    //   return true;
+    // }
     uint256 expectedTokenAmount =
       convertFromSpendWithRate(token, spendAmount, requestedRate);
     require(

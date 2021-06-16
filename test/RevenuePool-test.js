@@ -1041,23 +1041,29 @@ contract("RevenuePool", (accounts) => {
 
       let spendAmount = 100;
       let requestedRate = 100000000; // 1 DAI = 1 USD
-      let data = daicpxdToken.contract.methods
+      let data = AbiCoder.encodeParameters(
+        ["uint256", "uint256", "string", "bytes"],
+        [
+          spendAmount,
+          requestedRate,
+          "payMerchant",
+          AbiCoder.encodeParameters(["address"], [merchantSafe]),
+        ]
+      );
+      let payload = daicpxdToken.contract.methods
         .transferAndCall(
           revenuePool.address,
           // here we are maliciously manipulating the payload so that we are
           // transferring less DAI than what we promised via the requested rate
           // lock and specified spend amount
           toWei("0.5"), // the actual amount that we should be sending is 1 DAI
-          AbiCoder.encodeParameters(
-            ["address", "uint256", "uint256", "string"],
-            [merchantSafe, spendAmount, requestedRate, ""]
-          )
+          data
         )
         .encodeABI();
       let signature = await signSafeTransaction(
         daicpxdToken.address,
         0,
-        data,
+        payload,
         0,
         0,
         0,
@@ -1069,13 +1075,12 @@ contract("RevenuePool", (accounts) => {
         prepaidCard
       );
       await prepaidCardManager
-        .payMerchant(
+        .send(
           prepaidCard.address,
-          daicpxdToken.address,
-          merchantSafe,
           spendAmount,
           requestedRate,
-          "",
+          "payMerchant",
+          data,
           signature,
           { from: relayer }
         )
@@ -1111,6 +1116,48 @@ contract("RevenuePool", (accounts) => {
 
     it("should reject a direct call to onTokenTransfer from a non-token contract", async () => {
       await revenuePool.onTokenTransfer(owner, 100, "0x").should.be.rejected;
+    });
+
+    it("reverts when prepaid card calls with unknown action", async () => {
+      let data = await prepaidCardManager.getSendData(
+        prepaidCard.address,
+        100,
+        100000000, // 1 DAI = 1 USD
+        "unknown action",
+        AbiCoder.encodeParameters(["string"], ["do things"])
+      );
+
+      let signature = await signSafeTransaction(
+        daicpxdToken.address,
+        0,
+        data,
+        0,
+        0,
+        0,
+        0,
+        cardcpxdToken.address,
+        prepaidCard.address,
+        await prepaidCard.nonce(),
+        customer,
+        prepaidCard
+      );
+
+      return await prepaidCardManager
+        .send(
+          prepaidCard.address,
+          100,
+          100000000, // 1 DAI = 1 USD
+          "unknown action",
+          AbiCoder.encodeParameters(["string"], ["do things"]),
+          signature,
+          { from: relayer }
+        )
+        .should.be.rejectedWith(
+          Error,
+          // the real revert reason is behind the gnosis safe execTransaction
+          // boundary, so we just get this generic error
+          "safe transaction was reverted"
+        );
     });
   });
 
