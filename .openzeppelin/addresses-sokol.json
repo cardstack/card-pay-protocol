@@ -3,10 +3,6 @@
     "proxy": "0x8b0625288cb14F29ED0519F1d281956D46e10ce0",
     "contractName": "PrepaidCardManager"
   },
-  "RevenuePool": {
-    "proxy": "0xb759F3E867e6435E53ce55d7A7Bb3f64368C56a6",
-    "contractName": "RevenuePool"
-  },
   "BridgeUtils": {
     "proxy": "0x3498110baDFa94e26a58eFe3D834D1308e32f240",
     "contractName": "BridgeUtils"
@@ -34,5 +30,9 @@
   "RewardPool": {
     "proxy": "0xc7865297Dd3281F1Ac869BEb708910582F7cdBA1",
     "contractName": "RewardPool"
+  },
+  "RevenuePool": {
+    "proxy": "0x5D11326E20C01C5bc62544e3E31F101ED6aDCBBd",
+    "contractName": "RevenuePool"
   }
 }
