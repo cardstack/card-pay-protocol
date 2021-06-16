@@ -98,59 +98,11 @@ async function signAndSendSafeTransaction(
     safeTx,
   };
 }
-async function payMerchant(
-  prepaidCardManager,
-  prepaidCard,
-  issuingToken,
-  gasToken,
-  relayer,
-  customerAddress,
-  merchantSafe,
-  spendAmount,
-  usdRate
-) {
-  if (usdRate == null) {
-    usdRate = 100000000; // 1 DAI = 1 USD
-  }
-  let data = await prepaidCardManager.getSendData(
-    prepaidCard.address,
-    spendAmount,
-    usdRate,
-    "payMerchant",
-    AbiCoder.encodeParameters(["address"], [merchantSafe])
-  );
-
-  let signature = await signSafeTransaction(
-    issuingToken.address,
-    0,
-    data,
-    0,
-    0,
-    0,
-    0,
-    gasToken.address,
-    prepaidCard.address,
-    await prepaidCard.nonce(),
-    customerAddress,
-    prepaidCard
-  );
-
-  return await prepaidCardManager.send(
-    prepaidCard.address,
-    spendAmount,
-    usdRate,
-    "payMerchant",
-    AbiCoder.encodeParameters(["address"], [merchantSafe]),
-    signature,
-    { from: relayer }
-  );
-}
 
 exports.toTokenUnit = toTokenUnit;
 exports.encodeCreateCardsData = encodeCreateCardsData;
 exports.packExecutionData = packExecutionData;
 exports.signAndSendSafeTransaction = signAndSendSafeTransaction;
-exports.payMerchant = payMerchant;
 
 exports.shouldBeSameBalance = async function (token, address, amount) {
   await token.balanceOf(address).should.eventually.be.a.bignumber.equal(amount);
@@ -410,6 +362,54 @@ exports.registerMerchant = async function (
     usdRate,
     "registerMerchant",
     AbiCoder.encodeParameters(["string"], [infoDID]),
+    signature,
+    { from: relayer }
+  );
+};
+
+exports.payMerchant = async function (
+  prepaidCardManager,
+  prepaidCard,
+  issuingToken,
+  gasToken,
+  relayer,
+  customerAddress,
+  merchantSafe,
+  spendAmount,
+  usdRate
+) {
+  if (usdRate == null) {
+    usdRate = 100000000; // 1 DAI = 1 USD
+  }
+  let data = await prepaidCardManager.getSendData(
+    prepaidCard.address,
+    spendAmount,
+    usdRate,
+    "payMerchant",
+    AbiCoder.encodeParameters(["address"], [merchantSafe])
+  );
+
+  let signature = await signSafeTransaction(
+    issuingToken.address,
+    0,
+    data,
+    0,
+    0,
+    0,
+    0,
+    gasToken.address,
+    prepaidCard.address,
+    await prepaidCard.nonce(),
+    customerAddress,
+    prepaidCard
+  );
+
+  return await prepaidCardManager.send(
+    prepaidCard.address,
+    spendAmount,
+    usdRate,
+    "payMerchant",
+    AbiCoder.encodeParameters(["address"], [merchantSafe]),
     signature,
     { from: relayer }
   );

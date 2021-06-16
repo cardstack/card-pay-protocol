@@ -379,9 +379,10 @@ contract RevenuePool is Versionable, Initializable, MerchantManager, Exchange {
     uint256 spendAmount,
     uint256 requestedRate
   ) internal view returns (bool) {
-    if (tokenAmount == 0 && spendAmount == 0) {
-      return true;
-    }
+    // TODO add this as soon as we handle merchant claims via prepaid card
+    // if (tokenAmount == 0 && spendAmount == 0) {
+    //   return true;
+    // }
     uint256 expectedTokenAmount =
       convertFromSpendWithRate(token, spendAmount, requestedRate);
     require(

@@ -1117,6 +1117,48 @@ contract("RevenuePool", (accounts) => {
     it("should reject a direct call to onTokenTransfer from a non-token contract", async () => {
       await revenuePool.onTokenTransfer(owner, 100, "0x").should.be.rejected;
     });
+
+    it("reverts when prepaid card calls with unknown action", async () => {
+      let data = await prepaidCardManager.getSendData(
+        prepaidCard.address,
+        100,
+        100000000, // 1 DAI = 1 USD
+        "unknown action",
+        AbiCoder.encodeParameters(["string"], ["do things"])
+      );
+
+      let signature = await signSafeTransaction(
+        daicpxdToken.address,
+        0,
+        data,
+        0,
+        0,
+        0,
+        0,
+        cardcpxdToken.address,
+        prepaidCard.address,
+        await prepaidCard.nonce(),
+        customer,
+        prepaidCard
+      );
+
+      return await prepaidCardManager
+        .send(
+          prepaidCard.address,
+          100,
+          100000000, // 1 DAI = 1 USD
+          "unknown action",
+          AbiCoder.encodeParameters(["string"], ["do things"]),
+          signature,
+          { from: relayer }
+        )
+        .should.be.rejectedWith(
+          Error,
+          // the real revert reason is behind the gnosis safe execTransaction
+          // boundary, so we just get this generic error
+          "safe transaction was reverted"
+        );
+    });
   });
 
   describe("exchange rate", () => {

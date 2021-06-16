@@ -235,8 +235,8 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
         cardDetails[prepaidCard].issueToken,
         getSendData(prepaidCard, spendAmount, rateLock, action, data),
         addContractSignature(prepaidCard, ownerSignature),
-        gasToken,
-        prepaidCard
+        gasToken, // TODO we should look up the gas token to use for the requested action
+        prepaidCard // TODO we should look up the gas receiver to use for the requested action
       );
   }
 
