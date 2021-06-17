@@ -27,11 +27,20 @@ This document describes various operations procedures for the on-going maintenan
 These instructions are written from the perspective of using the Blockscout website to update our contracts. Blockscout is nice in that it requires no prior setup, aside from creating your metamask wallet.
 
 ## Key Management
-For our deployment we'll utilize a Trezor Hardware wallet truffle provider that will allow us to use hardware wallets to sign transactions when running the truffle migration script when deploying new contracts, upgrading contracts, and sending transactions to configure the contracts. In order to initialize the Trezor wallets we'll generate 3 of 3 Shamir Backup (that way a developer could loose all the seeds and we could still recover). Each developer receives 3 shamir different shamir seeds will be disseminated via different secure protocols to the individuals performing the deployments. The Shamir seeds will be used to initialize the Trezor Model T hardware wallets, which will then be used to perform the contract deployments. https://wiki.trezor.io/Shamir_Backup
+For our deployment we'll utilize a Trezor Hardware wallet truffle provider that will allow us to use hardware wallets to sign transactions when running the truffle migration script when deploying new contracts, upgrading contracts, and sending transactions to configure the contracts. In order to initialize the Trezor wallets we'll generate **3 of 6** Shamir Backup (that way a developer could loose all the seeds and we could still recover). Each developer receives 3 shamir different shamir seeds will be disseminated via different secure protocols to the individuals performing the deployments. The Shamir seeds will be used to initialize the Trezor Model T hardware wallets, which will then be used to perform the contract deployments. https://wiki.trezor.io/Shamir_Backup
+
+Of the 6 seeds generated:
+
+* 3 seeds should be written with pen on paper, put in a safe and kept as backup
+* The remaining 3 seeds should be distributed by different channels to each developer
+* Each channel should only be used for one seed - so if sending a seed to 3 developers by Signal messenger, for example, only send the same seed to each developer, not 3 different seeds, so that an atttacker that compromises Signal would only have access to a single seed
+* consider distributing one seed by postal mail if possible, so that of the 6 seeds, only 2 are ever entered in any way on a computer, the remaining 4 seeds having been written down from the trezor setup process with pen and paper
 
 A single, 6 word [diceware](https://www.eff.org/dice) password should also be chosen to be used as the **passphrase** to the wallet when generating it. Reasoning: trezors, even with pin enabled, [are vulnerable to physical attacks](https://blog.trezor.io/our-response-to-the-read-protection-downgrade-attack-28d23f8949c6). Adding a passphrase ensures that physical access to the trezor restored from shamir seeds does not allow compromising the key.
 
-The passphrase should only ever be entered on the trezor's on-screen keyboard, and never on any other device. **Never enter the passphrase except with the trezor keyboard.**
+The passphrase should be distributed to developers using a secure channel
+
+The passphrase should only ever be entered on the trezor's on-screen keyboard, and never on any other device after initial distribution. **Never enter the passphrase except with the trezor keyboard.**
 
 When developers restore the shamir seeds, they should enable the following protection for their trezor wallets:
 
