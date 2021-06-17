@@ -31,6 +31,8 @@ For our deployment we'll utilize a Trezor Hardware wallet truffle provider that 
 
 A single, 6 word [diceware](https://www.eff.org/dice) password should also be chosen to be used as the **passphrase** to the wallet when generating it. Reasoning: trezors, even with pin enabled, [are vulnerable to physical attacks](https://blog.trezor.io/our-response-to-the-read-protection-downgrade-attack-28d23f8949c6). Adding a passphrase ensures that physical access to the trezor restored from shamir seeds does not allow compromising the key.
 
+The passphrase should only ever be entered on the trezor's on-screen keyboard, and never on any other device. **Never enter the passphrase except with the trezor keyboard.**
+
 When developers restore the shamir seeds, they should enable the following protection for their trezor wallets:
 
 1. [Pin protection](https://wiki.trezor.io/PIN)
