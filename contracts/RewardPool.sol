@@ -8,19 +8,21 @@ import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 
 import "./token/IERC677.sol";
-import "./core/Exchange.sol";
 import "./core/Versionable.sol";
 import "./roles/PayableToken.sol";
 
 contract RewardPool is Initializable, Versionable, Ownable, PayableToken {
-
   using SafeMath for uint256;
   using MerkleProof for bytes32[];
 
   event Setup(address tally, address[] payableTokens);
   event PayeeWithdraw(address indexed payee, uint256 amount);
-  event MerkleRootSubmission(bytes32 payeeRoot,uint256 numPaymentCycles);
-  event PaymentCycleEnded(uint256 paymentCycle, uint256 startBlock, uint256 endBlock);
+  event MerkleRootSubmission(bytes32 payeeRoot, uint256 numPaymentCycles);
+  event PaymentCycleEnded(
+    uint256 paymentCycle,
+    uint256 startBlock,
+    uint256 endBlock
+  );
 
   address internal constant ZERO_ADDRESS = address(0);
   address public tally;
@@ -30,22 +32,20 @@ contract RewardPool is Initializable, Versionable, Ownable, PayableToken {
   mapping(address => mapping(address => uint256)) public withdrawals;
   mapping(uint256 => bytes32) payeeRoots;
 
-  modifier onlyTally(){
+  modifier onlyTally() {
     require(tally == msg.sender, "Caller is not tally");
     _;
   }
 
-  function initialize(
-    address owner
-  ) public initializer {
+  function initialize(address owner) public initializer {
     numPaymentCycles = 1;
     Ownable.initialize(owner);
   }
 
-  function setup(
-    address _tally,
-    address[] calldata _payableTokens
-    ) external onlyOwner {
+  function setup(address _tally, address[] calldata _payableTokens)
+    external
+    onlyOwner
+  {
     tally = _tally;
     require(tally != ZERO_ADDRESS, "Tally should not be zero address");
     for (uint256 i = 0; i < _payableTokens.length; i++) {
@@ -54,7 +54,11 @@ contract RewardPool is Initializable, Versionable, Ownable, PayableToken {
     emit Setup(_tally, _payableTokens);
   }
 
-  function submitPayeeMerkleRoot(bytes32 payeeRoot) external onlyTally returns(bool) {
+  function submitPayeeMerkleRoot(bytes32 payeeRoot)
+    external
+    onlyTally
+    returns (bool)
+  {
     payeeRoots[numPaymentCycles] = payeeRoot;
 
     emit MerkleRootSubmission(payeeRoot, numPaymentCycles);
@@ -63,34 +67,57 @@ contract RewardPool is Initializable, Versionable, Ownable, PayableToken {
     return true;
   }
 
-  function withdraw(address payableToken , uint256 amount, bytes calldata proof) external isValidTokenAddress(payableToken) returns(bool) {
+  function withdraw(
+    address payableToken,
+    uint256 amount,
+    bytes calldata proof
+  ) external isValidTokenAddress(payableToken) returns (bool) {
     require(amount > 0, "Cannot withdraw non-positive amount");
 
-    uint256 balance = balanceForProof(payableToken,proof);
+    uint256 balance = balanceForProof(payableToken, proof);
     require(balance >= amount, "Insufficient balance for proof");
-    require(IERC677(payableToken).balanceOf(address(this)) >= amount, "Reward pool has insufficient balance");
+    require(
+      IERC677(payableToken).balanceOf(address(this)) >= amount,
+      "Reward pool has insufficient balance"
+    );
 
-    withdrawals[payableToken][msg.sender] = withdrawals[payableToken][msg.sender].add(amount);
+    withdrawals[payableToken][msg.sender] = withdrawals[payableToken][
+      msg.sender
+    ]
+      .add(amount);
     IERC677(payableToken).transfer(msg.sender, amount);
-
 
     emit PayeeWithdraw(msg.sender, amount);
     return true;
   }
 
-  function balanceForProofWithAddress(address payableToken, address _address, bytes calldata proof) external view returns(uint256) {
+  function balanceForProofWithAddress(
+    address payableToken,
+    address _address,
+    bytes calldata proof
+  ) external view returns (uint256) {
     return _balanceForProofWithAddress(payableToken, _address, proof);
   }
 
-  function balanceForProof(address payableToken, bytes memory proof) public view returns(uint256) {
-    return _balanceForProofWithAddress(payableToken ,msg.sender, proof);
+  function balanceForProof(address payableToken, bytes memory proof)
+    public
+    view
+    returns (uint256)
+  {
+    return _balanceForProofWithAddress(payableToken, msg.sender, proof);
   }
 
+  function startNewPaymentCycle() internal onlyTally returns (bool) {
+    require(
+      block.number > currentPaymentCycleStartBlock,
+      "Cannot start new payment cycle before currentPaymentCycleStartBlock"
+    );
 
-  function startNewPaymentCycle() internal onlyTally returns(bool) {
-    require(block.number > currentPaymentCycleStartBlock, "Cannot start new payment cycle before currentPaymentCycleStartBlock");
-
-    emit PaymentCycleEnded(numPaymentCycles, currentPaymentCycleStartBlock, block.number);
+    emit PaymentCycleEnded(
+      numPaymentCycles,
+      currentPaymentCycleStartBlock,
+      block.number
+    );
 
     numPaymentCycles = numPaymentCycles.add(1);
     currentPaymentCycleStartBlock = block.number.add(1);
@@ -98,36 +125,47 @@ contract RewardPool is Initializable, Versionable, Ownable, PayableToken {
     return true;
   }
 
-  function _balanceForProofWithAddress(address payableToken, address _address, bytes memory proof) internal view returns(uint256) {
+  function _balanceForProofWithAddress(
+    address payableToken,
+    address _address,
+    bytes memory proof
+  ) internal view returns (uint256) {
     bytes32[] memory meta;
     bytes32[] memory _proof;
 
     (meta, _proof) = splitIntoBytes32(proof, 2);
-    if (meta.length != 2) { return 0; }
+    if (meta.length != 2) {
+      return 0;
+    }
 
     uint256 paymentCycleNumber = uint256(meta[0]);
     uint256 cumulativeAmount = uint256(meta[1]);
-    if (payeeRoots[paymentCycleNumber] == 0x0) { return 0; }
+    if (payeeRoots[paymentCycleNumber] == 0x0) {
+      return 0;
+    }
 
-    bytes32 leaf = keccak256(
-                             abi.encodePacked(
-                                              payableToken,
-                                              _address,
-                                              cumulativeAmount
-                                              )
-                             );
-    if (withdrawals[payableToken][_address] < cumulativeAmount &&
-        _proof.verify(payeeRoots[paymentCycleNumber], leaf)) {
+    bytes32 leaf =
+      keccak256(abi.encodePacked(payableToken, _address, cumulativeAmount));
+    if (
+      withdrawals[payableToken][_address] < cumulativeAmount &&
+      _proof.verify(payeeRoots[paymentCycleNumber], leaf)
+    ) {
       return cumulativeAmount.sub(withdrawals[payableToken][_address]);
     } else {
       return 0;
     }
   }
 
-  function splitIntoBytes32(bytes memory byteArray, uint256 numBytes32) internal pure returns (bytes32[] memory bytes32Array,
-                                                                                        bytes32[] memory remainder) {
+  function splitIntoBytes32(bytes memory byteArray, uint256 numBytes32)
+    internal
+    pure
+    returns (bytes32[] memory bytes32Array, bytes32[] memory remainder)
+  {
     require(byteArray.length.div(32) <= 50, "Bytearray provided is too big");
-    require(byteArray.length % 32 == 0 && byteArray.length >= numBytes32.mul(32), "Bytearray provided has wrong shape");
+    require(
+      byteArray.length % 32 == 0 && byteArray.length >= numBytes32.mul(32),
+      "Bytearray provided has wrong shape"
+    );
 
     bytes32Array = new bytes32[](numBytes32);
     remainder = new bytes32[](byteArray.length.sub(64).div(32));
@@ -136,7 +174,7 @@ contract RewardPool is Initializable, Versionable, Ownable, PayableToken {
       assembly {
         _bytes32 := mload(add(byteArray, k))
       }
-      if(k <= numBytes32*32){
+      if (k <= numBytes32 * 32) {
         bytes32Array[k.sub(32).div(32)] = _bytes32;
       } else {
         remainder[k.sub(96).div(32)] = _bytes32;

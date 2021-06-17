@@ -5,6 +5,9 @@ const DIAPriceOracle = artifacts.require("DIAOracleAdapter");
 const Feed = artifacts.require("ManualFeed");
 const ERC677Token = artifacts.require("ERC677Token.sol");
 const AbiCoder = require("web3-eth-abi");
+const Exchange = artifacts.require("Exchange");
+const PayMerchantHandler = artifacts.require("PayMerchantHandler");
+const RegisterMerchantHandler = artifacts.require("RegisterMerchantHandler");
 const { toBN } = require("web3-utils");
 const { TOKEN_DETAIL_DATA } = require("../setup");
 const eventABIs = require("./constant/eventABIs");
@@ -151,7 +154,15 @@ exports.setupExchanges = async function (owner) {
   let diaPriceOracle = await DIAPriceOracle.new();
   await diaPriceOracle.initialize(owner);
   await diaPriceOracle.setup(mockDiaOracle.address, "CARD", daiFeed.address);
+
+  let exchange = await Exchange.new();
+  await exchange.initialize(owner);
+  await exchange.setup(1000000); // this is a 1% rate margin drift
+  await exchange.createExchange("DAI", chainlinkOracle.address);
+  await exchange.createExchange("CARD", diaPriceOracle.address);
+
   return {
+    exchange,
     daicpxdToken,
     cardcpxdToken,
     chainlinkOracle,
@@ -159,6 +170,32 @@ exports.setupExchanges = async function (owner) {
     daiFeed,
     ethFeed,
     mockDiaOracle,
+  };
+};
+
+exports.addHandlersToRevenuePool = async function (
+  revenuePool,
+  owner,
+  exchangeAddress,
+  spendAddress
+) {
+  let payMerchantHandler = await PayMerchantHandler.new();
+  await payMerchantHandler.initialize(owner);
+  await payMerchantHandler.setup(revenuePool.address, spendAddress);
+
+  let registerMerchantHandler = await RegisterMerchantHandler.new();
+  await registerMerchantHandler.initialize(owner);
+  await registerMerchantHandler.setup(revenuePool.address, exchangeAddress);
+
+  await revenuePool.addHandler(payMerchantHandler.address, "payMerchant");
+  await revenuePool.addHandler(
+    registerMerchantHandler.address,
+    "registerMerchant"
+  );
+
+  return {
+    payMerchantHandler,
+    registerMerchantHandler,
   };
 };
 

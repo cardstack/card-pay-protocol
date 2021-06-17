@@ -8,6 +8,9 @@ const PrepaidCardManager = artifacts.require("PrepaidCardManager");
 const BridgeUtils = artifacts.require("BridgeUtils");
 const SPEND = artifacts.require("SPEND");
 const RewardPool = artifacts.require("RewardPool");
+const Exchange = artifacts.require("Exchange");
+const PayMerchantHandler = artifacts.require("PayMerchantHandler");
+const RegisterMerchantHandler = artifacts.require("RegisterMerchantHandler");
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const GAS_FEE_RECEIVER = process.env.GAS_FEE_RECEIVER ?? ZERO_ADDRESS;
@@ -50,6 +53,15 @@ module.exports = async function (_deployer, network) {
     "PrepaidCardManager",
     proxyAddresses
   );
+  let exchangeAddress = getAddress("Exchange", proxyAddresses);
+  let payMerchantHandlerAddress = getAddress(
+    "PayMerchantHandler",
+    proxyAddresses
+  );
+  let registerMerchantHandlerAddress = getAddress(
+    "RegisterMerchantHandler",
+    proxyAddresses
+  );
   let revenuePool = await RevenuePool.at(revenuePoolAddress);
   let spendTokenAddress = getAddress("SPEND", proxyAddresses);
   let daiOracleAddress = getAddress("DAIOracle", proxyAddresses);
@@ -59,38 +71,86 @@ module.exports = async function (_deployer, network) {
   console.log(`
 ==================================================
 Configuring RevenuePool ${revenuePoolAddress}
+  Exchange address: ${exchangeAddress}
   PrepaidCardManager address: ${prepaidCardManagerAddress}
   gnosis master copy: ${GNOSIS_SAFE_MASTER_COPY}
   gnosis proxy factory: ${GNOSIS_SAFE_FACTORY}
   payable tokens: ${PAYABLE_TOKENS.join(", ")}
-  rate drift percentage: ${(Number(RATE_DRIFT_PERCENTAGE) / 1000000).toFixed(
-    4
-  )}%
   merchant fee receiver: ${MERCHANT_FEE_RECEIVER}
   merchant fee percentage: ${(
     Number(MERCHANT_FEE_PERCENTAGE) / 1000000
   ).toFixed(4)}%
-  merchant registration fee: §${MERCHANT_REGISTRATION_FEE_IN_SPEND} SPEND
-  SPEND token address: ${spendTokenAddress}`);
+  merchant registration fee: §${MERCHANT_REGISTRATION_FEE_IN_SPEND} SPEND`);
   await sendTx(() =>
     revenuePool.setup(
+      exchangeAddress,
       prepaidCardManagerAddress,
       GNOSIS_SAFE_MASTER_COPY,
       GNOSIS_SAFE_FACTORY,
-      spendTokenAddress,
       PAYABLE_TOKENS,
       MERCHANT_FEE_RECEIVER,
       MERCHANT_FEE_PERCENTAGE,
-      MERCHANT_REGISTRATION_FEE_IN_SPEND,
-      RATE_DRIFT_PERCENTAGE
+      MERCHANT_REGISTRATION_FEE_IN_SPEND
     )
   );
   console.log(`  set BridgeUtils address to ${bridgeUtilsAddress}`);
   await sendTx(() => revenuePool.setBridgeUtils(bridgeUtilsAddress));
+  console.log(
+    `  adding action handler for "payMerchant": ${payMerchantHandlerAddress}`
+  );
+  await sendTx(() =>
+    revenuePool.addHandler(payMerchantHandlerAddress, "payMerchant")
+  );
+  console.log(
+    `  adding action handler for "registerMerchant": ${registerMerchantHandlerAddress}`
+  );
+  await sendTx(() =>
+    revenuePool.addHandler(registerMerchantHandlerAddress, "registerMerchant")
+  );
+
+  // Exchange configuration
+  let exchange = await Exchange.at(exchangeAddress);
+  console.log(`
+==================================================
+Configuring Exchange ${exchangeAddress}
+  rate drift percentage: ${(Number(RATE_DRIFT_PERCENTAGE) / 1000000).toFixed(
+    4
+  )}%
+`);
+  await sendTx(() => exchange.setup(RATE_DRIFT_PERCENTAGE));
+
   console.log(`  set DAI oracle to ${daiOracleAddress}`);
-  await sendTx(() => revenuePool.createExchange("DAI", daiOracleAddress));
+  await sendTx(() => exchange.createExchange("DAI", daiOracleAddress));
   console.log(`  set CARD oracle to ${cardOracleAddress}`);
-  await sendTx(() => revenuePool.createExchange("CARD", cardOracleAddress));
+  await sendTx(() => exchange.createExchange("CARD", cardOracleAddress));
+
+  // PayMerchantHandler configuration
+  let payMerchantHandler = await PayMerchantHandler.at(
+    payMerchantHandlerAddress
+  );
+  console.log(`
+==================================================
+Configuring PayMerchantHandler ${payMerchantHandlerAddress}
+  Revenue Pool Address: ${revenuePoolAddress}
+  SPEND token address: ${spendTokenAddress}
+`);
+  await sendTx(() =>
+    payMerchantHandler.setup(revenuePoolAddress, spendTokenAddress)
+  );
+
+  // RegisterMerchantHandler configuration
+  let registerMerchantHandler = await RegisterMerchantHandler.at(
+    registerMerchantHandlerAddress
+  );
+  console.log(`
+==================================================
+Configuring RegisterMerchantHandler ${registerMerchantHandlerAddress}
+  Revenue Pool Address: ${revenuePoolAddress}
+  Exchange address: ${exchangeAddress}
+`);
+  await sendTx(() =>
+    registerMerchantHandler.setup(revenuePoolAddress, exchangeAddress)
+  );
 
   // PrepaidCardManager configuration
   let prepaidCardManager = await PrepaidCardManager.at(
@@ -102,6 +162,7 @@ Configuring PrepaidCardManager ${prepaidCardManagerAddress}
   gnosis master copy: ${GNOSIS_SAFE_MASTER_COPY}
   gnosis proxy factory: ${GNOSIS_SAFE_FACTORY}
   RevenuePool address: ${revenuePoolAddress}
+  Exchange address: ${exchangeAddress}
   gas fee receiver: ${GAS_FEE_RECEIVER}
   gas fee: ${fromWei(GAS_FEE_CARD_WEI)} CARD
   payable tokens: ${PAYABLE_TOKENS.join(", ")}
@@ -110,6 +171,7 @@ Configuring PrepaidCardManager ${prepaidCardManagerAddress}
   maximum face value: ${MAXIMUM_AMOUNT}`);
   await sendTx(() =>
     prepaidCardManager.setup(
+      exchangeAddress,
       GNOSIS_SAFE_MASTER_COPY,
       GNOSIS_SAFE_FACTORY,
       revenuePoolAddress,
@@ -125,21 +187,13 @@ Configuring PrepaidCardManager ${prepaidCardManagerAddress}
   await sendTx(() => prepaidCardManager.setBridgeUtils(bridgeUtilsAddress));
 
   // RewardPool configuration
-  let rewardPool = await RewardPool.at(
-    rewardPoolAddress
-  );
+  let rewardPool = await RewardPool.at(rewardPoolAddress);
   console.log(`
 ==================================================
 Configuring RewardPool ${rewardPoolAddress}
   tally ${TALLY}
-  payable tokens: ${PAYABLE_TOKENS.join(", ")}`
-             );
-  await sendTx(() =>
-    rewardPool.setup(
-      TALLY,
-      PAYABLE_TOKENS
-    )
-  );
+  payable tokens: ${PAYABLE_TOKENS.join(", ")}`);
+  await sendTx(() => rewardPool.setup(TALLY, PAYABLE_TOKENS));
   console.log(`  set BridgeUtils address to ${bridgeUtilsAddress}`);
   await sendTx(() => rewardPool.setBridgeUtils(bridgeUtilsAddress));
 
@@ -148,15 +202,16 @@ Configuring RewardPool ${rewardPoolAddress}
   console.log(`
 ==================================================
 Configuring BridgeUtils ${bridgeUtilsAddress}
+  Exchange address: ${exchangeAddress}
   RevenuePool address: ${revenuePoolAddress}
   PrepaidCardManager address: ${prepaidCardManagerAddress}
   gnosis master copy: ${GNOSIS_SAFE_MASTER_COPY}
   gnosis proxy factory: ${GNOSIS_SAFE_FACTORY}
   bridge mediator address: ${BRIDGE_MEDIATOR}
-  RewardPool address: ${rewardPoolAddress}`
-             );
+  RewardPool address: ${rewardPoolAddress}`);
   await sendTx(() =>
     bridgeUtils.setup(
+      exchangeAddress,
       revenuePoolAddress,
       prepaidCardManagerAddress,
       GNOSIS_SAFE_MASTER_COPY,
@@ -171,8 +226,8 @@ Configuring BridgeUtils ${bridgeUtilsAddress}
   console.log(`
 ==================================================
 Configuring SPEND: ${spendTokenAddress}
-  adding minter: ${revenuePoolAddress} (revenue pool)`);
-  await sendTx(() => spend.addMinter(revenuePoolAddress));
+  adding minter: ${payMerchantHandlerAddress} (PayMerchantHandler)`);
+  await sendTx(() => spend.addMinter(payMerchantHandlerAddress));
 };
 
 function getAddress(contractId, addresses) {

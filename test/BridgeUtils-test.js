@@ -28,6 +28,7 @@ contract("BridgeUtils", async (accounts) => {
     mediatorBridgeMock,
     daicpxdToken,
     relayer,
+    exchange,
     depot,
     rewardPool;
   before(async () => {
@@ -50,29 +51,24 @@ contract("BridgeUtils", async (accounts) => {
     let gnosisFactory = await GnosisFactory.new();
     let gnosisMaster = await GnosisSafe.new();
 
-    let chainlinkOracle, diaPriceOracle;
-    ({ daicpxdToken, chainlinkOracle, diaPriceOracle } = await setupExchanges(
-      owner
-    ));
+    ({ daicpxdToken, exchange } = await setupExchanges(owner));
     tokenMock = daicpxdToken.address;
     await pool.setup(
+      exchange.address,
       prepaidCardManager.address,
       gnosisMaster.address,
       gnosisFactory.address,
-      utils.Address0,
       [],
       merchantFeeReceiver,
       0,
-      1000,
-      1000000
+      1000
     );
-    await pool.createExchange("DAI", chainlinkOracle.address);
-    await pool.createExchange("CARD", diaPriceOracle.address);
 
     const MINIMUM_AMOUNT = process.env.MINIMUM_AMOUNT ?? 100;
     const MAXIMUM_AMOUNT = process.env.MAXIMUM_AMOUNT ?? 100000 * 100;
 
     await prepaidCardManager.setup(
+      exchange.address,
       gnosisMaster.address,
       gnosisFactory.address,
       pool.address,
@@ -89,6 +85,7 @@ contract("BridgeUtils", async (accounts) => {
     await rewardPool.setBridgeUtils(bridgeUtils.address);
 
     await bridgeUtils.setup(
+      exchange.address,
       pool.address,
       prepaidCardManager.address,
       gnosisMaster.address,

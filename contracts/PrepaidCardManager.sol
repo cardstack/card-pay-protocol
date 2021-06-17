@@ -9,7 +9,8 @@ import "./token/IERC677.sol";
 import "./roles/PayableToken.sol";
 import "./core/Safe.sol";
 import "./core/Versionable.sol";
-import "./RevenuePool.sol";
+import "./BridgeUtils.sol";
+import "./Exchange.sol";
 
 contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
   using SafeMath for uint256;
@@ -27,6 +28,7 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
     address issuer,
     address card,
     address token,
+    address createdFromDepot,
     uint256 issuingTokenAmount,
     uint256 spendAmount,
     uint256 gasFeeCollected,
@@ -49,6 +51,7 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
   uint256 public maximumFaceValue;
   uint256 public minimumFaceValue;
   address public gasToken;
+  address public exchangeAddress;
 
   /**
    * @dev Setup function sets initial storage of contract.
@@ -62,6 +65,7 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
    * @param _maxAmount The maximum face value of a new prepaid card in units of SPEND
    */
   function setup(
+    address _exchangeAddress,
     address _gsMasterCopy,
     address _gsProxyFactory,
     address payable _revenuePool,
@@ -73,6 +77,7 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
     uint256 _maxAmount
   ) external onlyOwner {
     revenuePool = _revenuePool;
+    exchangeAddress = _exchangeAddress;
     gasFeeReceiver = _gasFeeReceiver;
     gasFeeInCARD = _gasFeeInCARD;
 
@@ -140,7 +145,7 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
     returns (uint256)
   {
     return
-      (RevenuePool(revenuePool).convertFromSpend(token, spendFaceValue))
+      (Exchange(exchangeAddress).convertFromSpend(token, spendFaceValue))
         .add(gasFee(token))
         .add(100); // this is to deal with any rounding errors
   }
@@ -216,14 +221,11 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
     require(gasToken != address(0), "gasToken not configured");
     require(
       cardDetails[prepaidCard].blockNumber < block.number,
-      "Prepaid card used too soon"
+      "prepaid card used too soon"
     );
+    require(spendAmount >= MINIMUM_MERCHANT_PAYMENT, "payment too small"); // protect against spamming contract with too low a price
     require(
-      spendAmount >= MINIMUM_MERCHANT_PAYMENT,
-      "merchant payment too small"
-    ); // protect against spamming contract with too low a price
-    require(
-      RevenuePool(revenuePool).isAllowableRate(
+      Exchange(exchangeAddress).isAllowableRate(
         cardDetails[prepaidCard].issueToken,
         rateLock
       ),
@@ -256,7 +258,7 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
     bytes memory data
   ) public view returns (bytes memory) {
     uint256 tokenAmount =
-      RevenuePool(revenuePool).convertFromSpendWithRate(
+      Exchange(exchangeAddress).convertFromSpendWithRate(
         cardDetails[prepaidCard].issueToken,
         spendAmount,
         rateLock
@@ -353,7 +355,7 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
     returns (bool)
   {
     uint256 amountInSPEND =
-      RevenuePool(revenuePool).convertToSpend(token, amount - gasFee(token));
+      Exchange(exchangeAddress).convertToSpend(token, amount - gasFee(token));
     return (minimumFaceValue <= amountInSPEND &&
       amountInSPEND <= maximumFaceValue);
   }
@@ -362,8 +364,18 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
     if (gasFeeReceiver == address(0)) {
       return 0;
     } else {
-      return RevenuePool(revenuePool).convertFromCARD(token, gasFeeInCARD);
+      return Exchange(exchangeAddress).convertFromCARD(token, gasFeeInCARD);
     }
+  }
+
+  function getPrepaidCardOwner(address payable prepaidCard)
+    public
+    view
+    returns (address)
+  {
+    address[] memory owners = GnosisSafe(prepaidCard).getOwners();
+    require(owners.length == 2, "unexpected number of owners for prepaid card");
+    return owners[0] == address(this) ? owners[1] : owners[0];
   }
 
   /**
@@ -407,6 +419,7 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
     for (uint256 i = 0; i < numberCard; i++) {
       createPrepaidCard(
         owner,
+        depot,
         token,
         issuingTokenAmounts[i],
         spendAmounts[i],
@@ -439,6 +452,7 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
    */
   function createPrepaidCard(
     address owner,
+    address depot,
     address token,
     uint256 issuingTokenAmount,
     uint256 spendAmount,
@@ -470,6 +484,7 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
       owner,
       card,
       token,
+      depot,
       issuingTokenAmount - _gasFee,
       spendAmount,
       _gasFee,
@@ -561,7 +576,9 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
     address owner = getPrepaidCardOwner(prepaidCard);
     bytes memory contractSignature = getContractSignature();
     signatures = new bytes(130); // 2 x 65 bytes
-    // Gnosis safe require signature must be sort by owner' address
+    // Gnosis safe require signature must be sort by owner' address.
+    // For test coverage, unsure how to test in both of these branches since
+    // the address of this contract is pretty arbitrary
     if (address(this) > owner) {
       for (uint256 i = 0; i < signature.length; i++) {
         signatures[i] = signature[i];
@@ -570,8 +587,6 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
         signatures[i.add(65)] = contractSignature[i];
       }
     } else {
-      // For test coverage, unsure how to test in this branch since the address
-      // of this contract is pretty arbitrary
       for (uint256 i = 0; i < contractSignature.length; i++) {
         signatures[i] = contractSignature[i];
       }
@@ -579,15 +594,5 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
         signatures[i.add(65)] = signature[i];
       }
     }
-  }
-
-  function getPrepaidCardOwner(address payable prepaidCard)
-    internal
-    view
-    returns (address)
-  {
-    address[] memory owners = GnosisSafe(prepaidCard).getOwners();
-    require(owners.length == 2, "unexpected number of owners for prepaid card");
-    return owners[0] == address(this) ? owners[1] : owners[0];
   }
 }

@@ -2,9 +2,9 @@ pragma solidity 0.5.17;
 
 import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
 import "./core/Safe.sol";
-import "./core/Exchange.sol";
 import "./core/Versionable.sol";
 import "./roles/PayableToken.sol";
+import "./Exchange.sol";
 
 contract BridgeUtils is Ownable, Versionable, Safe {
   event Setup();
@@ -25,6 +25,7 @@ contract BridgeUtils is Ownable, Versionable, Safe {
   address public bridgeMediator;
   mapping(address => address) public safes;
   address public rewardPool;
+  address public exchange;
 
   modifier onlyBridgeMediator() {
     require(msg.sender == bridgeMediator, "caller is not a bridge mediator");
@@ -46,6 +47,7 @@ contract BridgeUtils is Ownable, Versionable, Safe {
   }
 
   function setup(
+    address _exchange,
     address _revenuePool,
     address _prepaidCardManager,
     address _gsMasterCopy,
@@ -54,6 +56,7 @@ contract BridgeUtils is Ownable, Versionable, Safe {
     address _rewardPool
   ) external onlyOwner returns (bool) {
     Safe.setup(_gsMasterCopy, _gsProxyFactory);
+    exchange = _exchange;
     revenuePool = _revenuePool;
     prepaidCardManager = _prepaidCardManager;
     bridgeMediator = _bridgeMediator;
@@ -96,7 +99,7 @@ contract BridgeUtils is Ownable, Versionable, Safe {
 
   function _addToken(address tokenAddr) internal returns (bool) {
     require(
-      Exchange(revenuePool).hasExchange(tokenAddr),
+      Exchange(exchange).hasExchange(tokenAddr),
       "No exchange exists for token"
     );
     // update payable token for token

@@ -21,6 +21,7 @@ contract("PrepaidCardManager - issuer tests", (accounts) => {
     revenuePool,
     spendToken,
     prepaidCardManager,
+    exchange,
     fakeDaicpxdToken,
     owner,
     issuer,
@@ -49,13 +50,7 @@ contract("PrepaidCardManager - issuer tests", (accounts) => {
     await spendToken.initialize(owner);
     await spendToken.addMinter(revenuePool.address);
 
-    let chainlinkOracle, diaPriceOracle;
-    ({
-      daicpxdToken,
-      cardcpxdToken,
-      chainlinkOracle,
-      diaPriceOracle,
-    } = await setupExchanges(owner));
+    ({ daicpxdToken, cardcpxdToken, exchange } = await setupExchanges(owner));
     await daicpxdToken.mint(owner, toTokenUnit(1000));
 
     fakeDaicpxdToken = await ERC677Token.new();
@@ -72,21 +67,18 @@ contract("PrepaidCardManager - issuer tests", (accounts) => {
 
     // Setup for revenue pool
     await revenuePool.setup(
+      exchange.address,
       prepaidCardManager.address,
       gnosisSafeMasterCopy.address,
       proxyFactory.address,
-      spendToken.address,
       [daicpxdToken.address],
       merchantFeeReceiver,
       0,
-      1000,
-      1000000
+      1000
     );
 
-    await revenuePool.createExchange("DAI", chainlinkOracle.address);
-    await revenuePool.createExchange("CARD", diaPriceOracle.address);
-
     await prepaidCardManager.setup(
+      exchange.address,
       gnosisSafeMasterCopy.address,
       proxyFactory.address,
       revenuePool.address,

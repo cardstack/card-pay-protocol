@@ -11,6 +11,9 @@ const Feed = artifacts.require("ManualFeed");
 const ChainlinkOracle = artifacts.require("ChainlinkFeedAdapter");
 const DIAOracle = artifacts.require("DIAOracleAdapter");
 const RewardPool = artifacts.require("RewardPool");
+const Exchange = artifacts.require("Exchange");
+const PayMerchantHandler = artifacts.require("PayMerchantHandler");
+const RegisterMerchantHandler = artifacts.require("RegisterMerchantHandler");
 
 // we only maintain these migrations purely to measure the amount of gas it
 // takes to perform a deployment for each contract
@@ -29,6 +32,9 @@ module.exports = async function (deployer, network, addresses) {
       deployer.deploy(ChainlinkOracle),
       deployer.deploy(DIAOracle),
       deployer.deploy(RewardPool),
+      deployer.deploy(Exchange),
+      deployer.deploy(PayMerchantHandler),
+      deployer.deploy(RegisterMerchantHandler),
     ]);
   } else {
     // Contract init details. For each upgradable contract provide a property
@@ -43,11 +49,20 @@ module.exports = async function (deployer, network, addresses) {
         init: [addresses[0]],
       },
       RevenuePool: { contractName: "RevenuePool", init: [addresses[0]] },
+      RewardPool: { contractName: "RewardPool", init: [addresses[0]] },
+      Exchange: { contractName: "Exchange", init: [addresses[0]] },
+      PayMerchantHandler: {
+        contractName: "PayMerchantHandler",
+        init: [addresses[0]],
+      },
+      RegisterMerchantHandler: {
+        contractName: "RegisterMerchantHandler",
+        init: [addresses[0]],
+      },
       BridgeUtils: { contractName: "BridgeUtils", init: [addresses[0]] },
       SPEND: { contractName: "SPEND", init: [addresses[0]] },
       DAIOracle: { contractName: "ChainlinkFeedAdapter", init: [addresses[0]] },
       CARDOracle: { contractName: "DIAOracleAdapter", init: [addresses[0]] },
-      RewardPool: { contractName: "RewardPool", init: [addresses[0]] },
     };
 
     // Use manual feeds in sokol

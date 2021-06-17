@@ -11,6 +11,7 @@ const {
   encodeCreateCardsData,
   shouldBeSameBalance,
   setupExchanges,
+  addHandlersToRevenuePool,
 } = require("./utils/helper");
 
 const { expect } = require("./setup");
@@ -22,6 +23,7 @@ contract("PrepaidCardManager - EOA tests", (accounts) => {
     spendToken,
     owner,
     prepaidCardManager,
+    exchange,
     merchantFeeReceiver,
     gasFeeReceiver,
     supplierEOA,
@@ -43,33 +45,31 @@ contract("PrepaidCardManager - EOA tests", (accounts) => {
 
     spendToken = await SPEND.new();
     await spendToken.initialize(owner);
-    await spendToken.addMinter(revenuePool.address);
 
-    let chainlinkOracle, diaPriceOracle;
-    ({
-      daicpxdToken,
-      cardcpxdToken,
-      chainlinkOracle,
-      diaPriceOracle,
-    } = await setupExchanges(owner));
+    ({ daicpxdToken, cardcpxdToken, exchange } = await setupExchanges(owner));
     // Deploy and mint 100 daicpxd token for deployer as owner
     await daicpxdToken.mint(supplierEOA, toTokenUnit(20));
 
     await revenuePool.setup(
+      exchange.address,
       prepaidCardManager.address,
       gnosisSafeMasterCopy.address,
       proxyFactory.address,
-      spendToken.address,
       [daicpxdToken.address],
       merchantFeeReceiver,
       0,
-      1000,
-      1000000
+      1000
     );
-    await revenuePool.createExchange("DAI", chainlinkOracle.address);
-    await revenuePool.createExchange("CARD", diaPriceOracle.address);
+    let { payMerchantHandler } = await addHandlersToRevenuePool(
+      revenuePool,
+      owner,
+      exchange.address,
+      spendToken.address
+    );
+    await spendToken.addMinter(payMerchantHandler.address);
 
     await prepaidCardManager.setup(
+      exchange.address,
       gnosisSafeMasterCopy.address,
       proxyFactory.address,
       revenuePool.address,
