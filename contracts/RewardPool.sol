@@ -135,9 +135,6 @@ contract RewardPool is Initializable, Versionable, Ownable, PayableToken {
     bytes32[] memory _proof;
 
     (meta, _proof) = splitIntoBytes32(proof, 2);
-    if (meta.length != 2) {
-      return 0;
-    }
 
     uint256 paymentCycleNumber = uint256(meta[0]);
     uint256 cumulativeAmount = uint256(meta[1]);
