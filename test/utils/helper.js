@@ -5,6 +5,9 @@ const DIAPriceOracle = artifacts.require("DIAOracleAdapter");
 const Feed = artifacts.require("ManualFeed");
 const ERC677Token = artifacts.require("ERC677Token.sol");
 const AbiCoder = require("web3-eth-abi");
+const Exchange = artifacts.require("Exchange");
+const PayMerchantHandler = artifacts.require("PayMerchantHandler");
+const RegisterMerchantHandler = artifacts.require("RegisterMerchantHandler");
 const { toBN } = require("web3-utils");
 const { TOKEN_DETAIL_DATA } = require("../setup");
 const eventABIs = require("./constant/eventABIs");
@@ -151,7 +154,15 @@ exports.setupExchanges = async function (owner) {
   let diaPriceOracle = await DIAPriceOracle.new();
   await diaPriceOracle.initialize(owner);
   await diaPriceOracle.setup(mockDiaOracle.address, "CARD", daiFeed.address);
+
+  let exchange = await Exchange.new();
+  await exchange.initialize(owner);
+  await exchange.setup(1000000); // this is a 1% rate margin drift
+  await exchange.createExchange("DAI", chainlinkOracle.address);
+  await exchange.createExchange("CARD", diaPriceOracle.address);
+
   return {
+    exchange,
     daicpxdToken,
     cardcpxdToken,
     chainlinkOracle,
@@ -159,6 +170,44 @@ exports.setupExchanges = async function (owner) {
     daiFeed,
     ethFeed,
     mockDiaOracle,
+  };
+};
+
+exports.addActionHandlers = async function (
+  revenuePool,
+  actionDispatcher,
+  merchantManager,
+  owner,
+  exchangeAddress,
+  spendAddress
+) {
+  let payMerchantHandler = await PayMerchantHandler.new();
+  await payMerchantHandler.initialize(owner);
+  await payMerchantHandler.setup(
+    actionDispatcher.address,
+    merchantManager.address,
+    revenuePool.address,
+    spendAddress
+  );
+
+  let registerMerchantHandler = await RegisterMerchantHandler.new();
+  await registerMerchantHandler.initialize(owner);
+  await registerMerchantHandler.setup(
+    actionDispatcher.address,
+    merchantManager.address,
+    revenuePool.address,
+    exchangeAddress
+  );
+
+  await actionDispatcher.addHandler(payMerchantHandler.address, "payMerchant");
+  await actionDispatcher.addHandler(
+    registerMerchantHandler.address,
+    "registerMerchant"
+  );
+
+  return {
+    payMerchantHandler,
+    registerMerchantHandler,
   };
 };
 
@@ -191,16 +240,15 @@ exports.createDepotSafe = async function (
   return depot;
 };
 
-exports.createDepotFromBridgeUtils = async function (
-  bridgeUtils,
-  mediatorBridgeAddress,
-  issuer
-) {
-  let summary = await bridgeUtils.registerSupplier(issuer, {
-    from: mediatorBridgeAddress,
-  });
+exports.createDepotFromSupplierMgr = async function (supplierManager, issuer) {
+  let tx = await supplierManager.registerSupplier(issuer);
 
-  let depot = summary.receipt.logs[0].args[1];
+  let eventParams = getParamsFromEvent(
+    tx,
+    eventABIs.SUPPLIER_SAFE_CREATED,
+    supplierManager.address
+  );
+  let depot = eventParams[0].safe;
   return await GnosisSafe.at(depot);
 };
 

@@ -3,15 +3,17 @@ pragma solidity 0.5.17;
 import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 import "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
 import "@openzeppelin/contract-upgradeable/contracts/math/SafeMath.sol";
-import "@openzeppelin/upgrades/contracts/Initializable.sol";
+import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
 
 import "./token/IERC677.sol";
-import "./roles/PayableToken.sol";
+import "./TokenManager.sol";
 import "./core/Safe.sol";
 import "./core/Versionable.sol";
-import "./RevenuePool.sol";
+import "./SupplierManager.sol";
+import "./Exchange.sol";
+import "./ActionDispatcher.sol";
 
-contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
+contract PrepaidCardManager is Ownable, Versionable, Safe {
   using SafeMath for uint256;
   struct CardDetail {
     address issuer;
@@ -27,6 +29,7 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
     address issuer,
     address card,
     address token,
+    address createdFromDepot,
     uint256 issuingTokenAmount,
     uint256 spendAmount,
     uint256 gasFeeCollected,
@@ -42,49 +45,53 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
   bytes4 public constant TRANSFER_AND_CALL = 0x4000aea0; //transferAndCall(address,uint256,bytes)
   uint8 public constant MAXIMUM_NUMBER_OF_CARD = 15;
   uint256 public constant MINIMUM_MERCHANT_PAYMENT = 50; //in units of SPEND
-  address payable public revenuePool;
+  address payable public actionDispatcher;
   address payable public gasFeeReceiver;
   mapping(address => CardDetail) public cardDetails;
   uint256 public gasFeeInCARD;
   uint256 public maximumFaceValue;
   uint256 public minimumFaceValue;
   address public gasToken;
+  address public exchangeAddress;
+  address public tokenManager;
+  address public supplierManager;
 
   /**
    * @dev Setup function sets initial storage of contract.
+   * @param _tokenManager the address of the Token Manager contract
+   * @param _supplierManager the address of the Supplier Manager contract
+   * @param _exchangeAddress the address of the Exchange contract
    * @param _gsMasterCopy Gnosis safe Master Copy address
    * @param _gsProxyFactory Gnosis safe Proxy Factory address
-   * @param _revenuePool Revenue Pool address
+   * @param _actionDispatcher Action Dispatcher address
    * @param _gasFeeReceiver The addres that will receive the new prepaid card gas fee
    * @param _gasFeeInCARD the amount to charge for the gas fee for new prepaid card in units of CARD wei
-   * @param _payableTokens Payable tokens are allowed to use (these are created by the token bridge, specify them here if there are existing tokens breaked by teh bridge to use)
    * @param _minAmount The minimum face value of a new prepaid card in units of SPEND
    * @param _maxAmount The maximum face value of a new prepaid card in units of SPEND
    */
   function setup(
+    address _tokenManager,
+    address _supplierManager,
+    address _exchangeAddress,
     address _gsMasterCopy,
     address _gsProxyFactory,
-    address payable _revenuePool,
+    address payable _actionDispatcher,
     address payable _gasFeeReceiver,
     uint256 _gasFeeInCARD,
-    address[] calldata _payableTokens,
     address _gasToken,
     uint256 _minAmount,
     uint256 _maxAmount
   ) external onlyOwner {
-    revenuePool = _revenuePool;
+    actionDispatcher = _actionDispatcher;
+    supplierManager = _supplierManager;
+    tokenManager = _tokenManager;
+    exchangeAddress = _exchangeAddress;
     gasFeeReceiver = _gasFeeReceiver;
     gasFeeInCARD = _gasFeeInCARD;
-
-    Safe.setup(_gsMasterCopy, _gsProxyFactory);
-    // set token list payable.
-    for (uint256 i = 0; i < _payableTokens.length; i++) {
-      _addPayableToken(_payableTokens[i]);
-    }
     gasToken = _gasToken;
-    // set limit of amount.
     minimumFaceValue = _minAmount;
     maximumFaceValue = _maxAmount;
+    Safe.setup(_gsMasterCopy, _gsProxyFactory);
     emit Setup();
   }
 
@@ -98,7 +105,11 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
     address from, // solhint-disable-line no-unused-vars
     uint256 amount,
     bytes calldata data
-  ) external isValidToken returns (bool) {
+  ) external returns (bool) {
+    require(
+      TokenManager(tokenManager).isValidToken(msg.sender),
+      "calling token is unaccepted"
+    );
     (
       address owner,
       uint256[] memory issuingTokenAmounts,
@@ -140,7 +151,7 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
     returns (uint256)
   {
     return
-      (RevenuePool(revenuePool).convertFromSpend(token, spendFaceValue))
+      (Exchange(exchangeAddress).convertFromSpend(token, spendFaceValue))
         .add(gasFee(token))
         .add(100); // this is to deal with any rounding errors
   }
@@ -216,14 +227,11 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
     require(gasToken != address(0), "gasToken not configured");
     require(
       cardDetails[prepaidCard].blockNumber < block.number,
-      "Prepaid card used too soon"
+      "prepaid card used too soon"
     );
+    require(spendAmount >= MINIMUM_MERCHANT_PAYMENT, "payment too small"); // protect against spamming contract with too low a price
     require(
-      spendAmount >= MINIMUM_MERCHANT_PAYMENT,
-      "merchant payment too small"
-    ); // protect against spamming contract with too low a price
-    require(
-      RevenuePool(revenuePool).isAllowableRate(
+      Exchange(exchangeAddress).isAllowableRate(
         cardDetails[prepaidCard].issueToken,
         rateLock
       ),
@@ -256,7 +264,7 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
     bytes memory data
   ) public view returns (bytes memory) {
     uint256 tokenAmount =
-      RevenuePool(revenuePool).convertFromSpendWithRate(
+      Exchange(exchangeAddress).convertFromSpendWithRate(
         cardDetails[prepaidCard].issueToken,
         spendAmount,
         rateLock
@@ -264,7 +272,7 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
     return
       abi.encodeWithSelector(
         TRANSFER_AND_CALL,
-        revenuePool,
+        actionDispatcher,
         tokenAmount,
         abi.encode(spendAmount, rateLock, action, data)
       );
@@ -353,7 +361,7 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
     returns (bool)
   {
     uint256 amountInSPEND =
-      RevenuePool(revenuePool).convertToSpend(token, amount - gasFee(token));
+      Exchange(exchangeAddress).convertToSpend(token, amount - gasFee(token));
     return (minimumFaceValue <= amountInSPEND &&
       amountInSPEND <= maximumFaceValue);
   }
@@ -362,8 +370,18 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
     if (gasFeeReceiver == address(0)) {
       return 0;
     } else {
-      return RevenuePool(revenuePool).convertFromCARD(token, gasFeeInCARD);
+      return Exchange(exchangeAddress).convertFromCARD(token, gasFeeInCARD);
     }
+  }
+
+  function getPrepaidCardOwner(address payable prepaidCard)
+    public
+    view
+    returns (address)
+  {
+    address[] memory owners = GnosisSafe(prepaidCard).getOwners();
+    require(owners.length == 2, "unexpected number of owners for prepaid card");
+    return owners[0] == address(this) ? owners[1] : owners[0];
   }
 
   /**
@@ -407,6 +425,7 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
     for (uint256 i = 0; i < numberCard; i++) {
       createPrepaidCard(
         owner,
+        depot,
         token,
         issuingTokenAmounts[i],
         spendAmounts[i],
@@ -419,7 +438,7 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
       amountReceived > neededAmount &&
       // check to make sure ownerSafe address is a depot, so we can ensure it's
       // a trusted contract
-      BridgeUtils(bridgeUtils).safes(depot) != address(0)
+      SupplierManager(supplierManager).safes(depot) != address(0)
     ) {
       // the owner safe is a trusted contract (gnosis safe)
       IERC677(token).transfer(depot, amountReceived - neededAmount);
@@ -439,6 +458,7 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
    */
   function createPrepaidCard(
     address owner,
+    address depot,
     address token,
     uint256 issuingTokenAmount,
     uint256 spendAmount,
@@ -470,6 +490,7 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
       owner,
       card,
       token,
+      depot,
       issuingTokenAmount - _gasFee,
       spendAmount,
       _gasFee,
@@ -561,7 +582,9 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
     address owner = getPrepaidCardOwner(prepaidCard);
     bytes memory contractSignature = getContractSignature();
     signatures = new bytes(130); // 2 x 65 bytes
-    // Gnosis safe require signature must be sort by owner' address
+    // Gnosis safe require signature must be sort by owner' address.
+    // For test coverage, unsure how to test in both of these branches since
+    // the address of this contract is pretty arbitrary
     if (address(this) > owner) {
       for (uint256 i = 0; i < signature.length; i++) {
         signatures[i] = signature[i];
@@ -570,8 +593,6 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
         signatures[i.add(65)] = contractSignature[i];
       }
     } else {
-      // For test coverage, unsure how to test in this branch since the address
-      // of this contract is pretty arbitrary
       for (uint256 i = 0; i < contractSignature.length; i++) {
         signatures[i] = contractSignature[i];
       }
@@ -579,15 +600,5 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
         signatures[i.add(65)] = signature[i];
       }
     }
-  }
-
-  function getPrepaidCardOwner(address payable prepaidCard)
-    internal
-    view
-    returns (address)
-  {
-    address[] memory owners = GnosisSafe(prepaidCard).getOwners();
-    require(owners.length == 2, "unexpected number of owners for prepaid card");
-    return owners[0] == address(this) ? owners[1] : owners[0];
   }
 }

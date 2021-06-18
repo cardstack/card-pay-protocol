@@ -4,8 +4,10 @@ const ERC677Token = artifacts.require("ERC677Token.sol");
 const SPEND = artifacts.require("SPEND.sol");
 const ProxyFactory = artifacts.require("GnosisSafeProxyFactory");
 const GnosisSafe = artifacts.require("GnosisSafe");
-const BridgeUtils = artifacts.require("BridgeUtils");
-const RewardPool = artifacts.require("RewardPool.sol");
+const ActionDispatcher = artifacts.require("ActionDispatcher");
+const TokenManager = artifacts.require("TokenManager");
+const SupplierManager = artifacts.require("SupplierManager");
+const MerchantManager = artifacts.require("MerchantManager");
 
 const eventABIs = require("./utils/constant/eventABIs");
 
@@ -24,11 +26,11 @@ const {
   getBalance,
   setupExchanges,
   createPrepaidCards,
-  registerMerchant,
   payMerchant,
   transferOwner,
   packExecutionData,
-  createDepotFromBridgeUtils,
+  createDepotFromSupplierMgr,
+  addActionHandlers,
 } = require("./utils/helper");
 
 const { expect, TOKEN_DETAIL_DATA, toBN } = require("./setup");
@@ -38,13 +40,19 @@ contract("PrepaidCardManager", (accounts) => {
     MAXIMUM_AMOUNT,
     revenuePool,
     spendToken,
-    cardManager,
+    prepaidCardManager,
     merchant,
     daicpxdToken,
     cardcpxdToken,
     fakeDaicpxdToken,
     gnosisSafeMasterCopy,
     proxyFactory,
+    exchange,
+    tokenManager,
+    supplierManager,
+    actionDispatcher,
+    payMerchantHandler,
+    merchantManager,
     owner,
     issuer,
     customer,
@@ -53,8 +61,7 @@ contract("PrepaidCardManager", (accounts) => {
     merchantSafe,
     relayer,
     depot,
-    prepaidCards = [],
-    rewardPool;
+    prepaidCards = [];
 
   before(async () => {
     owner = accounts[0];
@@ -69,20 +76,18 @@ contract("PrepaidCardManager", (accounts) => {
     gnosisSafeMasterCopy = await GnosisSafe.new();
     revenuePool = await RevenuePool.new();
     await revenuePool.initialize(owner);
-    cardManager = await PrepaidCardManager.new();
-    await cardManager.initialize(owner);
-    let bridgeUtils = await BridgeUtils.new();
-    await bridgeUtils.initialize(owner);
-    rewardPool = await RewardPool.new();
-    await rewardPool.initialize(owner);
+    prepaidCardManager = await PrepaidCardManager.new();
+    await prepaidCardManager.initialize(owner);
+    supplierManager = await SupplierManager.new();
+    await supplierManager.initialize(owner);
+    actionDispatcher = await ActionDispatcher.new();
+    await actionDispatcher.initialize(owner);
+    tokenManager = await TokenManager.new();
+    await tokenManager.initialize(owner);
+    merchantManager = await MerchantManager.new();
+    await merchantManager.initialize(owner);
 
-    let chainlinkOracle, diaPriceOracle;
-    ({
-      daicpxdToken,
-      cardcpxdToken,
-      chainlinkOracle,
-      diaPriceOracle,
-    } = await setupExchanges(owner));
+    ({ daicpxdToken, cardcpxdToken, exchange } = await setupExchanges(owner));
     // Deploy and mint 1000 daicpxd token for deployer as owner
     await daicpxdToken.mint(owner, toTokenUnit(1000));
 
@@ -91,37 +96,48 @@ contract("PrepaidCardManager", (accounts) => {
     await fakeDaicpxdToken.initialize(...TOKEN_DETAIL_DATA, owner);
     await fakeDaicpxdToken.mint(owner, toTokenUnit(1000));
 
-    await revenuePool.createExchange("DAI", chainlinkOracle.address);
-    await revenuePool.createExchange("CARD", diaPriceOracle.address);
-
     // create spendToken
     spendToken = await SPEND.new();
     await spendToken.initialize(owner);
-    await spendToken.addMinter(revenuePool.address);
 
     await revenuePool.setup(
-      cardManager.address,
-      gnosisSafeMasterCopy.address,
-      proxyFactory.address,
-      spendToken.address,
-      [daicpxdToken.address],
+      exchange.address,
+      merchantManager.address,
+      actionDispatcher.address,
+      prepaidCardManager.address,
       merchantFeeReceiver,
       0,
-      1000,
-      1000000
+      1000
     );
-    await bridgeUtils.setup(
-      revenuePool.address,
-      cardManager.address,
-      gnosisSafeMasterCopy.address,
-      proxyFactory.address,
+    ({ payMerchantHandler } = await addActionHandlers(
+      revenuePool,
+      actionDispatcher,
+      merchantManager,
       owner,
-      rewardPool.address
+      exchange.address,
+      spendToken.address
+    ));
+    await spendToken.addMinter(payMerchantHandler.address);
+    await tokenManager.setup(ZERO_ADDRESS, [
+      daicpxdToken.address,
+      cardcpxdToken.address,
+    ]);
+    await merchantManager.setup(
+      actionDispatcher.address,
+      gnosisSafeMasterCopy.address,
+      proxyFactory.address
     );
-    await revenuePool.setBridgeUtils(bridgeUtils.address);
-    await cardManager.setBridgeUtils(bridgeUtils.address);
-    await rewardPool.setBridgeUtils(bridgeUtils.address);
-    depot = await createDepotFromBridgeUtils(bridgeUtils, owner, issuer);
+    await actionDispatcher.setup(
+      tokenManager.address,
+      exchange.address,
+      prepaidCardManager.address
+    );
+    await supplierManager.setup(
+      ZERO_ADDRESS,
+      gnosisSafeMasterCopy.address,
+      proxyFactory.address
+    );
+    depot = await createDepotFromSupplierMgr(supplierManager, issuer);
 
     MINIMUM_AMOUNT = 100; // in spend <=> 1 USD
     MAXIMUM_AMOUNT = 500000; // in spend <=>  5000 USD
@@ -130,13 +146,15 @@ contract("PrepaidCardManager", (accounts) => {
   describe("setup contract", () => {
     before(async () => {
       // Setup card manager contract
-      await cardManager.setup(
+      await prepaidCardManager.setup(
+        tokenManager.address,
+        supplierManager.address,
+        exchange.address,
         gnosisSafeMasterCopy.address,
         proxyFactory.address,
-        revenuePool.address,
+        actionDispatcher.address,
         gasFeeReceiver,
         0,
-        [daicpxdToken.address, cardcpxdToken.address],
         cardcpxdToken.address,
         MINIMUM_AMOUNT,
         MAXIMUM_AMOUNT
@@ -144,26 +162,30 @@ contract("PrepaidCardManager", (accounts) => {
     });
 
     it("should initialize parameters", async () => {
-      expect(await cardManager.gnosisSafe()).to.equal(
+      expect(await prepaidCardManager.tokenManager()).to.equal(
+        tokenManager.address
+      );
+      expect(await prepaidCardManager.supplierManager()).to.equal(
+        supplierManager.address
+      );
+      expect(await prepaidCardManager.gnosisSafe()).to.equal(
         gnosisSafeMasterCopy.address
       );
-      expect(await cardManager.gnosisProxyFactory()).to.equal(
+      expect(await prepaidCardManager.gnosisProxyFactory()).to.equal(
         proxyFactory.address
       );
-      expect(await cardManager.revenuePool()).to.deep.equal(
-        revenuePool.address
+      expect(await prepaidCardManager.actionDispatcher()).to.deep.equal(
+        actionDispatcher.address
       );
-      expect(await cardManager.getTokens()).to.deep.equal([
-        daicpxdToken.address,
-        cardcpxdToken.address,
-      ]);
-      expect(await cardManager.minimumFaceValue()).to.a.bignumber.equal(
+      expect(await prepaidCardManager.minimumFaceValue()).to.a.bignumber.equal(
         toBN(MINIMUM_AMOUNT)
       );
-      expect(await cardManager.maximumFaceValue()).to.a.bignumber.equal(
+      expect(await prepaidCardManager.maximumFaceValue()).to.a.bignumber.equal(
         toBN(MAXIMUM_AMOUNT)
       );
-      expect(await cardManager.gasToken()).to.equal(cardcpxdToken.address);
+      expect(await prepaidCardManager.gasToken()).to.equal(
+        cardcpxdToken.address
+      );
     });
   });
 
@@ -205,7 +227,7 @@ contract("PrepaidCardManager", (accounts) => {
         executionSucceeded,
       } = await createPrepaidCards(
         depot,
-        cardManager,
+        prepaidCardManager,
         daicpxdToken,
         daicpxdToken,
         issuer,
@@ -220,7 +242,7 @@ contract("PrepaidCardManager", (accounts) => {
 
       await prepaidCards[0].isOwner(issuer).should.become(true);
 
-      await cardManager
+      await prepaidCardManager
         .cardDetails(prepaidCards[0].address)
         .should.eventually.to.include({
           issuer,
@@ -244,7 +266,7 @@ contract("PrepaidCardManager", (accounts) => {
       let amount = toTokenUnit(1);
       let { prepaidCards, executionSucceeded } = await createPrepaidCards(
         depot,
-        cardManager,
+        prepaidCardManager,
         daicpxdToken,
         daicpxdToken,
         issuer,
@@ -256,7 +278,7 @@ contract("PrepaidCardManager", (accounts) => {
 
       expect(executionSucceeded).to.equal(true);
 
-      await cardManager
+      await prepaidCardManager
         .cardDetails(prepaidCards[0].address)
         .should.eventually.to.include({
           issuer,
@@ -282,7 +304,7 @@ contract("PrepaidCardManager", (accounts) => {
         executionSucceeded,
       } = await createPrepaidCards(
         depot,
-        cardManager,
+        prepaidCardManager,
         daicpxdToken,
         daicpxdToken,
         issuer,
@@ -297,7 +319,7 @@ contract("PrepaidCardManager", (accounts) => {
       );
 
       prepaidCards.forEach(async (prepaidCard, index) => {
-        await cardManager
+        await prepaidCardManager
           .cardDetails(prepaidCard.address)
           .should.eventually.to.include({
             issuer,
@@ -306,7 +328,9 @@ contract("PrepaidCardManager", (accounts) => {
           });
 
         await prepaidCard.isOwner(issuer).should.become(true);
-        await prepaidCard.isOwner(cardManager.address).should.become(true);
+        await prepaidCard
+          .isOwner(prepaidCardManager.address)
+          .should.become(true);
 
         shouldBeSameBalance(daicpxdToken, prepaidCard.address, amounts[index]);
       });
@@ -324,7 +348,7 @@ contract("PrepaidCardManager", (accounts) => {
       let amounts = [1, 2, 5].map((amount) => toTokenUnit(amount));
       let { prepaidCards, executionSucceeded } = await createPrepaidCards(
         depot,
-        cardManager,
+        prepaidCardManager,
         daicpxdToken,
         daicpxdToken,
         issuer,
@@ -337,7 +361,7 @@ contract("PrepaidCardManager", (accounts) => {
       expect(executionSucceeded).to.equal(true);
 
       prepaidCards.forEach(async (prepaidCard) => {
-        await cardManager
+        await prepaidCardManager
           .cardDetails(prepaidCard.address)
           .should.eventually.to.include({
             issuer,
@@ -356,7 +380,7 @@ contract("PrepaidCardManager", (accounts) => {
       }
       let { prepaidCards } = await createPrepaidCards(
         depot,
-        cardManager,
+        prepaidCardManager,
         daicpxdToken,
         daicpxdToken,
         issuer,
@@ -374,7 +398,7 @@ contract("PrepaidCardManager", (accounts) => {
       }
       await createPrepaidCards(
         depot,
-        cardManager,
+        prepaidCardManager,
         daicpxdToken,
         daicpxdToken,
         issuer,
@@ -391,7 +415,7 @@ contract("PrepaidCardManager", (accounts) => {
         executionSucceeded,
       } = await createPrepaidCards(
         depot,
-        cardManager,
+        prepaidCardManager,
         daicpxdToken,
         daicpxdToken,
         issuer,
@@ -418,7 +442,7 @@ contract("PrepaidCardManager", (accounts) => {
     it("should not create card with value less than 1 token", async () => {
       await createPrepaidCards(
         depot,
-        cardManager,
+        prepaidCardManager,
         daicpxdToken,
         daicpxdToken,
         issuer,
@@ -430,7 +454,7 @@ contract("PrepaidCardManager", (accounts) => {
     it("should not create multi Prepaid Card when the amount sent is less than the sum of the requested face values", async () => {
       await createPrepaidCards(
         depot,
-        cardManager,
+        prepaidCardManager,
         daicpxdToken,
         daicpxdToken,
         issuer,
@@ -446,7 +470,7 @@ contract("PrepaidCardManager", (accounts) => {
     it("should not create prepaid card when the amount of cards to create is 0", async () => {
       await createPrepaidCards(
         depot,
-        cardManager,
+        prepaidCardManager,
         daicpxdToken,
         daicpxdToken,
         issuer,
@@ -459,7 +483,7 @@ contract("PrepaidCardManager", (accounts) => {
     it("should not should not create a prepaid card when the token used to pay for the card is not an allowable token", async () => {
       await createPrepaidCards(
         depot,
-        cardManager,
+        prepaidCardManager,
         fakeDaicpxdToken,
         daicpxdToken,
         issuer,
@@ -474,15 +498,17 @@ contract("PrepaidCardManager", (accounts) => {
 
     before(async () => {
       initialAmount = toTokenUnit(100);
-      await cardManager.setup(
+      await prepaidCardManager.setup(
+        tokenManager.address,
+        supplierManager.address,
+        exchange.address,
         gnosisSafeMasterCopy.address,
         proxyFactory.address,
-        revenuePool.address,
+        actionDispatcher.address,
         gasFeeReceiver,
         // We are setting this value specifically, which with the configured
         // exchange rate is equal to 1 DAI (100 CARD:1 DAI)
         toTokenUnit(100),
-        [daicpxdToken.address, cardcpxdToken.address],
         cardcpxdToken.address,
         MINIMUM_AMOUNT,
         MAXIMUM_AMOUNT
@@ -496,13 +522,15 @@ contract("PrepaidCardManager", (accounts) => {
 
     after(async () => {
       // reset to 0 gasFee to make other tests easy to reason about
-      await cardManager.setup(
+      await prepaidCardManager.setup(
+        tokenManager.address,
+        supplierManager.address,
+        exchange.address,
         gnosisSafeMasterCopy.address,
         proxyFactory.address,
-        revenuePool.address,
+        actionDispatcher.address,
         gasFeeReceiver,
         0, // We are setting this value specifically
-        [daicpxdToken.address, cardcpxdToken.address],
         cardcpxdToken.address,
         MINIMUM_AMOUNT,
         MAXIMUM_AMOUNT
@@ -542,7 +570,7 @@ contract("PrepaidCardManager", (accounts) => {
       );
 
       let transferAndCall = daicpxdToken.contract.methods.transferAndCall(
-        cardManager.address,
+        prepaidCardManager.address,
         amount,
         createCardData
       );
@@ -575,10 +603,10 @@ contract("PrepaidCardManager", (accounts) => {
       let paymentActual = toBN(executeSuccess[0]["payment"]);
       let prepaidCard = await getGnosisSafeFromEventLog(
         safeTx,
-        cardManager.address
+        prepaidCardManager.address
       );
 
-      await cardManager
+      await prepaidCardManager
         .cardDetails(prepaidCard[0].address)
         .should.eventually.to.include({
           issuer: depot.address,
@@ -610,7 +638,7 @@ contract("PrepaidCardManager", (accounts) => {
 
       let payloads = daicpxdToken.contract.methods
         .transferAndCall(
-          cardManager.address,
+          prepaidCardManager.address,
           toTokenUnit(totalAmount),
           createCardData
         )
@@ -618,7 +646,7 @@ contract("PrepaidCardManager", (accounts) => {
 
       let gasEstimate = await daicpxdToken.contract.methods
         .transferAndCall(
-          cardManager.address,
+          prepaidCardManager.address,
           toTokenUnit(totalAmount),
           createCardData
         )
@@ -642,7 +670,7 @@ contract("PrepaidCardManager", (accounts) => {
 
       let prepaidCards = await getGnosisSafeFromEventLog(
         safeTx,
-        cardManager.address
+        prepaidCardManager.address
       );
 
       let executeSuccess = getParamsFromEvent(
@@ -671,15 +699,17 @@ contract("PrepaidCardManager", (accounts) => {
     });
 
     it("gas fee should not be collected if gasFeeReceiver is zero address", async () => {
-      await cardManager.setup(
+      await prepaidCardManager.setup(
+        tokenManager.address,
+        supplierManager.address,
+        exchange.address,
         gnosisSafeMasterCopy.address,
         proxyFactory.address,
-        revenuePool.address,
+        actionDispatcher.address,
         ZERO_ADDRESS,
         // We are setting this value specifically, which with the configured
         // exchange rate is equal to 1 DAI (100 CARD:1 DAI)
         toTokenUnit(100),
-        [daicpxdToken.address, cardcpxdToken.address],
         cardcpxdToken.address,
         MINIMUM_AMOUNT,
         MAXIMUM_AMOUNT
@@ -694,7 +724,7 @@ contract("PrepaidCardManager", (accounts) => {
       );
 
       let transferAndCall = daicpxdToken.contract.methods.transferAndCall(
-        cardManager.address,
+        prepaidCardManager.address,
         amount,
         createCardData
       );
@@ -727,10 +757,10 @@ contract("PrepaidCardManager", (accounts) => {
       let paymentActual = toBN(executeSuccess[0]["payment"]);
       let prepaidCard = await getGnosisSafeFromEventLog(
         safeTx,
-        cardManager.address
+        prepaidCardManager.address
       );
 
-      await cardManager
+      await prepaidCardManager
         .cardDetails(prepaidCard[0].address)
         .should.eventually.to.include({
           issuer: depot.address,
@@ -750,15 +780,17 @@ contract("PrepaidCardManager", (accounts) => {
       );
 
       // reset state for other tests
-      await cardManager.setup(
+      await prepaidCardManager.setup(
+        tokenManager.address,
+        supplierManager.address,
+        exchange.address,
         gnosisSafeMasterCopy.address,
         proxyFactory.address,
-        revenuePool.address,
+        actionDispatcher.address,
         gasFeeReceiver,
         // We are setting this value specifically, which with the configured
         // exchange rate is equal to 1 DAI (100 CARD:1 DAI)
         toTokenUnit(100),
-        [daicpxdToken.address, cardcpxdToken.address],
         cardcpxdToken.address,
         MINIMUM_AMOUNT,
         MAXIMUM_AMOUNT
@@ -769,7 +801,7 @@ contract("PrepaidCardManager", (accounts) => {
       // the configured rate is 1 DAI : 100 SPEND
       let faceValueInSpend = 500;
       let faceValueInDai = toTokenUnit(5);
-      let amount = await cardManager.priceForFaceValue(
+      let amount = await prepaidCardManager.priceForFaceValue(
         daicpxdToken.address,
         faceValueInSpend
       );
@@ -785,7 +817,7 @@ contract("PrepaidCardManager", (accounts) => {
       );
 
       let transferAndCall = daicpxdToken.contract.methods.transferAndCall(
-        cardManager.address,
+        prepaidCardManager.address,
         amount,
         createCardData
       );
@@ -811,7 +843,7 @@ contract("PrepaidCardManager", (accounts) => {
 
       let prepaidCard = await getGnosisSafeFromEventLog(
         safeTx,
-        cardManager.address
+        prepaidCardManager.address
       );
 
       await shouldBeSameBalance(
@@ -833,7 +865,7 @@ contract("PrepaidCardManager", (accounts) => {
       ];
       let packData = packExecutionData({
         to: daicpxdToken.address,
-        data: await cardManager.getSplitCardData(...splitCardData),
+        data: await prepaidCardManager.getSplitCardData(...splitCardData),
       });
       let safeTxArr = Object.keys(packData).map((key) => packData[key]);
       let signature = await signSafeTransaction(
@@ -843,15 +875,22 @@ contract("PrepaidCardManager", (accounts) => {
         prepaidCards[1]
       );
 
-      let safeTx = await cardManager.splitCard(...splitCardData, signature, {
-        from: relayer,
-      });
+      let safeTx = await prepaidCardManager.splitCard(
+        ...splitCardData,
+        signature,
+        {
+          from: relayer,
+        }
+      );
 
-      let cards = await getGnosisSafeFromEventLog(safeTx, cardManager.address);
+      let cards = await getGnosisSafeFromEventLog(
+        safeTx,
+        prepaidCardManager.address
+      );
       expect(cards).to.have.lengthOf(2);
 
       cards.forEach(async (prepaidCard, index) => {
-        await cardManager
+        await prepaidCardManager
           .cardDetails(prepaidCard.address)
           .should.eventually.to.include({
             issuer,
@@ -861,7 +900,9 @@ contract("PrepaidCardManager", (accounts) => {
           });
 
         await prepaidCard.isOwner(issuer).should.become(true);
-        await prepaidCard.isOwner(cardManager.address).should.become(true);
+        await prepaidCard
+          .isOwner(prepaidCardManager.address)
+          .should.become(true);
 
         shouldBeSameBalance(daicpxdToken, prepaidCard.address, amounts[index]);
       });
@@ -873,7 +914,7 @@ contract("PrepaidCardManager", (accounts) => {
         prepaidCards: [prepaidCard],
       } = await createPrepaidCards(
         depot,
-        cardManager,
+        prepaidCardManager,
         daicpxdToken,
         daicpxdToken,
         issuer,
@@ -881,13 +922,19 @@ contract("PrepaidCardManager", (accounts) => {
         [toTokenUnit(2)]
       );
 
-      await transferOwner(cardManager, prepaidCard, issuer, customer, relayer);
+      await transferOwner(
+        prepaidCardManager,
+        prepaidCard,
+        issuer,
+        customer,
+        relayer
+      );
 
       let amounts = [1, 1].map((amount) => toTokenUnit(amount).toString());
       let splitCardData = [prepaidCard.address, amounts, amounts, ""];
       let packData = packExecutionData({
         to: daicpxdToken.address,
-        data: await cardManager.getSplitCardData(...splitCardData),
+        data: await prepaidCardManager.getSplitCardData(...splitCardData),
       });
       let safeTxArr = Object.keys(packData).map((key) => packData[key]);
       let signature = await signSafeTransaction(
@@ -897,7 +944,7 @@ contract("PrepaidCardManager", (accounts) => {
         prepaidCard
       );
 
-      await cardManager
+      await prepaidCardManager
         .splitCard(...splitCardData, signature, {
           from: relayer,
         })
@@ -907,7 +954,7 @@ contract("PrepaidCardManager", (accounts) => {
     it("can reject when provided signature is invalid", async () => {
       let amounts = [2, 2].map((amount) => toTokenUnit(amount).toString());
       let splitCardData = [prepaidCards[2].address, amounts, amounts, ""];
-      await cardManager
+      await prepaidCardManager
         .splitCard(...splitCardData, "0x01", {
           from: relayer,
         })
@@ -921,13 +968,21 @@ contract("PrepaidCardManager", (accounts) => {
       prepaidCard = prepaidCards[2];
     });
 
+    // Warning this test is stateful, all the other tests rely on this prepaid
+    // card being transferred to a customer
     it("can transfer a card to a customer", async () => {
       let startingDaiBalance = await getBalance(
         daicpxdToken,
         prepaidCard.address
       );
 
-      await transferOwner(cardManager, prepaidCard, issuer, customer, relayer);
+      await transferOwner(
+        prepaidCardManager,
+        prepaidCard,
+        issuer,
+        customer,
+        relayer
+      );
 
       await prepaidCard.isOwner(customer).should.eventually.become(true);
       await shouldBeSameBalance(
@@ -942,7 +997,7 @@ contract("PrepaidCardManager", (accounts) => {
     it("can not re-transfer a prepaid card that has already been transferred once", async () => {
       let otherCustomer = accounts[9];
       await transferOwner(
-        cardManager,
+        prepaidCardManager,
         prepaidCard,
         customer,
         otherCustomer,
@@ -961,7 +1016,7 @@ contract("PrepaidCardManager", (accounts) => {
         prepaidCards: [merchantPrepaidCard],
       } = await createPrepaidCards(
         depot,
-        cardManager,
+        prepaidCardManager,
         daicpxdToken,
         daicpxdToken,
         issuer,
@@ -969,7 +1024,7 @@ contract("PrepaidCardManager", (accounts) => {
         [toTokenUnit(10)]
       );
       await transferOwner(
-        cardManager,
+        prepaidCardManager,
         merchantPrepaidCard,
         issuer,
         merchant,
@@ -977,19 +1032,11 @@ contract("PrepaidCardManager", (accounts) => {
       );
       // mint gas token token for prepaid card
       await cardcpxdToken.mint(merchantPrepaidCard.address, toTokenUnit(100));
-      let merchantTx = await registerMerchant(
-        cardManager,
-        merchantPrepaidCard,
-        daicpxdToken,
-        cardcpxdToken,
-        relayer,
-        merchant,
-        1000
-      );
+      let merchantTx = await merchantManager.registerMerchant(merchant, "");
       let merchantCreation = await getParamsFromEvent(
         merchantTx,
         eventABIs.MERCHANT_CREATION,
-        revenuePool.address
+        merchantManager.address
       );
       merchantSafe = merchantCreation[0]["merchantSafe"];
       await cardcpxdToken.mint(prepaidCard.address, toTokenUnit(1000000));
@@ -1041,7 +1088,7 @@ contract("PrepaidCardManager", (accounts) => {
       );
 
       await payMerchant(
-        cardManager,
+        prepaidCardManager,
         prepaidCard,
         daicpxdToken,
         cardcpxdToken,
@@ -1082,7 +1129,7 @@ contract("PrepaidCardManager", (accounts) => {
     // daicpxd due to the payment of 1 token made in the previous test
     it("can not send more funds to a merchant than the balance of the prepaid card", async () => {
       await payMerchant(
-        cardManager,
+        prepaidCardManager,
         prepaidCard,
         daicpxdToken,
         cardcpxdToken,
@@ -1110,7 +1157,7 @@ contract("PrepaidCardManager", (accounts) => {
 
     it("can not send less funds to a merchant than the minimum merchant payment amount", async () => {
       await payMerchant(
-        cardManager,
+        prepaidCardManager,
         prepaidCard,
         daicpxdToken,
         cardcpxdToken,
@@ -1118,7 +1165,7 @@ contract("PrepaidCardManager", (accounts) => {
         customer,
         merchantSafe,
         40
-      ).should.be.rejectedWith(Error, "merchant payment too small");
+      ).should.be.rejectedWith(Error, "payment too small");
       await shouldBeSameBalance(
         daicpxdToken,
         revenuePool.address,
@@ -1132,24 +1179,9 @@ contract("PrepaidCardManager", (accounts) => {
     });
   });
 
-  describe("roles", () => {
-    it("can add and remove a payable token", async () => {
-      let mockPayableTokenAddr = accounts[9];
-
-      await cardManager.addPayableToken(mockPayableTokenAddr).should.be
-        .fulfilled;
-
-      await cardManager.removePayableToken(daicpxdToken.address).should.be
-        .fulfilled;
-      await cardManager.removePayableToken(cardcpxdToken.address).should.be
-        .fulfilled;
-
-      await cardManager.getTokens().should.become([mockPayableTokenAddr]);
-    });
-  });
   describe("versioning", () => {
     it("can get version of contract", async () => {
-      expect(await cardManager.cardpayVersion()).to.match(/\d\.\d\.\d/);
+      expect(await prepaidCardManager.cardpayVersion()).to.match(/\d\.\d\.\d/);
     });
   });
 });

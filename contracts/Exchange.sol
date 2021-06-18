@@ -3,12 +3,13 @@ pragma solidity 0.5.17;
 import "@openzeppelin/contract-upgradeable/contracts/math/SafeMath.sol";
 import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
 
-import "../token/IERC677.sol";
-import "../roles/PayableToken.sol";
-import "../oracles/IPriceOracle.sol";
+import "./token/IERC677.sol";
+import "./oracles/IPriceOracle.sol";
 
-contract Exchange is Ownable, PayableToken {
+contract Exchange is Ownable {
   using SafeMath for uint256;
+
+  event Setup();
   event ExchangeCreated(string indexed tokenSymbol, address feed);
 
   struct ExchangeInfo {
@@ -18,6 +19,18 @@ contract Exchange is Ownable, PayableToken {
   }
 
   mapping(bytes32 => ExchangeInfo) public exchanges;
+  uint256 public rateDriftPercentage; // decimals 8
+
+  /**
+   * @dev set up revenue pool
+   * @param _rateDriftPercentage the numberator of a decimals 8 fraction that
+   * represents the percentage of how much a requested rate lock is allowed to
+   * drift from the actual rate
+   */
+  function setup(uint256 _rateDriftPercentage) external onlyOwner {
+    rateDriftPercentage = _rateDriftPercentage;
+    emit Setup();
+  }
 
   function createExchange(string calldata tokenSymbol, address feed)
     external
@@ -60,7 +73,7 @@ contract Exchange is Ownable, PayableToken {
    * @return amount
    */
   function convertToSpend(address token, uint256 amount)
-    public
+    external
     view
     returns (uint256)
   {
@@ -88,7 +101,7 @@ contract Exchange is Ownable, PayableToken {
    * @return amount
    */
   function convertFromSpend(address token, uint256 amount)
-    public
+    external
     view
     returns (uint256)
   {
@@ -132,7 +145,7 @@ contract Exchange is Ownable, PayableToken {
    * @param amount in CARD that you are converting
    */
   function convertFromCARD(address token, uint256 amount)
-    public
+    external
     view
     returns (uint256)
   {
@@ -155,9 +168,29 @@ contract Exchange is Ownable, PayableToken {
       );
   }
 
+  /**
+   * @dev determine whether the requested rate falls within the acceptable safety
+   * margin
+   * @param token the issuing token address
+   * @param requestedRate the requested price of the issuing token in USD
+   */
+  function isAllowableRate(address token, uint256 requestedRate)
+    external
+    view
+    returns (bool)
+  {
+    (uint256 actualRate, ) = exchangeRateOf(token);
+    uint256 drift =
+      actualRate > requestedRate
+        ? actualRate.sub(requestedRate)
+        : requestedRate.sub(actualRate);
+    uint256 ten = 10;
+    uint256 observedDriftPercentage =
+      (drift.mul(ten**exchangeRateDecimals())).div(actualRate);
+    return observedDriftPercentage <= rateDriftPercentage;
+  }
+
   function exchangeRateDecimals() public pure returns (uint8) {
     return 8;
   }
-
-  uint256[50] private ____gap;
 }
