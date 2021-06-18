@@ -9,7 +9,7 @@ import "./token/IERC677.sol";
 import "./TokenManager.sol";
 import "./core/Safe.sol";
 import "./core/Versionable.sol";
-import "./BridgeUtils.sol";
+import "./SupplierManager.sol";
 import "./Exchange.sol";
 import "./ActionDispatcher.sol";
 
@@ -54,11 +54,12 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
   address public gasToken;
   address public exchangeAddress;
   address public tokenManager;
-  address public bridgeUtils;
+  address public supplierManager;
 
   /**
    * @dev Setup function sets initial storage of contract.
    * @param _tokenManager the address of the Token Manager contract
+   * @param _supplierManager the address of the Supplier Manager contract
    * @param _exchangeAddress the address of the Exchange contract
    * @param _gsMasterCopy Gnosis safe Master Copy address
    * @param _gsProxyFactory Gnosis safe Proxy Factory address
@@ -70,7 +71,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
    */
   function setup(
     address _tokenManager,
-    address _bridgeUtils,
+    address _supplierManager,
     address _exchangeAddress,
     address _gsMasterCopy,
     address _gsProxyFactory,
@@ -82,7 +83,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     uint256 _maxAmount
   ) external onlyOwner {
     actionDispatcher = _actionDispatcher;
-    bridgeUtils = _bridgeUtils;
+    supplierManager = _supplierManager;
     tokenManager = _tokenManager;
     exchangeAddress = _exchangeAddress;
     gasFeeReceiver = _gasFeeReceiver;
@@ -437,7 +438,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
       amountReceived > neededAmount &&
       // check to make sure ownerSafe address is a depot, so we can ensure it's
       // a trusted contract
-      BridgeUtils(bridgeUtils).safes(depot) != address(0)
+      SupplierManager(supplierManager).safes(depot) != address(0)
     ) {
       // the owner safe is a trusted contract (gnosis safe)
       IERC677(token).transfer(depot, amountReceived - neededAmount);

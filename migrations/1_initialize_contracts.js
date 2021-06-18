@@ -16,6 +16,7 @@ const ActionDispatcher = artifacts.require("ActionDispatcher");
 const PayMerchantHandler = artifacts.require("PayMerchantHandler");
 const RegisterMerchantHandler = artifacts.require("RegisterMerchantHandler");
 const TokenManager = artifacts.require("TokenManager");
+const SupplierManager = artifacts.require("SupplierManager");
 
 // we only maintain these migrations purely to measure the amount of gas it
 // takes to perform a deployment for each contract
@@ -39,6 +40,7 @@ module.exports = async function (deployer, network, addresses) {
       deployer.deploy(PayMerchantHandler),
       deployer.deploy(RegisterMerchantHandler),
       deployer.deploy(TokenManager),
+      deployer.deploy(SupplierManager),
     ]);
   } else {
     // Contract init details. For each upgradable contract provide a property
@@ -69,6 +71,10 @@ module.exports = async function (deployer, network, addresses) {
       },
       BridgeUtils: { contractName: "BridgeUtils", init: [addresses[0]] },
       TokenManager: { contractName: "TokenManager", init: [addresses[0]] },
+      SupplierManager: {
+        contractName: "SupplierManager",
+        init: [addresses[0]],
+      },
       SPEND: { contractName: "SPEND", init: [addresses[0]] },
       DAIOracle: { contractName: "ChainlinkFeedAdapter", init: [addresses[0]] },
       CARDOracle: { contractName: "DIAOracleAdapter", init: [addresses[0]] },

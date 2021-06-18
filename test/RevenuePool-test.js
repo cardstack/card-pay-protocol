@@ -4,10 +4,10 @@ const PrepaidCardManager = artifacts.require("PrepaidCardManager");
 const SPEND = artifacts.require("SPEND.sol");
 const ProxyFactory = artifacts.require("GnosisSafeProxyFactory");
 const GnosisSafe = artifacts.require("GnosisSafe");
-const BridgeUtils = artifacts.require("BridgeUtils");
 const AbiCoder = require("web3-eth-abi");
 const ActionDispatcher = artifacts.require("ActionDispatcher");
 const TokenManager = artifacts.require("TokenManager");
+const SupplierManager = artifacts.require("SupplierManager");
 
 const utils = require("./utils/general");
 const eventABIs = require("./utils/constant/eventABIs");
@@ -22,12 +22,12 @@ const {
   getBalance,
   signAndSendSafeTransaction,
   setupExchanges,
-  createDepotFromBridgeUtils,
   createPrepaidCards,
   registerMerchant,
   transferOwner,
   payMerchant,
   addActionHandlers,
+  createDepotFromSupplierMgr,
 } = require("./utils/helper");
 
 contract("RevenuePool", (accounts) => {
@@ -51,7 +51,6 @@ contract("RevenuePool", (accounts) => {
     proxyFactory,
     gnosisSafeMasterCopy,
     prepaidCardManager,
-    bridgeUtils,
     depot;
 
   before(async () => {
@@ -73,8 +72,8 @@ contract("RevenuePool", (accounts) => {
     await revenuePool.initialize(owner);
     prepaidCardManager = await PrepaidCardManager.new();
     await prepaidCardManager.initialize(owner);
-    bridgeUtils = await BridgeUtils.new();
-    await bridgeUtils.initialize(owner);
+    let supplierManager = await SupplierManager.new();
+    await supplierManager.initialize(owner);
     spendToken = await SPEND.new();
     await spendToken.initialize(owner);
     actionDispatcher = await ActionDispatcher.new();
@@ -91,22 +90,20 @@ contract("RevenuePool", (accounts) => {
     await fakeToken.initialize(...TOKEN_DETAIL_DATA, owner);
     await fakeToken.mint(owner, toTokenUnit(100));
 
-    await tokenManager.setup(bridgeUtils.address, [
+    await tokenManager.setup(ZERO_ADDRESS, [
       daicpxdToken.address,
       cardcpxdToken.address,
     ]);
 
-    await bridgeUtils.setup(
-      tokenManager.address,
-      exchange.address,
+    await supplierManager.setup(
+      ZERO_ADDRESS,
       gnosisSafeMasterCopy.address,
-      proxyFactory.address,
-      owner
+      proxyFactory.address
     );
 
     await prepaidCardManager.setup(
       tokenManager.address,
-      bridgeUtils.address,
+      supplierManager.address,
       exchange.address,
       gnosisSafeMasterCopy.address,
       proxyFactory.address,
@@ -133,7 +130,7 @@ contract("RevenuePool", (accounts) => {
     ));
     await spendToken.addMinter(payMerchantHandler.address);
 
-    depot = await createDepotFromBridgeUtils(bridgeUtils, owner, issuer);
+    depot = await createDepotFromSupplierMgr(supplierManager, issuer);
     await daicpxdToken.mint(depot.address, toTokenUnit(1000));
   });
 

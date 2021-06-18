@@ -66,6 +66,21 @@ const eventABIs = {
       },
     ],
   },
+  SUPPLIER_SAFE_CREATED: {
+    topic: web3EthAbi.encodeEventSignature(
+      "SupplierSafeCreated(address,address)"
+    ),
+    abis: [
+      {
+        type: "address",
+        name: "supplier",
+      },
+      {
+        type: "address",
+        name: "safe",
+      },
+    ],
+  },
   MERCHANT_CREATION: {
     topic: web3EthAbi.encodeEventSignature(
       "MerchantCreation(address,address,string)"

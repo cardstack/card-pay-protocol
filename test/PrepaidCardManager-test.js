@@ -4,9 +4,9 @@ const ERC677Token = artifacts.require("ERC677Token.sol");
 const SPEND = artifacts.require("SPEND.sol");
 const ProxyFactory = artifacts.require("GnosisSafeProxyFactory");
 const GnosisSafe = artifacts.require("GnosisSafe");
-const BridgeUtils = artifacts.require("BridgeUtils");
 const ActionDispatcher = artifacts.require("ActionDispatcher");
 const TokenManager = artifacts.require("TokenManager");
+const SupplierManager = artifacts.require("SupplierManager");
 
 const eventABIs = require("./utils/constant/eventABIs");
 
@@ -28,7 +28,7 @@ const {
   payMerchant,
   transferOwner,
   packExecutionData,
-  createDepotFromBridgeUtils,
+  createDepotFromSupplierMgr,
   addActionHandlers,
 } = require("./utils/helper");
 
@@ -48,7 +48,7 @@ contract("PrepaidCardManager", (accounts) => {
     proxyFactory,
     exchange,
     tokenManager,
-    bridgeUtils,
+    supplierManager,
     actionDispatcher,
     payMerchantHandler,
     owner,
@@ -76,8 +76,8 @@ contract("PrepaidCardManager", (accounts) => {
     await revenuePool.initialize(owner);
     prepaidCardManager = await PrepaidCardManager.new();
     await prepaidCardManager.initialize(owner);
-    bridgeUtils = await BridgeUtils.new();
-    await bridgeUtils.initialize(owner);
+    supplierManager = await SupplierManager.new();
+    await supplierManager.initialize(owner);
     actionDispatcher = await ActionDispatcher.new();
     await actionDispatcher.initialize(owner);
     tokenManager = await TokenManager.new();
@@ -114,7 +114,7 @@ contract("PrepaidCardManager", (accounts) => {
       spendToken.address
     ));
     await spendToken.addMinter(payMerchantHandler.address);
-    await tokenManager.setup(bridgeUtils.address, [
+    await tokenManager.setup(ZERO_ADDRESS, [
       daicpxdToken.address,
       cardcpxdToken.address,
     ]);
@@ -125,14 +125,12 @@ contract("PrepaidCardManager", (accounts) => {
       prepaidCardManager.address
     );
 
-    await bridgeUtils.setup(
-      tokenManager.address,
-      exchange.address,
+    await supplierManager.setup(
+      ZERO_ADDRESS,
       gnosisSafeMasterCopy.address,
-      proxyFactory.address,
-      owner
+      proxyFactory.address
     );
-    depot = await createDepotFromBridgeUtils(bridgeUtils, owner, issuer);
+    depot = await createDepotFromSupplierMgr(supplierManager, issuer);
 
     MINIMUM_AMOUNT = 100; // in spend <=> 1 USD
     MAXIMUM_AMOUNT = 500000; // in spend <=>  5000 USD
@@ -143,7 +141,7 @@ contract("PrepaidCardManager", (accounts) => {
       // Setup card manager contract
       await prepaidCardManager.setup(
         tokenManager.address,
-        bridgeUtils.address,
+        supplierManager.address,
         exchange.address,
         gnosisSafeMasterCopy.address,
         proxyFactory.address,
@@ -160,8 +158,8 @@ contract("PrepaidCardManager", (accounts) => {
       expect(await prepaidCardManager.tokenManager()).to.equal(
         tokenManager.address
       );
-      expect(await prepaidCardManager.bridgeUtils()).to.equal(
-        bridgeUtils.address
+      expect(await prepaidCardManager.supplierManager()).to.equal(
+        supplierManager.address
       );
       expect(await prepaidCardManager.gnosisSafe()).to.equal(
         gnosisSafeMasterCopy.address
@@ -495,7 +493,7 @@ contract("PrepaidCardManager", (accounts) => {
       initialAmount = toTokenUnit(100);
       await prepaidCardManager.setup(
         tokenManager.address,
-        bridgeUtils.address,
+        supplierManager.address,
         exchange.address,
         gnosisSafeMasterCopy.address,
         proxyFactory.address,
@@ -519,7 +517,7 @@ contract("PrepaidCardManager", (accounts) => {
       // reset to 0 gasFee to make other tests easy to reason about
       await prepaidCardManager.setup(
         tokenManager.address,
-        bridgeUtils.address,
+        supplierManager.address,
         exchange.address,
         gnosisSafeMasterCopy.address,
         proxyFactory.address,
@@ -696,7 +694,7 @@ contract("PrepaidCardManager", (accounts) => {
     it("gas fee should not be collected if gasFeeReceiver is zero address", async () => {
       await prepaidCardManager.setup(
         tokenManager.address,
-        bridgeUtils.address,
+        supplierManager.address,
         exchange.address,
         gnosisSafeMasterCopy.address,
         proxyFactory.address,
@@ -777,7 +775,7 @@ contract("PrepaidCardManager", (accounts) => {
       // reset state for other tests
       await prepaidCardManager.setup(
         tokenManager.address,
-        bridgeUtils.address,
+        supplierManager.address,
         exchange.address,
         gnosisSafeMasterCopy.address,
         proxyFactory.address,

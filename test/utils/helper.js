@@ -237,16 +237,15 @@ exports.createDepotSafe = async function (
   return depot;
 };
 
-exports.createDepotFromBridgeUtils = async function (
-  bridgeUtils,
-  mediatorBridgeAddress,
-  issuer
-) {
-  let summary = await bridgeUtils.registerSupplier(issuer, {
-    from: mediatorBridgeAddress,
-  });
+exports.createDepotFromSupplierMgr = async function (supplierManager, issuer) {
+  let tx = await supplierManager.registerSupplier(issuer);
 
-  let depot = summary.receipt.logs[0].args[1];
+  let eventParams = getParamsFromEvent(
+    tx,
+    eventABIs.SUPPLIER_SAFE_CREATED,
+    supplierManager.address
+  );
+  let depot = eventParams[0].safe;
   return await GnosisSafe.at(depot);
 };
 
