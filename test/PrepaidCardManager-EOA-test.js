@@ -3,6 +3,7 @@ const RevenuePool = artifacts.require("RevenuePool.sol");
 const SPEND = artifacts.require("SPEND.sol");
 const ProxyFactory = artifacts.require("GnosisSafeProxyFactory");
 const GnosisSafe = artifacts.require("GnosisSafe");
+const ActionDispatcher = artifacts.require("ActionDispatcher");
 
 const { getGnosisSafeFromEventLog } = require("./utils/general");
 
@@ -11,7 +12,6 @@ const {
   encodeCreateCardsData,
   shouldBeSameBalance,
   setupExchanges,
-  addHandlersToRevenuePool,
 } = require("./utils/helper");
 
 const { expect } = require("./setup");
@@ -42,6 +42,8 @@ contract("PrepaidCardManager - EOA tests", (accounts) => {
     await revenuePool.initialize(owner);
     prepaidCardManager = await PrepaidCardManager.new();
     await prepaidCardManager.initialize(owner);
+    let actionDispatcher = await ActionDispatcher.new();
+    await actionDispatcher.initialize(owner);
 
     spendToken = await SPEND.new();
     await spendToken.initialize(owner);
@@ -52,6 +54,7 @@ contract("PrepaidCardManager - EOA tests", (accounts) => {
 
     await revenuePool.setup(
       exchange.address,
+      actionDispatcher.address,
       prepaidCardManager.address,
       gnosisSafeMasterCopy.address,
       proxyFactory.address,
@@ -60,19 +63,12 @@ contract("PrepaidCardManager - EOA tests", (accounts) => {
       0,
       1000
     );
-    let { payMerchantHandler } = await addHandlersToRevenuePool(
-      revenuePool,
-      owner,
-      exchange.address,
-      spendToken.address
-    );
-    await spendToken.addMinter(payMerchantHandler.address);
 
     await prepaidCardManager.setup(
       exchange.address,
       gnosisSafeMasterCopy.address,
       proxyFactory.address,
-      revenuePool.address,
+      actionDispatcher.address,
       gasFeeReceiver,
       0,
       [daicpxdToken.address, cardcpxdToken.address],

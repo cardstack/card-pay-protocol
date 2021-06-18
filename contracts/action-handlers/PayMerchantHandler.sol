@@ -24,12 +24,14 @@ contract PayMerchantHandler is Ownable, Versionable {
 
   address public revenuePoolAddress;
   address public spendTokenAddress;
+  address public actionDispatcher;
 
-  function setup(address _revenuePoolAddress, address _spendTokenAddress)
-    external
-    onlyOwner
-    returns (bool)
-  {
+  function setup(
+    address _actionDispatcher,
+    address _revenuePoolAddress,
+    address _spendTokenAddress
+  ) external onlyOwner returns (bool) {
+    actionDispatcher = _actionDispatcher;
     revenuePoolAddress = _revenuePoolAddress;
     spendTokenAddress = _spendTokenAddress;
   }
@@ -50,8 +52,8 @@ contract PayMerchantHandler is Ownable, Versionable {
     bytes calldata data
   ) external returns (bool) {
     require(
-      from == revenuePoolAddress,
-      "can only accept tokens from revenue pool"
+      from == actionDispatcher,
+      "can only accept tokens from action dispatcher"
     );
     (
       address payable prepaidCard,
@@ -60,6 +62,10 @@ contract PayMerchantHandler is Ownable, Versionable {
     ) = abi.decode(data, (address, uint256, bytes));
     address merchantSafe = abi.decode(actionData, (address));
     RevenuePool revenuePool = RevenuePool(revenuePoolAddress);
+    require(
+      from == actionDispatcher,
+      "can only accept tokens from action dispatcher"
+    );
     require(revenuePool.isMerchantSafe(merchantSafe), "Invalid merchant");
 
     uint256 ten = 10;

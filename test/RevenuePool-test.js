@@ -7,6 +7,7 @@ const GnosisSafe = artifacts.require("GnosisSafe");
 const BridgeUtils = artifacts.require("BridgeUtils");
 const AbiCoder = require("web3-eth-abi");
 const RewardPool = artifacts.require("RewardPool.sol");
+const ActionDispatcher = artifacts.require("ActionDispatcher");
 
 const utils = require("./utils/general");
 const eventABIs = require("./utils/constant/eventABIs");
@@ -26,7 +27,7 @@ const {
   registerMerchant,
   transferOwner,
   payMerchant,
-  addHandlersToRevenuePool,
+  addActionHandlers,
 } = require("./utils/helper");
 
 contract("RevenuePool", (accounts) => {
@@ -43,7 +44,7 @@ contract("RevenuePool", (accounts) => {
     exchange,
     anotherMerchant,
     payMerchantHandler,
-    registerMerchantHandler,
+    actionDispatcher,
     customer,
     merchantSafe,
     merchantFeeReceiver,
@@ -79,6 +80,8 @@ contract("RevenuePool", (accounts) => {
     await spendToken.initialize(owner);
     rewardPool = await RewardPool.new();
     await rewardPool.initialize(owner);
+    actionDispatcher = await ActionDispatcher.new();
+    await actionDispatcher.initialize(owner);
 
     ({ daiFeed, daicpxdToken, cardcpxdToken, exchange } = await setupExchanges(
       owner
@@ -91,6 +94,7 @@ contract("RevenuePool", (accounts) => {
 
     await bridgeUtils.setup(
       exchange.address,
+      actionDispatcher.address,
       revenuePool.address,
       prepaidCardManager.address,
       gnosisSafeMasterCopy.address,
@@ -103,7 +107,7 @@ contract("RevenuePool", (accounts) => {
       exchange.address,
       gnosisSafeMasterCopy.address,
       proxyFactory.address,
-      revenuePool.address,
+      actionDispatcher.address,
       ZERO_ADDRESS,
       0,
       [daicpxdToken.address, cardcpxdToken.address],
@@ -112,11 +116,14 @@ contract("RevenuePool", (accounts) => {
       500000
     );
 
-    ({
-      payMerchantHandler,
-      registerMerchantHandler,
-    } = await addHandlersToRevenuePool(
+    await actionDispatcher.setup(exchange.address, prepaidCardManager.address, [
+      daicpxdToken.address,
+      cardcpxdToken.address,
+    ]);
+
+    ({ payMerchantHandler } = await addActionHandlers(
       revenuePool,
+      actionDispatcher,
       owner,
       exchange.address,
       spendToken.address
@@ -131,6 +138,7 @@ contract("RevenuePool", (accounts) => {
     beforeEach(async () => {
       await revenuePool.setup(
         exchange.address,
+        actionDispatcher.address,
         prepaidCardManager.address,
         gnosisSafeMasterCopy.address,
         proxyFactory.address,
@@ -146,6 +154,7 @@ contract("RevenuePool", (accounts) => {
       await revenuePool
         .setup(
           exchange.address,
+          actionDispatcher.address,
           prepaidCardManager.address,
           gnosisSafeMasterCopy.address,
           proxyFactory.address,
@@ -161,6 +170,7 @@ contract("RevenuePool", (accounts) => {
       await revenuePool
         .setup(
           exchange.address,
+          actionDispatcher.address,
           prepaidCardManager.address,
           gnosisSafeMasterCopy.address,
           proxyFactory.address,
@@ -179,6 +189,7 @@ contract("RevenuePool", (accounts) => {
       await revenuePool
         .setup(
           exchange.address,
+          actionDispatcher.address,
           prepaidCardManager.address,
           gnosisSafeMasterCopy.address,
           proxyFactory.address,
@@ -340,6 +351,7 @@ contract("RevenuePool", (accounts) => {
       let _merchant = accounts[8];
       await revenuePool.setup(
         exchange.address,
+        actionDispatcher.address,
         prepaidCardManager.address,
         gnosisSafeMasterCopy.address,
         proxyFactory.address,
@@ -397,6 +409,7 @@ contract("RevenuePool", (accounts) => {
       // Reset back for the subsequent tests
       await revenuePool.setup(
         exchange.address,
+        actionDispatcher.address,
         prepaidCardManager.address,
         gnosisSafeMasterCopy.address,
         proxyFactory.address,
@@ -613,6 +626,7 @@ contract("RevenuePool", (accounts) => {
       let _merchant = accounts[7];
       await revenuePool.setup(
         exchange.address,
+        actionDispatcher.address,
         prepaidCardManager.address,
         accounts[9],
         accounts[4],
@@ -657,6 +671,7 @@ contract("RevenuePool", (accounts) => {
       // Reset back for the subsequent tests
       await revenuePool.setup(
         exchange.address,
+        actionDispatcher.address,
         prepaidCardManager.address,
         gnosisSafeMasterCopy.address,
         proxyFactory.address,
@@ -751,6 +766,7 @@ contract("RevenuePool", (accounts) => {
     it("can collect merchant fees from the customer payment to the merchant", async () => {
       await revenuePool.setup(
         exchange.address,
+        actionDispatcher.address,
         prepaidCardManager.address,
         gnosisSafeMasterCopy.address,
         proxyFactory.address,
@@ -823,6 +839,7 @@ contract("RevenuePool", (accounts) => {
       // reset state of the pool for the other tests
       await revenuePool.setup(
         exchange.address,
+        actionDispatcher.address,
         prepaidCardManager.address,
         gnosisSafeMasterCopy.address,
         proxyFactory.address,
@@ -831,15 +848,6 @@ contract("RevenuePool", (accounts) => {
         0,
         1000
       );
-    });
-
-    it("reverts when a non-prepaid card sends tokens", async () => {
-      let amount = toTokenUnit(1);
-      let data = web3.eth.abi.encodeParameters(["address"], [merchantSafe]);
-
-      await daicpxdToken
-        .transferAndCall(revenuePool.address, amount, data)
-        .should.be.rejectedWith(Error, "Caller is not a prepaid card");
     });
 
     it("should reject if the recipient's address is not a registered merchant safe", async () => {
@@ -1146,10 +1154,6 @@ contract("RevenuePool", (accounts) => {
       );
     });
 
-    it("should reject a direct call to onTokenTransfer from a non-token contract", async () => {
-      await revenuePool.onTokenTransfer(owner, 100, "0x").should.be.rejected;
-    });
-
     it("reverts when prepaid card calls with unknown action", async () => {
       let data = await prepaidCardManager.getSendData(
         prepaidCard.address,
@@ -1429,41 +1433,6 @@ contract("RevenuePool", (accounts) => {
   });
 
   describe("handlers", () => {
-    it("allows the owner to remove an action handler", async () => {
-      await revenuePool.removeHandler("payMerchant");
-      expect(await revenuePool.isHandler(payMerchantHandler.address)).to.equal(
-        false
-      );
-      expect(await revenuePool.actions("payMerchant")).to.equal(ZERO_ADDRESS);
-
-      // reset the revenue pool state for the other tests
-      await revenuePool.addHandler(payMerchantHandler.address, "payMerchant");
-    });
-
-    it("does not allow a non owner to add a handler", async () => {
-      await revenuePool
-        .addHandler(exchange.address, "badHandler", { from: merchant })
-        .should.be.rejectedWith(Error, "Ownable: caller is not the owner");
-    });
-
-    it("does not allow a non owner to remove a handler", async () => {
-      await revenuePool
-        .removeHandler("payMerchant", { from: merchant })
-        .should.be.rejectedWith(Error, "Ownable: caller is not the owner");
-    });
-
-    it("does not allow a non owner to call setup() on PayMerchantHandler", async () => {
-      await payMerchantHandler
-        .setup(revenuePool.address, spendToken.address, { from: merchant })
-        .should.be.rejectedWith(Error, "Ownable: caller is not the owner");
-    });
-
-    it("does not allow a non owner to call setup() on RegisterMerchantHandler", async () => {
-      await registerMerchantHandler
-        .setup(revenuePool.address, exchange.address, { from: merchant })
-        .should.be.rejectedWith(Error, "Ownable: caller is not the owner");
-    });
-
     it("does not allow a non-handler to alter the merchant revenue balance", async () => {
       await revenuePool
         .addToMerchantBalance(
@@ -1486,88 +1455,6 @@ contract("RevenuePool", (accounts) => {
         .should.be.rejectedWith(
           Error,
           "caller is not a registered action handler nor an owner"
-        );
-    });
-
-    it("does not allow PayMerchantHandler to receive tokens from non-revenue pool", async () => {
-      let {
-        prepaidCards: [prepaidCard],
-      } = await createPrepaidCards(
-        depot,
-        prepaidCardManager,
-        daicpxdToken,
-        daicpxdToken,
-        issuer,
-        relayer,
-        [toTokenUnit(1)]
-      );
-      await transferOwner(
-        prepaidCardManager,
-        prepaidCard,
-        issuer,
-        customer,
-        relayer
-      );
-      daicpxdToken.mint(merchant, toTokenUnit(1));
-      await daicpxdToken
-        .transferAndCall(
-          payMerchantHandler.address,
-          toTokenUnit(1),
-          AbiCoder.encodeParameters(
-            ["address", "uint256", "string", "bytes"],
-            [
-              prepaidCard.address,
-              100,
-              "payMerchant",
-              AbiCoder.encodeParameters(["address"], [merchantSafe]),
-            ]
-          ),
-          { from: merchant }
-        )
-        .should.be.rejectedWith(
-          Error,
-          "can only accept tokens from revenue pool"
-        );
-    });
-
-    it("does not allow RegisterMerchantHandler to receive tokens from non-revenue pool", async () => {
-      let {
-        prepaidCards: [prepaidCard],
-      } = await createPrepaidCards(
-        depot,
-        prepaidCardManager,
-        daicpxdToken,
-        daicpxdToken,
-        issuer,
-        relayer,
-        [toTokenUnit(10)]
-      );
-      await transferOwner(
-        prepaidCardManager,
-        prepaidCard,
-        issuer,
-        customer,
-        relayer
-      );
-      daicpxdToken.mint(customer, toTokenUnit(10));
-      await daicpxdToken
-        .transferAndCall(
-          registerMerchantHandler.address,
-          toTokenUnit(10),
-          AbiCoder.encodeParameters(
-            ["address", "uint256", "string", "bytes"],
-            [
-              prepaidCard.address,
-              1000,
-              "registerMerchant",
-              AbiCoder.encodeParameters(["string"], [""]),
-            ]
-          ),
-          { from: customer }
-        )
-        .should.be.rejectedWith(
-          Error,
-          "can only accept tokens from revenue pool"
         );
     });
   });

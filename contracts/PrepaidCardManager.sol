@@ -11,6 +11,7 @@ import "./core/Safe.sol";
 import "./core/Versionable.sol";
 import "./BridgeUtils.sol";
 import "./Exchange.sol";
+import "./ActionDispatcher.sol";
 
 contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
   using SafeMath for uint256;
@@ -44,7 +45,7 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
   bytes4 public constant TRANSFER_AND_CALL = 0x4000aea0; //transferAndCall(address,uint256,bytes)
   uint8 public constant MAXIMUM_NUMBER_OF_CARD = 15;
   uint256 public constant MINIMUM_MERCHANT_PAYMENT = 50; //in units of SPEND
-  address payable public revenuePool;
+  address payable public actionDispatcher;
   address payable public gasFeeReceiver;
   mapping(address => CardDetail) public cardDetails;
   uint256 public gasFeeInCARD;
@@ -55,9 +56,10 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
 
   /**
    * @dev Setup function sets initial storage of contract.
+   * @param _exchangeAddress the address of the Exchange contract
    * @param _gsMasterCopy Gnosis safe Master Copy address
    * @param _gsProxyFactory Gnosis safe Proxy Factory address
-   * @param _revenuePool Revenue Pool address
+   * @param _actionDispatcher Action Dispatcher address
    * @param _gasFeeReceiver The addres that will receive the new prepaid card gas fee
    * @param _gasFeeInCARD the amount to charge for the gas fee for new prepaid card in units of CARD wei
    * @param _payableTokens Payable tokens are allowed to use (these are created by the token bridge, specify them here if there are existing tokens breaked by teh bridge to use)
@@ -68,7 +70,7 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
     address _exchangeAddress,
     address _gsMasterCopy,
     address _gsProxyFactory,
-    address payable _revenuePool,
+    address payable _actionDispatcher,
     address payable _gasFeeReceiver,
     uint256 _gasFeeInCARD,
     address[] calldata _payableTokens,
@@ -76,7 +78,7 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
     uint256 _minAmount,
     uint256 _maxAmount
   ) external onlyOwner {
-    revenuePool = _revenuePool;
+    actionDispatcher = _actionDispatcher;
     exchangeAddress = _exchangeAddress;
     gasFeeReceiver = _gasFeeReceiver;
     gasFeeInCARD = _gasFeeInCARD;
@@ -266,7 +268,7 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
     return
       abi.encodeWithSelector(
         TRANSFER_AND_CALL,
-        revenuePool,
+        actionDispatcher,
         tokenAmount,
         abi.encode(spendAmount, rateLock, action, data)
       );

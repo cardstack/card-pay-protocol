@@ -173,22 +173,31 @@ exports.setupExchanges = async function (owner) {
   };
 };
 
-exports.addHandlersToRevenuePool = async function (
+exports.addActionHandlers = async function (
   revenuePool,
+  actionDispatcher,
   owner,
   exchangeAddress,
   spendAddress
 ) {
   let payMerchantHandler = await PayMerchantHandler.new();
   await payMerchantHandler.initialize(owner);
-  await payMerchantHandler.setup(revenuePool.address, spendAddress);
+  await payMerchantHandler.setup(
+    actionDispatcher.address,
+    revenuePool.address,
+    spendAddress
+  );
 
   let registerMerchantHandler = await RegisterMerchantHandler.new();
   await registerMerchantHandler.initialize(owner);
-  await registerMerchantHandler.setup(revenuePool.address, exchangeAddress);
+  await registerMerchantHandler.setup(
+    actionDispatcher.address,
+    revenuePool.address,
+    exchangeAddress
+  );
 
-  await revenuePool.addHandler(payMerchantHandler.address, "payMerchant");
-  await revenuePool.addHandler(
+  await actionDispatcher.addHandler(payMerchantHandler.address, "payMerchant");
+  await actionDispatcher.addHandler(
     registerMerchantHandler.address,
     "registerMerchant"
   );

@@ -6,6 +6,7 @@ const ProxyFactory = artifacts.require("GnosisSafeProxyFactory");
 const GnosisSafe = artifacts.require("GnosisSafe");
 const BridgeUtils = artifacts.require("BridgeUtils");
 const RewardPool = artifacts.require("RewardPool.sol");
+const ActionDispatcher = artifacts.require("ActionDispatcher");
 
 const eventABIs = require("./utils/constant/eventABIs");
 
@@ -24,12 +25,11 @@ const {
   getBalance,
   setupExchanges,
   createPrepaidCards,
-  registerMerchant,
   payMerchant,
   transferOwner,
   packExecutionData,
   createDepotFromBridgeUtils,
-  addHandlersToRevenuePool,
+  addActionHandlers,
 } = require("./utils/helper");
 
 const { expect, TOKEN_DETAIL_DATA, toBN } = require("./setup");
@@ -47,6 +47,7 @@ contract("PrepaidCardManager", (accounts) => {
     gnosisSafeMasterCopy,
     proxyFactory,
     exchange,
+    actionDispatcher,
     payMerchantHandler,
     owner,
     issuer,
@@ -78,6 +79,8 @@ contract("PrepaidCardManager", (accounts) => {
     await bridgeUtils.initialize(owner);
     rewardPool = await RewardPool.new();
     await rewardPool.initialize(owner);
+    actionDispatcher = await ActionDispatcher.new();
+    await actionDispatcher.initialize(owner);
 
     ({ daicpxdToken, cardcpxdToken, exchange } = await setupExchanges(owner));
     // Deploy and mint 1000 daicpxd token for deployer as owner
@@ -94,6 +97,7 @@ contract("PrepaidCardManager", (accounts) => {
 
     await revenuePool.setup(
       exchange.address,
+      actionDispatcher.address,
       prepaidCardManager.address,
       gnosisSafeMasterCopy.address,
       proxyFactory.address,
@@ -102,16 +106,23 @@ contract("PrepaidCardManager", (accounts) => {
       0,
       1000
     );
-    ({ payMerchantHandler } = await addHandlersToRevenuePool(
+    ({ payMerchantHandler } = await addActionHandlers(
       revenuePool,
+      actionDispatcher,
       owner,
       exchange.address,
       spendToken.address
     ));
     await spendToken.addMinter(payMerchantHandler.address);
 
+    await actionDispatcher.setup(exchange.address, prepaidCardManager.address, [
+      daicpxdToken.address,
+      cardcpxdToken.address,
+    ]);
+
     await bridgeUtils.setup(
       exchange.address,
+      actionDispatcher.address,
       revenuePool.address,
       prepaidCardManager.address,
       gnosisSafeMasterCopy.address,
@@ -122,6 +133,7 @@ contract("PrepaidCardManager", (accounts) => {
     await revenuePool.setBridgeUtils(bridgeUtils.address);
     await prepaidCardManager.setBridgeUtils(bridgeUtils.address);
     await rewardPool.setBridgeUtils(bridgeUtils.address);
+    await actionDispatcher.setBridgeUtils(bridgeUtils.address);
     depot = await createDepotFromBridgeUtils(bridgeUtils, owner, issuer);
 
     MINIMUM_AMOUNT = 100; // in spend <=> 1 USD
@@ -135,7 +147,7 @@ contract("PrepaidCardManager", (accounts) => {
         exchange.address,
         gnosisSafeMasterCopy.address,
         proxyFactory.address,
-        revenuePool.address,
+        actionDispatcher.address,
         gasFeeReceiver,
         0,
         [daicpxdToken.address, cardcpxdToken.address],
@@ -152,8 +164,8 @@ contract("PrepaidCardManager", (accounts) => {
       expect(await prepaidCardManager.gnosisProxyFactory()).to.equal(
         proxyFactory.address
       );
-      expect(await prepaidCardManager.revenuePool()).to.deep.equal(
-        revenuePool.address
+      expect(await prepaidCardManager.actionDispatcher()).to.deep.equal(
+        actionDispatcher.address
       );
       expect(await prepaidCardManager.getTokens()).to.deep.equal([
         daicpxdToken.address,
@@ -484,7 +496,7 @@ contract("PrepaidCardManager", (accounts) => {
         exchange.address,
         gnosisSafeMasterCopy.address,
         proxyFactory.address,
-        revenuePool.address,
+        actionDispatcher.address,
         gasFeeReceiver,
         // We are setting this value specifically, which with the configured
         // exchange rate is equal to 1 DAI (100 CARD:1 DAI)
@@ -507,7 +519,7 @@ contract("PrepaidCardManager", (accounts) => {
         exchange.address,
         gnosisSafeMasterCopy.address,
         proxyFactory.address,
-        revenuePool.address,
+        actionDispatcher.address,
         gasFeeReceiver,
         0, // We are setting this value specifically
         [daicpxdToken.address, cardcpxdToken.address],
@@ -683,7 +695,7 @@ contract("PrepaidCardManager", (accounts) => {
         exchange.address,
         gnosisSafeMasterCopy.address,
         proxyFactory.address,
-        revenuePool.address,
+        actionDispatcher.address,
         ZERO_ADDRESS,
         // We are setting this value specifically, which with the configured
         // exchange rate is equal to 1 DAI (100 CARD:1 DAI)
@@ -763,7 +775,7 @@ contract("PrepaidCardManager", (accounts) => {
         exchange.address,
         gnosisSafeMasterCopy.address,
         proxyFactory.address,
-        revenuePool.address,
+        actionDispatcher.address,
         gasFeeReceiver,
         // We are setting this value specifically, which with the configured
         // exchange rate is equal to 1 DAI (100 CARD:1 DAI)
@@ -946,6 +958,8 @@ contract("PrepaidCardManager", (accounts) => {
       prepaidCard = prepaidCards[2];
     });
 
+    // Warning this test is stateful, all the other tests rely on this prepaid
+    // card being transferred to a customer
     it("can transfer a card to a customer", async () => {
       let startingDaiBalance = await getBalance(
         daicpxdToken,
@@ -1008,15 +1022,7 @@ contract("PrepaidCardManager", (accounts) => {
       );
       // mint gas token token for prepaid card
       await cardcpxdToken.mint(merchantPrepaidCard.address, toTokenUnit(100));
-      let merchantTx = await registerMerchant(
-        prepaidCardManager,
-        merchantPrepaidCard,
-        daicpxdToken,
-        cardcpxdToken,
-        relayer,
-        merchant,
-        1000
-      );
+      let merchantTx = await revenuePool.addMerchant(merchant, "");
       let merchantCreation = await getParamsFromEvent(
         merchantTx,
         eventABIs.MERCHANT_CREATION,

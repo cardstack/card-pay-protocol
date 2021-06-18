@@ -11,6 +11,7 @@ const RewardPool = artifacts.require("RewardPool");
 const Exchange = artifacts.require("Exchange");
 const PayMerchantHandler = artifacts.require("PayMerchantHandler");
 const RegisterMerchantHandler = artifacts.require("RegisterMerchantHandler");
+const ActionDispatcher = artifacts.require("ActionDispatcher");
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const GAS_FEE_RECEIVER = process.env.GAS_FEE_RECEIVER ?? ZERO_ADDRESS;
@@ -54,6 +55,7 @@ module.exports = async function (_deployer, network) {
     proxyAddresses
   );
   let exchangeAddress = getAddress("Exchange", proxyAddresses);
+  let actionDispatcherAddress = getAddress("ActionDispatcher", proxyAddresses);
   let payMerchantHandlerAddress = getAddress(
     "PayMerchantHandler",
     proxyAddresses
@@ -72,6 +74,7 @@ module.exports = async function (_deployer, network) {
 ==================================================
 Configuring RevenuePool ${revenuePoolAddress}
   Exchange address: ${exchangeAddress}
+  ActionDispatcher address: ${actionDispatcherAddress}
   PrepaidCardManager address: ${prepaidCardManagerAddress}
   gnosis master copy: ${GNOSIS_SAFE_MASTER_COPY}
   gnosis proxy factory: ${GNOSIS_SAFE_FACTORY}
@@ -84,6 +87,7 @@ Configuring RevenuePool ${revenuePoolAddress}
   await sendTx(() =>
     revenuePool.setup(
       exchangeAddress,
+      actionDispatcherAddress,
       prepaidCardManagerAddress,
       GNOSIS_SAFE_MASTER_COPY,
       GNOSIS_SAFE_FACTORY,
@@ -95,18 +99,6 @@ Configuring RevenuePool ${revenuePoolAddress}
   );
   console.log(`  set BridgeUtils address to ${bridgeUtilsAddress}`);
   await sendTx(() => revenuePool.setBridgeUtils(bridgeUtilsAddress));
-  console.log(
-    `  adding action handler for "payMerchant": ${payMerchantHandlerAddress}`
-  );
-  await sendTx(() =>
-    revenuePool.addHandler(payMerchantHandlerAddress, "payMerchant")
-  );
-  console.log(
-    `  adding action handler for "registerMerchant": ${registerMerchantHandlerAddress}`
-  );
-  await sendTx(() =>
-    revenuePool.addHandler(registerMerchantHandlerAddress, "registerMerchant")
-  );
 
   // Exchange configuration
   let exchange = await Exchange.at(exchangeAddress);
@@ -124,6 +116,40 @@ Configuring Exchange ${exchangeAddress}
   console.log(`  set CARD oracle to ${cardOracleAddress}`);
   await sendTx(() => exchange.createExchange("CARD", cardOracleAddress));
 
+  // ActionDispatcher configuration
+  let actionDispatcher = await ActionDispatcher.at(actionDispatcherAddress);
+  console.log(`
+==================================================
+Configuring ActionDispatcher ${actionDispatcherAddress}
+  Exchange address: ${exchangeAddress}
+  PrepaidCardManager address: ${prepaidCardManagerAddress}
+  payable tokens: ${PAYABLE_TOKENS.join(", ")}
+`);
+  await sendTx(() =>
+    actionDispatcher.setup(
+      exchangeAddress,
+      prepaidCardManagerAddress,
+      PAYABLE_TOKENS
+    )
+  );
+  console.log(`  set BridgeUtils address to ${bridgeUtilsAddress}`);
+  await sendTx(() => actionDispatcher.setBridgeUtils(bridgeUtilsAddress));
+  console.log(
+    `  adding action handler for "payMerchant": ${payMerchantHandlerAddress}`
+  );
+  await sendTx(() =>
+    actionDispatcher.addHandler(payMerchantHandlerAddress, "payMerchant")
+  );
+  console.log(
+    `  adding action handler for "registerMerchant": ${registerMerchantHandlerAddress}`
+  );
+  await sendTx(() =>
+    actionDispatcher.addHandler(
+      registerMerchantHandlerAddress,
+      "registerMerchant"
+    )
+  );
+
   // PayMerchantHandler configuration
   let payMerchantHandler = await PayMerchantHandler.at(
     payMerchantHandlerAddress
@@ -131,11 +157,16 @@ Configuring Exchange ${exchangeAddress}
   console.log(`
 ==================================================
 Configuring PayMerchantHandler ${payMerchantHandlerAddress}
+  ActionDispatcher address: ${actionDispatcherAddress}
   Revenue Pool Address: ${revenuePoolAddress}
   SPEND token address: ${spendTokenAddress}
 `);
   await sendTx(() =>
-    payMerchantHandler.setup(revenuePoolAddress, spendTokenAddress)
+    payMerchantHandler.setup(
+      actionDispatcherAddress,
+      revenuePoolAddress,
+      spendTokenAddress
+    )
   );
 
   // RegisterMerchantHandler configuration
@@ -145,11 +176,16 @@ Configuring PayMerchantHandler ${payMerchantHandlerAddress}
   console.log(`
 ==================================================
 Configuring RegisterMerchantHandler ${registerMerchantHandlerAddress}
+  ActionDispatcher address: ${actionDispatcherAddress}
   Revenue Pool Address: ${revenuePoolAddress}
   Exchange address: ${exchangeAddress}
 `);
   await sendTx(() =>
-    registerMerchantHandler.setup(revenuePoolAddress, exchangeAddress)
+    registerMerchantHandler.setup(
+      actionDispatcherAddress,
+      revenuePoolAddress,
+      exchangeAddress
+    )
   );
 
   // PrepaidCardManager configuration
@@ -161,7 +197,7 @@ Configuring RegisterMerchantHandler ${registerMerchantHandlerAddress}
 Configuring PrepaidCardManager ${prepaidCardManagerAddress}
   gnosis master copy: ${GNOSIS_SAFE_MASTER_COPY}
   gnosis proxy factory: ${GNOSIS_SAFE_FACTORY}
-  RevenuePool address: ${revenuePoolAddress}
+  ActionDispatcher address: ${actionDispatcherAddress}
   Exchange address: ${exchangeAddress}
   gas fee receiver: ${GAS_FEE_RECEIVER}
   gas fee: ${fromWei(GAS_FEE_CARD_WEI)} CARD
@@ -174,7 +210,7 @@ Configuring PrepaidCardManager ${prepaidCardManagerAddress}
       exchangeAddress,
       GNOSIS_SAFE_MASTER_COPY,
       GNOSIS_SAFE_FACTORY,
-      revenuePoolAddress,
+      actionDispatcherAddress,
       GAS_FEE_RECEIVER,
       GAS_FEE_CARD_WEI,
       PAYABLE_TOKENS,
@@ -203,6 +239,7 @@ Configuring RewardPool ${rewardPoolAddress}
 ==================================================
 Configuring BridgeUtils ${bridgeUtilsAddress}
   Exchange address: ${exchangeAddress}
+  ActionDispatcher address: ${actionDispatcherAddress}
   RevenuePool address: ${revenuePoolAddress}
   PrepaidCardManager address: ${prepaidCardManagerAddress}
   gnosis master copy: ${GNOSIS_SAFE_MASTER_COPY}
@@ -212,6 +249,7 @@ Configuring BridgeUtils ${bridgeUtilsAddress}
   await sendTx(() =>
     bridgeUtils.setup(
       exchangeAddress,
+      actionDispatcherAddress,
       revenuePoolAddress,
       prepaidCardManagerAddress,
       GNOSIS_SAFE_MASTER_COPY,

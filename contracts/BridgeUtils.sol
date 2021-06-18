@@ -26,6 +26,7 @@ contract BridgeUtils is Ownable, Versionable, Safe {
   mapping(address => address) public safes;
   address public rewardPool;
   address public exchange;
+  address public actionDispatcher;
 
   modifier onlyBridgeMediator() {
     require(msg.sender == bridgeMediator, "caller is not a bridge mediator");
@@ -48,6 +49,7 @@ contract BridgeUtils is Ownable, Versionable, Safe {
 
   function setup(
     address _exchange,
+    address _actionDispatcher,
     address _revenuePool,
     address _prepaidCardManager,
     address _gsMasterCopy,
@@ -57,6 +59,7 @@ contract BridgeUtils is Ownable, Versionable, Safe {
   ) external onlyOwner returns (bool) {
     Safe.setup(_gsMasterCopy, _gsProxyFactory);
     exchange = _exchange;
+    actionDispatcher = _actionDispatcher;
     revenuePool = _revenuePool;
     prepaidCardManager = _prepaidCardManager;
     bridgeMediator = _bridgeMediator;
@@ -106,6 +109,7 @@ contract BridgeUtils is Ownable, Versionable, Safe {
     PayableToken(revenuePool).addPayableToken(tokenAddr);
     PayableToken(prepaidCardManager).addPayableToken(tokenAddr);
     PayableToken(rewardPool).addPayableToken(tokenAddr);
+    PayableToken(actionDispatcher).addPayableToken(tokenAddr);
     emit TokenAdded(tokenAddr);
     return true;
   }

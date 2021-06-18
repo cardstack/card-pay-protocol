@@ -18,12 +18,14 @@ contract RegisterMerchantHandler is Ownable, Versionable {
 
   address public revenuePoolAddress;
   address public exchangeAddress;
+  address public actionDispatcher;
 
-  function setup(address _revenuePoolAddress, address _exchangeAddress)
-    external
-    onlyOwner
-    returns (bool)
-  {
+  function setup(
+    address _actionDispatcher,
+    address _revenuePoolAddress,
+    address _exchangeAddress
+  ) external onlyOwner returns (bool) {
+    actionDispatcher = _actionDispatcher;
     revenuePoolAddress = _revenuePoolAddress;
     exchangeAddress = _exchangeAddress;
   }
@@ -42,8 +44,8 @@ contract RegisterMerchantHandler is Ownable, Versionable {
     bytes calldata data
   ) external returns (bool) {
     require(
-      from == revenuePoolAddress,
-      "can only accept tokens from revenue pool"
+      from == actionDispatcher,
+      "can only accept tokens from action dispatcher"
     );
     RevenuePool revenuePool = RevenuePool(revenuePoolAddress);
     address issuingToken = msg.sender;

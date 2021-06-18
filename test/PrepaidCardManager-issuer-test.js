@@ -4,6 +4,7 @@ const ERC677Token = artifacts.require("ERC677Token.sol");
 const SPEND = artifacts.require("SPEND.sol");
 const ProxyFactory = artifacts.require("GnosisSafeProxyFactory");
 const GnosisSafe = artifacts.require("GnosisSafe");
+const ActionDispatcher = artifacts.require("ActionDispatcher");
 
 const { TOKEN_DETAIL_DATA, toBN, expect } = require("./setup");
 const {
@@ -46,6 +47,8 @@ contract("PrepaidCardManager - issuer tests", (accounts) => {
     await revenuePool.initialize(owner);
     prepaidCardManager = await PrepaidCardManager.new();
     await prepaidCardManager.initialize(owner);
+    let actionDispatcher = await ActionDispatcher.new();
+    await actionDispatcher.initialize(owner);
     spendToken = await SPEND.new();
     await spendToken.initialize(owner);
     await spendToken.addMinter(revenuePool.address);
@@ -68,6 +71,7 @@ contract("PrepaidCardManager - issuer tests", (accounts) => {
     // Setup for revenue pool
     await revenuePool.setup(
       exchange.address,
+      actionDispatcher.address,
       prepaidCardManager.address,
       gnosisSafeMasterCopy.address,
       proxyFactory.address,
@@ -81,7 +85,7 @@ contract("PrepaidCardManager - issuer tests", (accounts) => {
       exchange.address,
       gnosisSafeMasterCopy.address,
       proxyFactory.address,
-      revenuePool.address,
+      actionDispatcher.address,
       gasFeeReceiver,
       0,
       [daicpxdToken.address, cardcpxdToken.address],

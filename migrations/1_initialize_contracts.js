@@ -12,6 +12,7 @@ const ChainlinkOracle = artifacts.require("ChainlinkFeedAdapter");
 const DIAOracle = artifacts.require("DIAOracleAdapter");
 const RewardPool = artifacts.require("RewardPool");
 const Exchange = artifacts.require("Exchange");
+const ActionDispatcher = artifacts.require("ActionDispatcher");
 const PayMerchantHandler = artifacts.require("PayMerchantHandler");
 const RegisterMerchantHandler = artifacts.require("RegisterMerchantHandler");
 
@@ -33,6 +34,7 @@ module.exports = async function (deployer, network, addresses) {
       deployer.deploy(DIAOracle),
       deployer.deploy(RewardPool),
       deployer.deploy(Exchange),
+      deployer.deploy(ActionDispatcher),
       deployer.deploy(PayMerchantHandler),
       deployer.deploy(RegisterMerchantHandler),
     ]);
@@ -51,6 +53,10 @@ module.exports = async function (deployer, network, addresses) {
       RevenuePool: { contractName: "RevenuePool", init: [addresses[0]] },
       RewardPool: { contractName: "RewardPool", init: [addresses[0]] },
       Exchange: { contractName: "Exchange", init: [addresses[0]] },
+      ActionDispatcher: {
+        contractName: "ActionDispatcher",
+        init: [addresses[0]],
+      },
       PayMerchantHandler: {
         contractName: "PayMerchantHandler",
         init: [addresses[0]],
