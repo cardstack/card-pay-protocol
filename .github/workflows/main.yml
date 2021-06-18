@@ -52,4 +52,4 @@ jobs:
           # it's not possible to instrument--as it relies on the sort order of
           # the contract address of contracts deployed in tests vs test EOA
           # addresses
-          min_coverage: 99.04
+          min_coverage: 99.00
