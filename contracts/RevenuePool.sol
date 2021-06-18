@@ -5,14 +5,13 @@ import "@openzeppelin/contract-upgradeable/contracts/math/SafeMath.sol";
 
 import "./token/IERC677.sol";
 import "./token/ISPEND.sol";
-import "./roles/PayableToken.sol";
 import "./core/MerchantManager.sol";
 import "./Exchange.sol";
 import "./core/Versionable.sol";
 import "./PrepaidCardManager.sol";
 import "./ActionDispatcher.sol";
 
-contract RevenuePool is Ownable, Versionable, PayableToken, MerchantManager {
+contract RevenuePool is Ownable, Versionable, MerchantManager {
   using SafeMath for uint256;
 
   address payable public merchantFeeReceiver;
@@ -52,8 +51,6 @@ contract RevenuePool is Ownable, Versionable, PayableToken, MerchantManager {
    * @param _prepaidCardManager the address of the PrepaidCardManager contract
    * @param _gsMasterCopy is masterCopy address
    * @param _gsProxyFactory is gnosis proxy factory address.
-   * @param _payableTokens are a list of payable token supported by the revenue
-   * pool
    * @param _merchantFeeReceiver the address that receives the merchant fees
    * @param _merchantFeePercentage the numerator of a decimals 8 fraction that
    * represents the merchant fee percentage that is charged for each merchant
@@ -67,7 +64,6 @@ contract RevenuePool is Ownable, Versionable, PayableToken, MerchantManager {
     address payable _prepaidCardManager,
     address _gsMasterCopy,
     address _gsProxyFactory,
-    address[] calldata _payableTokens,
     address payable _merchantFeeReceiver,
     uint256 _merchantFeePercentage,
     uint256 _merchantRegistrationFeeInSPEND
@@ -86,10 +82,6 @@ contract RevenuePool is Ownable, Versionable, PayableToken, MerchantManager {
     merchantFeeReceiver = _merchantFeeReceiver;
     merchantFeePercentage = _merchantFeePercentage;
     merchantRegistrationFeeInSPEND = _merchantRegistrationFeeInSPEND;
-    // set token list payable.
-    for (uint256 i = 0; i < _payableTokens.length; i++) {
-      _addPayableToken(_payableTokens[i]);
-    }
     emit Setup();
   }
 
@@ -168,7 +160,7 @@ contract RevenuePool is Ownable, Versionable, PayableToken, MerchantManager {
     address merchantSafe,
     address token,
     uint256 amount
-  ) internal isValidTokenAddress(token) returns (bool) {
+  ) internal returns (bool) {
     // ensure enough token for redeem
     uint256 balance = merchantSafes[merchantSafe].balance[token];
     require(amount <= balance, "Insufficient funds");

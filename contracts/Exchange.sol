@@ -193,6 +193,4 @@ contract Exchange is Ownable {
   function exchangeRateDecimals() public pure returns (uint8) {
     return 8;
   }
-
-  uint256[50] private ____gap;
 }

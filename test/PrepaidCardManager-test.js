@@ -5,8 +5,8 @@ const SPEND = artifacts.require("SPEND.sol");
 const ProxyFactory = artifacts.require("GnosisSafeProxyFactory");
 const GnosisSafe = artifacts.require("GnosisSafe");
 const BridgeUtils = artifacts.require("BridgeUtils");
-const RewardPool = artifacts.require("RewardPool.sol");
 const ActionDispatcher = artifacts.require("ActionDispatcher");
+const TokenManager = artifacts.require("TokenManager");
 
 const eventABIs = require("./utils/constant/eventABIs");
 
@@ -47,6 +47,8 @@ contract("PrepaidCardManager", (accounts) => {
     gnosisSafeMasterCopy,
     proxyFactory,
     exchange,
+    tokenManager,
+    bridgeUtils,
     actionDispatcher,
     payMerchantHandler,
     owner,
@@ -57,8 +59,7 @@ contract("PrepaidCardManager", (accounts) => {
     merchantSafe,
     relayer,
     depot,
-    prepaidCards = [],
-    rewardPool;
+    prepaidCards = [];
 
   before(async () => {
     owner = accounts[0];
@@ -75,12 +76,12 @@ contract("PrepaidCardManager", (accounts) => {
     await revenuePool.initialize(owner);
     prepaidCardManager = await PrepaidCardManager.new();
     await prepaidCardManager.initialize(owner);
-    let bridgeUtils = await BridgeUtils.new();
+    bridgeUtils = await BridgeUtils.new();
     await bridgeUtils.initialize(owner);
-    rewardPool = await RewardPool.new();
-    await rewardPool.initialize(owner);
     actionDispatcher = await ActionDispatcher.new();
     await actionDispatcher.initialize(owner);
+    tokenManager = await TokenManager.new();
+    await tokenManager.initialize(owner);
 
     ({ daicpxdToken, cardcpxdToken, exchange } = await setupExchanges(owner));
     // Deploy and mint 1000 daicpxd token for deployer as owner
@@ -101,7 +102,6 @@ contract("PrepaidCardManager", (accounts) => {
       prepaidCardManager.address,
       gnosisSafeMasterCopy.address,
       proxyFactory.address,
-      [daicpxdToken.address],
       merchantFeeReceiver,
       0,
       1000
@@ -114,26 +114,24 @@ contract("PrepaidCardManager", (accounts) => {
       spendToken.address
     ));
     await spendToken.addMinter(payMerchantHandler.address);
-
-    await actionDispatcher.setup(exchange.address, prepaidCardManager.address, [
+    await tokenManager.setup(bridgeUtils.address, [
       daicpxdToken.address,
       cardcpxdToken.address,
     ]);
 
-    await bridgeUtils.setup(
+    await actionDispatcher.setup(
+      tokenManager.address,
       exchange.address,
-      actionDispatcher.address,
-      revenuePool.address,
-      prepaidCardManager.address,
+      prepaidCardManager.address
+    );
+
+    await bridgeUtils.setup(
+      tokenManager.address,
+      exchange.address,
       gnosisSafeMasterCopy.address,
       proxyFactory.address,
-      owner,
-      rewardPool.address
+      owner
     );
-    await revenuePool.setBridgeUtils(bridgeUtils.address);
-    await prepaidCardManager.setBridgeUtils(bridgeUtils.address);
-    await rewardPool.setBridgeUtils(bridgeUtils.address);
-    await actionDispatcher.setBridgeUtils(bridgeUtils.address);
     depot = await createDepotFromBridgeUtils(bridgeUtils, owner, issuer);
 
     MINIMUM_AMOUNT = 100; // in spend <=> 1 USD
@@ -144,13 +142,14 @@ contract("PrepaidCardManager", (accounts) => {
     before(async () => {
       // Setup card manager contract
       await prepaidCardManager.setup(
+        tokenManager.address,
+        bridgeUtils.address,
         exchange.address,
         gnosisSafeMasterCopy.address,
         proxyFactory.address,
         actionDispatcher.address,
         gasFeeReceiver,
         0,
-        [daicpxdToken.address, cardcpxdToken.address],
         cardcpxdToken.address,
         MINIMUM_AMOUNT,
         MAXIMUM_AMOUNT
@@ -158,6 +157,12 @@ contract("PrepaidCardManager", (accounts) => {
     });
 
     it("should initialize parameters", async () => {
+      expect(await prepaidCardManager.tokenManager()).to.equal(
+        tokenManager.address
+      );
+      expect(await prepaidCardManager.bridgeUtils()).to.equal(
+        bridgeUtils.address
+      );
       expect(await prepaidCardManager.gnosisSafe()).to.equal(
         gnosisSafeMasterCopy.address
       );
@@ -167,10 +172,6 @@ contract("PrepaidCardManager", (accounts) => {
       expect(await prepaidCardManager.actionDispatcher()).to.deep.equal(
         actionDispatcher.address
       );
-      expect(await prepaidCardManager.getTokens()).to.deep.equal([
-        daicpxdToken.address,
-        cardcpxdToken.address,
-      ]);
       expect(await prepaidCardManager.minimumFaceValue()).to.a.bignumber.equal(
         toBN(MINIMUM_AMOUNT)
       );
@@ -493,6 +494,8 @@ contract("PrepaidCardManager", (accounts) => {
     before(async () => {
       initialAmount = toTokenUnit(100);
       await prepaidCardManager.setup(
+        tokenManager.address,
+        bridgeUtils.address,
         exchange.address,
         gnosisSafeMasterCopy.address,
         proxyFactory.address,
@@ -501,7 +504,6 @@ contract("PrepaidCardManager", (accounts) => {
         // We are setting this value specifically, which with the configured
         // exchange rate is equal to 1 DAI (100 CARD:1 DAI)
         toTokenUnit(100),
-        [daicpxdToken.address, cardcpxdToken.address],
         cardcpxdToken.address,
         MINIMUM_AMOUNT,
         MAXIMUM_AMOUNT
@@ -516,13 +518,14 @@ contract("PrepaidCardManager", (accounts) => {
     after(async () => {
       // reset to 0 gasFee to make other tests easy to reason about
       await prepaidCardManager.setup(
+        tokenManager.address,
+        bridgeUtils.address,
         exchange.address,
         gnosisSafeMasterCopy.address,
         proxyFactory.address,
         actionDispatcher.address,
         gasFeeReceiver,
         0, // We are setting this value specifically
-        [daicpxdToken.address, cardcpxdToken.address],
         cardcpxdToken.address,
         MINIMUM_AMOUNT,
         MAXIMUM_AMOUNT
@@ -692,6 +695,8 @@ contract("PrepaidCardManager", (accounts) => {
 
     it("gas fee should not be collected if gasFeeReceiver is zero address", async () => {
       await prepaidCardManager.setup(
+        tokenManager.address,
+        bridgeUtils.address,
         exchange.address,
         gnosisSafeMasterCopy.address,
         proxyFactory.address,
@@ -700,7 +705,6 @@ contract("PrepaidCardManager", (accounts) => {
         // We are setting this value specifically, which with the configured
         // exchange rate is equal to 1 DAI (100 CARD:1 DAI)
         toTokenUnit(100),
-        [daicpxdToken.address, cardcpxdToken.address],
         cardcpxdToken.address,
         MINIMUM_AMOUNT,
         MAXIMUM_AMOUNT
@@ -772,6 +776,8 @@ contract("PrepaidCardManager", (accounts) => {
 
       // reset state for other tests
       await prepaidCardManager.setup(
+        tokenManager.address,
+        bridgeUtils.address,
         exchange.address,
         gnosisSafeMasterCopy.address,
         proxyFactory.address,
@@ -780,7 +786,6 @@ contract("PrepaidCardManager", (accounts) => {
         // We are setting this value specifically, which with the configured
         // exchange rate is equal to 1 DAI (100 CARD:1 DAI)
         toTokenUnit(100),
-        [daicpxdToken.address, cardcpxdToken.address],
         cardcpxdToken.address,
         MINIMUM_AMOUNT,
         MAXIMUM_AMOUNT
@@ -1169,23 +1174,6 @@ contract("PrepaidCardManager", (accounts) => {
     });
   });
 
-  describe("roles", () => {
-    it("can add and remove a payable token", async () => {
-      let mockPayableTokenAddr = accounts[9];
-
-      await prepaidCardManager.addPayableToken(mockPayableTokenAddr).should.be
-        .fulfilled;
-
-      await prepaidCardManager.removePayableToken(daicpxdToken.address).should
-        .be.fulfilled;
-      await prepaidCardManager.removePayableToken(cardcpxdToken.address).should
-        .be.fulfilled;
-
-      await prepaidCardManager
-        .getTokens()
-        .should.become([mockPayableTokenAddr]);
-    });
-  });
   describe("versioning", () => {
     it("can get version of contract", async () => {
       expect(await prepaidCardManager.cardpayVersion()).to.match(/\d\.\d\.\d/);

@@ -3,7 +3,9 @@ pragma solidity 0.5.17;
 import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contract-upgradeable/contracts/utils/EnumerableSet.sol";
 
-contract PayableToken is Ownable {
+import "./core/Versionable.sol";
+
+contract TokenManager is Ownable, Versionable {
   using EnumerableSet for EnumerableSet.AddressSet;
 
   EnumerableSet.AddressSet internal payableTokens;
@@ -13,25 +15,20 @@ contract PayableToken is Ownable {
   event PayableTokenRemoved(address indexed token);
   event BridgeUtilsSet(address indexed bridgeUtils);
 
-  /**
-   * @dev Throws if called by any token contract not inside payable token list.
-   */
-  modifier isValidToken() {
-    require(
-      payableTokens.contains(_msgSender()),
-      "calling token is unaccepted"
-    );
-    _;
-  }
-
-  modifier isValidTokenAddress(address _token) {
-    require(payableTokens.contains(_token), "unaccepted token");
-    _;
-  }
-
   modifier onlyBridgeUtilsOrOwner() {
     require(isBridgeUtils() || isOwner(), "caller is not BridgeUtils");
     _;
+  }
+
+  function setup(address _bridgeUtils, address[] calldata _payableTokens)
+    external
+    onlyOwner
+  {
+    bridgeUtils = _bridgeUtils;
+    emit BridgeUtilsSet(bridgeUtils);
+    for (uint256 i = 0; i < _payableTokens.length; i++) {
+      _addPayableToken(_payableTokens[i]);
+    }
   }
 
   function addPayableToken(address _token)
@@ -50,21 +47,16 @@ contract PayableToken is Ownable {
     return _removePayableToken(_token);
   }
 
-  function setBridgeUtils(address _bridgeUtils)
-    external
-    onlyOwner
-    returns (bool)
-  {
-    bridgeUtils = _bridgeUtils;
-    emit BridgeUtilsSet(bridgeUtils);
-  }
-
   function getTokens() external view returns (address[] memory) {
     return payableTokens.enumerate();
   }
 
   function isBridgeUtils() public view returns (bool) {
     return _msgSender() == bridgeUtils;
+  }
+
+  function isValidToken(address token) public view returns (bool) {
+    return payableTokens.contains(token);
   }
 
   function _addPayableToken(address _token) internal returns (bool) {
@@ -78,6 +70,4 @@ contract PayableToken is Ownable {
     emit PayableTokenRemoved(_token);
     return true;
   }
-
-  uint256[50] private ____gap;
 }

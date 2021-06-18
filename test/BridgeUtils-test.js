@@ -1,11 +1,9 @@
 const BridgeUtils = artifacts.require("BridgeUtils");
-const PrepaidCardManager = artifacts.require("PrepaidCardManager");
-const RevenuePool = artifacts.require("RevenuePool");
 const GnosisFactory = artifacts.require("GnosisSafeProxyFactory");
 const GnosisSafe = artifacts.require("GnosisSafe");
 const ERC677Token = artifacts.require("ERC677Token.sol");
-const RewardPool = artifacts.require("RewardPool.sol");
 const ActionDispatcher = artifacts.require("ActionDispatcher");
+const TokenManager = artifacts.require("TokenManager");
 
 const utils = require("./utils/general");
 const eventABIs = require("./utils/constant/eventABIs");
@@ -15,39 +13,28 @@ const {
   toTokenUnit,
 } = require("./utils/helper");
 const { expect } = require("./setup");
-const { ZERO_ADDRESS } = utils;
 
 contract("BridgeUtils", async (accounts) => {
   let bridgeUtils,
-    pool,
     owner,
-    gasFeeReceiver,
-    merchantFeeReceiver,
-    prepaidCardManager,
     tokenMock,
     unlistedToken,
     mediatorBridgeMock,
     daicpxdToken,
     relayer,
+    tokenManager,
     exchange,
-    depot,
-    rewardPool;
+    depot;
   before(async () => {
     owner = accounts[0];
     mediatorBridgeMock = accounts[1];
-    gasFeeReceiver = accounts[6];
-    merchantFeeReceiver = accounts[7];
     relayer = accounts[8];
     unlistedToken = await ERC677Token.new();
     await unlistedToken.initialize("Kitty Token", "KITTY", 18, owner);
     bridgeUtils = await BridgeUtils.new();
     await bridgeUtils.initialize(owner);
-    pool = await RevenuePool.new();
-    await pool.initialize(owner);
-    prepaidCardManager = await PrepaidCardManager.new();
-    await prepaidCardManager.initialize(owner);
-    rewardPool = await RewardPool.new();
-    await rewardPool.initialize(owner);
+    tokenManager = await TokenManager.new();
+    await tokenManager.initialize(owner);
     let actionDispatcher = await ActionDispatcher.new();
     await actionDispatcher.initialize(owner);
 
@@ -56,55 +43,21 @@ contract("BridgeUtils", async (accounts) => {
 
     ({ daicpxdToken, exchange } = await setupExchanges(owner));
     tokenMock = daicpxdToken.address;
-    await pool.setup(
-      exchange.address,
-      actionDispatcher.address,
-      prepaidCardManager.address,
-      gnosisMaster.address,
-      gnosisFactory.address,
-      [],
-      merchantFeeReceiver,
-      0,
-      1000
-    );
-
-    const MINIMUM_AMOUNT = process.env.MINIMUM_AMOUNT ?? 100;
-    const MAXIMUM_AMOUNT = process.env.MAXIMUM_AMOUNT ?? 100000 * 100;
-
-    await prepaidCardManager.setup(
-      exchange.address,
-      gnosisMaster.address,
-      gnosisFactory.address,
-      actionDispatcher.address,
-      gasFeeReceiver,
-      0,
-      [],
-      ZERO_ADDRESS,
-      MINIMUM_AMOUNT,
-      MAXIMUM_AMOUNT
-    );
-
-    await pool.setBridgeUtils(bridgeUtils.address);
-    await prepaidCardManager.setBridgeUtils(bridgeUtils.address);
-    await rewardPool.setBridgeUtils(bridgeUtils.address);
-    await actionDispatcher.setBridgeUtils(bridgeUtils.address);
+    await tokenManager.setup(bridgeUtils.address, []);
 
     await bridgeUtils.setup(
+      tokenManager.address,
       exchange.address,
-      actionDispatcher.address,
-      pool.address,
-      prepaidCardManager.address,
       gnosisMaster.address,
       gnosisFactory.address,
-      mediatorBridgeMock,
-      rewardPool.address
+      mediatorBridgeMock
     );
   });
 
   it("can add new token to bridge", async () => {
     await bridgeUtils.addToken(tokenMock, { from: mediatorBridgeMock });
 
-    let payableToken = await pool.getTokens();
+    let payableToken = await tokenManager.getTokens();
     expect(payableToken.toString()).to.equal([tokenMock].toString());
   });
 
@@ -114,8 +67,21 @@ contract("BridgeUtils", async (accounts) => {
       .should.be.rejectedWith(Error, "No exchange exists for token");
   });
 
-  it("can get the BridgeUtils address", async () => {
-    expect(await pool.bridgeUtils()).to.equal(bridgeUtils.address);
+  it("can add and remove a payable token", async () => {
+    let tokenMock2 = accounts[9];
+
+    await tokenManager.addPayableToken(tokenMock2).should.be.fulfilled;
+
+    await tokenManager.removePayableToken(tokenMock).should.be.fulfilled;
+
+    await tokenManager.getTokens().should.become([tokenMock2]);
+  });
+
+  it("non-owner cannot add payable token", async () => {
+    let mockPayableTokenAddr = accounts[9];
+    await tokenManager
+      .addPayableToken(mockPayableTokenAddr, { from: accounts[2] })
+      .should.be.rejectedWith(Error, "caller is not BridgeUtils");
   });
 
   it("can register new supplier", async () => {
@@ -195,7 +161,9 @@ contract("BridgeUtils", async (accounts) => {
       )
       .should.be.rejectedWith(Error, "caller is not a supplier safe");
   });
+
   it("can get version of contract", async () => {
+    expect(await tokenManager.cardpayVersion()).to.match(/\d\.\d\.\d/);
     expect(await bridgeUtils.cardpayVersion()).to.match(/\d\.\d\.\d/);
   });
 });

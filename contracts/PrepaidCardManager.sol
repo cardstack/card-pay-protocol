@@ -3,17 +3,17 @@ pragma solidity 0.5.17;
 import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 import "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
 import "@openzeppelin/contract-upgradeable/contracts/math/SafeMath.sol";
-import "@openzeppelin/upgrades/contracts/Initializable.sol";
+import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
 
 import "./token/IERC677.sol";
-import "./roles/PayableToken.sol";
+import "./TokenManager.sol";
 import "./core/Safe.sol";
 import "./core/Versionable.sol";
 import "./BridgeUtils.sol";
 import "./Exchange.sol";
 import "./ActionDispatcher.sol";
 
-contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
+contract PrepaidCardManager is Ownable, Versionable, Safe {
   using SafeMath for uint256;
   struct CardDetail {
     address issuer;
@@ -53,45 +53,44 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
   uint256 public minimumFaceValue;
   address public gasToken;
   address public exchangeAddress;
+  address public tokenManager;
+  address public bridgeUtils;
 
   /**
    * @dev Setup function sets initial storage of contract.
+   * @param _tokenManager the address of the Token Manager contract
    * @param _exchangeAddress the address of the Exchange contract
    * @param _gsMasterCopy Gnosis safe Master Copy address
    * @param _gsProxyFactory Gnosis safe Proxy Factory address
    * @param _actionDispatcher Action Dispatcher address
    * @param _gasFeeReceiver The addres that will receive the new prepaid card gas fee
    * @param _gasFeeInCARD the amount to charge for the gas fee for new prepaid card in units of CARD wei
-   * @param _payableTokens Payable tokens are allowed to use (these are created by the token bridge, specify them here if there are existing tokens breaked by teh bridge to use)
    * @param _minAmount The minimum face value of a new prepaid card in units of SPEND
    * @param _maxAmount The maximum face value of a new prepaid card in units of SPEND
    */
   function setup(
+    address _tokenManager,
+    address _bridgeUtils,
     address _exchangeAddress,
     address _gsMasterCopy,
     address _gsProxyFactory,
     address payable _actionDispatcher,
     address payable _gasFeeReceiver,
     uint256 _gasFeeInCARD,
-    address[] calldata _payableTokens,
     address _gasToken,
     uint256 _minAmount,
     uint256 _maxAmount
   ) external onlyOwner {
     actionDispatcher = _actionDispatcher;
+    bridgeUtils = _bridgeUtils;
+    tokenManager = _tokenManager;
     exchangeAddress = _exchangeAddress;
     gasFeeReceiver = _gasFeeReceiver;
     gasFeeInCARD = _gasFeeInCARD;
-
-    Safe.setup(_gsMasterCopy, _gsProxyFactory);
-    // set token list payable.
-    for (uint256 i = 0; i < _payableTokens.length; i++) {
-      _addPayableToken(_payableTokens[i]);
-    }
     gasToken = _gasToken;
-    // set limit of amount.
     minimumFaceValue = _minAmount;
     maximumFaceValue = _maxAmount;
+    Safe.setup(_gsMasterCopy, _gsProxyFactory);
     emit Setup();
   }
 
@@ -105,7 +104,11 @@ contract PrepaidCardManager is Initializable, Versionable, PayableToken, Safe {
     address from, // solhint-disable-line no-unused-vars
     uint256 amount,
     bytes calldata data
-  ) external isValidToken returns (bool) {
+  ) external returns (bool) {
+    require(
+      TokenManager(tokenManager).isValidToken(msg.sender),
+      "calling token is unaccepted"
+    );
     (
       address owner,
       uint256[] memory issuingTokenAmounts,

@@ -3,7 +3,7 @@ pragma solidity 0.5.17;
 import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
 import "./core/Safe.sol";
 import "./core/Versionable.sol";
-import "./roles/PayableToken.sol";
+import "./TokenManager.sol";
 import "./Exchange.sol";
 
 contract BridgeUtils is Ownable, Versionable, Safe {
@@ -20,7 +20,7 @@ contract BridgeUtils is Ownable, Versionable, Safe {
 
   mapping(address => Supplier) public suppliers;
 
-  address public revenuePool;
+  address public tokenManager;
   address public prepaidCardManager;
   address public bridgeMediator;
   mapping(address => address) public safes;
@@ -48,22 +48,16 @@ contract BridgeUtils is Ownable, Versionable, Safe {
   }
 
   function setup(
+    address _tokenManager,
     address _exchange,
-    address _actionDispatcher,
-    address _revenuePool,
-    address _prepaidCardManager,
     address _gsMasterCopy,
     address _gsProxyFactory,
-    address _bridgeMediator,
-    address _rewardPool
+    address _bridgeMediator
   ) external onlyOwner returns (bool) {
     Safe.setup(_gsMasterCopy, _gsProxyFactory);
     exchange = _exchange;
-    actionDispatcher = _actionDispatcher;
-    revenuePool = _revenuePool;
-    prepaidCardManager = _prepaidCardManager;
+    tokenManager = _tokenManager;
     bridgeMediator = _bridgeMediator;
-    rewardPool = _rewardPool;
     emit Setup();
 
     return true;
@@ -105,11 +99,7 @@ contract BridgeUtils is Ownable, Versionable, Safe {
       Exchange(exchange).hasExchange(tokenAddr),
       "No exchange exists for token"
     );
-    // update payable token for token
-    PayableToken(revenuePool).addPayableToken(tokenAddr);
-    PayableToken(prepaidCardManager).addPayableToken(tokenAddr);
-    PayableToken(rewardPool).addPayableToken(tokenAddr);
-    PayableToken(actionDispatcher).addPayableToken(tokenAddr);
+    TokenManager(tokenManager).addPayableToken(tokenAddr);
     emit TokenAdded(tokenAddr);
     return true;
   }

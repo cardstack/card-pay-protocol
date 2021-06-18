@@ -70,10 +70,7 @@ contract("RewardPool", function (accounts) {
       ];
       rewardPool = await RewardPool.new();
       await rewardPool.initialize(owner);
-      await rewardPool.setup(tally, [
-        cardcpxdToken.address,
-        daicpxdToken.address,
-      ]);
+      await rewardPool.setup(tally);
     });
 
     afterEach(async function () {
@@ -83,7 +80,7 @@ contract("RewardPool", function (accounts) {
     describe("initial reward pool contract", () => {
       it("reverts when tally is set to zero address", async () => {
         await rewardPool
-          .setup(ZERO_ADDRESS, [cardcpxdToken.address, daicpxdToken.address])
+          .setup(ZERO_ADDRESS)
           .should.be.rejectedWith(Error, "Tally should not be zero address");
       });
     });
@@ -1173,7 +1170,6 @@ contract("RewardPool", function (accounts) {
         await cardcpxdToken.mint(rewardPool.address, rewardPoolBalance);
         await daicpxdToken.mint(rewardPool.address, rewardPoolBalance);
         await erc20Token.mint(rewardPool.address, rewardPoolBalance);
-        await rewardPool.addPayableToken(erc20Token.address);
         merkleTree = new CumulativePaymentTree(payments);
         root = merkleTree.getHexRoot();
         paymentCycle = await rewardPool.numPaymentCycles();
@@ -1190,40 +1186,6 @@ contract("RewardPool", function (accounts) {
         assert(rewardPoolBalanceCard.eq(rewardPoolBalance));
         assert(rewardPoolBalanceDai.eq(rewardPoolBalance));
         assert(rewardPoolBalanceErc20.eq(rewardPoolBalance));
-      });
-
-      it("cannot withdraw if payable token not added", async () => {
-        const newCardcpxdToken = await ERC677Token.new();
-        await newCardcpxdToken.initialize(...TOKEN_DETAIL_DATA, owner);
-        await newCardcpxdToken.mint(
-          rewardPool.address,
-          toTokenUnit(rewardPoolBalance)
-        );
-        payments.push({
-          payee,
-          token: newCardcpxdToken.address,
-          amount: rewardPoolBalance,
-        });
-        merkleTree = new CumulativePaymentTree(payments);
-        root = merkleTree.getHexRoot();
-        let registeredTokens = await rewardPool.getTokens();
-        assert(registeredTokens.length == 3);
-        assert(_.includes(registeredTokens, cardcpxdToken.address));
-        assert(_.includes(registeredTokens, daicpxdToken.address));
-        assert(!_.includes(registeredTokens, newCardcpxdToken.address));
-        await rewardPool.submitPayeeMerkleRoot(root, { from: tally });
-        const cardProof = merkleTree.hexProofForPayee(
-          payee,
-          newCardcpxdToken.address,
-          paymentCycle
-        );
-        const amountCard = toTokenUnit(50);
-        await rewardPool
-          .withdraw(newCardcpxdToken.address, amountCard, cardProof, {
-            from: payee,
-          })
-          .should.be.rejectedWith(Error, "unaccepted token");
-        registeredTokens = await rewardPool.getTokens();
       });
 
       it("can withdraw erc20 tokens", async () => {

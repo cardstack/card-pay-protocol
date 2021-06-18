@@ -4,12 +4,12 @@ import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contract-upgradeable/contracts/math/SafeMath.sol";
 
 import "./token/IERC677.sol";
-import "./roles/PayableToken.sol";
+import "./TokenManager.sol";
 import "./Exchange.sol";
 import "./core/Versionable.sol";
 import "./PrepaidCardManager.sol";
 
-contract ActionDispatcher is Ownable, Versionable, PayableToken {
+contract ActionDispatcher is Ownable, Versionable {
   using SafeMath for uint256;
 
   struct Action {
@@ -25,6 +25,7 @@ contract ActionDispatcher is Ownable, Versionable, PayableToken {
 
   address public exchangeAddress;
   address payable public prepaidCardManager;
+  address public tokenManager;
   mapping(string => address) public actions;
   mapping(address => bool) public isHandler;
 
@@ -35,19 +36,16 @@ contract ActionDispatcher is Ownable, Versionable, PayableToken {
   /**
    * @param _exchangeAddress the address of the Exchange contract
    * @param _prepaidCardManager the address of the PrepaidCardManager contract
-   * @param _payableTokens are a list of payable token supported by the revenue
    */
   function setup(
+    address _tokenManager,
     address _exchangeAddress,
-    address payable _prepaidCardManager,
-    address[] calldata _payableTokens
+    address payable _prepaidCardManager
   ) external onlyOwner {
+    tokenManager = _tokenManager;
     exchangeAddress = _exchangeAddress;
     prepaidCardManager = _prepaidCardManager;
     prepaidCardManager = _prepaidCardManager;
-    for (uint256 i = 0; i < _payableTokens.length; i++) {
-      _addPayableToken(_payableTokens[i]);
-    }
     emit Setup();
   }
 
@@ -92,7 +90,12 @@ contract ActionDispatcher is Ownable, Versionable, PayableToken {
     address payable from,
     uint256 amount,
     bytes calldata data
-  ) external isValidToken returns (bool) {
+  ) external returns (bool) {
+    require(
+      TokenManager(tokenManager).isValidToken(msg.sender),
+      "calling token is unaccepted"
+    );
+
     // The Revenue pool can only receive funds from prepaid cards
     PrepaidCardManager prepaidCardMgr = PrepaidCardManager(prepaidCardManager);
     (address issuer, , , , , ) = prepaidCardMgr.cardDetails(from);

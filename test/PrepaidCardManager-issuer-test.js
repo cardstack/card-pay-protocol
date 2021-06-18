@@ -1,10 +1,8 @@
 const PrepaidCardManager = artifacts.require("PrepaidCardManager");
-const RevenuePool = artifacts.require("RevenuePool.sol");
 const ERC677Token = artifacts.require("ERC677Token.sol");
-const SPEND = artifacts.require("SPEND.sol");
 const ProxyFactory = artifacts.require("GnosisSafeProxyFactory");
 const GnosisSafe = artifacts.require("GnosisSafe");
-const ActionDispatcher = artifacts.require("ActionDispatcher");
+const TokenManager = artifacts.require("TokenManager");
 
 const { TOKEN_DETAIL_DATA, toBN, expect } = require("./setup");
 const {
@@ -19,8 +17,6 @@ const {
 contract("PrepaidCardManager - issuer tests", (accounts) => {
   let daicpxdToken,
     cardcpxdToken,
-    revenuePool,
-    spendToken,
     prepaidCardManager,
     exchange,
     fakeDaicpxdToken,
@@ -29,7 +25,6 @@ contract("PrepaidCardManager - issuer tests", (accounts) => {
     customer,
     relayer,
     gasFeeReceiver,
-    merchantFeeReceiver,
     depot,
     prepaidCards = [];
 
@@ -39,19 +34,15 @@ contract("PrepaidCardManager - issuer tests", (accounts) => {
     customer = accounts[2];
     relayer = accounts[4];
     gasFeeReceiver = accounts[5];
-    merchantFeeReceiver = accounts[7];
+    let mockBridgeUtils = accounts[6];
+    let mockActionDispatcher = accounts[7];
 
     let proxyFactory = await ProxyFactory.new();
     let gnosisSafeMasterCopy = await GnosisSafe.new();
-    revenuePool = await RevenuePool.new();
-    await revenuePool.initialize(owner);
     prepaidCardManager = await PrepaidCardManager.new();
     await prepaidCardManager.initialize(owner);
-    let actionDispatcher = await ActionDispatcher.new();
-    await actionDispatcher.initialize(owner);
-    spendToken = await SPEND.new();
-    await spendToken.initialize(owner);
-    await spendToken.addMinter(revenuePool.address);
+    let tokenManager = await TokenManager.new();
+    await tokenManager.initialize(owner);
 
     ({ daicpxdToken, cardcpxdToken, exchange } = await setupExchanges(owner));
     await daicpxdToken.mint(owner, toTokenUnit(1000));
@@ -68,27 +59,20 @@ contract("PrepaidCardManager - issuer tests", (accounts) => {
     // Transfer 20 daicpxd to issuer's wallet
     await fakeDaicpxdToken.mint(depot.address, toTokenUnit(20));
 
-    // Setup for revenue pool
-    await revenuePool.setup(
-      exchange.address,
-      actionDispatcher.address,
-      prepaidCardManager.address,
-      gnosisSafeMasterCopy.address,
-      proxyFactory.address,
-      [daicpxdToken.address],
-      merchantFeeReceiver,
-      0,
-      1000
-    );
+    await tokenManager.setup(mockBridgeUtils, [
+      daicpxdToken.address,
+      cardcpxdToken.address,
+    ]);
 
     await prepaidCardManager.setup(
+      tokenManager.address,
+      mockBridgeUtils,
       exchange.address,
       gnosisSafeMasterCopy.address,
       proxyFactory.address,
-      actionDispatcher.address,
+      mockActionDispatcher,
       gasFeeReceiver,
       0,
-      [daicpxdToken.address, cardcpxdToken.address],
       cardcpxdToken.address,
       100,
       500000

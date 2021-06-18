@@ -6,8 +6,8 @@ const ProxyFactory = artifacts.require("GnosisSafeProxyFactory");
 const GnosisSafe = artifacts.require("GnosisSafe");
 const BridgeUtils = artifacts.require("BridgeUtils");
 const AbiCoder = require("web3-eth-abi");
-const RewardPool = artifacts.require("RewardPool.sol");
 const ActionDispatcher = artifacts.require("ActionDispatcher");
+const TokenManager = artifacts.require("TokenManager");
 
 const utils = require("./utils/general");
 const eventABIs = require("./utils/constant/eventABIs");
@@ -52,8 +52,7 @@ contract("RevenuePool", (accounts) => {
     gnosisSafeMasterCopy,
     prepaidCardManager,
     bridgeUtils,
-    depot,
-    rewardPool;
+    depot;
 
   before(async () => {
     owner = accounts[0];
@@ -78,10 +77,10 @@ contract("RevenuePool", (accounts) => {
     await bridgeUtils.initialize(owner);
     spendToken = await SPEND.new();
     await spendToken.initialize(owner);
-    rewardPool = await RewardPool.new();
-    await rewardPool.initialize(owner);
     actionDispatcher = await ActionDispatcher.new();
     await actionDispatcher.initialize(owner);
+    let tokenManager = await TokenManager.new();
+    await tokenManager.initialize(owner);
 
     ({ daiFeed, daicpxdToken, cardcpxdToken, exchange } = await setupExchanges(
       owner
@@ -92,34 +91,38 @@ contract("RevenuePool", (accounts) => {
     await fakeToken.initialize(...TOKEN_DETAIL_DATA, owner);
     await fakeToken.mint(owner, toTokenUnit(100));
 
+    await tokenManager.setup(bridgeUtils.address, [
+      daicpxdToken.address,
+      cardcpxdToken.address,
+    ]);
+
     await bridgeUtils.setup(
+      tokenManager.address,
       exchange.address,
-      actionDispatcher.address,
-      revenuePool.address,
-      prepaidCardManager.address,
       gnosisSafeMasterCopy.address,
       proxyFactory.address,
-      owner,
-      rewardPool.address
+      owner
     );
 
     await prepaidCardManager.setup(
+      tokenManager.address,
+      bridgeUtils.address,
       exchange.address,
       gnosisSafeMasterCopy.address,
       proxyFactory.address,
       actionDispatcher.address,
       ZERO_ADDRESS,
       0,
-      [daicpxdToken.address, cardcpxdToken.address],
       cardcpxdToken.address,
       100,
       500000
     );
 
-    await actionDispatcher.setup(exchange.address, prepaidCardManager.address, [
-      daicpxdToken.address,
-      cardcpxdToken.address,
-    ]);
+    await actionDispatcher.setup(
+      tokenManager.address,
+      exchange.address,
+      prepaidCardManager.address
+    );
 
     ({ payMerchantHandler } = await addActionHandlers(
       revenuePool,
@@ -142,12 +145,10 @@ contract("RevenuePool", (accounts) => {
         prepaidCardManager.address,
         gnosisSafeMasterCopy.address,
         proxyFactory.address,
-        [daicpxdToken.address],
         merchantFeeReceiver,
         0,
         1000
       );
-      await revenuePool.setBridgeUtils(bridgeUtils.address);
     });
 
     it("reverts when merchantFeeReceiver is set to zero address", async () => {
@@ -158,7 +159,6 @@ contract("RevenuePool", (accounts) => {
           prepaidCardManager.address,
           gnosisSafeMasterCopy.address,
           proxyFactory.address,
-          [daicpxdToken.address],
           ZERO_ADDRESS,
           0,
           1000
@@ -174,7 +174,6 @@ contract("RevenuePool", (accounts) => {
           prepaidCardManager.address,
           gnosisSafeMasterCopy.address,
           proxyFactory.address,
-          [daicpxdToken.address],
           merchantFeeReceiver,
           0,
           0
@@ -193,7 +192,6 @@ contract("RevenuePool", (accounts) => {
           prepaidCardManager.address,
           gnosisSafeMasterCopy.address,
           proxyFactory.address,
-          [daicpxdToken.address],
           merchantFeeReceiver,
           0,
           1000,
@@ -209,9 +207,6 @@ contract("RevenuePool", (accounts) => {
       expect(await revenuePool.gnosisProxyFactory()).to.equal(
         proxyFactory.address
       );
-      expect(await revenuePool.getTokens()).to.deep.equal([
-        daicpxdToken.address,
-      ]);
       expect(await revenuePool.merchantFeeReceiver()).to.equal(
         merchantFeeReceiver
       );
@@ -355,7 +350,6 @@ contract("RevenuePool", (accounts) => {
         prepaidCardManager.address,
         gnosisSafeMasterCopy.address,
         proxyFactory.address,
-        [daicpxdToken.address],
         merchantFeeReceiver,
         10000000,
         1000
@@ -413,7 +407,6 @@ contract("RevenuePool", (accounts) => {
         prepaidCardManager.address,
         gnosisSafeMasterCopy.address,
         proxyFactory.address,
-        [daicpxdToken.address],
         merchantFeeReceiver,
         0,
         1000
@@ -630,7 +623,6 @@ contract("RevenuePool", (accounts) => {
         prepaidCardManager.address,
         accounts[9],
         accounts[4],
-        [daicpxdToken.address],
         merchantFeeReceiver,
         0,
         1000
@@ -675,7 +667,6 @@ contract("RevenuePool", (accounts) => {
         prepaidCardManager.address,
         gnosisSafeMasterCopy.address,
         proxyFactory.address,
-        [daicpxdToken.address],
         merchantFeeReceiver,
         0,
         1000
@@ -770,7 +761,6 @@ contract("RevenuePool", (accounts) => {
         prepaidCardManager.address,
         gnosisSafeMasterCopy.address,
         proxyFactory.address,
-        [daicpxdToken.address],
         merchantFeeReceiver,
         10000000, // 10% merchant fee
         1000
@@ -843,7 +833,6 @@ contract("RevenuePool", (accounts) => {
         prepaidCardManager.address,
         gnosisSafeMasterCopy.address,
         proxyFactory.address,
-        [daicpxdToken.address],
         merchantFeeReceiver,
         0,
         1000
@@ -1456,27 +1445,6 @@ contract("RevenuePool", (accounts) => {
           Error,
           "caller is not a registered action handler nor an owner"
         );
-    });
-  });
-
-  describe("roles", () => {
-    it("can add and remove a payable token", async () => {
-      let mockPayableTokenAddr = accounts[9];
-
-      await revenuePool.addPayableToken(mockPayableTokenAddr).should.be
-        .fulfilled;
-
-      await revenuePool.removePayableToken(daicpxdToken.address).should.be
-        .fulfilled;
-
-      await revenuePool.getTokens().should.become([mockPayableTokenAddr]);
-    });
-
-    it("non-owner cannot add payable token", async () => {
-      let mockPayableTokenAddr = accounts[9];
-      await revenuePool
-        .addPayableToken(mockPayableTokenAddr, { from: merchant })
-        .should.be.rejectedWith(Error, "caller is not BridgeUtils");
     });
   });
 
