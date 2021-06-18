@@ -84,7 +84,6 @@ Configuring RevenuePool ${revenuePoolAddress}
   MerchantManager address: ${merchantManagerAddress}
   ActionDispatcher address: ${actionDispatcherAddress}
   PrepaidCardManager address: ${prepaidCardManagerAddress}
-  payable tokens: ${PAYABLE_TOKENS.join(", ")}
   merchant fee receiver: ${MERCHANT_FEE_RECEIVER}
   merchant fee percentage: ${(
     Number(MERCHANT_FEE_PERCENTAGE) / 1000000
@@ -96,14 +95,11 @@ Configuring RevenuePool ${revenuePoolAddress}
       merchantManagerAddress,
       actionDispatcherAddress,
       prepaidCardManagerAddress,
-      PAYABLE_TOKENS,
       MERCHANT_FEE_RECEIVER,
       MERCHANT_FEE_PERCENTAGE,
       MERCHANT_REGISTRATION_FEE_IN_SPEND
     )
   );
-  console.log(`  set BridgeUtils address to ${bridgeUtilsAddress}`);
-  await sendTx(() => revenuePool.setBridgeUtils(bridgeUtilsAddress));
 
   // Token Manager configuration
   let tokenManager = await TokenManager.at(tokenManagerAddress);
@@ -124,7 +120,7 @@ Configuring MerchantManager ${merchantManagerAddress}
   gnosis proxy factory: ${GNOSIS_SAFE_FACTORY}`);
   await sendTx(() =>
     merchantManager.setup(
-      actionDispatcher,
+      actionDispatcherAddress,
       GNOSIS_SAFE_MASTER_COPY,
       GNOSIS_SAFE_FACTORY
     )

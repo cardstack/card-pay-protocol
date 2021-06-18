@@ -175,11 +175,12 @@ Deploying new contract ${contractId}...`);
       console.log(`  ${name}: ${address}`);
     }
 
-    // This is to accommodate any 504 verification errors we might have received from blockscout
-    if (!skipVerify) {
-      console.log("\nReverifying implementation contracts");
-      for (let { name, address } of reverify.reverse()) {
-        await verifyImpl(address, name, network, "MIT");
+    if (reverify.length > 0) {
+      console.log("Implementation contract verifications:");
+      for (let { name, address } of reverify) {
+        console.log(
+          `npx truffle run blockscout ${name}@${address} --network ${network} --license MIT`
+        );
       }
     }
   }
