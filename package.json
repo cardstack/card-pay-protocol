@@ -1,6 +1,6 @@
 {
   "name": "card-protocol-xdai",
-  "version": "0.5.6",
+  "version": "0.6.0",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -16,6 +16,7 @@
     "lint:sol": "./node_modules/.bin/solhint ./contracts/**/*.sol -w 0",
     "deploy:sokol": "rm -rf ./build && ./node_modules/.bin/truffle migrate --network sokol --compile-all --reset",
     "deploy:sokol:upgrade-only": "rm -rf ./build && ./node_modules/.bin/truffle migrate --network sokol --compile-all --f 1 --to 1",
+    "deploy:sokol:config-only": "rm -rf ./build && ./node_modules/.bin/truffle migrate --network sokol --compile-all --f 2 --to 4",
     "deploy:sokol:upgrade-only:skip-verify": "rm -rf ./build && ./node_modules/.bin/truffle migrate --network sokol --compile-all --f 1 --to 1 --skipVerify",
     "deploy:xdai": "rm -rf ./build && ./node_modules/.bin/truffle migrate --network xdai --compile-all --reset",
     "deploy:xdai:upgrade-only": "rm -rf ./build && ./node_modules/.bin/truffle migrate --network xdai --compile-all --f 1 --to 1",
