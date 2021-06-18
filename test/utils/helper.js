@@ -176,6 +176,7 @@ exports.setupExchanges = async function (owner) {
 exports.addActionHandlers = async function (
   revenuePool,
   actionDispatcher,
+  merchantManager,
   owner,
   exchangeAddress,
   spendAddress
@@ -184,6 +185,7 @@ exports.addActionHandlers = async function (
   await payMerchantHandler.initialize(owner);
   await payMerchantHandler.setup(
     actionDispatcher.address,
+    merchantManager.address,
     revenuePool.address,
     spendAddress
   );
@@ -192,6 +194,7 @@ exports.addActionHandlers = async function (
   await registerMerchantHandler.initialize(owner);
   await registerMerchantHandler.setup(
     actionDispatcher.address,
+    merchantManager.address,
     revenuePool.address,
     exchangeAddress
   );

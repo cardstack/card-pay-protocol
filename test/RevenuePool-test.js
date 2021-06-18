@@ -8,6 +8,7 @@ const AbiCoder = require("web3-eth-abi");
 const ActionDispatcher = artifacts.require("ActionDispatcher");
 const TokenManager = artifacts.require("TokenManager");
 const SupplierManager = artifacts.require("SupplierManager");
+const MerchantManager = artifacts.require("MerchantManager");
 
 const utils = require("./utils/general");
 const eventABIs = require("./utils/constant/eventABIs");
@@ -46,6 +47,7 @@ contract("RevenuePool", (accounts) => {
     payMerchantHandler,
     actionDispatcher,
     customer,
+    merchantManager,
     merchantSafe,
     merchantFeeReceiver,
     proxyFactory,
@@ -80,6 +82,8 @@ contract("RevenuePool", (accounts) => {
     await actionDispatcher.initialize(owner);
     let tokenManager = await TokenManager.new();
     await tokenManager.initialize(owner);
+    merchantManager = await MerchantManager.new();
+    await merchantManager.initialize(owner);
 
     ({ daiFeed, daicpxdToken, cardcpxdToken, exchange } = await setupExchanges(
       owner
@@ -100,7 +104,11 @@ contract("RevenuePool", (accounts) => {
       gnosisSafeMasterCopy.address,
       proxyFactory.address
     );
-
+    await merchantManager.setup(
+      actionDispatcher.address,
+      gnosisSafeMasterCopy.address,
+      proxyFactory.address
+    );
     await prepaidCardManager.setup(
       tokenManager.address,
       supplierManager.address,
@@ -124,6 +132,7 @@ contract("RevenuePool", (accounts) => {
     ({ payMerchantHandler } = await addActionHandlers(
       revenuePool,
       actionDispatcher,
+      merchantManager,
       owner,
       exchange.address,
       spendToken.address
@@ -138,10 +147,9 @@ contract("RevenuePool", (accounts) => {
     beforeEach(async () => {
       await revenuePool.setup(
         exchange.address,
+        merchantManager.address,
         actionDispatcher.address,
         prepaidCardManager.address,
-        gnosisSafeMasterCopy.address,
-        proxyFactory.address,
         merchantFeeReceiver,
         0,
         1000
@@ -152,10 +160,9 @@ contract("RevenuePool", (accounts) => {
       await revenuePool
         .setup(
           exchange.address,
+          merchantManager.address,
           actionDispatcher.address,
           prepaidCardManager.address,
-          gnosisSafeMasterCopy.address,
-          proxyFactory.address,
           ZERO_ADDRESS,
           0,
           1000
@@ -167,10 +174,9 @@ contract("RevenuePool", (accounts) => {
       await revenuePool
         .setup(
           exchange.address,
+          merchantManager.address,
           actionDispatcher.address,
           prepaidCardManager.address,
-          gnosisSafeMasterCopy.address,
-          proxyFactory.address,
           merchantFeeReceiver,
           0,
           0
@@ -185,10 +191,9 @@ contract("RevenuePool", (accounts) => {
       await revenuePool
         .setup(
           exchange.address,
+          merchantManager.address,
           actionDispatcher.address,
           prepaidCardManager.address,
-          gnosisSafeMasterCopy.address,
-          proxyFactory.address,
           merchantFeeReceiver,
           0,
           1000,
@@ -198,11 +203,8 @@ contract("RevenuePool", (accounts) => {
     });
 
     it("check Revenue pool parameters", async () => {
-      expect(await revenuePool.gnosisSafe()).to.equal(
-        gnosisSafeMasterCopy.address
-      );
-      expect(await revenuePool.gnosisProxyFactory()).to.equal(
-        proxyFactory.address
+      expect(await revenuePool.merchantManager()).to.equal(
+        merchantManager.address
       );
       expect(await revenuePool.merchantFeeReceiver()).to.equal(
         merchantFeeReceiver
@@ -263,18 +265,18 @@ contract("RevenuePool", (accounts) => {
       let merchantCreation = await getParamsFromEvent(
         merchantTx,
         eventABIs.MERCHANT_CREATION,
-        revenuePool.address
+        merchantManager.address
       );
       merchantSafe = merchantCreation[0]["merchantSafe"]; // Warning: this is reused in other tests
 
-      expect(await revenuePool.safeForMerchant(merchant)).to.equal(
+      expect((await merchantManager.merchants(merchant)).merchantSafe).to.equal(
         merchantSafe
       );
-      expect(await revenuePool.merchantForSafe(merchantSafe)).to.equal(
+      expect(await merchantManager.merchantSafes(merchantSafe)).to.equal(
         merchant
       );
-      expect(await revenuePool.isMerchantSafe(merchantSafe)).to.equal(true);
-      expect((await revenuePool.merchants(merchant)).infoDID).to.equal(
+      expect(await merchantManager.isMerchantSafe(merchantSafe)).to.equal(true);
+      expect((await merchantManager.merchants(merchant)).infoDID).to.equal(
         "did:cardstack:56d6fc54-d399-443b-8778-d7e4512d3a49"
       );
 
@@ -343,10 +345,9 @@ contract("RevenuePool", (accounts) => {
       let _merchant = accounts[8];
       await revenuePool.setup(
         exchange.address,
+        merchantManager.address,
         actionDispatcher.address,
         prepaidCardManager.address,
-        gnosisSafeMasterCopy.address,
-        proxyFactory.address,
         merchantFeeReceiver,
         10000000,
         1000
@@ -400,10 +401,9 @@ contract("RevenuePool", (accounts) => {
       // Reset back for the subsequent tests
       await revenuePool.setup(
         exchange.address,
+        merchantManager.address,
         actionDispatcher.address,
         prepaidCardManager.address,
-        gnosisSafeMasterCopy.address,
-        proxyFactory.address,
         merchantFeeReceiver,
         0,
         1000
@@ -573,7 +573,7 @@ contract("RevenuePool", (accounts) => {
     });
 
     it("allows the contract owner to directly add a merchant", async () => {
-      let merchantTx = await revenuePool.addMerchant(
+      let merchantTx = await merchantManager.registerMerchant(
         anotherMerchant,
         "did:cardstack:56d6fc54-d399-443b-8778-d7e4512d3a49-xx",
         { from: owner }
@@ -581,27 +581,27 @@ contract("RevenuePool", (accounts) => {
       let merchantCreation = await getParamsFromEvent(
         merchantTx,
         eventABIs.MERCHANT_CREATION,
-        revenuePool.address
+        merchantManager.address
       );
       let anotherMerchantSafe = merchantCreation[0]["merchantSafe"];
 
-      expect(await revenuePool.safeForMerchant(anotherMerchant)).to.equal(
-        anotherMerchantSafe
-      );
-      expect(await revenuePool.merchantForSafe(anotherMerchantSafe)).to.equal(
+      expect(
+        (await merchantManager.merchants(anotherMerchant)).merchantSafe
+      ).to.equal(anotherMerchantSafe);
+      expect(await merchantManager.merchantSafes(anotherMerchantSafe)).to.equal(
         anotherMerchant
       );
-      expect(await revenuePool.isMerchantSafe(anotherMerchantSafe)).to.equal(
-        true
-      );
-      expect((await revenuePool.merchants(anotherMerchant)).infoDID).to.equal(
-        "did:cardstack:56d6fc54-d399-443b-8778-d7e4512d3a49-xx"
-      );
+      expect(
+        await merchantManager.isMerchantSafe(anotherMerchantSafe)
+      ).to.equal(true);
+      expect(
+        (await merchantManager.merchants(anotherMerchant)).infoDID
+      ).to.equal("did:cardstack:56d6fc54-d399-443b-8778-d7e4512d3a49-xx");
     });
 
     it("rejects a non-contract owner directly adding a merchant", async () => {
-      await revenuePool
-        .addMerchant(
+      await merchantManager
+        .registerMerchant(
           accounts[9],
           "did:cardstack:56d6fc54-d399-443b-8778-d7e4512d3a49",
           { from: accounts[9] }
@@ -610,64 +610,6 @@ contract("RevenuePool", (accounts) => {
           Error,
           "caller is not a registered action handler nor an owner"
         );
-    });
-
-    it("reverts when set up with incorrect gnosis master copy and factory", async () => {
-      let _merchant = accounts[7];
-      await revenuePool.setup(
-        exchange.address,
-        actionDispatcher.address,
-        prepaidCardManager.address,
-        accounts[9],
-        accounts[4],
-        merchantFeeReceiver,
-        0,
-        1000
-      );
-      let {
-        prepaidCards: [merchantPrepaidCard],
-      } = await createPrepaidCards(
-        depot,
-        prepaidCardManager,
-        daicpxdToken,
-        daicpxdToken,
-        issuer,
-        relayer,
-        [toTokenUnit(10)]
-      );
-      await transferOwner(
-        prepaidCardManager,
-        merchantPrepaidCard,
-        issuer,
-        _merchant,
-        relayer
-      );
-      await registerMerchant(
-        prepaidCardManager,
-        merchantPrepaidCard,
-        daicpxdToken,
-        cardcpxdToken,
-        relayer,
-        _merchant,
-        1000
-      ).should.be.rejectedWith(
-        Error,
-        // the real revert reason is behind the gnosis safe execTransaction
-        // boundary, so we just get this generic error
-        "safe transaction was reverted"
-      );
-
-      // Reset back for the subsequent tests
-      await revenuePool.setup(
-        exchange.address,
-        actionDispatcher.address,
-        prepaidCardManager.address,
-        gnosisSafeMasterCopy.address,
-        proxyFactory.address,
-        merchantFeeReceiver,
-        0,
-        1000
-      );
     });
   });
 
@@ -754,10 +696,9 @@ contract("RevenuePool", (accounts) => {
     it("can collect merchant fees from the customer payment to the merchant", async () => {
       await revenuePool.setup(
         exchange.address,
+        merchantManager.address,
         actionDispatcher.address,
         prepaidCardManager.address,
-        gnosisSafeMasterCopy.address,
-        proxyFactory.address,
         merchantFeeReceiver,
         10000000, // 10% merchant fee
         1000
@@ -826,10 +767,9 @@ contract("RevenuePool", (accounts) => {
       // reset state of the pool for the other tests
       await revenuePool.setup(
         exchange.address,
+        merchantManager.address,
         actionDispatcher.address,
         prepaidCardManager.address,
-        gnosisSafeMasterCopy.address,
-        proxyFactory.address,
         merchantFeeReceiver,
         0,
         1000
@@ -1436,8 +1376,8 @@ contract("RevenuePool", (accounts) => {
     });
 
     it("does not allow a non-handler to add a merchant", async () => {
-      await revenuePool
-        .addMerchant(customer, "", { from: customer })
+      await merchantManager
+        .registerMerchant(customer, "", { from: customer })
         .should.be.rejectedWith(
           Error,
           "caller is not a registered action handler nor an owner"

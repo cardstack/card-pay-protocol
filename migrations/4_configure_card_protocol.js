@@ -14,6 +14,7 @@ const RegisterMerchantHandler = artifacts.require("RegisterMerchantHandler");
 const ActionDispatcher = artifacts.require("ActionDispatcher");
 const TokenManager = artifacts.require("TokenManager");
 const SupplierManager = artifacts.require("SupplierManager");
+const MerchantManager = artifacts.require("MerchantManager");
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const GAS_FEE_RECEIVER = process.env.GAS_FEE_RECEIVER ?? ZERO_ADDRESS;
@@ -50,7 +51,6 @@ module.exports = async function (_deployer, network) {
   }
   let proxyAddresses = readJSONSync(addressesFile);
 
-  // RevenuePool configuration
   let revenuePoolAddress = getAddress("RevenuePool", proxyAddresses);
   let prepaidCardManagerAddress = getAddress(
     "PrepaidCardManager",
@@ -58,6 +58,7 @@ module.exports = async function (_deployer, network) {
   );
   let exchangeAddress = getAddress("Exchange", proxyAddresses);
   let tokenManagerAddress = getAddress("TokenManager", proxyAddresses);
+  let merchantManagerAddress = getAddress("MerchantManager", proxyAddresses);
   let supplierManagerAddress = getAddress("SupplierManager", proxyAddresses);
   let actionDispatcherAddress = getAddress("ActionDispatcher", proxyAddresses);
   let payMerchantHandlerAddress = getAddress(
@@ -74,14 +75,15 @@ module.exports = async function (_deployer, network) {
   let cardOracleAddress = getAddress("CARDOracle", proxyAddresses);
   let bridgeUtilsAddress = getAddress("BridgeUtils", proxyAddresses);
   let rewardPoolAddress = getAddress("RewardPool", proxyAddresses);
+
+  // RevenuePool configuration
   console.log(`
 ==================================================
 Configuring RevenuePool ${revenuePoolAddress}
   Exchange address: ${exchangeAddress}
+  MerchantManager address: ${merchantManagerAddress}
   ActionDispatcher address: ${actionDispatcherAddress}
   PrepaidCardManager address: ${prepaidCardManagerAddress}
-  gnosis master copy: ${GNOSIS_SAFE_MASTER_COPY}
-  gnosis proxy factory: ${GNOSIS_SAFE_FACTORY}
   payable tokens: ${PAYABLE_TOKENS.join(", ")}
   merchant fee receiver: ${MERCHANT_FEE_RECEIVER}
   merchant fee percentage: ${(
@@ -91,10 +93,9 @@ Configuring RevenuePool ${revenuePoolAddress}
   await sendTx(() =>
     revenuePool.setup(
       exchangeAddress,
+      merchantManagerAddress,
       actionDispatcherAddress,
       prepaidCardManagerAddress,
-      GNOSIS_SAFE_MASTER_COPY,
-      GNOSIS_SAFE_FACTORY,
       PAYABLE_TOKENS,
       MERCHANT_FEE_RECEIVER,
       MERCHANT_FEE_PERCENTAGE,
@@ -112,6 +113,22 @@ Configuring TokenManager ${tokenManagerAddress}
   BridgeUtils address: ${bridgeUtilsAddress}
   payable tokens: ${PAYABLE_TOKENS.join(", ")}`);
   await sendTx(() => tokenManager.setup(bridgeUtilsAddress, PAYABLE_TOKENS));
+
+  // Merchant Manager configuration
+  let merchantManager = await MerchantManager.at(merchantManagerAddress);
+  console.log(`
+==================================================
+Configuring MerchantManager ${merchantManagerAddress}
+  ActionDispatcher address: ${actionDispatcherAddress}
+  gnosis master copy: ${GNOSIS_SAFE_MASTER_COPY}
+  gnosis proxy factory: ${GNOSIS_SAFE_FACTORY}`);
+  await sendTx(() =>
+    merchantManager.setup(
+      actionDispatcher,
+      GNOSIS_SAFE_MASTER_COPY,
+      GNOSIS_SAFE_FACTORY
+    )
+  );
 
   // Supplier Manager configuration
   let supplierManager = await SupplierManager.at(supplierManagerAddress);
@@ -184,11 +201,13 @@ Configuring ActionDispatcher ${actionDispatcherAddress}
 ==================================================
 Configuring PayMerchantHandler ${payMerchantHandlerAddress}
   ActionDispatcher address: ${actionDispatcherAddress}
+  MerchantManager address: ${merchantManagerAddress}
   Revenue Pool Address: ${revenuePoolAddress}
   SPEND token address: ${spendTokenAddress}`);
   await sendTx(() =>
     payMerchantHandler.setup(
       actionDispatcherAddress,
+      merchantManagerAddress,
       revenuePoolAddress,
       spendTokenAddress
     )
@@ -202,11 +221,13 @@ Configuring PayMerchantHandler ${payMerchantHandlerAddress}
 ==================================================
 Configuring RegisterMerchantHandler ${registerMerchantHandlerAddress}
   ActionDispatcher address: ${actionDispatcherAddress}
+  MerchantManager address: ${merchantManagerAddress}
   Revenue Pool Address: ${revenuePoolAddress}
   Exchange address: ${exchangeAddress}`);
   await sendTx(() =>
     registerMerchantHandler.setup(
       actionDispatcherAddress,
+      merchantManagerAddress,
       revenuePoolAddress,
       exchangeAddress
     )

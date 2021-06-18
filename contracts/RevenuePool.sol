@@ -1,25 +1,35 @@
 pragma solidity 0.5.17;
 
+import "@openzeppelin/contract-upgradeable/contracts/utils/EnumerableSet.sol";
 import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contract-upgradeable/contracts/math/SafeMath.sol";
 
 import "./token/IERC677.sol";
 import "./token/ISPEND.sol";
-import "./core/MerchantManager.sol";
 import "./Exchange.sol";
 import "./core/Versionable.sol";
+import "./MerchantManager.sol";
 import "./PrepaidCardManager.sol";
 import "./ActionDispatcher.sol";
 
-contract RevenuePool is Ownable, Versionable, MerchantManager {
+contract RevenuePool is Ownable, Versionable {
+  using EnumerableSet for EnumerableSet.AddressSet;
   using SafeMath for uint256;
 
+  struct RevenueBalance {
+    EnumerableSet.AddressSet tokens;
+    // mapping from token address to revenue pool balance for merchant in that
+    // token
+    mapping(address => uint256) balance;
+  }
   address payable public merchantFeeReceiver;
   uint256 public merchantFeePercentage; // decimals 8
   uint256 public merchantRegistrationFeeInSPEND;
   address payable public prepaidCardManager;
   address public exchangeAddress;
   address public actionDispatcher;
+  address public merchantManager;
+  mapping(address => RevenueBalance) internal balances;
 
   event Setup();
   event MerchantClaim(
@@ -36,21 +46,12 @@ contract RevenuePool is Ownable, Versionable, MerchantManager {
     _;
   }
 
-  modifier onlyHandlersOrOwner() {
-    require(
-      isOwner() || ActionDispatcher(actionDispatcher).isHandler(msg.sender),
-      "caller is not a registered action handler nor an owner"
-    );
-    _;
-  }
-
   /**
    * @dev set up revenue pool
    * @param _exchangeAddress the address of the Exchange contract
+   * @param _merchantManager the address of the Merchant Manager contract
    * @param _actionDispatcher Action Dispatcher address
    * @param _prepaidCardManager the address of the PrepaidCardManager contract
-   * @param _gsMasterCopy is masterCopy address
-   * @param _gsProxyFactory is gnosis proxy factory address.
    * @param _merchantFeeReceiver the address that receives the merchant fees
    * @param _merchantFeePercentage the numerator of a decimals 8 fraction that
    * represents the merchant fee percentage that is charged for each merchant
@@ -60,10 +61,9 @@ contract RevenuePool is Ownable, Versionable, MerchantManager {
    */
   function setup(
     address _exchangeAddress,
+    address _merchantManager,
     address _actionDispatcher,
     address payable _prepaidCardManager,
-    address _gsMasterCopy,
-    address _gsProxyFactory,
     address payable _merchantFeeReceiver,
     uint256 _merchantFeePercentage,
     uint256 _merchantRegistrationFeeInSPEND
@@ -73,9 +73,7 @@ contract RevenuePool is Ownable, Versionable, MerchantManager {
       _merchantRegistrationFeeInSPEND > 0,
       "merchantRegistrationFeeInSPEND is not set"
     );
-    // setup gnosis safe address
-    MerchantManager.setup(_gsMasterCopy, _gsProxyFactory);
-
+    merchantManager = _merchantManager;
     actionDispatcher = _actionDispatcher;
     exchangeAddress = _exchangeAddress;
     prepaidCardManager = _prepaidCardManager;
@@ -85,14 +83,6 @@ contract RevenuePool is Ownable, Versionable, MerchantManager {
     emit Setup();
   }
 
-  function addMerchant(address merchantAddress, string calldata infoDID)
-    external
-    onlyHandlersOrOwner
-    returns (address)
-  {
-    return registerMerchant(merchantAddress, infoDID);
-  }
-
   /**
    * @dev merchant claims revenue with their safe
    * @param payableToken address of payable token
@@ -100,9 +90,12 @@ contract RevenuePool is Ownable, Versionable, MerchantManager {
    */
   function claimRevenue(address payableToken, uint256 amount)
     external
-    onlyMerchantSafe
     returns (bool)
   {
+    require(
+      MerchantManager(merchantManager).isMerchantSafe(msg.sender),
+      "caller is not a merchant safe"
+    );
     return _claimRevenue(msg.sender, payableToken, amount);
   }
 
@@ -115,7 +108,7 @@ contract RevenuePool is Ownable, Versionable, MerchantManager {
     view
     returns (address[] memory)
   {
-    return merchantSafes[merchantSafe].tokens.enumerate();
+    return balances[merchantSafe].tokens.enumerate();
   }
 
   /**
@@ -128,7 +121,7 @@ contract RevenuePool is Ownable, Versionable, MerchantManager {
     view
     returns (uint256)
   {
-    return merchantSafes[merchantSafe].balance[token];
+    return balances[merchantSafe].balance[token];
   }
 
   /**
@@ -144,10 +137,10 @@ contract RevenuePool is Ownable, Versionable, MerchantManager {
     address token,
     uint256 amount
   ) external onlyHandlers returns (uint256) {
-    uint256 balance = merchantSafes[merchantSafe].balance[token];
-    merchantSafes[merchantSafe].balance[token] = balance.add(amount);
-    merchantSafes[merchantSafe].tokens.add(token);
-    return merchantSafes[merchantSafe].balance[token];
+    uint256 balance = balances[merchantSafe].balance[token];
+    balances[merchantSafe].balance[token] = balance.add(amount);
+    balances[merchantSafe].tokens.add(token);
+    return balances[merchantSafe].balance[token];
   }
 
   /**
@@ -162,14 +155,14 @@ contract RevenuePool is Ownable, Versionable, MerchantManager {
     uint256 amount
   ) internal returns (bool) {
     // ensure enough token for redeem
-    uint256 balance = merchantSafes[merchantSafe].balance[token];
+    uint256 balance = balances[merchantSafe].balance[token];
     require(amount <= balance, "Insufficient funds");
 
     // unlock token of merchant
     balance = balance.sub(amount);
 
     // update new balance
-    merchantSafes[merchantSafe].balance[token] = balance;
+    balances[merchantSafe].balance[token] = balance;
 
     // transfer payable token from revenue pool to merchant's safe address. The
     // merchant's safe address is a gnosis safe contract, created by

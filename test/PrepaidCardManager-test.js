@@ -7,6 +7,7 @@ const GnosisSafe = artifacts.require("GnosisSafe");
 const ActionDispatcher = artifacts.require("ActionDispatcher");
 const TokenManager = artifacts.require("TokenManager");
 const SupplierManager = artifacts.require("SupplierManager");
+const MerchantManager = artifacts.require("MerchantManager");
 
 const eventABIs = require("./utils/constant/eventABIs");
 
@@ -51,6 +52,7 @@ contract("PrepaidCardManager", (accounts) => {
     supplierManager,
     actionDispatcher,
     payMerchantHandler,
+    merchantManager,
     owner,
     issuer,
     customer,
@@ -82,6 +84,8 @@ contract("PrepaidCardManager", (accounts) => {
     await actionDispatcher.initialize(owner);
     tokenManager = await TokenManager.new();
     await tokenManager.initialize(owner);
+    merchantManager = await MerchantManager.new();
+    await merchantManager.initialize(owner);
 
     ({ daicpxdToken, cardcpxdToken, exchange } = await setupExchanges(owner));
     // Deploy and mint 1000 daicpxd token for deployer as owner
@@ -98,10 +102,9 @@ contract("PrepaidCardManager", (accounts) => {
 
     await revenuePool.setup(
       exchange.address,
+      merchantManager.address,
       actionDispatcher.address,
       prepaidCardManager.address,
-      gnosisSafeMasterCopy.address,
-      proxyFactory.address,
       merchantFeeReceiver,
       0,
       1000
@@ -109,6 +112,7 @@ contract("PrepaidCardManager", (accounts) => {
     ({ payMerchantHandler } = await addActionHandlers(
       revenuePool,
       actionDispatcher,
+      merchantManager,
       owner,
       exchange.address,
       spendToken.address
@@ -118,13 +122,16 @@ contract("PrepaidCardManager", (accounts) => {
       daicpxdToken.address,
       cardcpxdToken.address,
     ]);
-
+    await merchantManager.setup(
+      actionDispatcher.address,
+      gnosisSafeMasterCopy.address,
+      proxyFactory.address
+    );
     await actionDispatcher.setup(
       tokenManager.address,
       exchange.address,
       prepaidCardManager.address
     );
-
     await supplierManager.setup(
       ZERO_ADDRESS,
       gnosisSafeMasterCopy.address,
@@ -1025,11 +1032,11 @@ contract("PrepaidCardManager", (accounts) => {
       );
       // mint gas token token for prepaid card
       await cardcpxdToken.mint(merchantPrepaidCard.address, toTokenUnit(100));
-      let merchantTx = await revenuePool.addMerchant(merchant, "");
+      let merchantTx = await merchantManager.registerMerchant(merchant, "");
       let merchantCreation = await getParamsFromEvent(
         merchantTx,
         eventABIs.MERCHANT_CREATION,
-        revenuePool.address
+        merchantManager.address
       );
       merchantSafe = merchantCreation[0]["merchantSafe"];
       await cardcpxdToken.mint(prepaidCard.address, toTokenUnit(1000000));

@@ -17,6 +17,7 @@ const PayMerchantHandler = artifacts.require("PayMerchantHandler");
 const RegisterMerchantHandler = artifacts.require("RegisterMerchantHandler");
 const TokenManager = artifacts.require("TokenManager");
 const SupplierManager = artifacts.require("SupplierManager");
+const MerchantManager = artifacts.require("MerchantManager");
 
 // we only maintain these migrations purely to measure the amount of gas it
 // takes to perform a deployment for each contract
@@ -41,6 +42,7 @@ module.exports = async function (deployer, network, addresses) {
       deployer.deploy(RegisterMerchantHandler),
       deployer.deploy(TokenManager),
       deployer.deploy(SupplierManager),
+      deployer.deploy(MerchantManager),
     ]);
   } else {
     // Contract init details. For each upgradable contract provide a property
@@ -71,6 +73,10 @@ module.exports = async function (deployer, network, addresses) {
       },
       BridgeUtils: { contractName: "BridgeUtils", init: [addresses[0]] },
       TokenManager: { contractName: "TokenManager", init: [addresses[0]] },
+      MerchantManager: {
+        contractName: "MerchantManager",
+        init: [addresses[0]],
+      },
       SupplierManager: {
         contractName: "SupplierManager",
         init: [addresses[0]],

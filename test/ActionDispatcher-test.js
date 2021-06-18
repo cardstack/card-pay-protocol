@@ -8,6 +8,7 @@ const AbiCoder = require("web3-eth-abi");
 const ActionDispatcher = artifacts.require("ActionDispatcher");
 const TokenManager = artifacts.require("TokenManager");
 const SupplierManager = artifacts.require("SupplierManager");
+const MerchantManager = artifacts.require("MerchantManager");
 
 const utils = require("./utils/general");
 const eventABIs = require("./utils/constant/eventABIs");
@@ -36,6 +37,7 @@ contract("Action Dispatcher", (accounts) => {
     merchant,
     exchange,
     payMerchantHandler,
+    merchantManager,
     actionDispatcher,
     registerMerchantHandler,
     customer,
@@ -70,6 +72,8 @@ contract("Action Dispatcher", (accounts) => {
     await actionDispatcher.initialize(owner);
     let tokenManager = await TokenManager.new();
     await tokenManager.initialize(owner);
+    merchantManager = await MerchantManager.new();
+    await merchantManager.initialize(owner);
 
     ({ daicpxdToken, cardcpxdToken, exchange } = await setupExchanges(owner));
 
@@ -106,6 +110,7 @@ contract("Action Dispatcher", (accounts) => {
     ({ payMerchantHandler, registerMerchantHandler } = await addActionHandlers(
       revenuePool,
       actionDispatcher,
+      merchantManager,
       owner,
       exchange.address,
       spendToken.address
@@ -114,15 +119,18 @@ contract("Action Dispatcher", (accounts) => {
 
     await revenuePool.setup(
       exchange.address,
+      merchantManager.address,
       actionDispatcher.address,
       prepaidCardManager.address,
-      gnosisSafeMasterCopy.address,
-      proxyFactory.address,
       merchantFeeReceiver,
       0,
       1000
     );
-
+    await merchantManager.setup(
+      actionDispatcher.address,
+      gnosisSafeMasterCopy.address,
+      proxyFactory.address
+    );
     await supplierManager.setup(
       ZERO_ADDRESS,
       gnosisSafeMasterCopy.address,
@@ -165,6 +173,7 @@ contract("Action Dispatcher", (accounts) => {
       await payMerchantHandler
         .setup(
           actionDispatcher.address,
+          merchantManager.address,
           revenuePool.address,
           spendToken.address,
           { from: merchant }
@@ -176,6 +185,7 @@ contract("Action Dispatcher", (accounts) => {
       await registerMerchantHandler
         .setup(
           actionDispatcher.address,
+          merchantManager.address,
           revenuePool.address,
           exchange.address,
           { from: merchant }
@@ -185,11 +195,11 @@ contract("Action Dispatcher", (accounts) => {
 
     it("does not allow PayMerchantHandler to receive tokens from non-action dispatcher", async () => {
       // setup merchant safe
-      let merchantTx = await revenuePool.addMerchant(merchant, "");
+      let merchantTx = await merchantManager.registerMerchant(merchant, "");
       let merchantCreation = await getParamsFromEvent(
         merchantTx,
         eventABIs.MERCHANT_CREATION,
-        revenuePool.address
+        merchantManager.address
       );
       let merchantSafe = merchantCreation[0]["merchantSafe"];
 

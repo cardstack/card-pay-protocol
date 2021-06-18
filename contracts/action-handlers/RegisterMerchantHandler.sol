@@ -2,6 +2,7 @@ pragma solidity 0.5.17;
 
 import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contract-upgradeable/contracts/math/SafeMath.sol";
+import "../MerchantManager.sol";
 import "../RevenuePool.sol";
 import "../Exchange.sol";
 import "../core/Versionable.sol";
@@ -16,17 +17,20 @@ contract RegisterMerchantHandler is Ownable, Versionable {
     uint256 spendAmount
   );
 
+  address public merchantManager;
   address public revenuePoolAddress;
   address public exchangeAddress;
   address public actionDispatcher;
 
   function setup(
     address _actionDispatcher,
+    address _merchantManager,
     address _revenuePoolAddress,
     address _exchangeAddress
   ) external onlyOwner returns (bool) {
     actionDispatcher = _actionDispatcher;
     revenuePoolAddress = _revenuePoolAddress;
+    merchantManager = _merchantManager;
     exchangeAddress = _exchangeAddress;
   }
 
@@ -83,6 +87,6 @@ contract RegisterMerchantHandler is Ownable, Versionable {
       amount,
       revenuePool.merchantRegistrationFeeInSPEND()
     );
-    revenuePool.addMerchant(merchant, infoDID);
+    MerchantManager(merchantManager).registerMerchant(merchant, infoDID);
   }
 }

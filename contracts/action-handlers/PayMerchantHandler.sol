@@ -3,6 +3,7 @@ pragma solidity 0.5.17;
 import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contract-upgradeable/contracts/math/SafeMath.sol";
 import "../RevenuePool.sol";
+import "../MerchantManager.sol";
 import "../core/Versionable.sol";
 
 contract PayMerchantHandler is Ownable, Versionable {
@@ -23,14 +24,17 @@ contract PayMerchantHandler is Ownable, Versionable {
   );
 
   address public revenuePoolAddress;
+  address public merchantManager;
   address public spendTokenAddress;
   address public actionDispatcher;
 
   function setup(
     address _actionDispatcher,
+    address _merchantManager,
     address _revenuePoolAddress,
     address _spendTokenAddress
   ) external onlyOwner returns (bool) {
+    merchantManager = _merchantManager;
     actionDispatcher = _actionDispatcher;
     revenuePoolAddress = _revenuePoolAddress;
     spendTokenAddress = _spendTokenAddress;
@@ -66,7 +70,10 @@ contract PayMerchantHandler is Ownable, Versionable {
       from == actionDispatcher,
       "can only accept tokens from action dispatcher"
     );
-    require(revenuePool.isMerchantSafe(merchantSafe), "Invalid merchant");
+    require(
+      MerchantManager(merchantManager).isMerchantSafe(merchantSafe),
+      "Invalid merchant"
+    );
 
     uint256 ten = 10;
     uint256 merchantFee =
