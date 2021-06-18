@@ -13,6 +13,7 @@
     "lint": "npm-run-all lint:*",
     "lint:js": "./node_modules/.bin/eslint .",
     "lint:sol": "./node_modules/.bin/solhint ./contracts/**/*.sol -w 0",
+    "lint:size": "./node_modules/.bin/truffle run contract-size --checkMaxSize",
     "deploy:sokol": "rm -rf ./build && ./node_modules/.bin/truffle migrate --network sokol --compile-all --reset",
     "deploy:sokol:upgrade-only": "rm -rf ./build && ./node_modules/.bin/truffle migrate --network sokol --compile-all --f 1 --to 1",
     "deploy:sokol:upgrade-only:skip-verify": "rm -rf ./build && ./node_modules/.bin/truffle migrate --network sokol --compile-all --f 1 --to 1 --skipVerify",
@@ -71,6 +72,7 @@
     "solidity-coverage": "^0.7.11",
     "trezor-cli-wallet-provider": "^1.0.5",
     "truffle": "^5.1.51",
+    "truffle-contract-size": "^2.0.1",
     "truffle-source-verify": "^0.0.6",
     "web3-eth-abi": "^1.3.0",
     "web3-utils": "^1.3.0"

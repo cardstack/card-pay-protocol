@@ -41,11 +41,6 @@ contract MerchantManager is Ownable, Versionable, Safe {
     emit Setup();
   }
 
-  modifier onlyMerchantSafe() {
-    require(isMerchantSafe(msg.sender), "caller is not a merchant safe");
-    _;
-  }
-
   function isMerchantSafe(address merchantSafe) public view returns (bool) {
     return merchantSafes[merchantSafe] != address(0);
   }

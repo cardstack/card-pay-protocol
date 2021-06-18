@@ -193,6 +193,7 @@ contract("BridgeUtils", async (accounts) => {
       "did:cardstack:56d6fc54-d399-443b-8778-d7e4512d3a49"
     );
     expect(await supplierManager.safeForSupplier(supplierAddr)).to.equal(depot);
+    expect(await bridgeUtils.safeForSupplier(supplierAddr)).to.equal(depot);
   });
 
   it("rejects an infoDID update from a non-depot address", async () => {
@@ -205,6 +206,12 @@ contract("BridgeUtils", async (accounts) => {
         }
       )
       .should.be.rejectedWith(Error, "caller is not a supplier safe");
+  });
+
+  it("returns a zero address when you ask for the safe of a supplier that does not exist", async () => {
+    expect(await supplierManager.safeForSupplier(accounts[9])).to.equal(
+      utils.ZERO_ADDRESS
+    );
   });
 
   it("can get version of contract", async () => {
