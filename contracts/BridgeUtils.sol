@@ -1,63 +1,35 @@
 pragma solidity 0.5.17;
 
 import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
-import "./core/Safe.sol";
-import "./core/Exchange.sol";
 import "./core/Versionable.sol";
-import "./roles/PayableToken.sol";
+import "./TokenManager.sol";
+import "./Exchange.sol";
+import "./SupplierManager.sol";
 
-contract BridgeUtils is Ownable, Versionable, Safe {
+contract BridgeUtils is Ownable, Versionable {
   event Setup();
-  event SupplierWallet(address owner, address wallet);
   event TokenAdded(address token);
-  event SupplierInfoDID(address supplier, string infoDID);
 
-  struct Supplier {
-    bool registered;
-    address safe;
-    string infoDID;
-  }
-
-  mapping(address => Supplier) public suppliers;
-
-  address public revenuePool;
-  address public prepaidCardManager;
+  address public tokenManager;
   address public bridgeMediator;
-  mapping(address => address) public safes;
-  address public rewardPool;
+  address public exchange;
+  address public supplierManager;
 
   modifier onlyBridgeMediator() {
     require(msg.sender == bridgeMediator, "caller is not a bridge mediator");
     _;
   }
 
-  modifier onlySupplierSafe() {
-    require(safes[msg.sender] != address(0), "caller is not a supplier safe");
-    _;
-  }
-
-  function isRegistered(address supplierAddr) public view returns (bool) {
-    return suppliers[supplierAddr].registered;
-  }
-
-  function safeForSupplier(address supplierAddr) public view returns (address) {
-    require(isRegistered(supplierAddr), "supplier is not registered");
-    return suppliers[supplierAddr].safe;
-  }
-
   function setup(
-    address _revenuePool,
-    address _prepaidCardManager,
-    address _gsMasterCopy,
-    address _gsProxyFactory,
-    address _bridgeMediator,
-    address _rewardPool
+    address _tokenManager,
+    address _supplierManager,
+    address _exchange,
+    address _bridgeMediator
   ) external onlyOwner returns (bool) {
-    Safe.setup(_gsMasterCopy, _gsProxyFactory);
-    revenuePool = _revenuePool;
-    prepaidCardManager = _prepaidCardManager;
+    exchange = _exchange;
+    supplierManager = _supplierManager;
+    tokenManager = _tokenManager;
     bridgeMediator = _bridgeMediator;
-    rewardPool = _rewardPool;
     emit Setup();
 
     return true;
@@ -71,49 +43,29 @@ contract BridgeUtils is Ownable, Versionable, Safe {
     return _addToken(tokenAddr);
   }
 
-  function setSupplierInfoDID(string calldata infoDID)
-    external
-    onlySupplierSafe
-    returns (bool)
-  {
-    address safeAddr = msg.sender;
-    address supplier = safes[safeAddr];
-    require(supplier != address(0), "Supplier is invalid");
-    require(suppliers[supplier].registered, "Do not have supplier for safe");
-
-    suppliers[supplier].infoDID = infoDID;
-    emit SupplierInfoDID(supplier, infoDID);
-    return true;
-  }
-
-  function registerSupplier(address ownerAddr)
+  function registerSupplier(address supplier)
     external
     onlyBridgeMediator
     returns (address)
   {
-    return _registerSupplier(ownerAddr);
+    return SupplierManager(supplierManager).registerSupplier(supplier);
+  }
+
+  function isRegistered(address supplier) public view returns (bool) {
+    return SupplierManager(supplierManager).isRegistered(supplier);
+  }
+
+  function safeForSupplier(address supplier) external view returns (address) {
+    return SupplierManager(supplierManager).safeForSupplier(supplier);
   }
 
   function _addToken(address tokenAddr) internal returns (bool) {
     require(
-      Exchange(revenuePool).hasExchange(tokenAddr),
+      Exchange(exchange).hasExchange(tokenAddr),
       "No exchange exists for token"
     );
-    // update payable token for token
-    PayableToken(revenuePool).addPayableToken(tokenAddr);
-    PayableToken(prepaidCardManager).addPayableToken(tokenAddr);
-    PayableToken(rewardPool).addPayableToken(tokenAddr);
+    TokenManager(tokenManager).addPayableToken(tokenAddr);
     emit TokenAdded(tokenAddr);
     return true;
-  }
-
-  function _registerSupplier(address ownerAddr) internal returns (address) {
-    address safe = createSafe(ownerAddr);
-    suppliers[ownerAddr].registered = true;
-    suppliers[ownerAddr].safe = safe;
-    safes[safe] = ownerAddr;
-
-    emit SupplierWallet(ownerAddr, safe);
-    return safe;
   }
 }

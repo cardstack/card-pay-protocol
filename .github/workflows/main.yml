@@ -20,6 +20,18 @@ jobs:
       - name: Test
         run: yarn test
 
+  size-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2-beta
+
+      - name: Build
+        run: yarn install
+
+      - name: Test
+        run: yarn build:clean && yarn test:size
+
   coverage:
     runs-on: ubuntu-latest
     steps:
@@ -40,4 +52,4 @@ jobs:
           # it's not possible to instrument--as it relies on the sort order of
           # the contract address of contracts deployed in tests vs test EOA
           # addresses
-          min_coverage: 99.04
+          min_coverage: 99.00

@@ -11,6 +11,13 @@ const Feed = artifacts.require("ManualFeed");
 const ChainlinkOracle = artifacts.require("ChainlinkFeedAdapter");
 const DIAOracle = artifacts.require("DIAOracleAdapter");
 const RewardPool = artifacts.require("RewardPool");
+const Exchange = artifacts.require("Exchange");
+const ActionDispatcher = artifacts.require("ActionDispatcher");
+const PayMerchantHandler = artifacts.require("PayMerchantHandler");
+const RegisterMerchantHandler = artifacts.require("RegisterMerchantHandler");
+const TokenManager = artifacts.require("TokenManager");
+const SupplierManager = artifacts.require("SupplierManager");
+const MerchantManager = artifacts.require("MerchantManager");
 
 // we only maintain these migrations purely to measure the amount of gas it
 // takes to perform a deployment for each contract
@@ -29,6 +36,13 @@ module.exports = async function (deployer, network, addresses) {
       deployer.deploy(ChainlinkOracle),
       deployer.deploy(DIAOracle),
       deployer.deploy(RewardPool),
+      deployer.deploy(Exchange),
+      deployer.deploy(ActionDispatcher),
+      deployer.deploy(PayMerchantHandler),
+      deployer.deploy(RegisterMerchantHandler),
+      deployer.deploy(TokenManager),
+      deployer.deploy(SupplierManager),
+      deployer.deploy(MerchantManager),
     ]);
   } else {
     // Contract init details. For each upgradable contract provide a property
@@ -43,11 +57,33 @@ module.exports = async function (deployer, network, addresses) {
         init: [addresses[0]],
       },
       RevenuePool: { contractName: "RevenuePool", init: [addresses[0]] },
+      RewardPool: { contractName: "RewardPool", init: [addresses[0]] },
+      Exchange: { contractName: "Exchange", init: [addresses[0]] },
+      ActionDispatcher: {
+        contractName: "ActionDispatcher",
+        init: [addresses[0]],
+      },
+      PayMerchantHandler: {
+        contractName: "PayMerchantHandler",
+        init: [addresses[0]],
+      },
+      RegisterMerchantHandler: {
+        contractName: "RegisterMerchantHandler",
+        init: [addresses[0]],
+      },
       BridgeUtils: { contractName: "BridgeUtils", init: [addresses[0]] },
+      TokenManager: { contractName: "TokenManager", init: [addresses[0]] },
+      MerchantManager: {
+        contractName: "MerchantManager",
+        init: [addresses[0]],
+      },
+      SupplierManager: {
+        contractName: "SupplierManager",
+        init: [addresses[0]],
+      },
       SPEND: { contractName: "SPEND", init: [addresses[0]] },
       DAIOracle: { contractName: "ChainlinkFeedAdapter", init: [addresses[0]] },
       CARDOracle: { contractName: "DIAOracleAdapter", init: [addresses[0]] },
-      RewardPool: { contractName: "RewardPool", init: [addresses[0]] },
     };
 
     // Use manual feeds in sokol
@@ -139,11 +175,12 @@ Deploying new contract ${contractId}...`);
       console.log(`  ${name}: ${address}`);
     }
 
-    // This is to accommodate any 504 verification errors we might have received from blockscout
-    if (!skipVerify) {
-      console.log("\nReverifying implementation contracts");
-      for (let { name, address } of reverify.reverse()) {
-        await verifyImpl(address, name, network, "MIT");
+    if (reverify.length > 0) {
+      console.log("Implementation contract verifications:");
+      for (let { name, address } of reverify) {
+        console.log(
+          `npx truffle run blockscout ${name}@${address} --network ${network} --license MIT`
+        );
       }
     }
   }

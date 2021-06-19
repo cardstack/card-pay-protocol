@@ -8,15 +8,13 @@ import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 
 import "./token/IERC677.sol";
-import "./core/Exchange.sol";
 import "./core/Versionable.sol";
-import "./roles/PayableToken.sol";
 
-contract RewardPool is Initializable, Versionable, Ownable, PayableToken {
+contract RewardPool is Initializable, Versionable, Ownable {
   using SafeMath for uint256;
   using MerkleProof for bytes32[];
 
-  event Setup(address tally, address[] payableTokens);
+  event Setup(address tally);
   event PayeeWithdraw(address indexed payee, uint256 amount);
   event MerkleRootSubmission(bytes32 payeeRoot, uint256 numPaymentCycles);
   event PaymentCycleEnded(
@@ -43,16 +41,10 @@ contract RewardPool is Initializable, Versionable, Ownable, PayableToken {
     Ownable.initialize(owner);
   }
 
-  function setup(address _tally, address[] calldata _payableTokens)
-    external
-    onlyOwner
-  {
+  function setup(address _tally) external onlyOwner {
     tally = _tally;
     require(tally != ZERO_ADDRESS, "Tally should not be zero address");
-    for (uint256 i = 0; i < _payableTokens.length; i++) {
-      _addPayableToken(_payableTokens[i]);
-    }
-    emit Setup(_tally, _payableTokens);
+    emit Setup(_tally);
   }
 
   function submitPayeeMerkleRoot(bytes32 payeeRoot)
@@ -72,7 +64,7 @@ contract RewardPool is Initializable, Versionable, Ownable, PayableToken {
     address payableToken,
     uint256 amount,
     bytes calldata proof
-  ) external isValidTokenAddress(payableToken) returns (bool) {
+  ) external returns (bool) {
     require(amount > 0, "Cannot withdraw non-positive amount");
 
     uint256 balance = balanceForProof(payableToken, proof);
@@ -135,6 +127,9 @@ contract RewardPool is Initializable, Versionable, Ownable, PayableToken {
     bytes32[] memory _proof;
 
     (meta, _proof) = splitIntoBytes32(proof, 2);
+    if (meta.length != 2) {
+      return 0;
+    }
 
     uint256 paymentCycleNumber = uint256(meta[0]);
     uint256 cumulativeAmount = uint256(meta[1]);

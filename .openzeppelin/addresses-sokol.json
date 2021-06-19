@@ -1,38 +1,66 @@
 {
   "PrepaidCardManager": {
-    "proxy": "0x8b0625288cb14F29ED0519F1d281956D46e10ce0",
+    "proxy": "0xEba6d63dDf30174B87272D5cF566D63547e60119",
     "contractName": "PrepaidCardManager"
   },
+  "RevenuePool": {
+    "proxy": "0xfD59940a9789E161217A853F3D78ec619247ADb7",
+    "contractName": "RevenuePool"
+  },
+  "RewardPool": {
+    "proxy": "0x9d8Ea61555Ee7A5d1Ca9422de7Fd7866430710bB",
+    "contractName": "RewardPool"
+  },
+  "Exchange": {
+    "proxy": "0x2605718656E317D2347Af082094f239cc7d4D52c",
+    "contractName": "Exchange"
+  },
+  "ActionDispatcher": {
+    "proxy": "0xaE5AC3685630b33Ed2677438EEaAe0aD5372c795",
+    "contractName": "ActionDispatcher"
+  },
+  "PayMerchantHandler": {
+    "proxy": "0xB2Dc4A31bAdaF8962B882b67958033DCF1FbEE6c",
+    "contractName": "PayMerchantHandler"
+  },
+  "RegisterMerchantHandler": {
+    "proxy": "0xc267d67cDbb5aCC6f477D4eAb173Dcc54F00e762",
+    "contractName": "RegisterMerchantHandler"
+  },
   "BridgeUtils": {
-    "proxy": "0x3498110baDFa94e26a58eFe3D834D1308e32f240",
+    "proxy": "0x34e286a943E017b105C48fd78f4A61424b0cc8f7",
     "contractName": "BridgeUtils"
   },
+  "TokenManager": {
+    "proxy": "0x40F1559042DBF9dbC974754b9020DDdcC24Af418",
+    "contractName": "TokenManager"
+  },
+  "MerchantManager": {
+    "proxy": "0xA113ECa0Af275e1906d1fe1B7Bef1dDB033113E2",
+    "contractName": "MerchantManager"
+  },
+  "SupplierManager": {
+    "proxy": "0xBB6BaE445c8E43d929c0EE4C915c8ef002088D25",
+    "contractName": "SupplierManager"
+  },
   "SPEND": {
-    "proxy": "0x51383885587B46859a5F58b71Da9CEd7d6e947E5",
+    "proxy": "0xcd7AB5c678Bc0b90dD6f870B8F214c10A943FC67",
     "contractName": "SPEND"
   },
   "DAIOracle": {
-    "proxy": "0x8A469E82142dE001Ac51eF6BC6F7633eD0E9EfF0",
+    "proxy": "0x74beF86c9d4a5b96B81D8d8e44157DFd35Eda5fB",
     "contractName": "ChainlinkFeedAdapter"
   },
   "CARDOracle": {
-    "proxy": "0xAf2eEaF3690C1b5C9145e33408De487727cF251E",
+    "proxy": "0xb4Fcc975c2b6A57dd5B3d9a3B6b144499f707c7d",
     "contractName": "DIAOracleAdapter"
   },
   "DAIUSDFeed": {
-    "proxy": "0xd9f3b9601f78562D87f29Ee24Aa6a33FE0933D87",
+    "proxy": "0x5D4F01EcbD0bD5FBC61D782E15E54b0E6f8D83Ae",
     "contractName": "ManualFeed"
   },
   "ETHUSDFeed": {
-    "proxy": "0x9Dc9Eb1753B0C8d5B0CdC4f44088bB45FC466302",
+    "proxy": "0x60174e19895443eAECA7e265E377982a040f96F4",
     "contractName": "ManualFeed"
-  },
-  "RewardPool": {
-    "proxy": "0xc7865297Dd3281F1Ac869BEb708910582F7cdBA1",
-    "contractName": "RewardPool"
-  },
-  "RevenuePool": {
-    "proxy": "0x5D11326E20C01C5bc62544e3E31F101ED6aDCBBd",
-    "contractName": "RevenuePool"
   }
 }

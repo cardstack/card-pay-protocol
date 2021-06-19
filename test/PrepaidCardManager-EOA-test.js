@@ -1,8 +1,7 @@
 const PrepaidCardManager = artifacts.require("PrepaidCardManager");
-const RevenuePool = artifacts.require("RevenuePool.sol");
-const SPEND = artifacts.require("SPEND.sol");
 const ProxyFactory = artifacts.require("GnosisSafeProxyFactory");
 const GnosisSafe = artifacts.require("GnosisSafe");
+const TokenManager = artifacts.require("TokenManager");
 
 const { getGnosisSafeFromEventLog } = require("./utils/general");
 
@@ -18,64 +17,46 @@ const { expect } = require("./setup");
 contract("PrepaidCardManager - EOA tests", (accounts) => {
   let daicpxdToken,
     cardcpxdToken,
-    revenuePool,
-    spendToken,
     owner,
     prepaidCardManager,
-    merchantFeeReceiver,
+    exchange,
     gasFeeReceiver,
     supplierEOA,
     cards = [];
 
   before(async () => {
     owner = accounts[0];
-    merchantFeeReceiver = accounts[7];
+    let mockBridgeUtils = accounts[6];
+    let mockActionDispatcher = accounts[7];
     supplierEOA = accounts[8];
     gasFeeReceiver = accounts[9];
 
     let proxyFactory = await ProxyFactory.new();
     let gnosisSafeMasterCopy = await GnosisSafe.new();
 
-    revenuePool = await RevenuePool.new();
-    await revenuePool.initialize(owner);
     prepaidCardManager = await PrepaidCardManager.new();
     await prepaidCardManager.initialize(owner);
+    let tokenManager = await TokenManager.new();
+    await tokenManager.initialize(owner);
 
-    spendToken = await SPEND.new();
-    await spendToken.initialize(owner);
-    await spendToken.addMinter(revenuePool.address);
-
-    let chainlinkOracle, diaPriceOracle;
-    ({
-      daicpxdToken,
-      cardcpxdToken,
-      chainlinkOracle,
-      diaPriceOracle,
-    } = await setupExchanges(owner));
+    ({ daicpxdToken, cardcpxdToken, exchange } = await setupExchanges(owner));
     // Deploy and mint 100 daicpxd token for deployer as owner
     await daicpxdToken.mint(supplierEOA, toTokenUnit(20));
 
-    await revenuePool.setup(
-      prepaidCardManager.address,
-      gnosisSafeMasterCopy.address,
-      proxyFactory.address,
-      spendToken.address,
-      [daicpxdToken.address],
-      merchantFeeReceiver,
-      0,
-      1000,
-      1000000
-    );
-    await revenuePool.createExchange("DAI", chainlinkOracle.address);
-    await revenuePool.createExchange("CARD", diaPriceOracle.address);
+    await tokenManager.setup(mockBridgeUtils, [
+      daicpxdToken.address,
+      cardcpxdToken.address,
+    ]);
 
     await prepaidCardManager.setup(
+      tokenManager.address,
+      mockBridgeUtils,
+      exchange.address,
       gnosisSafeMasterCopy.address,
       proxyFactory.address,
-      revenuePool.address,
+      mockActionDispatcher,
       gasFeeReceiver,
       0,
-      [daicpxdToken.address, cardcpxdToken.address],
       cardcpxdToken.address,
       100,
       500000
