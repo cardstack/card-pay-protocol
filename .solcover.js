@@ -4,4 +4,7 @@ module.exports = {
     // testing
     "contracts/dev/DevDependencies.sol",
   ],
+  providerOptions: {
+    total_accounts: 1000,
+  },
 };

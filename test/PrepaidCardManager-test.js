@@ -56,6 +56,8 @@ contract("PrepaidCardManager", (accounts) => {
     owner,
     issuer,
     customer,
+    customerA,
+    customerB,
     gasFeeReceiver,
     merchantFeeReceiver,
     merchantSafe,
@@ -86,6 +88,15 @@ contract("PrepaidCardManager", (accounts) => {
     await tokenManager.initialize(owner);
     merchantManager = await MerchantManager.new();
     await merchantManager.initialize(owner);
+
+    customerA = findAccountBeforeAddress(
+      accounts.slice(10),
+      prepaidCardManager.address
+    );
+    customerB = findAccountAfterAddress(
+      accounts.slice(10),
+      prepaidCardManager.address
+    );
 
     ({ daicpxdToken, cardcpxdToken, exchange } = await setupExchanges(owner));
     // Deploy and mint 1000 daicpxd token for deployer as owner
@@ -1039,7 +1050,7 @@ contract("PrepaidCardManager", (accounts) => {
         merchantManager.address
       );
       merchantSafe = merchantCreation[0]["merchantSafe"];
-      await cardcpxdToken.mint(prepaidCard.address, toTokenUnit(1000000));
+      await cardcpxdToken.mint(prepaidCard.address, toTokenUnit(100));
     });
 
     after(async () => {
@@ -1125,9 +1136,121 @@ contract("PrepaidCardManager", (accounts) => {
       );
     });
 
+    it("can sign with address lexigraphically before prepaid card manager contract address", async () => {
+      let {
+        prepaidCards: [prepaidCardA],
+      } = await createPrepaidCards(
+        depot,
+        prepaidCardManager,
+        daicpxdToken,
+        daicpxdToken,
+        issuer,
+        relayer,
+        [toTokenUnit(1)]
+      );
+      await transferOwner(
+        prepaidCardManager,
+        prepaidCardA,
+        issuer,
+        customerA,
+        relayer
+      );
+      // mint gas token token for prepaid card
+      await cardcpxdToken.mint(prepaidCardA.address, toTokenUnit(100));
+
+      let startingPrepaidCardDaicpxdBalance = await getBalance(
+        daicpxdToken,
+        prepaidCardA.address
+      );
+      let startingRevenuePoolDaicpxdBalance = await getBalance(
+        daicpxdToken,
+        revenuePool.address
+      );
+      await payMerchant(
+        prepaidCardManager,
+        prepaidCardA,
+        daicpxdToken,
+        cardcpxdToken,
+        relayer,
+        customerA,
+        merchantSafe,
+        100
+      );
+      await shouldBeSameBalance(
+        daicpxdToken,
+        revenuePool.address,
+        startingRevenuePoolDaicpxdBalance.add(toTokenUnit(1))
+      );
+      await shouldBeSameBalance(
+        daicpxdToken,
+        prepaidCardA.address,
+        startingPrepaidCardDaicpxdBalance.sub(toTokenUnit(1))
+      );
+    });
+
+    it("can sign with address lexigraphically after prepaid card manager contract address", async () => {
+      let {
+        prepaidCards: [prepaidCardB],
+      } = await createPrepaidCards(
+        depot,
+        prepaidCardManager,
+        daicpxdToken,
+        daicpxdToken,
+        issuer,
+        relayer,
+        [toTokenUnit(1)]
+      );
+      await transferOwner(
+        prepaidCardManager,
+        prepaidCardB,
+        issuer,
+        customerB,
+        relayer
+      );
+      // mint gas token token for prepaid card
+      await cardcpxdToken.mint(prepaidCardB.address, toTokenUnit(100));
+
+      let startingPrepaidCardDaicpxdBalance = await getBalance(
+        daicpxdToken,
+        prepaidCardB.address
+      );
+      let startingRevenuePoolDaicpxdBalance = await getBalance(
+        daicpxdToken,
+        revenuePool.address
+      );
+      await payMerchant(
+        prepaidCardManager,
+        prepaidCardB,
+        daicpxdToken,
+        cardcpxdToken,
+        relayer,
+        customerB,
+        merchantSafe,
+        100
+      );
+      await shouldBeSameBalance(
+        daicpxdToken,
+        revenuePool.address,
+        startingRevenuePoolDaicpxdBalance.add(toTokenUnit(1))
+      );
+      await shouldBeSameBalance(
+        daicpxdToken,
+        prepaidCardB.address,
+        startingPrepaidCardDaicpxdBalance.sub(toTokenUnit(1))
+      );
+    });
+
     // These tests are stateful (ugh), so the prepaidCards[2] balance is now 4
     // daicpxd due to the payment of 1 token made in the previous test
     it("can not send more funds to a merchant than the balance of the prepaid card", async () => {
+      let startingPrepaidCardDaicpxdBalance = await getBalance(
+        daicpxdToken,
+        prepaidCard.address
+      );
+      let startingRevenuePoolDaicpxdBalance = await getBalance(
+        daicpxdToken,
+        revenuePool.address
+      );
       await payMerchant(
         prepaidCardManager,
         prepaidCard,
@@ -1146,16 +1269,24 @@ contract("PrepaidCardManager", (accounts) => {
       await shouldBeSameBalance(
         daicpxdToken,
         revenuePool.address,
-        toTokenUnit(1)
+        startingRevenuePoolDaicpxdBalance
       );
       await shouldBeSameBalance(
         daicpxdToken,
         prepaidCard.address,
-        toTokenUnit(4)
+        startingPrepaidCardDaicpxdBalance
       );
     });
 
     it("can not send less funds to a merchant than the minimum merchant payment amount", async () => {
+      let startingPrepaidCardDaicpxdBalance = await getBalance(
+        daicpxdToken,
+        prepaidCard.address
+      );
+      let startingRevenuePoolDaicpxdBalance = await getBalance(
+        daicpxdToken,
+        revenuePool.address
+      );
       await payMerchant(
         prepaidCardManager,
         prepaidCard,
@@ -1169,12 +1300,12 @@ contract("PrepaidCardManager", (accounts) => {
       await shouldBeSameBalance(
         daicpxdToken,
         revenuePool.address,
-        toTokenUnit(1)
+        startingRevenuePoolDaicpxdBalance
       );
       await shouldBeSameBalance(
         daicpxdToken,
         prepaidCard.address,
-        toTokenUnit(4)
+        startingPrepaidCardDaicpxdBalance
       );
     });
   });
@@ -1185,3 +1316,25 @@ contract("PrepaidCardManager", (accounts) => {
     });
   });
 });
+
+function findAccountBeforeAddress(accounts, address) {
+  for (let account of accounts) {
+    if (account.toLowerCase() < address.toLowerCase()) {
+      return account;
+    }
+  }
+  throw new Error(
+    `Could not find an account address that is lexigraphically before the address ${address} from ${accounts.length} possibilities. Make sure you are using ganache (yarn ganache:start) to run your private chain and try increasing the number of accounts to test with.`
+  );
+}
+
+function findAccountAfterAddress(accounts, address) {
+  for (let account of accounts) {
+    if (account.toLowerCase() > address.toLowerCase()) {
+      return account;
+    }
+  }
+  throw new Error(
+    `Could not find an account address that is lexigraphically after the address ${address} from ${accounts.length} possibilities. Make sure you are using ganache (yarn ganache:start) to run your private chain and try increasing the number of accounts to test with.`
+  );
+}

@@ -583,8 +583,6 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     bytes memory contractSignature = getContractSignature();
     signatures = new bytes(130); // 2 x 65 bytes
     // Gnosis safe require signature must be sort by owner' address.
-    // For test coverage, unsure how to test in both of these branches since
-    // the address of this contract is pretty arbitrary
     if (address(this) > owner) {
       for (uint256 i = 0; i < signature.length; i++) {
         signatures[i] = signature[i];
