@@ -42,8 +42,8 @@ The `SPEND` token contract is a simple token contract that has `mint` and `burn`
 ### Price Oracle
 In order to determine the amount of SPEND token to mint for *Customer* payments to *Merchants, we require a price oracle to convert the CPXD stable coin to USD. To support this we will leverage price oracles from both chainlink and DIA. Chainlink will provide stablecoin USD rates, and DIA will provide CARD USD rates. Chainlink and DIA use different interfaces for their onchain price feeds. In order to present a consolidated representation of various token prices we have created an `IPriceOracle` interface that represents the consolidated interface for all our price oracles, as well as we have a `ChainlinkFeedAdapter` and a `DIAOracleAdapter` contract that implements the `IPriceOracle` interface. These adapter contracts allow us to wrap the on-chain feeds from these two different token price sources into a consolidated interface that we can query from our `RevenuePool` contract. We also provide the token rates in units of ETH in order to support various web client needd.
 
-### Reward Pool 
-The `RewardPool` contract enables rewards to be distributed *Merchants*, *Customers* and *Suppliers*. An offchain service, Tally, will be able to submit a merkle root, a hash to indicate how many tokens each party can redeem within each period cycle. Any party is able to `withdraw` the amount of token redeemable as long as a correct proof is provided. These proofs will be attainable from the Tally service. 
+### Reward Pool
+The `RewardPool` contract enables rewards to be distributed *Merchants*, *Customers* and *Suppliers*. An offchain service, Tally, will be able to submit a merkle root, a hash to indicate how many tokens each party can redeem within each period cycle. Any party is able to `withdraw` the amount of token redeemable as long as a correct proof is provided. These proofs will be attainable from the Tally service.
 
 ## Prerequisites
 The following prerequisites are required for this project:
@@ -58,6 +58,11 @@ yarn install
 ```
 
 ## Testing
+First start your private blockchain
+```sh
+yarn ganache:start
+```
+
 To run all the tests execute:
 ```sh
 yarn test
@@ -68,6 +73,16 @@ The tests include a gas report which provides the min, max, and avg gas consumed
 To generate the test coverage report execute:
 ```sh
 yarn test:coverage
+```
+
+When you are done with testing, you can stop your private blockchain by running:
+```sh
+yarn ganache:stop
+```
+
+Solidity contracts has a maximum deployed bytecode size of 24KB. When a contract is larger than this, you'll receive out-of-gas errors when attempting to deploy it. In our tests we attempt a deploy of all our contracts to ensure they are deployable. Additionally you can generate a report of all the contract sizes to see if there are any contracts nearing or exceeding the max 24KB limit.
+```sh
+yarn test:size
 ```
 
 ## Deployment

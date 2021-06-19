@@ -18,7 +18,7 @@ jobs:
         run: yarn install
 
       - name: Test
-        run: yarn test
+        run: yarn ganache:start && yarn test && yarn ganache:stop
 
   size-check:
     runs-on: ubuntu-latest
@@ -42,14 +42,10 @@ jobs:
         run: yarn install
 
       - name: Generate coverage report
-        run: yarn test:coverage
+        run: yarn ganache:start && yarn test:coverage && yarn ganache:stop
 
       - name: Very Good Coverage
         uses: VeryGoodOpenSource/very_good_coverage@v1.1.1
         with:
           path: "./coverage/lcov.info"
-          # skips coverage for branch that in PrepaidCardManager that looks like
-          # it's not possible to instrument--as it relies on the sort order of
-          # the contract address of contracts deployed in tests vs test EOA
-          # addresses
-          min_coverage: 99.00
+          min_coverage: 100
