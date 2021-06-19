@@ -295,6 +295,13 @@ contract("RewardPool", function (accounts) {
           .should.be.rejectedWith(Error, "Bytearray provided has wrong shape");
       });
 
+      it("proof that is too big returns revert", async function () {
+        const randomProof = web3.utils.randomHex(51 * 32);
+        await rewardPool
+          .balanceForProofWithAddress(cardcpxdToken.address, payee, randomProof)
+          .should.be.rejectedWith(Error, "Bytearray provided is too big");
+      });
+
       it("can handle balance for proofs from different payment cycles", async function () {
         let updatedPayments = payments.slice();
         let updatedPaymentAmount = toTokenUnit(20);
