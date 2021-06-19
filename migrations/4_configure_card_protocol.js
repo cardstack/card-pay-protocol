@@ -1,4 +1,5 @@
 const { readJSONSync, existsSync } = require("node-fs-extra");
+const { resolve } = require("path");
 const Web3 = require("web3");
 const { sendTxnWithRetry: sendTx } = require("../lib/utils");
 const { fromWei } = Web3.utils;
@@ -45,7 +46,12 @@ module.exports = async function (_deployer, network) {
   if (["ganache", "test", "soliditycoverage"].includes(network)) {
     return;
   }
-  const addressesFile = `./.openzeppelin/addresses-${network}.json`;
+  const addressesFile = resolve(
+    __dirname,
+    "..",
+    ".openzeppelin",
+    `addresses-${network}.json`
+  );
   if (!existsSync(addressesFile)) {
     throw new Error(`Cannot read from the addresses file ${addressesFile}`);
   }
