@@ -176,12 +176,14 @@ Deploying new contract ${contractId}...`);
     }
 
     if (reverify.length > 0) {
-      console.log("Implementation contract verifications:");
+      console.log(`
+Implementation contract verifications:`);
       for (let { name, address } of reverify) {
         console.log(
           `npx truffle run blockscout ${name}@${address} --network ${network} --license MIT`
         );
       }
+      console.log();
     }
   }
 };
