@@ -55,6 +55,19 @@ module.exports = {
       skipDryRun: true,
       gasPrice: 1000000000,
     },
+    kovan: {
+      provider: () => {
+        return new TrezorWalletProvider(
+          `https://kovan.infura.io/v3/${process.env.INFURA_PROJECT_ID}`,
+          {
+            chainId: 42,
+          }
+        );
+      },
+      network_id: 42,
+      skipDryRun: true,
+      gasPrice: 1000000000,
+    },
     xdai: {
       provider: function () {
         return new TrezorWalletProvider("https://rpc.xdaichain.com/", {
