@@ -340,10 +340,12 @@ exports.transferOwner = async function (
   prepaidCard,
   oldOwner,
   newOwner,
+  txGasToken,
   relayer
 ) {
   let packData = packExecutionData({
     to: prepaidCard.address,
+    txGasToken,
     data: await prepaidCardManager.getTransferCardData(
       prepaidCard.address,
       newOwner

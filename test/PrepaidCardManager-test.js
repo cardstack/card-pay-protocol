@@ -35,7 +35,7 @@ const {
 
 const { expect, TOKEN_DETAIL_DATA, toBN } = require("./setup");
 
-contract("PrepaidCardManager", (accounts) => {
+contract.only("PrepaidCardManager", (accounts) => {
   let MINIMUM_AMOUNT,
     MAXIMUM_AMOUNT,
     revenuePool,
@@ -170,6 +170,8 @@ contract("PrepaidCardManager", (accounts) => {
         MINIMUM_AMOUNT,
         MAXIMUM_AMOUNT
       );
+      await prepaidCardManager.addGasPolicy("transfer", false, true);
+      await prepaidCardManager.addGasPolicy("split", true, true);
     });
 
     it("should initialize parameters", async () => {
@@ -876,6 +878,7 @@ contract("PrepaidCardManager", (accounts) => {
       ];
       let packData = packExecutionData({
         to: daicpxdToken.address,
+        txGasToken: daicpxdToken.address,
         data: await prepaidCardManager.getSplitCardData(...splitCardData),
       });
       let safeTxArr = Object.keys(packData).map((key) => packData[key]);
@@ -938,6 +941,7 @@ contract("PrepaidCardManager", (accounts) => {
         prepaidCard,
         issuer,
         customer,
+        cardcpxdToken.address,
         relayer
       );
 
@@ -975,8 +979,10 @@ contract("PrepaidCardManager", (accounts) => {
 
   describe("transfer a prepaid card", () => {
     let prepaidCard;
-    before(() => {
+    before(async () => {
       prepaidCard = prepaidCards[2];
+      // mint gas token token for prepaid card
+      await cardcpxdToken.mint(prepaidCard.address, toTokenUnit(100));
     });
 
     // Warning this test is stateful, all the other tests rely on this prepaid
@@ -992,6 +998,7 @@ contract("PrepaidCardManager", (accounts) => {
         prepaidCard,
         issuer,
         customer,
+        cardcpxdToken.address,
         relayer
       );
 
@@ -1012,6 +1019,7 @@ contract("PrepaidCardManager", (accounts) => {
         prepaidCard,
         customer,
         otherCustomer,
+        cardcpxdToken.address,
         relayer
       ).should.be.rejectedWith(Error, "Has already been transferred");
     });
@@ -1039,6 +1047,7 @@ contract("PrepaidCardManager", (accounts) => {
         merchantPrepaidCard,
         issuer,
         merchant,
+        cardcpxdToken.address,
         relayer
       );
       // mint gas token token for prepaid card
@@ -1153,6 +1162,7 @@ contract("PrepaidCardManager", (accounts) => {
         prepaidCardA,
         issuer,
         customerA,
+        cardcpxdToken.address,
         relayer
       );
       // mint gas token token for prepaid card
@@ -1205,6 +1215,7 @@ contract("PrepaidCardManager", (accounts) => {
         prepaidCardB,
         issuer,
         customerB,
+        cardcpxdToken.address,
         relayer
       );
       // mint gas token token for prepaid card

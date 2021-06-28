@@ -23,6 +23,14 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     bool reloadable;
     bool canPayNonMerchants;
   }
+  struct GasPolicy {
+    bool useIssuingTokenForGas;
+    bool payGasRecipient;
+  }
+  struct MaterializedGasPolicy {
+    address gasToken;
+    address gasReceiver;
+  }
 
   event Setup();
   event CreatePrepaidCard(
@@ -40,6 +48,11 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     address previousOwner,
     address newOwner
   );
+  event GasPolicyAdded(
+    string action,
+    bool useIssuingTokenForGas,
+    bool payGasRecipient
+  );
 
   bytes4 public constant SWAP_OWNER = 0xe318b52b; //swapOwner(address,address,address)
   bytes4 public constant TRANSFER_AND_CALL = 0x4000aea0; //transferAndCall(address,uint256,bytes)
@@ -55,6 +68,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
   address public exchangeAddress;
   address public tokenManager;
   address public supplierManager;
+  mapping(string => GasPolicy) public gasPolicies;
 
   /**
    * @dev Setup function sets initial storage of contract.
@@ -93,6 +107,29 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     maximumFaceValue = _maxAmount;
     Safe.setup(_gsMasterCopy, _gsProxyFactory);
     emit Setup();
+  }
+
+  /**
+   * @dev Adds a new gas policy for a send action
+   * @param action the send action the policy is for
+   * @param useIssuingTokenForGas true if we want to use the issuing token for
+   * the prepaid card to pay for gas. This has the effect of deducting from the
+   * face value of the card. If false, then we use the gas token (CARD.CPXD) to
+   * pay for gas.
+   * @param payGasRecipient true if we want the gas recipient (the relay server
+   * txn funder) to recieve the gas payment. If false, then the prepaid card will
+   * pay itself for gas and we'll recoup the gas via some other means (e.g.
+   * merchant fees)
+   */
+  function addGasPolicy(
+    string calldata action,
+    bool useIssuingTokenForGas,
+    bool payGasRecipient
+  ) external onlyOwner returns (bool) {
+    gasPolicies[action].useIssuingTokenForGas = useIssuingTokenForGas;
+    gasPolicies[action].payGasRecipient = payGasRecipient;
+    emit GasPolicyAdded(action, useIssuingTokenForGas, payGasRecipient);
+    return true;
   }
 
   /**
@@ -172,13 +209,15 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
       cardDetails[prepaidCard].issuer == previousOwner,
       "Has already been transferred"
     );
+    MaterializedGasPolicy memory gasPolicy =
+      getMaterializedGasPolicy("transfer", prepaidCard);
     execTransaction(
       prepaidCard,
       prepaidCard,
       getTransferCardData(prepaidCard, newOwner),
       addContractSignature(prepaidCard, previousOwnerSignature),
-      address(0),
-      address(0)
+      gasPolicy.gasToken,
+      address(uint160(gasPolicy.gasReceiver))
     );
     emit TransferredPrepaidCard(prepaidCard, previousOwner, newOwner);
 
@@ -237,14 +276,16 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
       ),
       "requested rate is beyond the allowable bounds"
     );
+    MaterializedGasPolicy memory gasPolicy =
+      getMaterializedGasPolicy(action, prepaidCard);
     return
       execTransaction(
         prepaidCard,
         cardDetails[prepaidCard].issueToken,
         getSendData(prepaidCard, spendAmount, rateLock, action, data),
         addContractSignature(prepaidCard, ownerSignature),
-        gasToken, // TODO we should look up the gas token to use for the requested action
-        prepaidCard // TODO we should look up the gas receiver to use for the requested action
+        gasPolicy.gasToken,
+        address(uint160(gasPolicy.gasReceiver))
       );
   }
 
@@ -301,6 +342,8 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
       issuingTokenAmounts.length == spendAmounts.length,
       "the amount arrays have differing lengths"
     );
+    MaterializedGasPolicy memory gasPolicy =
+      getMaterializedGasPolicy("split", prepaidCard);
     return
       execTransaction(
         prepaidCard,
@@ -312,8 +355,8 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
           customizationDID
         ),
         addContractSignature(prepaidCard, ownerSignature),
-        address(0),
-        address(0)
+        gasPolicy.gasToken,
+        address(uint160(gasPolicy.gasReceiver))
       );
   }
 
@@ -502,13 +545,16 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
 
   /**
    * @dev adapter execTransaction for prepaid card(gnosis safe)
-   * @param card Prepaid Card's address
+   * @param prepaidCard Prepaid Card's address
    * @param to Destination address of Safe transaction
    * @param data Data payload of Safe transaction
    * @param signatures Packed signature data ({bytes32 r}{bytes32 s}{uint8 v})
+   * @param _gasToken The token to use to pay for gas
+   * @param _gasRecipient the address that should receive the gas payment
+   * (address(0) is used to specify the relay txn funder)
    */
   function execTransaction(
-    address payable card,
+    address payable prepaidCard,
     address to,
     bytes memory data,
     bytes memory signatures,
@@ -516,7 +562,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     address payable _gasRecipient
   ) private returns (bool) {
     require(
-      GnosisSafe(card).execTransaction(
+      GnosisSafe(prepaidCard).execTransaction(
         to,
         0,
         data,
@@ -532,6 +578,20 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     );
 
     return true;
+  }
+
+  function getMaterializedGasPolicy(string memory action, address prepaidCard)
+    internal
+    view
+    returns (MaterializedGasPolicy memory)
+  {
+    return
+      MaterializedGasPolicy(
+        gasPolicies[action].useIssuingTokenForGas
+          ? cardDetails[prepaidCard].issueToken
+          : gasToken,
+        gasPolicies[action].payGasRecipient ? address(0) : prepaidCard
+      );
   }
 
   /**
