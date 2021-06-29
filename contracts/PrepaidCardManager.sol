@@ -69,6 +69,15 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
   address public tokenManager;
   address public supplierManager;
   mapping(string => GasPolicy) public gasPolicies;
+  mapping(address => bool) public hasBeenSplit;
+
+  modifier onlyHandlers() {
+    require(
+      ActionDispatcher(actionDispatcher).isHandler(msg.sender),
+      "caller is not a registered action handler"
+    );
+    _;
+  }
 
   /**
    * @dev Setup function sets initial storage of contract.
@@ -161,6 +170,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
       issuingTokenAmounts.length == spendAmounts.length,
       "the amount arrays have differing lengths"
     );
+
     // The spend amounts are for reporting purposes only, there is no on-chain
     // effect from this value. Although, it might not be a bad idea that spend
     // amounts line up with the issuing token amounts--albiet we'd need to
@@ -174,6 +184,15 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
       spendAmounts,
       customizationDID
     );
+    return true;
+  }
+
+  function setPrepaidCardUsedForSplit(address prepaidCard)
+    external
+    onlyHandlers
+    returns (bool)
+  {
+    hasBeenSplit[prepaidCard] = true;
     return true;
   }
 
@@ -191,58 +210,6 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
       (Exchange(exchangeAddress).convertFromSpend(token, spendFaceValue))
         .add(gasFee(token))
         .add(100); // this is to deal with any rounding errors
-  }
-
-  /**
-   * @dev sell card for customer
-   * @param prepaidCard Prepaid Card's address
-   * @param newOwner the new owner of the prepaid card (the customer)
-   * @param previousOwnerSignature Packed signature data ({bytes32 r}{bytes32 s}{uint8 v})
-   */
-  function transferCard(
-    address payable prepaidCard,
-    address newOwner,
-    bytes calldata previousOwnerSignature
-  ) external payable returns (bool) {
-    address previousOwner = getPrepaidCardOwner(prepaidCard);
-    require(
-      cardDetails[prepaidCard].issuer == previousOwner,
-      "Has already been transferred"
-    );
-    MaterializedGasPolicy memory gasPolicy =
-      getMaterializedGasPolicy("transfer", prepaidCard);
-    execTransaction(
-      prepaidCard,
-      prepaidCard,
-      getTransferCardData(prepaidCard, newOwner),
-      addContractSignature(prepaidCard, previousOwnerSignature),
-      gasPolicy.gasToken,
-      address(uint160(gasPolicy.gasReceiver))
-    );
-    emit TransferredPrepaidCard(prepaidCard, previousOwner, newOwner);
-
-    return true;
-  }
-
-  /**
-   * @dev Returns the bytes that are hashed to be signed by owner
-   * @param prepaidCard the prepaid card address
-   * @param newOwner Customer's address
-   */
-  function getTransferCardData(address payable prepaidCard, address newOwner)
-    public
-    view
-    returns (bytes memory)
-  {
-    // Swap owner
-    address previousOwner = getPrepaidCardOwner(prepaidCard);
-    return
-      abi.encodeWithSelector(
-        SWAP_OWNER,
-        address(this),
-        previousOwner,
-        newOwner
-      );
   }
 
   /**
@@ -320,77 +287,58 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
   }
 
   /**
-   * @dev Split Current Prepaid Card into Multiple Cards
+   * @dev sell card for customer
    * @param prepaidCard Prepaid Card's address
-   * @param issuingTokenAmounts Array of issuing token maounts to fund the new prepaid cards
-   * @param spendAmounts array of spend amounts that represent the desired face value (for reporting only)
-   * @param customizationDID the customization DID for the new prepaid cards
-   * @param ownerSignature Packed signature data ({bytes32 r}{bytes32 s}{uint8 v})
+   * @param newOwner the new owner of the prepaid card (the customer)
+   * @param previousOwnerSignature Packed signature data ({bytes32 r}{bytes32 s}{uint8 v})
    */
-  function splitCard(
+  function transferCard(
     address payable prepaidCard,
-    uint256[] calldata issuingTokenAmounts,
-    uint256[] calldata spendAmounts,
-    string calldata customizationDID,
-    bytes calldata ownerSignature
+    address newOwner,
+    bytes calldata previousOwnerSignature
   ) external payable returns (bool) {
+    address previousOwner = getPrepaidCardOwner(prepaidCard);
     require(
-      cardDetails[prepaidCard].issuer == getPrepaidCardOwner(prepaidCard),
-      "only issuer can split card"
+      cardDetails[prepaidCard].issuer == previousOwner,
+      "Has already been transferred"
     );
     require(
-      issuingTokenAmounts.length == spendAmounts.length,
-      "the amount arrays have differing lengths"
+      !hasBeenSplit[prepaidCard],
+      "Cannot transfer prepaid card that funded split"
     );
     MaterializedGasPolicy memory gasPolicy =
-      getMaterializedGasPolicy("split", prepaidCard);
-    return
-      execTransaction(
-        prepaidCard,
-        cardDetails[prepaidCard].issueToken,
-        getSplitCardData(
-          prepaidCard,
-          issuingTokenAmounts,
-          spendAmounts,
-          customizationDID
-        ),
-        addContractSignature(prepaidCard, ownerSignature),
-        gasPolicy.gasToken,
-        address(uint160(gasPolicy.gasReceiver))
-      );
+      getMaterializedGasPolicy("transfer", prepaidCard);
+    execTransaction(
+      prepaidCard,
+      prepaidCard,
+      getTransferCardData(prepaidCard, newOwner),
+      addContractSignature(prepaidCard, previousOwnerSignature),
+      gasPolicy.gasToken,
+      address(uint160(gasPolicy.gasReceiver))
+    );
+    emit TransferredPrepaidCard(prepaidCard, previousOwner, newOwner);
+
+    return true;
   }
 
   /**
-   * @dev Returns the bytes that are hashed to be signed by owner.
+   * @dev Returns the bytes that are hashed to be signed by owner
    * @param prepaidCard the prepaid card address
-   * @param issuingTokenAmounts Array of issuing token maounts to fund the new prepaid cards
-   * @param spendAmounts array of spend amounts that represent the desired face value (for reporting only)
-   * @param customizationDID the customization DID for the new prepaid cards
+   * @param newOwner Customer's address
    */
-  function getSplitCardData(
-    address payable prepaidCard,
-    uint256[] memory issuingTokenAmounts,
-    uint256[] memory spendAmounts,
-    string memory customizationDID
-  ) public view returns (bytes memory) {
-    require(
-      issuingTokenAmounts.length == spendAmounts.length,
-      "the amount arrays have differing lengths"
-    );
-    address owner = getPrepaidCardOwner(prepaidCard);
-    uint256 total = 0;
-
-    for (uint256 i = 0; i < issuingTokenAmounts.length; i++) {
-      total = total.add(issuingTokenAmounts[i]);
-    }
-
-    // Transfer token to this contract and call _createMultiplePrepaidCards
+  function getTransferCardData(address payable prepaidCard, address newOwner)
+    public
+    view
+    returns (bytes memory)
+  {
+    // Swap owner
+    address previousOwner = getPrepaidCardOwner(prepaidCard);
     return
       abi.encodeWithSelector(
-        TRANSFER_AND_CALL,
+        SWAP_OWNER,
         address(this),
-        total,
-        abi.encode(owner, issuingTokenAmounts, spendAmounts, customizationDID)
+        previousOwner,
+        newOwner
       );
   }
 
@@ -425,6 +373,14 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     address[] memory owners = GnosisSafe(prepaidCard).getOwners();
     require(owners.length == 2, "unexpected number of owners for prepaid card");
     return owners[0] == address(this) ? owners[1] : owners[0];
+  }
+
+  function getPrepaidCardIssuer(address prepaidCard)
+    public
+    view
+    returns (address)
+  {
+    return cardDetails[prepaidCard].issuer;
   }
 
   /**

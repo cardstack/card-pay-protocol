@@ -8,6 +8,7 @@ const AbiCoder = require("web3-eth-abi");
 const Exchange = artifacts.require("Exchange");
 const PayMerchantHandler = artifacts.require("PayMerchantHandler");
 const RegisterMerchantHandler = artifacts.require("RegisterMerchantHandler");
+const SplitPrepaidCardHandler = artifacts.require("SplitPrepaidCardHandler");
 const { toBN } = require("web3-utils");
 const { TOKEN_DETAIL_DATA } = require("../setup");
 const eventABIs = require("./constant/eventABIs");
@@ -174,6 +175,7 @@ exports.setupExchanges = async function (owner) {
 };
 
 exports.addActionHandlers = async function (
+  prepaidCardManager,
   revenuePool,
   actionDispatcher,
   merchantManager,
@@ -199,7 +201,15 @@ exports.addActionHandlers = async function (
     exchangeAddress
   );
 
+  let splitPrepaidCardHandler = await SplitPrepaidCardHandler.new();
+  await splitPrepaidCardHandler.initialize(owner);
+  await splitPrepaidCardHandler.setup(
+    actionDispatcher.address,
+    prepaidCardManager.address
+  );
+
   await actionDispatcher.addHandler(payMerchantHandler.address, "payMerchant");
+  await actionDispatcher.addHandler(splitPrepaidCardHandler.address, "split");
   await actionDispatcher.addHandler(
     registerMerchantHandler.address,
     "registerMerchant"
@@ -208,6 +218,7 @@ exports.addActionHandlers = async function (
   return {
     payMerchantHandler,
     registerMerchantHandler,
+    splitPrepaidCardHandler,
   };
 };
 
@@ -412,6 +423,60 @@ exports.registerMerchant = async function (
     usdRate,
     "registerMerchant",
     AbiCoder.encodeParameters(["string"], [infoDID]),
+    signature,
+    { from: relayer }
+  );
+};
+
+exports.splitPrepaidCard = async function (
+  prepaidCardManager,
+  prepaidCard,
+  issuingToken,
+  relayer,
+  issuer,
+  spendAmount,
+  issuingTokenAmounts,
+  customizationDID,
+  usdRate
+) {
+  if (usdRate == null) {
+    usdRate = 100000000; // 1 DAI = 1 USD
+  }
+  let data = await prepaidCardManager.getSendData(
+    prepaidCard.address,
+    spendAmount,
+    usdRate,
+    "split",
+    AbiCoder.encodeParameters(
+      ["uint256[]", "uint256[]", "string"],
+      [issuingTokenAmounts, issuingTokenAmounts, customizationDID]
+    )
+  );
+
+  let signature = await signSafeTransaction(
+    issuingToken.address,
+    0,
+    data,
+    0,
+    0,
+    0,
+    0,
+    issuingToken.address, // we use the issuing token for gas
+    ZERO_ADDRESS,
+    await prepaidCard.nonce(),
+    issuer,
+    prepaidCard
+  );
+
+  return await prepaidCardManager.send(
+    prepaidCard.address,
+    spendAmount,
+    usdRate,
+    "split",
+    AbiCoder.encodeParameters(
+      ["uint256[]", "uint256[]", "string"],
+      [issuingTokenAmounts, issuingTokenAmounts, customizationDID]
+    ),
     signature,
     { from: relayer }
   );

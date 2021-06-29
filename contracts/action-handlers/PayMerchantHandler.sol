@@ -22,6 +22,7 @@ contract PayMerchantHandler is Ownable, Versionable {
     uint256 issuingTokenAmount,
     uint256 spendAmount
   );
+  event Setup();
 
   address public revenuePoolAddress;
   address public merchantManager;
@@ -38,6 +39,8 @@ contract PayMerchantHandler is Ownable, Versionable {
     actionDispatcher = _actionDispatcher;
     revenuePoolAddress = _revenuePoolAddress;
     spendTokenAddress = _spendTokenAddress;
+    emit Setup();
+    return true;
   }
 
   /**
@@ -45,7 +48,7 @@ contract PayMerchantHandler is Ownable, Versionable {
    * handle a prepaid card payment to a merchant which includes minting
    * spend into the merchant's safe, collecting protocol fees, and increases the
    * merchants unclaimed revenue by the issuing token amount minus fees
-   * @param from the token sender (should be the revenue pool)
+   * @param from the token sender (should be the action dispatcher)
    * @param amount the amount of tokens being transferred
    * @param data the data encoded as (address prepaidCard, uint256 spendAmount, bytes actionData)
    * where actionData is encoded as (address merchantSafe)

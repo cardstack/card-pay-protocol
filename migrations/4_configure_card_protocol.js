@@ -12,6 +12,7 @@ const RewardPool = artifacts.require("RewardPool");
 const Exchange = artifacts.require("Exchange");
 const PayMerchantHandler = artifacts.require("PayMerchantHandler");
 const RegisterMerchantHandler = artifacts.require("RegisterMerchantHandler");
+const SplitPrepaidCardHandler = artifacts.require("SplitPrepaidCardHandler");
 const ActionDispatcher = artifacts.require("ActionDispatcher");
 const TokenManager = artifacts.require("TokenManager");
 const SupplierManager = artifacts.require("SupplierManager");
@@ -73,6 +74,10 @@ module.exports = async function (_deployer, network) {
   );
   let registerMerchantHandlerAddress = getAddress(
     "RegisterMerchantHandler",
+    proxyAddresses
+  );
+  let splitPrepaidCardHandlerAddress = getAddress(
+    "SplitPrepaidCardHandler",
     proxyAddresses
   );
   let revenuePool = await RevenuePool.at(revenuePoolAddress);
@@ -194,6 +199,12 @@ Configuring ActionDispatcher ${actionDispatcherAddress}
       "registerMerchant"
     )
   );
+  console.log(
+    `  adding action handler for "split": ${splitPrepaidCardHandlerAddress}`
+  );
+  await sendTx(() =>
+    actionDispatcher.addHandler(splitPrepaidCardHandlerAddress, "split")
+  );
 
   // PayMerchantHandler configuration
   let payMerchantHandler = await PayMerchantHandler.at(
@@ -235,6 +246,22 @@ Configuring RegisterMerchantHandler ${registerMerchantHandlerAddress}
     )
   );
 
+  // SplitPrepaidCardHandler configuration
+  let splitPrepaidCardHandler = await SplitPrepaidCardHandler.at(
+    splitPrepaidCardHandlerAddress
+  );
+  console.log(`
+==================================================
+Configuring SplitPrepaidCardHandler ${splitPrepaidCardHandler}
+  ActionDispatcher address: ${actionDispatcherAddress}
+  PrepaidCardManager address: ${prepaidCardManagerAddress}`);
+  await sendTx(() =>
+    registerMerchantHandler.setup(
+      actionDispatcherAddress,
+      prepaidCardManagerAddress
+    )
+  );
+
   // PrepaidCardManager configuration
   let prepaidCardManager = await PrepaidCardManager.at(
     prepaidCardManagerAddress
@@ -268,6 +295,14 @@ Configuring PrepaidCardManager ${prepaidCardManagerAddress}
       MAXIMUM_AMOUNT
     )
   );
+  console.log(
+    `  setting gas policy for "transfer" to *not* use issuing token for gas and to pay gas recipient`
+  );
+  await sendTx(() => prepaidCardManager.addGasPolicy("transfer", false, true));
+  console.log(
+    `  setting gas policy for "split" to use issuing token for gas and to pay gas recipient`
+  );
+  await sendTx(() => prepaidCardManager.addGasPolicy("split", true, true));
 
   // RewardPool configuration
   let rewardPool = await RewardPool.at(rewardPoolAddress);

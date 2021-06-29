@@ -10,14 +10,11 @@ const SupplierManager = artifacts.require("SupplierManager");
 const MerchantManager = artifacts.require("MerchantManager");
 
 const eventABIs = require("./utils/constant/eventABIs");
-
 const {
-  signSafeTransaction,
   ZERO_ADDRESS,
   getParamsFromEvent,
   getGnosisSafeFromEventLog,
 } = require("./utils/general");
-
 const {
   toTokenUnit,
   shouldBeSameBalance,
@@ -28,12 +25,13 @@ const {
   createPrepaidCards,
   payMerchant,
   transferOwner,
-  packExecutionData,
   createDepotFromSupplierMgr,
   addActionHandlers,
+  splitPrepaidCard,
 } = require("./utils/helper");
 
 const { expect, TOKEN_DETAIL_DATA, toBN } = require("./setup");
+const AbiCoder = require("web3-eth-abi");
 
 contract.only("PrepaidCardManager", (accounts) => {
   let MINIMUM_AMOUNT,
@@ -52,6 +50,7 @@ contract.only("PrepaidCardManager", (accounts) => {
     supplierManager,
     actionDispatcher,
     payMerchantHandler,
+    splitPrepaidCardHandler,
     merchantManager,
     owner,
     issuer,
@@ -120,7 +119,8 @@ contract.only("PrepaidCardManager", (accounts) => {
       0,
       1000
     );
-    ({ payMerchantHandler } = await addActionHandlers(
+    ({ payMerchantHandler, splitPrepaidCardHandler } = await addActionHandlers(
+      prepaidCardManager,
       revenuePool,
       actionDispatcher,
       merchantManager,
@@ -870,31 +870,15 @@ contract.only("PrepaidCardManager", (accounts) => {
   describe("split prepaid card", () => {
     it("can split a card (from 1 prepaid card with 2 tokens to 2 cards with 1 token each)", async () => {
       let amounts = [1, 1].map((amount) => toTokenUnit(amount).toString());
-      let splitCardData = [
-        prepaidCards[1].address,
-        amounts,
-        amounts,
-        "did:cardstack:56d6fc54-d399-443b-8778-d7e4512d3a49",
-      ];
-      let packData = packExecutionData({
-        to: daicpxdToken.address,
-        txGasToken: daicpxdToken.address,
-        data: await prepaidCardManager.getSplitCardData(...splitCardData),
-      });
-      let safeTxArr = Object.keys(packData).map((key) => packData[key]);
-      let signature = await signSafeTransaction(
-        ...safeTxArr,
-        await prepaidCards[1].nonce(),
+      let safeTx = await splitPrepaidCard(
+        prepaidCardManager,
+        prepaidCards[1],
+        daicpxdToken,
+        relayer,
         issuer,
-        prepaidCards[1]
-      );
-
-      let safeTx = await prepaidCardManager.splitCard(
-        ...splitCardData,
-        signature,
-        {
-          from: relayer,
-        }
+        200,
+        amounts,
+        "did:cardstack:56d6fc54-d399-443b-8778-d7e4512d3a49"
       );
 
       let cards = await getGnosisSafeFromEventLog(
@@ -946,34 +930,118 @@ contract.only("PrepaidCardManager", (accounts) => {
       );
 
       let amounts = [1, 1].map((amount) => toTokenUnit(amount).toString());
-      let splitCardData = [prepaidCard.address, amounts, amounts, ""];
-      let packData = packExecutionData({
-        to: daicpxdToken.address,
-        data: await prepaidCardManager.getSplitCardData(...splitCardData),
-      });
-      let safeTxArr = Object.keys(packData).map((key) => packData[key]);
-      let signature = await signSafeTransaction(
-        ...safeTxArr,
-        await prepaidCard.nonce(),
+      await splitPrepaidCard(
+        prepaidCardManager,
+        prepaidCard,
+        daicpxdToken,
+        relayer,
         customer,
-        prepaidCard
+        200,
+        amounts,
+        ""
+      ).should.be.rejectedWith(
+        Error,
+        // the real revert reason is behind the gnosis safe execTransaction
+        // boundary, so we just get this generic error
+        "safe transaction was reverted"
       );
-
-      await prepaidCardManager
-        .splitCard(...splitCardData, signature, {
-          from: relayer,
-        })
-        .should.be.rejectedWith(Error, "only issuer can split card");
     });
 
-    it("can reject when provided signature is invalid", async () => {
-      let amounts = [2, 2].map((amount) => toTokenUnit(amount).toString());
-      let splitCardData = [prepaidCards[2].address, amounts, amounts, ""];
+    it("a prepaid card used to fund a split cannot be transferred", async () => {
+      await daicpxdToken.mint(depot.address, toTokenUnit(3));
+      let {
+        prepaidCards: [prepaidCard],
+      } = await createPrepaidCards(
+        depot,
+        prepaidCardManager,
+        daicpxdToken,
+        daicpxdToken,
+        issuer,
+        relayer,
+        [toTokenUnit(2)]
+      );
+      let amounts = [1, 1].map((amount) => toTokenUnit(amount).toString());
+      await splitPrepaidCard(
+        prepaidCardManager,
+        prepaidCard,
+        daicpxdToken,
+        relayer,
+        issuer,
+        200,
+        amounts,
+        ""
+      );
+      await transferOwner(
+        prepaidCardManager,
+        prepaidCard,
+        issuer,
+        customer,
+        cardcpxdToken.address,
+        relayer
+      ).should.be.rejectedWith(
+        Error,
+        "Cannot transfer prepaid card that funded split"
+        // the real revert reason is behind the gnosis safe execTransaction
+        // boundary, so we just get this generic error
+        // "safe transaction was reverted"
+      );
+    });
+
+    it("does not allow non-action dispatcher to transferAndCall SplitPrepaidCardHandler", async () => {
+      await daicpxdToken.mint(depot.address, toTokenUnit(3));
+      let {
+        prepaidCards: [prepaidCard],
+      } = await createPrepaidCards(
+        depot,
+        prepaidCardManager,
+        daicpxdToken,
+        daicpxdToken,
+        issuer,
+        relayer,
+        [toTokenUnit(2)]
+      );
+      let amounts = [1, 1].map((amount) => toTokenUnit(amount).toString());
+      await daicpxdToken
+        .transferAndCall(
+          splitPrepaidCardHandler.address,
+          toTokenUnit(2),
+          AbiCoder.encodeParameters(
+            ["address", "uint256", "bytes"],
+            [
+              prepaidCard.address,
+              200,
+              AbiCoder.encodeParameters(
+                ["uint256[]", "uint256[]", "string"],
+                [amounts, amounts, ""]
+              ),
+            ]
+          )
+        )
+        .should.be.rejectedWith(
+          Error,
+          "can only accept tokens from action dispatcher"
+        );
+    });
+
+    it("does not allow non-action handler to call setPrepaidCardUsedForSplit", async () => {
+      await daicpxdToken.mint(depot.address, toTokenUnit(3));
+      let {
+        prepaidCards: [prepaidCard],
+      } = await createPrepaidCards(
+        depot,
+        prepaidCardManager,
+        daicpxdToken,
+        daicpxdToken,
+        issuer,
+        relayer,
+        [toTokenUnit(2)]
+      );
       await prepaidCardManager
-        .splitCard(...splitCardData, "0x01", {
-          from: relayer,
-        })
-        .should.be.rejectedWith(Error, "Invalid signature!");
+        .setPrepaidCardUsedForSplit(prepaidCard.address)
+        .should.be.rejectedWith(
+          Error,
+          "caller is not a registered action handler"
+        );
     });
   });
 
@@ -1324,6 +1392,10 @@ contract.only("PrepaidCardManager", (accounts) => {
   describe("versioning", () => {
     it("can get version of contract", async () => {
       expect(await prepaidCardManager.cardpayVersion()).to.match(/\d\.\d\.\d/);
+      expect(await payMerchantHandler.cardpayVersion()).to.match(/\d\.\d\.\d/);
+      expect(await splitPrepaidCardHandler.cardpayVersion()).to.match(
+        /\d\.\d\.\d/
+      );
     });
   });
 });
