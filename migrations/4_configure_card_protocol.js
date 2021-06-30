@@ -267,7 +267,7 @@ Configuring RegisterMerchantHandler ${registerMerchantHandlerAddress}
   );
   console.log(`
 ==================================================
-Configuring SplitPrepaidCardHandler ${splitPrepaidCardHandler}
+Configuring SplitPrepaidCardHandler ${splitPrepaidCardHandlerAddress}
   ActionDispatcher address: ${actionDispatcherAddress}
   PrepaidCardManager address: ${prepaidCardManagerAddress}`);
   await sendTx(() =>
@@ -283,7 +283,7 @@ Configuring SplitPrepaidCardHandler ${splitPrepaidCardHandler}
   );
   console.log(`
 ==================================================
-Configuring TransferPrepaidCardHandler ${transferPrepaidCardHandler}
+Configuring TransferPrepaidCardHandler ${transferPrepaidCardHandlerAddress}
   ActionDispatcher address: ${actionDispatcherAddress}
   PrepaidCardManager address: ${prepaidCardManagerAddress}`);
   await sendTx(() =>
