@@ -16,6 +16,7 @@ contract RegisterMerchantHandler is Ownable, Versionable {
     uint256 issuingTokenAmount,
     uint256 spendAmount
   );
+  event Setup();
 
   address public merchantManager;
   address public revenuePoolAddress;
@@ -32,12 +33,14 @@ contract RegisterMerchantHandler is Ownable, Versionable {
     revenuePoolAddress = _revenuePoolAddress;
     merchantManager = _merchantManager;
     exchangeAddress = _exchangeAddress;
+    emit Setup();
+    return true;
   }
 
   /**
    * @dev onTokenTransfer(ERC677) - this is the ERC677 token transfer callback.
    * handle a merchant registration
-   * @param from the token sender (should be the revenue pool)
+   * @param from the token sender (should be the action dispatcher)
    * @param amount the amount of tokens being transferred
    * @param data the data encoded as (address prepaidCard, uint256 spendAmount, bytes actionData)
    * where actionData is encoded as (address infoDID)
