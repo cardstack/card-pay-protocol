@@ -62,5 +62,13 @@
   "ETHUSDFeed": {
     "proxy": "0x60174e19895443eAECA7e265E377982a040f96F4",
     "contractName": "ManualFeed"
+  },
+  "SplitPrepaidCardHandler": {
+    "proxy": "0x938533e9533f5F9E67DDC693ffE78710A5C096c2",
+    "contractName": "SplitPrepaidCardHandler"
+  },
+  "TransferPrepaidCardHandler": {
+    "proxy": "0x311529D6DB926441c352725448eeF4A64f71438e",
+    "contractName": "TransferPrepaidCardHandler"
   }
 }
