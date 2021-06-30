@@ -95,6 +95,8 @@ contract("Action Dispatcher", (accounts) => {
       100,
       500000
     );
+    await prepaidCardManager.addGasPolicy("transfer", false, true);
+    await prepaidCardManager.addGasPolicy("split", true, true);
 
     await tokenManager.setup(ZERO_ADDRESS, [
       daicpxdToken.address,
@@ -108,6 +110,7 @@ contract("Action Dispatcher", (accounts) => {
     );
 
     ({ payMerchantHandler, registerMerchantHandler } = await addActionHandlers(
+      prepaidCardManager,
       revenuePool,
       actionDispatcher,
       merchantManager,
@@ -174,6 +177,7 @@ contract("Action Dispatcher", (accounts) => {
         .setup(
           actionDispatcher.address,
           merchantManager.address,
+          prepaidCardManager.address,
           revenuePool.address,
           spendToken.address,
           { from: merchant }
@@ -220,7 +224,9 @@ contract("Action Dispatcher", (accounts) => {
         prepaidCard,
         issuer,
         customer,
-        relayer
+        cardcpxdToken,
+        relayer,
+        daicpxdToken
       );
       daicpxdToken.mint(merchant, toTokenUnit(1));
 
@@ -264,7 +270,9 @@ contract("Action Dispatcher", (accounts) => {
         prepaidCard,
         issuer,
         customer,
-        relayer
+        cardcpxdToken,
+        relayer,
+        daicpxdToken
       );
       daicpxdToken.mint(customer, toTokenUnit(10));
 
@@ -293,7 +301,7 @@ contract("Action Dispatcher", (accounts) => {
 
   describe("versioning", () => {
     it("can get version of contract", async () => {
-      expect(await revenuePool.cardpayVersion()).to.match(/\d\.\d\.\d/);
+      expect(await actionDispatcher.cardpayVersion()).to.match(/\d\.\d\.\d/);
     });
   });
 });

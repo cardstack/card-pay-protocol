@@ -1,14 +1,11 @@
 pragma solidity 0.5.17;
 
 import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
-import "@openzeppelin/contract-upgradeable/contracts/math/SafeMath.sol";
 import "../core/Versionable.sol";
 import "../token/IERC677.sol";
 import "../PrepaidCardManager.sol";
 
 contract SplitPrepaidCardHandler is Ownable, Versionable {
-  using SafeMath for uint256;
-
   address public actionDispatcher;
   address public prepaidCardManagerAddress;
 

@@ -13,6 +13,9 @@ const Exchange = artifacts.require("Exchange");
 const PayMerchantHandler = artifacts.require("PayMerchantHandler");
 const RegisterMerchantHandler = artifacts.require("RegisterMerchantHandler");
 const SplitPrepaidCardHandler = artifacts.require("SplitPrepaidCardHandler");
+const TransferPrepaidCardHandler = artifacts.require(
+  "TransferPrepaidCardHandler"
+);
 const ActionDispatcher = artifacts.require("ActionDispatcher");
 const TokenManager = artifacts.require("TokenManager");
 const SupplierManager = artifacts.require("SupplierManager");
@@ -78,6 +81,10 @@ module.exports = async function (_deployer, network) {
   );
   let splitPrepaidCardHandlerAddress = getAddress(
     "SplitPrepaidCardHandler",
+    proxyAddresses
+  );
+  let transferPrepaidCardHandlerAddress = getAddress(
+    "TransferPrepaidCardHandler",
     proxyAddresses
   );
   let revenuePool = await RevenuePool.at(revenuePoolAddress);
@@ -205,6 +212,12 @@ Configuring ActionDispatcher ${actionDispatcherAddress}
   await sendTx(() =>
     actionDispatcher.addHandler(splitPrepaidCardHandlerAddress, "split")
   );
+  console.log(
+    `  adding action handler for "transfer": ${transferPrepaidCardHandlerAddress}`
+  );
+  await sendTx(() =>
+    actionDispatcher.addHandler(transferPrepaidCardHandlerAddress, "transfer")
+  );
 
   // PayMerchantHandler configuration
   let payMerchantHandler = await PayMerchantHandler.at(
@@ -215,12 +228,14 @@ Configuring ActionDispatcher ${actionDispatcherAddress}
 Configuring PayMerchantHandler ${payMerchantHandlerAddress}
   ActionDispatcher address: ${actionDispatcherAddress}
   MerchantManager address: ${merchantManagerAddress}
+  PrepaidCardManager address: ${prepaidCardManagerAddress}
   Revenue Pool Address: ${revenuePoolAddress}
   SPEND token address: ${spendTokenAddress}`);
   await sendTx(() =>
     payMerchantHandler.setup(
       actionDispatcherAddress,
       merchantManagerAddress,
+      prepaidCardManagerAddress,
       revenuePoolAddress,
       spendTokenAddress
     )
@@ -256,7 +271,23 @@ Configuring SplitPrepaidCardHandler ${splitPrepaidCardHandler}
   ActionDispatcher address: ${actionDispatcherAddress}
   PrepaidCardManager address: ${prepaidCardManagerAddress}`);
   await sendTx(() =>
-    registerMerchantHandler.setup(
+    splitPrepaidCardHandler.setup(
+      actionDispatcherAddress,
+      prepaidCardManagerAddress
+    )
+  );
+
+  // TransferPrepaidCardHandler configuration
+  let transferPrepaidCardHandler = await TransferPrepaidCardHandler.at(
+    transferPrepaidCardHandlerAddress
+  );
+  console.log(`
+==================================================
+Configuring TransferPrepaidCardHandler ${transferPrepaidCardHandler}
+  ActionDispatcher address: ${actionDispatcherAddress}
+  PrepaidCardManager address: ${prepaidCardManagerAddress}`);
+  await sendTx(() =>
+    transferPrepaidCardHandler.setup(
       actionDispatcherAddress,
       prepaidCardManagerAddress
     )

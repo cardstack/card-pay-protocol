@@ -235,7 +235,6 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
       cardDetails[prepaidCard].blockNumber < block.number,
       "prepaid card used too soon"
     );
-    require(spendAmount >= MINIMUM_MERCHANT_PAYMENT, "payment too small"); // protect against spamming contract with too low a price
     require(
       Exchange(exchangeAddress).isAllowableRate(
         cardDetails[prepaidCard].issueToken,
@@ -292,11 +291,11 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
    * @param newOwner the new owner of the prepaid card (the customer)
    * @param previousOwnerSignature Packed signature data ({bytes32 r}{bytes32 s}{uint8 v})
    */
-  function transferCard(
+  function transfer(
     address payable prepaidCard,
     address newOwner,
     bytes calldata previousOwnerSignature
-  ) external payable returns (bool) {
+  ) external onlyHandlers returns (bool) {
     address previousOwner = getPrepaidCardOwner(prepaidCard);
     require(
       cardDetails[prepaidCard].issuer == previousOwner,

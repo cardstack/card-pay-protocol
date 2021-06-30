@@ -122,6 +122,8 @@ contract("RevenuePool", (accounts) => {
       100,
       500000
     );
+    await prepaidCardManager.addGasPolicy("transfer", false, true);
+    await prepaidCardManager.addGasPolicy("split", true, true);
 
     await actionDispatcher.setup(
       tokenManager.address,
@@ -130,6 +132,7 @@ contract("RevenuePool", (accounts) => {
     );
 
     ({ payMerchantHandler } = await addActionHandlers(
+      prepaidCardManager,
       revenuePool,
       actionDispatcher,
       merchantManager,
@@ -236,6 +239,7 @@ contract("RevenuePool", (accounts) => {
         relayer,
         [toTokenUnit(10)]
       );
+      await cardcpxdToken.mint(merchantPrepaidCard.address, toTokenUnit(1));
       let startingPrepaidCardDaicpxdBalance = await getBalance(
         daicpxdToken,
         merchantPrepaidCard.address
@@ -249,7 +253,9 @@ contract("RevenuePool", (accounts) => {
         merchantPrepaidCard,
         issuer,
         merchant,
-        relayer
+        cardcpxdToken,
+        relayer,
+        daicpxdToken
       );
       let merchantTx = await registerMerchant(
         prepaidCardManager,
@@ -318,7 +324,9 @@ contract("RevenuePool", (accounts) => {
         merchantPrepaidCard,
         issuer,
         _merchant,
-        relayer
+        cardcpxdToken,
+        relayer,
+        daicpxdToken
       );
       await registerMerchant(
         prepaidCardManager,
@@ -376,7 +384,9 @@ contract("RevenuePool", (accounts) => {
         merchantPrepaidCard,
         issuer,
         _merchant,
-        relayer
+        cardcpxdToken,
+        relayer,
+        daicpxdToken
       );
       await registerMerchant(
         prepaidCardManager,
@@ -436,7 +446,9 @@ contract("RevenuePool", (accounts) => {
         merchantPrepaidCard,
         issuer,
         _merchant,
-        relayer
+        cardcpxdToken,
+        relayer,
+        daicpxdToken
       );
       await registerMerchant(
         prepaidCardManager,
@@ -490,7 +502,9 @@ contract("RevenuePool", (accounts) => {
         merchantPrepaidCard,
         issuer,
         _merchant,
-        relayer
+        cardcpxdToken,
+        relayer,
+        daicpxdToken
       );
       await registerMerchant(
         prepaidCardManager,
@@ -544,7 +558,9 @@ contract("RevenuePool", (accounts) => {
         merchantPrepaidCard,
         issuer,
         merchant,
-        relayer
+        cardcpxdToken,
+        relayer,
+        daicpxdToken
       );
       await registerMerchant(
         prepaidCardManager,
@@ -627,14 +643,16 @@ contract("RevenuePool", (accounts) => {
         relayer,
         [toTokenUnit(100)]
       ));
+      await cardcpxdToken.mint(prepaidCard.address, toTokenUnit(1));
       await transferOwner(
         prepaidCardManager,
         prepaidCard,
         issuer,
         customer,
-        relayer
+        cardcpxdToken,
+        relayer,
+        daicpxdToken
       );
-      await cardcpxdToken.mint(prepaidCard.address, toTokenUnit(1));
     });
 
     it("can pay 1 DAI CPXD token to pool and mint SPEND token to the merchant's wallet", async () => {
@@ -1142,7 +1160,9 @@ contract("RevenuePool", (accounts) => {
         prepaidCard,
         issuer,
         customer,
-        relayer
+        cardcpxdToken,
+        relayer,
+        daicpxdToken
       );
       await cardcpxdToken.mint(prepaidCard.address, toTokenUnit(1000000));
     });

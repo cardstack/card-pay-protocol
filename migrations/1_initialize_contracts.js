@@ -19,6 +19,9 @@ const TokenManager = artifacts.require("TokenManager");
 const SupplierManager = artifacts.require("SupplierManager");
 const MerchantManager = artifacts.require("MerchantManager");
 const SplitPrepaidCardHandler = artifacts.require("SplitPrepaidCardHandler");
+const TransferPrepaidCardHandler = artifacts.require(
+  "TransferPrepaidCardHandler"
+);
 
 // we only maintain these migrations purely to measure the amount of gas it
 // takes to perform a deployment for each contract
@@ -45,6 +48,7 @@ module.exports = async function (deployer, network, addresses) {
       deployer.deploy(SupplierManager),
       deployer.deploy(MerchantManager),
       deployer.deploy(SplitPrepaidCardHandler),
+      deployer.deploy(TransferPrepaidCardHandler),
     ]);
   } else {
     // Contract init details. For each upgradable contract provide a property
@@ -75,6 +79,10 @@ module.exports = async function (deployer, network, addresses) {
       },
       SplitPrepaidCardHandler: {
         contractName: "SplitPrepaidCardHandler",
+        init: [addresses[0]],
+      },
+      TransferPrepaidCardHandler: {
+        contractName: "TransferPrepaidCardHandler",
         init: [addresses[0]],
       },
       BridgeUtils: { contractName: "BridgeUtils", init: [addresses[0]] },

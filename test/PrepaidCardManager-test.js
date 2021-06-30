@@ -33,7 +33,7 @@ const {
 const { expect, TOKEN_DETAIL_DATA, toBN } = require("./setup");
 const AbiCoder = require("web3-eth-abi");
 
-contract.only("PrepaidCardManager", (accounts) => {
+contract("PrepaidCardManager", (accounts) => {
   let MINIMUM_AMOUNT,
     MAXIMUM_AMOUNT,
     revenuePool,
@@ -51,6 +51,7 @@ contract.only("PrepaidCardManager", (accounts) => {
     actionDispatcher,
     payMerchantHandler,
     splitPrepaidCardHandler,
+    transferPrepaidCardHandler,
     merchantManager,
     owner,
     issuer,
@@ -119,7 +120,11 @@ contract.only("PrepaidCardManager", (accounts) => {
       0,
       1000
     );
-    ({ payMerchantHandler, splitPrepaidCardHandler } = await addActionHandlers(
+    ({
+      payMerchantHandler,
+      splitPrepaidCardHandler,
+      transferPrepaidCardHandler,
+    } = await addActionHandlers(
       prepaidCardManager,
       revenuePool,
       actionDispatcher,
@@ -925,8 +930,9 @@ contract.only("PrepaidCardManager", (accounts) => {
         prepaidCard,
         issuer,
         customer,
-        cardcpxdToken.address,
-        relayer
+        cardcpxdToken,
+        relayer,
+        daicpxdToken
       );
 
       let amounts = [1, 1].map((amount) => toTokenUnit(amount).toString());
@@ -976,18 +982,18 @@ contract.only("PrepaidCardManager", (accounts) => {
         prepaidCard,
         issuer,
         customer,
-        cardcpxdToken.address,
-        relayer
+        cardcpxdToken,
+        relayer,
+        daicpxdToken
       ).should.be.rejectedWith(
         Error,
-        "Cannot transfer prepaid card that funded split"
         // the real revert reason is behind the gnosis safe execTransaction
         // boundary, so we just get this generic error
-        // "safe transaction was reverted"
+        "safe transaction was reverted"
       );
     });
 
-    it("does not allow non-action dispatcher to transferAndCall SplitPrepaidCardHandler", async () => {
+    it("does not allow non-action dispatcher to call transferAndCall SplitPrepaidCardHandler", async () => {
       await daicpxdToken.mint(depot.address, toTokenUnit(3));
       let {
         prepaidCards: [prepaidCard],
@@ -1066,8 +1072,9 @@ contract.only("PrepaidCardManager", (accounts) => {
         prepaidCard,
         issuer,
         customer,
-        cardcpxdToken.address,
-        relayer
+        cardcpxdToken,
+        relayer,
+        daicpxdToken
       );
 
       await prepaidCard.isOwner(customer).should.eventually.become(true);
@@ -1087,9 +1094,71 @@ contract.only("PrepaidCardManager", (accounts) => {
         prepaidCard,
         customer,
         otherCustomer,
-        cardcpxdToken.address,
-        relayer
-      ).should.be.rejectedWith(Error, "Has already been transferred");
+        cardcpxdToken,
+        relayer,
+        daicpxdToken
+      ).should.be.rejectedWith(
+        Error,
+        // the real revert reason is behind the gnosis safe execTransaction
+        // boundary, so we just get this generic error
+        "safe transaction was reverted"
+      );
+    });
+
+    it("does not allow non-action dispatcher to call transferAndCall on TransferPrepaidCardHandler", async () => {
+      await daicpxdToken.mint(depot.address, toTokenUnit(3));
+      let {
+        prepaidCards: [prepaidCard],
+      } = await createPrepaidCards(
+        depot,
+        prepaidCardManager,
+        daicpxdToken,
+        daicpxdToken,
+        issuer,
+        relayer,
+        [toTokenUnit(2)]
+      );
+      await daicpxdToken
+        .transferAndCall(
+          transferPrepaidCardHandler.address,
+          0,
+          AbiCoder.encodeParameters(
+            ["address", "uint256", "bytes"],
+            [
+              prepaidCard.address,
+              0,
+              AbiCoder.encodeParameters(
+                ["address", "bytes"],
+                [customer, "0x0"]
+              ),
+            ]
+          )
+        )
+        .should.be.rejectedWith(
+          Error,
+          "can only accept tokens from action dispatcher"
+        );
+    });
+
+    it("does not allow non-action handler to call transfer on PrepaidCardManager", async () => {
+      await daicpxdToken.mint(depot.address, toTokenUnit(3));
+      let {
+        prepaidCards: [prepaidCard],
+      } = await createPrepaidCards(
+        depot,
+        prepaidCardManager,
+        daicpxdToken,
+        daicpxdToken,
+        issuer,
+        relayer,
+        [toTokenUnit(2)]
+      );
+      await prepaidCardManager
+        .transfer(prepaidCard.address, customer, "0x0")
+        .should.be.rejectedWith(
+          Error,
+          "caller is not a registered action handler"
+        );
     });
   });
 
@@ -1115,8 +1184,9 @@ contract.only("PrepaidCardManager", (accounts) => {
         merchantPrepaidCard,
         issuer,
         merchant,
-        cardcpxdToken.address,
-        relayer
+        cardcpxdToken,
+        relayer,
+        daicpxdToken
       );
       // mint gas token token for prepaid card
       await cardcpxdToken.mint(merchantPrepaidCard.address, toTokenUnit(100));
@@ -1230,8 +1300,9 @@ contract.only("PrepaidCardManager", (accounts) => {
         prepaidCardA,
         issuer,
         customerA,
-        cardcpxdToken.address,
-        relayer
+        cardcpxdToken,
+        relayer,
+        daicpxdToken
       );
       // mint gas token token for prepaid card
       await cardcpxdToken.mint(prepaidCardA.address, toTokenUnit(100));
@@ -1283,8 +1354,9 @@ contract.only("PrepaidCardManager", (accounts) => {
         prepaidCardB,
         issuer,
         customerB,
-        cardcpxdToken.address,
-        relayer
+        cardcpxdToken,
+        relayer,
+        daicpxdToken
       );
       // mint gas token token for prepaid card
       await cardcpxdToken.mint(prepaidCardB.address, toTokenUnit(100));
@@ -1375,7 +1447,12 @@ contract.only("PrepaidCardManager", (accounts) => {
         customer,
         merchantSafe,
         40
-      ).should.be.rejectedWith(Error, "payment too small");
+      ).should.be.rejectedWith(
+        Error,
+        // the real revert reason is behind the gnosis safe execTransaction
+        // boundary, so we just get this generic error
+        "safe transaction was reverted"
+      );
       await shouldBeSameBalance(
         daicpxdToken,
         revenuePool.address,
@@ -1394,6 +1471,9 @@ contract.only("PrepaidCardManager", (accounts) => {
       expect(await prepaidCardManager.cardpayVersion()).to.match(/\d\.\d\.\d/);
       expect(await payMerchantHandler.cardpayVersion()).to.match(/\d\.\d\.\d/);
       expect(await splitPrepaidCardHandler.cardpayVersion()).to.match(
+        /\d\.\d\.\d/
+      );
+      expect(await transferPrepaidCardHandler.cardpayVersion()).to.match(
         /\d\.\d\.\d/
       );
     });
