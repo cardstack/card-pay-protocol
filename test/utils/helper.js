@@ -201,6 +201,7 @@ exports.addActionHandlers = async function (
   await registerMerchantHandler.setup(
     actionDispatcher.address,
     merchantManager.address,
+    prepaidCardManager.address,
     revenuePool.address,
     exchangeAddress
   );

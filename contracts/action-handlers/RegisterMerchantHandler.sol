@@ -22,15 +22,18 @@ contract RegisterMerchantHandler is Ownable, Versionable {
   address public revenuePoolAddress;
   address public exchangeAddress;
   address public actionDispatcher;
+  address public prepaidCardManager;
 
   function setup(
     address _actionDispatcher,
     address _merchantManager,
+    address _prepaidCardManager,
     address _revenuePoolAddress,
     address _exchangeAddress
   ) external onlyOwner returns (bool) {
     actionDispatcher = _actionDispatcher;
     revenuePoolAddress = _revenuePoolAddress;
+    prepaidCardManager = _prepaidCardManager;
     merchantManager = _merchantManager;
     exchangeAddress = _exchangeAddress;
     emit Setup();
@@ -69,6 +72,7 @@ contract RegisterMerchantHandler is Ownable, Versionable {
     );
 
     string memory infoDID = abi.decode(actionData, (string));
+    PrepaidCardManager(prepaidCardManager).setPrepaidCardUsed(prepaidCard);
     // The merchantFeeReceiver is a trusted address
     IERC677(issuingToken).transfer(
       revenuePool.merchantFeeReceiver(),

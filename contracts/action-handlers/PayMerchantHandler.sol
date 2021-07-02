@@ -95,6 +95,7 @@ contract PayMerchantHandler is Ownable, Versionable {
         )
         : 0;
     uint256 merchantProceeds = amount.sub(merchantFee);
+    PrepaidCardManager(prepaidCardManager).setPrepaidCardUsed(prepaidCard);
     revenuePool.addToMerchantBalance(
       merchantSafe,
       msg.sender, // issuing token

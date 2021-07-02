@@ -63,7 +63,7 @@ contract SplitPrepaidCardHandler is Ownable, Versionable {
       issuingTokenAmounts.length == spendAmounts.length,
       "the amount arrays have differing lengths"
     );
-    prepaidCardMgr.setPrepaidCardUsedForSplit(prepaidCard);
+    prepaidCardMgr.setPrepaidCardUsed(prepaidCard);
     IERC677(msg.sender).transferAndCall(
       prepaidCardManagerAddress,
       amount,
