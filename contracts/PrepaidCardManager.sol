@@ -69,7 +69,8 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
   address public tokenManager;
   address public supplierManager;
   mapping(string => GasPolicy) public gasPolicies;
-  mapping(address => bool) public hasBeenSplit;
+  mapping(address => bool) public hasBeenSplit; // this is deprecated, remove it if possible
+  mapping(address => bool) public hasBeenUsed;
 
   modifier onlyHandlers() {
     require(
@@ -187,12 +188,12 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     return true;
   }
 
-  function setPrepaidCardUsedForSplit(address prepaidCard)
+  function setPrepaidCardUsed(address prepaidCard)
     external
     onlyHandlers
     returns (bool)
   {
-    hasBeenSplit[prepaidCard] = true;
+    hasBeenUsed[prepaidCard] = true;
     return true;
   }
 
@@ -302,8 +303,8 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
       "Has already been transferred"
     );
     require(
-      !hasBeenSplit[prepaidCard],
-      "Cannot transfer prepaid card that funded split"
+      !hasBeenUsed[prepaidCard],
+      "Cannot transfer prepaid card that has already been used"
     );
     MaterializedGasPolicy memory gasPolicy =
       getMaterializedGasPolicy("transfer", prepaidCard);

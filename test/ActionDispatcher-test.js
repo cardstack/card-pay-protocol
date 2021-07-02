@@ -190,6 +190,7 @@ contract("Action Dispatcher", (accounts) => {
         .setup(
           actionDispatcher.address,
           merchantManager.address,
+          prepaidCardManager.address,
           revenuePool.address,
           exchange.address,
           { from: merchant }

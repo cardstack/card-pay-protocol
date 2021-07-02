@@ -250,12 +250,14 @@ Configuring PayMerchantHandler ${payMerchantHandlerAddress}
 Configuring RegisterMerchantHandler ${registerMerchantHandlerAddress}
   ActionDispatcher address: ${actionDispatcherAddress}
   MerchantManager address: ${merchantManagerAddress}
+  PrepaidCardManager address: ${prepaidCardManagerAddress}
   Revenue Pool Address: ${revenuePoolAddress}
   Exchange address: ${exchangeAddress}`);
   await sendTx(() =>
     registerMerchantHandler.setup(
       actionDispatcherAddress,
       merchantManagerAddress,
+      prepaidCardManagerAddress,
       revenuePoolAddress,
       exchangeAddress
     )

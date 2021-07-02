@@ -627,6 +627,43 @@ contract("RevenuePool", (accounts) => {
           "caller is not a registered action handler nor an owner"
         );
     });
+
+    it("reverts when a prepaid card used for registering a merchant is transferred", async () => {
+      let {
+        prepaidCards: [merchantPrepaidCard],
+      } = await createPrepaidCards(
+        depot,
+        prepaidCardManager,
+        daicpxdToken,
+        daicpxdToken,
+        issuer,
+        relayer,
+        [toTokenUnit(10)]
+      );
+      await registerMerchant(
+        prepaidCardManager,
+        merchantPrepaidCard,
+        daicpxdToken,
+        cardcpxdToken,
+        relayer,
+        issuer,
+        1000
+      );
+      await transferOwner(
+        prepaidCardManager,
+        merchantPrepaidCard,
+        issuer,
+        customer,
+        cardcpxdToken,
+        relayer,
+        daicpxdToken
+      ).should.be.rejectedWith(
+        Error,
+        // the real revert reason is behind the gnosis safe execTransaction
+        // boundary, so we just get this generic error
+        "safe transaction was reverted"
+      );
+    });
   });
 
   describe("pay token", () => {

@@ -1029,7 +1029,7 @@ contract("PrepaidCardManager", (accounts) => {
         );
     });
 
-    it("does not allow non-action handler to call setPrepaidCardUsedForSplit", async () => {
+    it("does not allow non-action handler to call setPrepaidCardUsed", async () => {
       await daicpxdToken.mint(depot.address, toTokenUnit(3));
       let {
         prepaidCards: [prepaidCard],
@@ -1043,7 +1043,7 @@ contract("PrepaidCardManager", (accounts) => {
         [toTokenUnit(2)]
       );
       await prepaidCardManager
-        .setPrepaidCardUsedForSplit(prepaidCard.address)
+        .setPrepaidCardUsed(prepaidCard.address)
         .should.be.rejectedWith(
           Error,
           "caller is not a registered action handler"
@@ -1388,6 +1388,46 @@ contract("PrepaidCardManager", (accounts) => {
         daicpxdToken,
         prepaidCardB.address,
         startingPrepaidCardDaicpxdBalance.sub(toTokenUnit(1))
+      );
+    });
+
+    it("can not transfer a prepaid card that has been used to pay a merchant", async () => {
+      let {
+        prepaidCards: [prepaidCard],
+      } = await createPrepaidCards(
+        depot,
+        prepaidCardManager,
+        daicpxdToken,
+        daicpxdToken,
+        issuer,
+        relayer,
+        [toTokenUnit(1)]
+      );
+      // mint gas token token for prepaid card
+      await cardcpxdToken.mint(prepaidCard.address, toTokenUnit(100));
+      await payMerchant(
+        prepaidCardManager,
+        prepaidCard,
+        daicpxdToken,
+        cardcpxdToken,
+        relayer,
+        issuer,
+        merchantSafe,
+        100
+      );
+      await transferOwner(
+        prepaidCardManager,
+        prepaidCard,
+        issuer,
+        customer,
+        cardcpxdToken,
+        relayer,
+        daicpxdToken
+      ).should.be.rejectedWith(
+        Error,
+        // the real revert reason is behind the gnosis safe execTransaction
+        // boundary, so we just get this generic error
+        "safe transaction was reverted"
       );
     });
 
