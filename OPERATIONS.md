@@ -22,6 +22,10 @@ This document describes various operations procedures for the on-going maintenan
     - [Setup](#setup-2)
     - [Update Supplier](#update-supplier)
     - [Check Supplier Registration](#check-supplier-registration)
+  - [Reward Pool](#reward-pool)
+    - [Setup](#setup-tally)
+    - [Submit Merkle Root](#submit-merkle-root)
+    - [Withdraw Rewards](#withdraw-rewards)
 
 ## Blockscout
 These instructions are written from the perspective of using the Blockscout website to update our contracts. Blockscout is nice in that it requires no prior setup, aside from creating your metamask wallet.
@@ -240,4 +244,41 @@ The `isRegistered` function allows us to know if a supplier has been registered.
 3. Enter the supplier's "depot" gnosis safe address in the address field in the `isRegistered` row and click on the "Query" button.
 
 
+## Reward Pool
 
+### Setup Tally
+The `setup` function of the reward pool allows us to configure the tally address. The wallet of tally address will be able to execute administrative functions on the reward pool, most importantly, "submitPayeeMerkleRoot".
+
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the RewardPool contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
+2. Select the "Write Contract" tab.
+3. Click on the "Connect to Metamask" tab.
+4. Select the Trezor Card Protocol Owner for the correct network in metamask.
+5. Locate the "Setup" row and enter tally address into the input field.
+8. Click on the "Write" button in the "Setup" row.
+9. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
+10. After the transaction has completed, you can confirm the setup configuration by clicking on the "Read Contract" tab and reviewing the field "tally". 
+
+### Submit Merkle Root
+
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the RewardPool contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
+2. Select the "Write Contract" tab.
+3. Click on the "Connect to Metamask" tab.
+4. Select the Trezor Tally for the correct network in metamask.
+5. To generate the merkle root, there is no convenient api to do so. But, you can run this [test file](https://github.com/cardstack/tally-service/blob/master/safe_transaction_service/history/tests/test_merkle_tree.py) with the payment list as your input data. Ensure that token address in input data used is the same as ones that you find from "getTokens" row in readProxy tab of TokenManager contract.
+6. Locate the "submitPayeeMerkleRoot" row and enter merkle root into `payeeRoot` e.g. 0x1a5f943271002f4e099fe7128ef8a902a753e39479cedf5159fc8abda4f83ba4 (it should be a hex string 64 characters long excluding 0x)
+7. Click on the "Write" button in the "submitPayeeMerkleRoot" row.
+8. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
+9. After the transaction has completed, you can confirm your submission of merkle root by returning to transaction page of the RewardPool contract. Additionally, you can inspect the field "numPaymentCycles" in readProxy tab to check that the payment cycle has incremented from before submission.
+
+### Withdraw Rewards
+
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the RewardPool contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
+2. Select the "Write Contract" tab
+3. Click on the "Connect to Metamask" tab
+4. Select your User Wallet that controls the rewarded address (payee address) for the correct network in metamask. The rewarded address is usually the owner of a prepaid card. 
+5. Navigate to tally's open api (staging: https://tally-service-staging.stack.cards/, production: TODO). Enter your address into `payee_address` field in `/merkle-proofs` api. You will get a list of objects that include proofs. Choose one object and extract the values for `proof` and `tokenAddress`.
+6. Locate the "balanceForProof" at readProxy tab. Ether the token address into `payableToken`, the proof into `proof`, into each input field respectively. Repeat usual metamask steps and click button "Query". Take note of the balance.
+7. Locate the "withdraw" row at writeProxy tab. Enter the token address into `payableToken`, the amount to withdraw in wei into `amount`,the proof into `proof`, into each input field respectively. The `amount` value cannot exceed balance in step 6.
+8. Click on the "Write" button in the "withdraw" row. 
+9. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
+10. After the transaction has completed, you can confirm your balance by entering your address in the the blockscout explorer search field. Inspect the Tokens tab to find transfers of new tokens.
