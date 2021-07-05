@@ -246,6 +246,8 @@ The `isRegistered` function allows us to know if a supplier has been registered.
 
 ## Reward Pool
 
+The Reward pool is responsible for rewarding tokens to payee addresses at every payment cycle. For every payment cycle, the map of reward tokens to each payee address is recorded via a merkle root; payees will be able to withdraw their balance using a generated proof. 
+
 ### Setup Tally
 The `setup` function of the reward pool allows us to configure the tally address. The wallet of tally address will be able to execute administrative functions on the reward pool, most importantly, "submitPayeeMerkleRoot".
 
