@@ -279,7 +279,7 @@ The `setup` function of the reward pool allows us to configure the tally address
 3. Click on the "Connect to Metamask" tab
 4. Select your User Wallet that controls the rewarded address (payee address) for the correct network in metamask. The rewarded address is usually the owner of a prepaid card. 
 5. Navigate to tally's open api (staging: https://tally-service-staging.stack.cards/, production: TODO). Enter your address into `payee_address` field in `/merkle-proofs` api. You will get a list of objects that include proofs. Choose one object and extract the values for `proof` and `tokenAddress`.
-6. Locate the "balanceForProof" at readProxy tab. Ether the token address into `payableToken`, the proof into `proof`, into each input field respectively. Repeat usual metamask steps and click button "Query". Take note of the balance.
+6. Locate the "balanceForProof" at readProxy tab. Enter the token address into `payableToken`, the proof into `proof`, into each input field respectively. Repeat usual metamask steps and click button "Query". Take note of the balance.
 7. Locate the "withdraw" row at writeProxy tab. Enter the token address into `payableToken`, the amount to withdraw in wei into `amount`,the proof into `proof`, into each input field respectively. The `amount` value cannot exceed balance in step 6.
 8. Click on the "Write" button in the "withdraw" row. 
 9. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
