@@ -77,21 +77,39 @@ contract Exchange is Ownable {
     view
     returns (uint256)
   {
-    (uint256 price, uint8 decimals) = exchangeRateOf(token);
+    (uint256 usdRate, uint8 decimals) = exchangeRateOf(token);
     require(
       decimals == exchangeRateDecimals(),
       "unexpected decimals value for token price"
     );
-    require(price > 0, "exchange rate cannot be 0");
+    require(usdRate > 0, "exchange rate cannot be 0");
+    return convertToSpendWithRate(token, amount, usdRate);
+  }
+
+  /**
+   * @dev convert amount in token to amount in SPEND using the provided rate.
+   * Note that the rate needs to use decimals 8.
+   * @param token address of token
+   * @param amount amount in token
+   * @param usdRate the usd token rate in decimal 8
+   * @return amount
+   */
+  function convertToSpendWithRate(
+    address token,
+    uint256 amount,
+    uint256 usdRate
+  ) public view returns (uint256) {
+    require(usdRate > 0, "exchange rate cannot be 0");
     // SPEND is equivalent to USD cents, so we move the decimal point 2
     // places to the right after obtaining the USD value of the token amount
-    uint8 spendDecimals = IERC677(token).decimals() + decimals - 2;
+    uint8 spendDecimals =
+      IERC677(token).decimals() + exchangeRateDecimals() - 2;
     require(spendDecimals <= 30, "exponent overflow is likely");
     // a quirk about exponents is that the result will be calculated in the type
     // of the base, so in order to prevent overflows you should use a base of
     // uint256
     uint256 ten = 10;
-    return (amount.mul(price)).div(ten**spendDecimals);
+    return (amount.mul(usdRate)).div(ten**spendDecimals);
   }
 
   /**

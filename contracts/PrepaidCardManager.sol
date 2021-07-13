@@ -198,9 +198,45 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
   }
 
   /**
+   * @dev returns the face value for the prepaid card as units of SPEND. The
+   * way we determine face value is that if the prepaid card is unused we'll
+   * return the issuing token balance of the prepaid card converted to SPEND
+   * using the current rate from our oracle. If the prepaid card is used well
+   * return the issuing token balance converted to SPEND using the most
+   * conservative rate based on the rate drift in the exchange contract and the
+   * current rate from our racle.
+   * @param prepaidCard the address of the prepaid card for which to get a face value
+   */
+  function faceValue(address prepaidCard) external view returns (uint256) {
+    address issuingToken = cardDetails[prepaidCard].issueToken;
+    uint256 issuingTokenBalance = IERC677(issuingToken).balanceOf(prepaidCard);
+    Exchange exchange = Exchange(exchangeAddress);
+    if (hasBeenUsed[prepaidCard]) {
+      (uint256 usdRate, ) = exchange.exchangeRateOf(issuingToken);
+      uint256 ten = 10;
+      uint256 mostConservativeRateAllowed =
+        usdRate.sub(
+          usdRate.mul(exchange.rateDriftPercentage()).div(
+            ten**exchange.exchangeRateDecimals()
+          )
+        );
+      return
+        exchange.convertToSpendWithRate(
+          issuingToken,
+          issuingTokenBalance,
+          mostConservativeRateAllowed
+        );
+    } else {
+      return exchange.convertToSpend(issuingToken, issuingTokenBalance);
+    }
+  }
+
+  /**
    * @dev get the price in the specified token (in units of wei) to acheive the
    * specified face value in units of SPEND. Note that the face value will drift
    * afterwards based on the exchange rate
+   * @param token the issuing token for the prepaid card
+   * @param spendFaceValue the desired face value for the prepaid card
    */
   function priceForFaceValue(address token, uint256 spendFaceValue)
     external
@@ -220,8 +256,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
    * @param rateLock the price of the issuing token in USD
    * @param action the name of the prepaid card action to perform, e.g. "payMerchant", "registerMerchant", "claimRevenue", etc.
    * @param data encoded data that is specific to the action being performed, e.g. the merchant safe address for the "payMerchant" action, the info DID for the "registerMerchant", etc.
-   * @param ownerSignature Packed signature data ({bytes32 r}{bytes32 s}{uint8
-     v})
+   * @param ownerSignature Packed signature data ({bytes32 r}{bytes32 s}{uint8 v})
    */
   function send(
     address payable prepaidCard,
