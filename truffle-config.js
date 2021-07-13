@@ -47,7 +47,7 @@ module.exports = {
     //
     sokol: {
       provider: () => {
-        return new TrezorWalletProvider("https://sokol.stack.cards", {
+        return new TrezorWalletProvider("https://sokol.poa.network", {
           chainId: 77,
         });
       },
