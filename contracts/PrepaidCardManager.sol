@@ -475,7 +475,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
       SupplierManager(supplierManager).safes(depot) != address(0)
     ) {
       // the owner safe is a trusted contract (gnosis safe)
-      IERC677(token).transfer(depot, amountReceived - neededAmount);
+      IERC677(token).transfer(depot, amountReceived.sub(neededAmount));
     }
 
     return true;
@@ -518,14 +518,14 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
       IERC677(token).transfer(gasFeeReceiver, _gasFee);
     }
     // The card is a trusted contract (gnosis safe)
-    IERC677(token).transfer(card, issuingTokenAmount - _gasFee);
+    IERC677(token).transfer(card, issuingTokenAmount.sub(_gasFee));
 
     emit CreatePrepaidCard(
       owner,
       card,
       token,
       depot,
-      issuingTokenAmount - _gasFee,
+      issuingTokenAmount.sub(_gasFee),
       spendAmount,
       _gasFee,
       customizationDID
