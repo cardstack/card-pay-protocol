@@ -75,7 +75,7 @@
     "solc": "0.5.17",
     "solhint": "^3.3.4",
     "solidity-coverage": "^0.7.11",
-    "trezor-cli-wallet-provider": "^1.0.5",
+    "trezor-cli-wallet-provider": "^1.0.6",
     "truffle": "^5.1.51",
     "truffle-contract-size": "^2.0.1",
     "truffle-source-verify": "^0.0.6",

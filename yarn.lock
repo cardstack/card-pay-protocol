@@ -13727,10 +13727,10 @@ tr46@~0.0.1:
   resolved "https://registry.yarnpkg.com/tr46/-/tr46-0.0.3.tgz#8184fd347dac9cdc185992f3a6622e14b9d9ab6a"
   integrity sha1-gYT9NH2snNwYWZLzpmIuFLnZq2o=
 
-trezor-cli-wallet-provider@^1.0.5:
-  version "1.0.5"
-  resolved "https://registry.yarnpkg.com/trezor-cli-wallet-provider/-/trezor-cli-wallet-provider-1.0.5.tgz#811fce7f1535f76e4ffe866d69f0e27f5a818a0b"
-  integrity sha512-ZnV03gi5a/IdIJrpDJWY2jCJnGh5OaF5+jnrDqolcJY3j2ejIYPs5efk4PIDCBHGtOzxiztai33Cewvyr+ILpA==
+trezor-cli-wallet-provider@^1.0.6:
+  version "1.0.6"
+  resolved "https://registry.yarnpkg.com/trezor-cli-wallet-provider/-/trezor-cli-wallet-provider-1.0.6.tgz#46d8f7aaa2e7170c847bc4b5e6b4b4711b444a2f"
+  integrity sha512-UaKZxk+a8OXEiRz0CuGblH8JBiQBo0DJh/lrsfvuofYKPvFOD+oOcPmPierx+ARpGCwT5hRuZVv6I9x1E1kKow==
   dependencies:
     "@trufflesuite/web3-provider-engine" "^15.0.13-1"
     "@types/web3" "^1.2.2"
@@ -15080,7 +15080,7 @@ web3-net@1.3.5:
     web3-core-method "1.3.5"
     web3-utils "1.3.5"
 
-web3-provider-engine@habdelra/web3-provider-engine:
+"web3-provider-engine@github:habdelra/web3-provider-engine":
   version "16.0.1"
   resolved "https://codeload.github.com/habdelra/web3-provider-engine/tar.gz/d9e5d9545c1af75124ca027bce5aaa84a3c4fda4"
   dependencies:

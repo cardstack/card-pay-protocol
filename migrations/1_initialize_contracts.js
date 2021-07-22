@@ -51,6 +51,8 @@ module.exports = async function (deployer, network, addresses) {
       deployer.deploy(TransferPrepaidCardHandler),
     ]);
   } else {
+    console.log(`Deploying from address ${addresses[0]}`);
+
     // Contract init details. For each upgradable contract provide a property
     // name that represents the contract "ID" (this is useful when there are
     // multiple instances of the same contract that need to be deployed), where
