@@ -1,7 +1,7 @@
 const glob = require("glob");
 const difference = require("lodash/difference");
 const { writeJSONSync, readJSONSync, existsSync } = require("node-fs-extra");
-const { verifyProxy, verifyImpl } = require("../lib/verify");
+const { verifyImpl } = require("../lib/verify");
 const { deployProxy, upgradeProxy } = require("@openzeppelin/truffle-upgrades");
 const PrepaidCardManager = artifacts.require("PrepaidCardManager");
 const RevenuePool = artifacts.require("RevenuePool");
@@ -168,9 +168,6 @@ Deploying new contract ${contractId}...`);
           proxy: proxyAddress,
           contractName,
         };
-      }
-      if (!skipVerify) {
-        await verifyProxy(proxyAddress, network);
       }
       let unverifiedImpls = difference(implAddresses(network), [
         ...previousImpls,
