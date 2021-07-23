@@ -1,0 +1,66 @@
+{
+  "PrepaidCardManager": {
+    "proxy": "0x15a4Cc5b3CfeBe900e5F514348bC077Eb883224D",
+    "contractName": "PrepaidCardManager"
+  },
+  "RevenuePool": {
+    "proxy": "0xE097ec255eA9fE4e199E920E105b0f61d6e09C34",
+    "contractName": "RevenuePool"
+  },
+  "RewardPool": {
+    "proxy": "0x42628325845B3e01EfdD6ce4b3665453dC6c9A13",
+    "contractName": "RewardPool"
+  },
+  "Exchange": {
+    "proxy": "0x12Dd0632428e02CfBA0FE834a6969FDC9C28219E",
+    "contractName": "Exchange"
+  },
+  "ActionDispatcher": {
+    "proxy": "0x3cC7DeB8dE522E2176e8c599FaAf7503d0c78AE9",
+    "contractName": "ActionDispatcher"
+  },
+  "PayMerchantHandler": {
+    "proxy": "0xdDc6709482ee4072D562C4a9f04Fc6E3249b785e",
+    "contractName": "PayMerchantHandler"
+  },
+  "RegisterMerchantHandler": {
+    "proxy": "0x4101A6C673cBA6afDB2Ef082Cb578b64f81aB3D1",
+    "contractName": "RegisterMerchantHandler"
+  },
+  "SplitPrepaidCardHandler": {
+    "proxy": "0x0672c77D9a9C8D81D8082a1fB925fE44f475e600",
+    "contractName": "SplitPrepaidCardHandler"
+  },
+  "TransferPrepaidCardHandler": {
+    "proxy": "0x60d6c7bE551C5D399247C6683f93CC37cf06a4aB",
+    "contractName": "TransferPrepaidCardHandler"
+  },
+  "BridgeUtils": {
+    "proxy": "0xa79206F956461e053DbCF33ADDFa77553Df58D7F",
+    "contractName": "BridgeUtils"
+  },
+  "TokenManager": {
+    "proxy": "0x7E3073a42FcC3F8D9dac1999CA75B361B941190A",
+    "contractName": "TokenManager"
+  },
+  "MerchantManager": {
+    "proxy": "0x3C29B2A563F4bB9D625175bE823c528A4Ddd1107",
+    "contractName": "MerchantManager"
+  },
+  "SupplierManager": {
+    "proxy": "0xf2380376aBFEE5234bb46d8A919D42eE1A395aF3",
+    "contractName": "SupplierManager"
+  },
+  "SPEND": {
+    "proxy": "0xc0247D53Ce3C6abB39b67856eDEfF79b767dB93c",
+    "contractName": "SPEND"
+  },
+  "DAIOracle": {
+    "proxy": "0x36698BF676c40be119b0Fe4f964f4527943258F2",
+    "contractName": "ChainlinkFeedAdapter"
+  },
+  "CARDOracle": {
+    "proxy": "0xd570Ed8b313Fe6aEEA4064bd1713b5Cc6d41D3C5",
+    "contractName": "DIAOracleAdapter"
+  }
+}
