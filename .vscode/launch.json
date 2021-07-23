@@ -30,6 +30,32 @@
         "MERCHANT_FEE_RECEIVER": "0x09FBEDDc5f94fA2713CDa75A68457cA8A4527adf" // Hassan's test trezor
       },
       "args": ["migrate", "--network", "sokol", "--compile-all", "--reset"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Deploy to xDai (config-only)",
+      "cwd": "${workspaceRoot}",
+      "program": "${workspaceFolder}/node_modules/.bin/truffle",
+      "console": "integratedTerminal",
+      "env": {
+        "BRIDGE_MEDIATOR": "0x0000000000000000000000000000000000000000",
+        "PAYABLE_TOKENS": "",
+        "GAS_TOKEN": "0x0000000000000000000000000000000000000000",
+        "GAS_FEE_RECEIVER": "0x846fcb74913277AF31FF535cC88bfcC62f64346A",
+        "TALLY": "0xdA67004a5ABd35361539b6D420C834E6C21e0A1b",
+        "MERCHANT_FEE_RECEIVER": "0x0E16caaa670F1Da1211edEfEB65BD13011cC798d"
+      },
+      "args": [
+        "migrate",
+        "--network",
+        "xdai",
+        "--compile-all",
+        "--f",
+        "2",
+        "--to",
+        "4"
+      ]
     }
   ]
 }

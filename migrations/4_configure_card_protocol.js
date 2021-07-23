@@ -32,9 +32,9 @@ const MERCHANT_REGISTRATION_FEE_IN_SPEND =
   process.env.MERCHANT_REGISTRATION_FEE_IN_SPEND ?? 1000;
 const MERCHANT_FEE_RECEIVER = process.env.MERCHANT_FEE_RECEIVER ?? ZERO_ADDRESS;
 const BRIDGE_MEDIATOR = process.env.BRIDGE_MEDIATOR ?? ZERO_ADDRESS;
-const PAYABLE_TOKENS = (process.env.PAYABLE_TOKENS ?? "")
-  .split(",")
-  .map((t) => t.trim());
+const PAYABLE_TOKENS = process.env.PAYABLE_TOKENS
+  ? process.env.PAYABLE_TOKENS.split(",").map((t) => t.trim())
+  : [];
 const GAS_TOKEN = process.env.GAS_TOKEN ?? ZERO_ADDRESS;
 const GNOSIS_SAFE_MASTER_COPY =
   process.env.GNOSIS_SAFE_MASTER_COPY ??
