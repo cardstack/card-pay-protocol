@@ -49,6 +49,7 @@ module.exports = {
       provider: () => {
         return new TrezorWalletProvider("https://sokol.poa.network", {
           chainId: 77,
+          derivationPath: "m/44'/60'/0'/0/1",
         });
       },
       network_id: 77,
@@ -72,6 +73,7 @@ module.exports = {
       provider: function () {
         return new TrezorWalletProvider("https://rpc.xdaichain.com/", {
           chainId: 100,
+          derivationPath: "m/44'/60'/0'/0/2",
         });
       },
       gasPrice: 1000000000,
