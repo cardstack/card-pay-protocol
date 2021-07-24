@@ -39,7 +39,7 @@
       "program": "${workspaceFolder}/node_modules/.bin/truffle",
       "console": "integratedTerminal",
       "env": {
-        "BRIDGE_MEDIATOR": "0x0000000000000000000000000000000000000000",
+        "BRIDGE_MEDIATOR": "0x453614197C9Adf05b3375446286957b991eE359d",
         "PAYABLE_TOKENS": "",
         "GAS_TOKEN": "0x0000000000000000000000000000000000000000",
         "GAS_FEE_RECEIVER": "0x846fcb74913277AF31FF535cC88bfcC62f64346A",
