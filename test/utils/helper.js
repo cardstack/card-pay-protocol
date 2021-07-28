@@ -182,6 +182,7 @@ exports.addActionHandlers = async function (
   revenuePool,
   actionDispatcher,
   merchantManager,
+  tokenManager,
   owner,
   exchangeAddress,
   spendAddress
@@ -193,7 +194,8 @@ exports.addActionHandlers = async function (
     merchantManager.address,
     prepaidCardManager.address,
     revenuePool.address,
-    spendAddress
+    spendAddress,
+    tokenManager.address
   );
 
   let registerMerchantHandler = await RegisterMerchantHandler.new();
@@ -203,21 +205,24 @@ exports.addActionHandlers = async function (
     merchantManager.address,
     prepaidCardManager.address,
     revenuePool.address,
-    exchangeAddress
+    exchangeAddress,
+    tokenManager.address
   );
 
   let splitPrepaidCardHandler = await SplitPrepaidCardHandler.new();
   await splitPrepaidCardHandler.initialize(owner);
   await splitPrepaidCardHandler.setup(
     actionDispatcher.address,
-    prepaidCardManager.address
+    prepaidCardManager.address,
+    tokenManager.address
   );
 
   let transferPrepaidCardHandler = await TransferPrepaidCardHandler.new();
   await transferPrepaidCardHandler.initialize(owner);
   await transferPrepaidCardHandler.setup(
     actionDispatcher.address,
-    prepaidCardManager.address
+    prepaidCardManager.address,
+    tokenManager.address
   );
 
   await actionDispatcher.addHandler(payMerchantHandler.address, "payMerchant");

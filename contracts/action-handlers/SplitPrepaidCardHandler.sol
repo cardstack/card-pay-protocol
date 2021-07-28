@@ -4,10 +4,12 @@ import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
 import "../core/Versionable.sol";
 import "../token/IERC677.sol";
 import "../PrepaidCardManager.sol";
+import "../TokenManager.sol";
 
 contract SplitPrepaidCardHandler is Ownable, Versionable {
   address public actionDispatcher;
   address public prepaidCardManagerAddress;
+  address public tokenManagerAddress;
 
   event Setup();
   event SplitPrepaidCard(
@@ -19,13 +21,14 @@ contract SplitPrepaidCardHandler is Ownable, Versionable {
     string customizationDID
   );
 
-  function setup(address _actionDispatcher, address _prepaidCardManager)
-    external
-    onlyOwner
-    returns (bool)
-  {
+  function setup(
+    address _actionDispatcher,
+    address _prepaidCardManager,
+    address _tokenManagerAddress
+  ) external onlyOwner returns (bool) {
     actionDispatcher = _actionDispatcher;
     prepaidCardManagerAddress = _prepaidCardManager;
+    tokenManagerAddress = _tokenManagerAddress;
     emit Setup();
     return true;
   }
@@ -43,6 +46,10 @@ contract SplitPrepaidCardHandler is Ownable, Versionable {
     uint256 amount,
     bytes calldata data
   ) external returns (bool) {
+    require(
+      TokenManager(tokenManagerAddress).isValidToken(msg.sender),
+      "calling token is unaccepted"
+    );
     require(
       from == actionDispatcher,
       "can only accept tokens from action dispatcher"
