@@ -136,6 +136,7 @@ contract("RevenuePool", (accounts) => {
       revenuePool,
       actionDispatcher,
       merchantManager,
+      tokenManager,
       owner,
       exchange.address,
       spendToken.address

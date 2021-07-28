@@ -230,14 +230,16 @@ Configuring PayMerchantHandler ${payMerchantHandlerAddress}
   MerchantManager address: ${merchantManagerAddress}
   PrepaidCardManager address: ${prepaidCardManagerAddress}
   Revenue Pool Address: ${revenuePoolAddress}
-  SPEND token address: ${spendTokenAddress}`);
+  SPEND token address: ${spendTokenAddress}
+  TokenManager address: ${tokenManagerAddress}`);
   await sendTx(() =>
     payMerchantHandler.setup(
       actionDispatcherAddress,
       merchantManagerAddress,
       prepaidCardManagerAddress,
       revenuePoolAddress,
-      spendTokenAddress
+      spendTokenAddress,
+      tokenManagerAddress
     )
   );
 
@@ -252,14 +254,16 @@ Configuring RegisterMerchantHandler ${registerMerchantHandlerAddress}
   MerchantManager address: ${merchantManagerAddress}
   PrepaidCardManager address: ${prepaidCardManagerAddress}
   Revenue Pool Address: ${revenuePoolAddress}
-  Exchange address: ${exchangeAddress}`);
+  Exchange address: ${exchangeAddress}
+  TokenManager address: ${tokenManagerAddress}`);
   await sendTx(() =>
     registerMerchantHandler.setup(
       actionDispatcherAddress,
       merchantManagerAddress,
       prepaidCardManagerAddress,
       revenuePoolAddress,
-      exchangeAddress
+      exchangeAddress,
+      tokenManagerAddress
     )
   );
 
@@ -271,11 +275,13 @@ Configuring RegisterMerchantHandler ${registerMerchantHandlerAddress}
 ==================================================
 Configuring SplitPrepaidCardHandler ${splitPrepaidCardHandlerAddress}
   ActionDispatcher address: ${actionDispatcherAddress}
-  PrepaidCardManager address: ${prepaidCardManagerAddress}`);
+  PrepaidCardManager address: ${prepaidCardManagerAddress}
+  TokenManager address: ${tokenManagerAddress}`);
   await sendTx(() =>
     splitPrepaidCardHandler.setup(
       actionDispatcherAddress,
-      prepaidCardManagerAddress
+      prepaidCardManagerAddress,
+      tokenManagerAddress
     )
   );
 
@@ -287,11 +293,13 @@ Configuring SplitPrepaidCardHandler ${splitPrepaidCardHandlerAddress}
 ==================================================
 Configuring TransferPrepaidCardHandler ${transferPrepaidCardHandlerAddress}
   ActionDispatcher address: ${actionDispatcherAddress}
-  PrepaidCardManager address: ${prepaidCardManagerAddress}`);
+  PrepaidCardManager address: ${prepaidCardManagerAddress}
+  TokenManager address: ${tokenManagerAddress}`);
   await sendTx(() =>
     transferPrepaidCardHandler.setup(
       actionDispatcherAddress,
-      prepaidCardManagerAddress
+      prepaidCardManagerAddress,
+      tokenManagerAddress
     )
   );
 

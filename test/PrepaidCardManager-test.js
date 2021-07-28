@@ -129,6 +129,7 @@ contract("PrepaidCardManager", (accounts) => {
       revenuePool,
       actionDispatcher,
       merchantManager,
+      tokenManager,
       owner,
       exchange.address,
       spendToken.address
@@ -1032,6 +1033,39 @@ contract("PrepaidCardManager", (accounts) => {
         );
     });
 
+    it("does not allow non-CPXD token to call SplitPrepaidCardHandler", async () => {
+      await daicpxdToken.mint(depot.address, toTokenUnit(3));
+      let {
+        prepaidCards: [prepaidCard],
+      } = await createPrepaidCards(
+        depot,
+        prepaidCardManager,
+        daicpxdToken,
+        daicpxdToken,
+        issuer,
+        relayer,
+        [toTokenUnit(2)]
+      );
+      let amounts = [1, 1].map((amount) => toTokenUnit(amount).toString());
+      await fakeDaicpxdToken
+        .transferAndCall(
+          splitPrepaidCardHandler.address,
+          toTokenUnit(2),
+          AbiCoder.encodeParameters(
+            ["address", "uint256", "bytes"],
+            [
+              prepaidCard.address,
+              200,
+              AbiCoder.encodeParameters(
+                ["uint256[]", "uint256[]", "string"],
+                [amounts, amounts, ""]
+              ),
+            ]
+          )
+        )
+        .should.be.rejectedWith(Error, "calling token is unaccepted");
+    });
+
     it("does not allow non-action handler to call setPrepaidCardUsed", async () => {
       await daicpxdToken.mint(depot.address, toTokenUnit(3));
       let {
@@ -1141,6 +1175,38 @@ contract("PrepaidCardManager", (accounts) => {
           Error,
           "can only accept tokens from action dispatcher"
         );
+    });
+
+    it("does not allow non-CPXD token to call TransferPrepaidCardHandler", async () => {
+      await daicpxdToken.mint(depot.address, toTokenUnit(3));
+      let {
+        prepaidCards: [prepaidCard],
+      } = await createPrepaidCards(
+        depot,
+        prepaidCardManager,
+        daicpxdToken,
+        daicpxdToken,
+        issuer,
+        relayer,
+        [toTokenUnit(2)]
+      );
+      await fakeDaicpxdToken
+        .transferAndCall(
+          transferPrepaidCardHandler.address,
+          0,
+          AbiCoder.encodeParameters(
+            ["address", "uint256", "bytes"],
+            [
+              prepaidCard.address,
+              0,
+              AbiCoder.encodeParameters(
+                ["address", "bytes"],
+                [customer, "0x0"]
+              ),
+            ]
+          )
+        )
+        .should.be.rejectedWith(Error, "calling token is unaccepted");
     });
 
     it("does not allow non-action handler to call transfer on PrepaidCardManager", async () => {
