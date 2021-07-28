@@ -40,6 +40,8 @@ contract("Action Dispatcher", (accounts) => {
     merchantManager,
     actionDispatcher,
     registerMerchantHandler,
+    tokenManager,
+    merchantSafe,
     customer,
     proxyFactory,
     gnosisSafeMasterCopy,
@@ -70,7 +72,7 @@ contract("Action Dispatcher", (accounts) => {
     await spendToken.initialize(owner);
     actionDispatcher = await ActionDispatcher.new();
     await actionDispatcher.initialize(owner);
-    let tokenManager = await TokenManager.new();
+    tokenManager = await TokenManager.new();
     await tokenManager.initialize(owner);
     merchantManager = await MerchantManager.new();
     await merchantManager.initialize(owner);
@@ -114,6 +116,7 @@ contract("Action Dispatcher", (accounts) => {
       revenuePool,
       actionDispatcher,
       merchantManager,
+      tokenManager,
       owner,
       exchange.address,
       spendToken.address
@@ -180,6 +183,7 @@ contract("Action Dispatcher", (accounts) => {
           prepaidCardManager.address,
           revenuePool.address,
           spendToken.address,
+          tokenManager.address,
           { from: merchant }
         )
         .should.be.rejectedWith(Error, "Ownable: caller is not the owner");
@@ -193,6 +197,7 @@ contract("Action Dispatcher", (accounts) => {
           prepaidCardManager.address,
           revenuePool.address,
           exchange.address,
+          tokenManager.address,
           { from: merchant }
         )
         .should.be.rejectedWith(Error, "Ownable: caller is not the owner");
@@ -206,7 +211,7 @@ contract("Action Dispatcher", (accounts) => {
         eventABIs.MERCHANT_CREATION,
         merchantManager.address
       );
-      let merchantSafe = merchantCreation[0]["merchantSafe"];
+      merchantSafe = merchantCreation[0]["merchantSafe"]; // this merchant safe is reused
 
       // setup customer prepaid card
       let {
@@ -253,6 +258,49 @@ contract("Action Dispatcher", (accounts) => {
         );
     });
 
+    it("does not allow PayMerchantHandler to receive non-CPXD tokens", async () => {
+      // setup customer prepaid card
+      let {
+        prepaidCards: [prepaidCard],
+      } = await createPrepaidCards(
+        depot,
+        prepaidCardManager,
+        daicpxdToken,
+        daicpxdToken,
+        issuer,
+        relayer,
+        [toTokenUnit(1)]
+      );
+      await transferOwner(
+        prepaidCardManager,
+        prepaidCard,
+        issuer,
+        customer,
+        cardcpxdToken,
+        relayer,
+        daicpxdToken
+      );
+      fakeToken.mint(merchant, toTokenUnit(1));
+
+      // emulate a real pay merchant action
+      await fakeToken
+        .transferAndCall(
+          payMerchantHandler.address,
+          toTokenUnit(1),
+          AbiCoder.encodeParameters(
+            ["address", "uint256", "string", "bytes"],
+            [
+              prepaidCard.address,
+              100,
+              "payMerchant",
+              AbiCoder.encodeParameters(["address"], [merchantSafe]),
+            ]
+          ),
+          { from: merchant }
+        )
+        .should.be.rejectedWith(Error, "calling token is unaccepted");
+    });
+
     it("does not allow RegisterMerchantHandler to receive tokens from non-action dispatcher", async () => {
       // setup a customer prepaid card
       let {
@@ -297,6 +345,49 @@ contract("Action Dispatcher", (accounts) => {
           Error,
           "can only accept tokens from action dispatcher"
         );
+    });
+
+    it("does not allow RegisterMerchantHandler to receive non-CPXD tokens", async () => {
+      // setup a customer prepaid card
+      let {
+        prepaidCards: [prepaidCard],
+      } = await createPrepaidCards(
+        depot,
+        prepaidCardManager,
+        daicpxdToken,
+        daicpxdToken,
+        issuer,
+        relayer,
+        [toTokenUnit(10)]
+      );
+      await transferOwner(
+        prepaidCardManager,
+        prepaidCard,
+        issuer,
+        customer,
+        cardcpxdToken,
+        relayer,
+        daicpxdToken
+      );
+      fakeToken.mint(customer, toTokenUnit(10));
+
+      // emulate a real register merchant action
+      await fakeToken
+        .transferAndCall(
+          registerMerchantHandler.address,
+          toTokenUnit(10),
+          AbiCoder.encodeParameters(
+            ["address", "uint256", "string", "bytes"],
+            [
+              prepaidCard.address,
+              1000,
+              "registerMerchant",
+              AbiCoder.encodeParameters(["string"], [""]),
+            ]
+          ),
+          { from: customer }
+        )
+        .should.be.rejectedWith(Error, "calling token is unaccepted");
     });
   });
 

@@ -6,6 +6,7 @@ import "../MerchantManager.sol";
 import "../RevenuePool.sol";
 import "../Exchange.sol";
 import "../core/Versionable.sol";
+import "../TokenManager.sol";
 
 contract RegisterMerchantHandler is Ownable, Versionable {
   using SafeMath for uint256;
@@ -23,19 +24,22 @@ contract RegisterMerchantHandler is Ownable, Versionable {
   address public exchangeAddress;
   address public actionDispatcher;
   address public prepaidCardManager;
+  address public tokenManagerAddress;
 
   function setup(
     address _actionDispatcher,
     address _merchantManager,
     address _prepaidCardManager,
     address _revenuePoolAddress,
-    address _exchangeAddress
+    address _exchangeAddress,
+    address _tokenManagerAddress
   ) external onlyOwner returns (bool) {
     actionDispatcher = _actionDispatcher;
     revenuePoolAddress = _revenuePoolAddress;
     prepaidCardManager = _prepaidCardManager;
     merchantManager = _merchantManager;
     exchangeAddress = _exchangeAddress;
+    tokenManagerAddress = _tokenManagerAddress;
     emit Setup();
     return true;
   }
@@ -53,6 +57,10 @@ contract RegisterMerchantHandler is Ownable, Versionable {
     uint256 amount,
     bytes calldata data
   ) external returns (bool) {
+    require(
+      TokenManager(tokenManagerAddress).isValidToken(msg.sender),
+      "calling token is unaccepted"
+    );
     require(
       from == actionDispatcher,
       "can only accept tokens from action dispatcher"
