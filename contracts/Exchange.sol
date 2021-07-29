@@ -5,8 +5,9 @@ import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
 
 import "./token/IERC677.sol";
 import "./oracles/IPriceOracle.sol";
+import "./core/Versionable.sol";
 
-contract Exchange is Ownable {
+contract Exchange is Ownable, Versionable {
   using SafeMath for uint256;
 
   event Setup();
