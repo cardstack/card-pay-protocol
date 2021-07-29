@@ -37,6 +37,10 @@ contract("Exchange", (accounts) => {
     await fakeToken.mint(owner, toTokenUnit(100));
   });
 
+  it("can get version of contract", async () => {
+    expect(await exchange.cardpayVersion()).to.match(/\d\.\d\.\d/);
+  });
+
   describe("exchange rate", () => {
     afterEach(async () => {
       // reset the rate to 1:1
