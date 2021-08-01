@@ -45,7 +45,6 @@ contract ActionDispatcher is Ownable, Versionable {
     tokenManager = _tokenManager;
     exchangeAddress = _exchangeAddress;
     prepaidCardManager = _prepaidCardManager;
-    prepaidCardManager = _prepaidCardManager;
     emit Setup();
   }
 
