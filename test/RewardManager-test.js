@@ -85,11 +85,10 @@ contract("RewardManager", (accounts) => {
     await tokenManager.initialize(owner);
     merchantManager = await MerchantManager.new();
     await merchantManager.initialize(owner);
-
-    ({ daicpxdToken, cardcpxdToken, exchange } = await setupExchanges(owner));
-
     rewardManager = await RewardManager.new();
     await rewardManager.initialize(owner);
+
+    ({ daicpxdToken, cardcpxdToken, exchange } = await setupExchanges(owner));
 
     // setup
     await tokenManager.setup(ZERO_ADDRESS, [
@@ -149,6 +148,7 @@ contract("RewardManager", (accounts) => {
       revenuePool,
       actionDispatcher,
       merchantManager,
+      tokenManager,
       rewardManager,
       owner,
       exchange.address,
