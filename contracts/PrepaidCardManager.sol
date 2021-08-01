@@ -560,7 +560,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
         Enum.Operation.Call,
         0,
         0,
-        0,
+        0, //If there is no gas price, there will be no transfer to _gasRecipient
         _gasToken,
         _gasRecipient,
         signatures
