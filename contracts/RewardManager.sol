@@ -51,6 +51,14 @@ contract RewardManager is Ownable, Versionable, Safe {
         _;
     }
 
+    modifier onlyHandlers() {
+        require(
+            ActionDispatcher(actionDispatcher).isHandler(msg.sender),
+            "caller is not a registered action handler"
+        );
+        _;
+    }
+
     //External Mutating Functions
     function setup(
         address _actionDispatcher,
@@ -131,6 +139,7 @@ contract RewardManager is Ownable, Versionable, Safe {
 
     function register(address rewardProgramID, address prepaidCardOwner)
         external
+        onlyHandlers
         returns (address)
     {
         // creation of reward safe
