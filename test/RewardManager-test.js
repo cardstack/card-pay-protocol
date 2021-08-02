@@ -154,7 +154,6 @@ contract("RewardManager", (accounts) => {
       exchange.address,
       spendToken.address
     );
-    // await spendToken.addMinter(registerRewardeeHandler.address);
 
     await daicpxdToken.mint(owner, toTokenUnit(100));
 
@@ -247,17 +246,22 @@ contract("RewardManager", (accounts) => {
   describe("update reward program", () => {
     beforeEach(async () => {
       rewardProgramID = randomHex(20); //is just an id. might be better to keccakhash an id
-      await rewardManager.registerRewardProgram(owner, rewardProgramID);
+      await rewardManager.registerRewardProgram(
+        rewardProgramAdmin,
+        rewardProgramID
+      );
     });
     it("can remove existing reward program", async () => {
-      await rewardManager.removeRewardProgram(rewardProgramID, { from: owner });
+      await rewardManager.removeRewardProgram(rewardProgramID, {
+        from: rewardProgramAdmin,
+      });
       expect(await rewardManager.isRewardProgram(rewardProgramID)).to.equal(
         false
       );
     });
     it("cannot remove existing reward program if not rewardProgramAdmin", async () => {
       await rewardManager
-        .removeRewardProgram(rewardProgramID, { from: rewardProgramAdmin })
+        .removeRewardProgram(rewardProgramID, { from: owner })
         .should.be.rejectedWith("caller must be admin of reward program");
     });
     it("add rule in reward program", async () => {
@@ -265,36 +269,46 @@ contract("RewardManager", (accounts) => {
         rewardProgramID,
         ruleDID,
         tallyRuleDID,
-        benefitDID
+        benefitDID,
+        { from: rewardProgramAdmin }
       );
-      expect(await rewardManager.hasRule(rewardProgramID, ruleDID)).to.equal(
-        true
-      );
+      expect(
+        await rewardManager.hasRule(rewardProgramID, ruleDID, {
+          from: rewardProgramAdmin,
+        })
+      ).to.equal(true);
     });
     it("remove reward program", async () => {
       await rewardManager.addRewardRule(
         rewardProgramID,
         ruleDID,
         tallyRuleDID,
-        benefitDID
+        benefitDID,
+        { from: rewardProgramAdmin }
       );
-      await rewardManager.removeRewardRule(rewardProgramID, ruleDID);
+      await rewardManager.removeRewardRule(rewardProgramID, ruleDID, {
+        from: rewardProgramAdmin,
+      });
       expect(await rewardManager.hasRule(rewardProgramID, ruleDID)).to.equal(
         false
       );
     });
     it("lock reward program", async () => {
       expect(await rewardManager.isLocked(rewardProgramID)).to.equal(false);
-      await rewardManager.lockRewardProgram(rewardProgramID);
+      await rewardManager.lockRewardProgram(rewardProgramID, {
+        from: rewardProgramAdmin,
+      });
       expect(await rewardManager.isLocked(rewardProgramID)).to.equal(true);
     });
-    it("update rewardProgramAdmin of reward program", async () => {
-      expect(await rewardManager.adminRewardProgram(rewardProgramID)).to.equal(
-        owner
-      );
-      await rewardManager.updateAdmin(rewardProgramID, rewardProgramAdmin);
+    it.only("update rewardProgramAdmin of reward program", async () => {
       expect(await rewardManager.adminRewardProgram(rewardProgramID)).to.equal(
         rewardProgramAdmin
+      );
+      await rewardManager.updateAdmin(rewardProgramID, owner, {
+        from: rewardProgramAdmin,
+      });
+      expect(await rewardManager.adminRewardProgram(rewardProgramID)).to.equal(
+        owner
       );
     });
   });
