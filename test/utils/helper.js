@@ -234,6 +234,7 @@ exports.addActionHandlers = async function (
     prepaidCardManager.address,
     revenuePool.address,
     exchangeAddress,
+    tokenManager.address,
     rewardManager.address
   );
 

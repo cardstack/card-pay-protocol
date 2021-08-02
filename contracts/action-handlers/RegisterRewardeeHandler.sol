@@ -22,6 +22,7 @@ contract RegisterRewardeeHandler is Ownable, Versionable {
     address public exchangeAddress;
     address public actionDispatcher;
     address public prepaidCardManager;
+    address public tokenManagerAddress;
     address public rewardManagerAddress;
 
     function setup(
@@ -30,6 +31,7 @@ contract RegisterRewardeeHandler is Ownable, Versionable {
         address _prepaidCardManager,
         address _revenuePoolAddress,
         address _exchangeAddress,
+        address _tokenManagerAddress,
         address _rewardManagerAddress
     ) external onlyOwner returns (bool) {
         actionDispatcher = _actionDispatcher;
@@ -37,6 +39,7 @@ contract RegisterRewardeeHandler is Ownable, Versionable {
         prepaidCardManager = _prepaidCardManager;
         merchantManager = _merchantManager;
         exchangeAddress = _exchangeAddress;
+        tokenManagerAddress = _tokenManagerAddress;
         rewardManagerAddress = _rewardManagerAddress;
         emit Setup();
         return true;
@@ -55,6 +58,10 @@ contract RegisterRewardeeHandler is Ownable, Versionable {
         uint256 amount,
         bytes calldata data
     ) external returns (bool) {
+        require(
+            TokenManager(tokenManagerAddress).isValidToken(msg.sender),
+            "calling token is unaccepted"
+        );
         require(
             from == actionDispatcher,
             "can only accept tokens from action dispatcher"
