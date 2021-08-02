@@ -4,26 +4,45 @@ This document describes various operations procedures for the on-going maintenan
 - [Card Protocol Operations](#card-protocol-operations)
   - [Blockscout](#blockscout)
   - [Key Management](#key-management)
-  - [Prepaid Card Manager](#prepaid-card-manager)
+  - [Relay Server](#relay-server)
+    - [Setup Payer](#setup-payer)
+    - [Setup Gas Tokens](#setup-gas-tokens)
+    - [Setup Oracles](#setup-oracles)
+    - [Setup Price Ticker](#setup-price-ticker)
+  - [PrepaidCardManager](#prepaidcardmanager)
     - [Setup](#setup)
+    - [addGasPolicy](#addgaspolicy)
+  - [ActionDispatcher](#actiondispatcher)
+    - [Setup](#setup-1)
+    - [addHandler](#addhandler)
+    - [removeHandler](#removehandler)
+  - [Exchange](#exchange)
+    - [Setup](#setup-2)
+    - [Create Exchange](#create-exchange)
+  - [TokenManager](#tokenmanager)
+    - [Setup](#setup-3)
     - [Add Payable Token](#add-payable-token)
     - [Remove Payable Token](#remove-payable-token)
-  - [Revenue Pool](#revenue-pool)
-    - [Setup](#setup-1)
-    - [Add Payable Token](#add-payable-token-1)
-    - [Remove Payable Token](#remove-payable-token-1)
-    - [Add Tally](#add-tally)
-    - [Remove Tally](#remove-tally)
+  - [MerchantManager](#merchantmanager)
+    - [Setup](#setup-4)
     - [Register Merchant](#register-merchant)
-    - [Create Exchange](#create-exchange)
-  - [Relay](#relay)
-    - [Setup Payer](#setup-payer)
-  - [Bridge Utils](#bridge-utils)
-    - [Setup](#setup-2)
-    - [Update Supplier](#update-supplier)
-    - [Check Supplier Registration](#check-supplier-registration)
-  - [Reward Pool](#reward-pool)
-    - [Setup](#setup-tally)
+  - [SupplierManager](#suppliermanager)
+    - [Setup](#setup-5)
+    - [Register Supplier](#register-supplier)
+  - [PayMerchantHandler](#paymerchanthandler)
+    - [Setup](#setup-6)
+  - [RegisterMerchantHandler](#registermerchanthandler)
+    - [Setup](#setup-7)
+  - [SplitPrepaidCardHandler](#splitprepaidcardhandler)
+    - [Setup](#setup-8)
+  - [TransferPrepaidCardHandler](#transferprepaidcardhandler)
+    - [Setup](#setup-9)
+  - [RevenuePool](#revenuepool)
+    - [Setup](#setup-10)
+  - [BridgeUtils](#bridgeutils)
+    - [Setup](#setup-11)
+  - [RewardPool](#rewardpool)
+    - [Setup Tally](#setup-tally)
     - [Submit Merkle Root](#submit-merkle-root)
     - [Withdraw Rewards](#withdraw-rewards)
 
@@ -51,140 +70,7 @@ When developers restore the shamir seeds, they should enable the following prote
 1. [Pin protection](https://wiki.trezor.io/PIN)
 2. [SD card protection](https://wiki.trezor.io/User_manual:SD_card_protection)
 
-
-## Prepaid Card Manager
-The Prepaid Card Manager is responsible for creating Prepaid Cards and cosigning transactions that originate from the prepaid card. This may include paying merchants, splitting prepaid cards, or transferring prepaid card ownership.
-
-### Setup
-The `setup` function of the prepaid card manager allows us to configure some basic aspects of how this contract functions including:
-- setting the Gnosis safe master copy address
-- setting the Gnosis safe factory address
-- setting the revenue pool contract address
-- setting an array of L2 tokens that are accepted by the prepaid card manager
-- setting the minimum face value of newly created prepaid cards (in units of SPEND tokens)
-- setting the maximum face value of newly created prepaid cards (in units of SPEND tokens)
-- setting the address that will receive the gas fee collected for the creation of new prepaid cards
-- setting the amount of the gas fee that will be charged for creation of new prepaid cards
-
-1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the PrepaidCardManager contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
-2. Select the "Write Contract" tab
-3. Click on the "Connect to Metamask" tab
-4. Select the Trezor Card Protocol Owner for the correct network in metamask
-5. Locate the "Setup" row and enter all the values (from above) that you wish to set for the PrepaidCardManager. If you wish to retain the current value, then use the "Read Contract" tab to look up the current value for any of the settings above.
-8. Click on the "Write" button in the "Setup" row.
-9. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
-10. After the transaction has completed, you can confirm the setup configuration by clicking on the "Read Contract" tab and reviewing all the fields that pertain to the setup parameters.
-
-### Add Payable Token
-The `addPayableToken` function allows the prepaid card manager to accept a new L2 token address to be used for creating a prepaid card.
-1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the PrepaidCardManager contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
-2. Select the "Write Contract" tab
-3. Click on the "Connect to Metamask" tab
-4. Select the Trezor Card Protocol Owner for the correct network in metamask
-5. Locate the "addPayableToken" row and enter the address for the L2 token that you wish to add as a payable token
-6. Click on the "Write" button in the "addPayableToken" row.
-9. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
-10. After the transaction has completed, you can confirm the payable token was added by clicking on the "Read Contract" tab and looking at the "getTokens" row.
-
-### Remove Payable Token
-The `removePayableToken` function allows the prepaid card manager to no longer accept an L2 token address as a token that can be used to create a prepaid card.
-1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the PrepaidCardManager contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
-2. Select the "Write Contract" tab
-3. Click on the "Connect to Metamask" tab
-4. Select the Trezor Card Protocol Owner for the correct network in metamask
-5. Locate the "removePayableToken" row and enter the address for the L2 token that you wish to remove as a payable token
-6. Click on the "Write" button in the "removePayableToken" row.
-9. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
-10. After the transaction has completed, you can confirm the payable token was removed by clicking on the "Read Contract" tab and looking at the "getTokens" row.
-
-## Revenue Pool
-The Revenue pool collects the L2 tokens used to pay merchants, and mints SPEND tokens that the merchants can redeem against the funds collected in the revenue pool.
-
-### Setup
-The `setup` function of the revenue pool allows us to configure some basic aspects of how this contract functions including:
-- setting an array of Tally contract addresses (these are addresses that are allowed to invoke the redeem SPEND function on the revenue pool contract)
-- setting the Gnosis safe master copy address
-- setting the Gnosis safe factory address
-- setting the SPEND token contract address
-- setting an array of L2 tokens that are accepted by the revenue pool
-
-1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the RevenuePool contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
-2. Select the "Write Contract" tab
-3. Click on the "Connect to Metamask" tab
-4. Select the Trezor Card Protocol Owner for the correct network in metamask
-5. Locate the "Setup" row and enter all the values (from above) that you wish to set for the RevenuePool. If you wish to retain the current value, then use the "Read Contract" tab to look up the current value for any of the settings above.
-8. Click on the "Write" button in the "Setup" row.
-9. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
-10. After the transaction has completed, you can confirm the setup configuration by clicking on the "Read Contract" tab and reviewing all the fields that pertain to the setup parameters.
-
-### Add Payable Token
-The `addPayableToken` function allows the revenue pool to accept a new L2 token address to be used as payment to a merchant.
-1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the RevenuePool contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
-2. Select the "Write Contract" tab
-3. Click on the "Connect to Metamask" tab
-4. Select the Trezor Card Protocol Owner for the correct network in metamask
-5. Locate the "addPayableToken" row and enter the address for the L2 token that you wish to add as a payable token
-6. Click on the "Write" button in the "addPayableToken" row.
-9. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
-10. After the transaction has completed, you can confirm the payable token was added by clicking on the "Read Contract" tab and looking at the "getTokens" row.
-
-### Remove Payable Token
-The `removePayableToken` function allows the revenue pool to no longer accept an L2 token address to be used as payment to a merchant.
-1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the RevenuePool contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
-2. Select the "Write Contract" tab
-3. Click on the "Connect to Metamask" tab
-4. Select the Trezor Card Protocol Owner for the correct network in metamask
-5. Locate the "removePayableToken" row and enter the address for the L2 token that you wish to remove as a payable token
-6. Click on the "Write" button in the "removePayableToken" row.
-9. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
-10. After the transaction has completed, you can confirm the payable token was removed by clicking on the "Read Contract" tab and looking at the "getTokens" row.
-
-### Add Tally
-The `addTally` function adds an address that is permitted to call a function to redeem SPEND tokens on behalf of a merchant from the revenue pool.
-1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the RevenuePool contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
-2. Select the "Write Contract" tab
-3. Click on the "Connect to Metamask" tab
-4. Select the Trezor Card Protocol Owner for the correct network in metamask
-5. Locate the "addTally" row and enter the address that is permitted to call the `claimToken()` function
-6. Click on the "Write" button in the "addTally" row.
-9. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
-10. After the transaction has completed, you can confirm the tally address was added by clicking on the "Read Contract" tab and looking at the "getTallys" row.
-
-### Remove Tally
-The `removeTally` function removes an address that is permitted to call a function to redeem SPEND tokens on behalf of a merchant from the revenue pool.
-1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the RevenuePool contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
-2. Select the "Write Contract" tab
-3. Click on the "Connect to Metamask" tab
-4. Select the Trezor Card Protocol Owner for the correct network in metamask
-5. Locate the "removeTally" row and enter the address that is no longer permitted to call the `claimToken()` function
-6. Click on the "Write" button in the "removeTally" row.
-9. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
-10. After the transaction has completed, you can confirm the tally address was removed by clicking on the "Read Contract" tab and looking at the "getTallys" row.
-
-### Register Merchant
-The `registerMerchant` function adds the address of a merchant in the revenue pool that is permitted to accept payment with prepaid card as well as is able to redeem SPEND tokens from the revenue pool.
-1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the RevenuePool contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
-2. Select the "Write Contract" tab
-3. Click on the "Connect to Metamask" tab
-4. Select the Trezor Card Protocol Owner for the correct network in metamask
-5. Locate the "registerMerchant" row and enter the merchant's address
-6. Click on the "Write" button in the "registerMerchant" row.
-9. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
-10. After the transaction has completed, you can confirm the merchant was registered was added by setting the merchant's address in the isMerchant field and clicking on the "Query" button.
-
-### Create Exchange
-The `createExchange` function adds price oracle for a token that is capable of getting the USD price for a token as well as the ETH price for a token. This function takes as input a contract that implements the `IPriceOracle` interface and associates with to a token symbol (which correlates to the tokens that have been added to our TokenBridge allow list and enabled as valid tokens in both the PrepaidCardManager contract and the RevenuePool contract). After the exchange has been added the RevenuePool contract will be able to perform token conversions using the exchange rates that originate from the supplied contract.
-1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the RevenuePool contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
-2. Select the "Write Contract" tab
-3. Click on the "Connect to Metamask" tab
-4. Select the Trezor Card Protocol Owner for the correct network in metamask
-5. Locate the "createExchange" row and enter the token symbol (without the "CPXD" suffix, and the address of the contract that implements the `IPriceOracle` for this token.
-6. Click on the "Write" button in the "createExchange" row.
-9. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
-10. After the transaction has completed, you can confirm the exchange was created was added by setting the token's CPXD address in the exchangeRateOf field and clicking on the "Query" button.
-
-
-## Relay
+## Relay Server
 The relay is a server that is responsible for relying gnosis transactions to the blockchain from a web service. A key feature of the relay is that it pays for the gas of the transactions that it relays to the blockchain.
 
 ### Setup Payer
@@ -202,68 +88,423 @@ In order to setup the relay, a gas payer must be designated for the relay. This 
 11. Set the private key for the payer in AWS `{env}_SAFE_TX_SENDER_PRIVATE_KEY` AWS Secrets Manager
 12. Set the private key for the payer in AWS `{env}_SAFE_FUNDER_PRIVATE_KEY` AWS Secrets Manager
 13. Transfer a significant amount of network native coins to the address of the gas payer.
+13. Transfer a significant amount of CARD.CPXD the address of the gas payer.
 14. Delete and close the scratch text docs that were acting as your copy-paste buffer
 15. Taint the terraform EBS volumes and EC2 instances for the relayer and redeploy the relay service from terraform.
 16. Navigate to the relay service for the environment and confirm that the /api/v1/about/ information reflects the address of the payer that you just setup.
 
-## Bridge Utils
+### Setup Gas Tokens
+Each of the CPXD tokens can be used to pay gas, so we must configure the relay server to recognize all the CPXD tokens as gas tokens.
+
+1. First all the CPXD tokens must be bridged for the first time. The act of bridging a token from L1 to L2 causes the TokenBridge to create the CPXD token address.
+2. Login to the relay server's /admin interface using the administrator's credentials
+3. For each CPXD token click the Tokens "+Add" button
+4. For each CPXD token enter:
+   - the layer 2 CPXD token address that the TokenBridge assigned the CPXD token
+   - the name of the CPXD token
+   - the symbol of the CPXD token
+   - a decimals value of "18"
+   - check the "gas" check box
+   - for the DAI.CPXD token specifically set the "Fixed eth conversion" to "1.0". For all the other tokens leave this field blank.
+   - finally click "Save"
+
+### Setup Oracles
+For each of the CPXD tokens, with the exception of the DAI.CPXD token we must establish an oracle that the relay server can use to get the native coin value of the token in question.
+
+1. Login to the relay server's /admin interface using the administrator's credentials
+2. Click on the Price Oracles "+Add" button
+3. Add a new price oracle named "Cardpay"
+4. Set the configuration of the price oracle to:
+    ```json
+    {
+      "cardpay_price_oracle_addresses": {
+        "TOKEN_SYMBOL": "CARD_PROTOCOL_ORACLE",
+        "CARD": "0xb4Fcc975c2b6A57dd5B3d9a3B6b144499f707c7d"
+      }
+    }
+    ```
+    where there is an entry for each non DAI.CPXD token that maps the token symbol (without the "CPXD suffix") to the Card protocol `IPriceOracle` contract address for the token in question. An example for the CARD token in sokol has been provided in the example above.
+5. finally click "Save"
+
+### Setup Price Ticker
+For each of the CPXD tokens, with the exception of the DAI.CPXD token, we must establish a price ticker that maps the gas token to the price oracle in order to calculate the live rate for the CPXD token in native coin.
+1. First create the gas tokens and price oracles using the instructions above
+2. Login to the relay server's admin interface using the administrator's credentials
+3. For each of the CPXD tokens, except the DAI.CPXD tokens:
+    - Click on the Price oracle tickers "+Add" button
+    - From the price oracle drop down, select the "Cardpay" price oracle
+    - From the token drop down, select the CPXD token in question
+    - In the ticker text field enter: ```TOKEN_SYMBOL/DAI```, without the ".CPXD" suffix. For example for CARD.CPXD, this would be entered: ```CARD/DAI```
+    - finally click "save"
+    - confirm that the newly created ticker shows the correct exchange rate for the CPXD token
+
+
+## PrepaidCardManager
+The Prepaid Card Manager is responsible for creating Prepaid Cards and cosigning transactions that originate from the prepaid card. This may include paying merchants, splitting prepaid cards, or transferring prepaid card ownership.
+
+### Setup
+The `setup` function of the prepaid card manager allows us to configure some basic aspects of how this contract functions including:
+- setting the TokenManager address
+- setting the SupplierManager address
+- setting the Exchange contract address
+- setting the Gnosis safe master copy address
+- setting the Gnosis safe factory address
+- setting the ActionDispatcher address
+- setting the address that will receive the gas fee collected for the creation of new prepaid cards
+- setting the amount of the gas fee that will be charged for creation of new prepaid cards
+- the address of the official gas token (CARD.CPXD)
+- setting the minimum face value of newly created prepaid cards (in units of SPEND tokens)
+- setting the maximum face value of newly created prepaid cards (in units of SPEND tokens)
+
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the PrepaidCardManager contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
+2. Select the "Write Proxy" tab
+3. Click on the "Connect to Metamask" tab
+4. Select the Trezor Card Protocol Owner for the correct network in metamask
+5. Locate the "Setup" row and enter all the values (from above) that you wish to set for the PrepaidCardManager. If you wish to retain the current value, then use the "Read Proxy" tab to look up the current value for any of the settings above.
+8. Click on the "Write" button in the "Setup" row.
+9. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
+10. After the transaction has completed, you can confirm the setup configuration by clicking on the "Read Proxy" tab and reviewing all the fields that pertain to the setup parameters.
+
+### addGasPolicy
+The `addGasPolicy` function establishes the gas policy for a particular action; specifically: the token used to pay for gas and the entity that receives the gas payment from the gnosis execTransaction. This can be used to configure whether an action deducts the gas costs from the face value of the prepaid card, or whether the action defers the gas payment so that it can be collected via some other means (e.g. protocol fee).
+
+This function is called with the following parameters:
+- The name of the action for which you are adding a gas policy
+- A boolean set to true if the prepaid card's issuing token should be used as the gas token
+- A boolean set to true if the relay server's configured txn spender should receive the gas token (otherwise the gas token is paid back to the prepaid card)
+
+To call this function:
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the PrepaidCardManager contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
+2. Select the "Write Proxy" tab
+3. Click on the "Connect to Metamask" tab
+4. Select the Trezor Card Protocol Owner for the correct network in metamask
+5. Locate the "addGasPolicy" row and enter all the values (from above) that you wish to set for the PrepaidCardManager. If you wish to retain the current value, then use the "Read Proxy" tab to look up the current value for any of the settings above.
+8. Click on the "Write" button in the "addGasPolicy" row.
+9. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
+
+## ActionDispatcher
+The ActionDispatcher contract is used to dispatch Prepaid card actions to the contract that handles the respective action.
+### Setup
+The `setup` function of the ActionDispatcher allows us to configure:
+- the TokenManager contract address
+- the Exchange contract address
+- the PrepaidCardManager address
+
+This function should be called to setup the ActionDispatcher
+
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the ActionDispatcher contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
+1. Select the "Write Proxy" tab
+1. Click on the "Connect to Metamask" tab
+1. Select the Trezor Card Protocol Owner for the correct network in metamask
+1. Locate the "Setup" row and enter all the values (from above) that you wish to set for the ActionDispatcher. If you wish to retain the current value, then use the "Read Proxy" tab to look up the current value for any of the settings above.
+1. Click on the "Write" button in the "Setup" row.
+1. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
+1. After the transaction has completed, you can confirm the setup configuration by clicking on the "Read Proxy" tab and reviewing all the fields that pertain to the setup parameters.
+
+### addHandler
+The `addHandler` function of the ActionDispatcher allows a new action handler to be added to the set of action handlers that the ActionDispatcher will dispatch to. This function's parameters include:
+- the contract address of the new handler
+- the name of the action the new action handler will handle
+
+To call this function:
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the ActionDispatcher contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
+1. Select the "Write Proxy" tab
+1. Click on the "Connect to Metamask" tab
+1. Select the Trezor Card Protocol Owner for the correct network in metamask
+1. Locate the "addHandler" row and enter the action handler contract address and its associated action name
+1. Click on the "Write" button in the "addHandler" row.
+1. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
+
+### removeHandler
+The `removeHandler` function of the ActionDispatcher allows an action handler contract to be removed from the set of action handlers that the ActionDispatcher will dispatch to. This function's sole parameter is the name of the action to remove.
+
+To call this function:
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the ActionDispatcher contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
+1. Select the "Write Proxy" tab
+1. Click on the "Connect to Metamask" tab
+1. Select the Trezor Card Protocol Owner for the correct network in metamask
+1. Locate the "removeHandler" row and enter the action name to remove
+1. Click on the "Write" button in the "removeHandler" row.
+1. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
+
+## Exchange
+The Exchange contract is responsible for providing a consistent API for converting between different token and fiats currencies via underlying oracles.
+
+### Setup
+The `setup` function of the Exchange contract allows us to configure the "rate drift percentage" this is the amount that requested SPEND rates are allowed to differ from the current SPEND rate when using a prepaid card. The value specified here is as a decimals 8 uint256 value.
+
+To call this function:
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the Exchange contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
+1. Select the "Write Proxy" tab
+1. Click on the "Connect to Metamask" tab
+1. Select the Trezor Card Protocol Owner for the correct network in metamask
+1. Locate the "Setup" row and enter the action name to remove
+1. Click on the "Write" button in the "Setup" row.
+1. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
+
+### Create Exchange
+The `createExchange` function adds price oracle for a token that is capable of getting the USD price for a token as well as the ETH price for a token. This function takes as input a contract that implements the `IPriceOracle` interface and associates with to a token symbol.
+
+To call this function:
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the Exchange contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
+2. Select the "Write Proxy" tab
+3. Click on the "Connect to Metamask" tab
+4. Select the Trezor Card Protocol Owner for the correct network in metamask
+5. Locate the "createExchange" row and enter the token symbol (without the "CPXD" suffix, and the address of the contract that implements the `IPriceOracle` for this token.
+6. Click on the "Write" button in the "createExchange" row.
+9. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
+10. After the transaction has completed, you can confirm the exchange was created was added by setting the token's CPXD address in the exchangeRateOf field and clicking on the "Query" button.
+
+## TokenManager
+The TokenManager contract is used to keep track of the CPXD tokens, which are the fungible tokens that the Card Protocol recognizes as payable tokens. As new CPXD token contracts are created via the TokenBridge, they will be added as supported tokens to this contract.
+
+### Setup
+The `setup` function configures basic aspects of the TokenManager, including:
+- The address of the BridgeUtils contract
+- An array of CPXD tokens that have already been created
+
+To call this function:
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the TokenManager contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
+2. Select the "Write Proxy" tab
+3. Click on the "Connect to Metamask" tab
+4. Select the Trezor Card Protocol Owner for the correct network in metamask
+5. Locate the "Setup" row and enter all the values (from above) that you wish to set for the TokenManager. If you wish to retain the current value, then use the "Read Proxy" tab to look up the current value for any of the settings above.
+8. Click on the "Write" button in the "Setup" row.
+9. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
+10. After the transaction has completed, you can confirm the setup configuration by clicking on the "Read Proxy" tab and reviewing all the fields that pertain to the setup parameters.
+
+### Add Payable Token
+The `addPayableToken` function allows the TokenManager to recognize a new L2 token address as a CPXD token.
+
+To call this function:
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the TokenManager contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
+2. Select the "Write Proxy" tab
+3. Click on the "Connect to Metamask" tab
+4. Select the Trezor Card Protocol Owner for the correct network in metamask
+5. Locate the "addPayableToken" row and enter the address for the L2 token that you wish to add as a payable token
+6. Click on the "Write" button in the "addPayableToken" row.
+9. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
+10. After the transaction has completed, you can confirm the payable token was added by clicking on the "Read Proxy" tab and looking at the "getTokens" row.
+
+### Remove Payable Token
+The `removePayableToken` function allows the TokenManager to no longer accept an L2 token as a CPXD token.
+
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the TokenManager contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
+2. Select the "Write Proxy" tab
+3. Click on the "Connect to Metamask" tab
+4. Select the Trezor Card Protocol Owner for the correct network in metamask
+5. Locate the "removePayableToken" row and enter the address for the L2 token that you wish to remove as a payable token
+6. Click on the "Write" button in the "removePayableToken" row.
+9. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
+10. After the transaction has completed, you can confirm the payable token was removed by clicking on the "Read Proxy" tab and looking at the "getTokens" row.
+
+## MerchantManager
+The MerchantManager contract is used to manage merchants and their respective merchant safes.
+
+### Setup
+The `setup` function is used to configure basic aspects of the MerchantManager contract and allows us to set:
+- The ActionDispatch address
+- the Gnosis Safe master copy address
+- the Gnosis Safe proxy factory address
+
+To call this function:
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the MerchantManager contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
+2. Select the "Write Proxy" tab
+3. Click on the "Connect to Metamask" tab
+4. Select the Trezor Card Protocol Owner for the correct network in metamask
+5. Locate the "Setup" row and enter all the values (from above) that you wish to set for the MerchantManager. If you wish to retain the current value, then use the "Read Proxy" tab to look up the current value for any of the settings above.
+8. Click on the "Write" button in the "Setup" row.
+9. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
+10. After the transaction has completed, you can confirm the setup configuration by clicking on the "Read Proxy" tab and reviewing all the fields that pertain to the setup parameters.
+
+### Register Merchant
+The `registerMerchant` function adds the address of a merchant in the MerchantManager that is permitted to accept payment with prepaid card as well as is able to redeem SPEND tokens from the revenue pool. This process will provision the merchant with a gnosis safe that is used for collecting the merchant's revenue.
+
+To call this function:
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the MerchantManager contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
+2. Select the "Write Proxy" tab
+3. Click on the "Connect to Metamask" tab
+4. Select the Trezor Card Protocol Owner for the correct network in metamask
+5. Locate the "registerMerchant" row and enter the merchant's address
+6. Click on the "Write" button in the "registerMerchant" row.
+9. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
+10. After the transaction has completed, you can confirm the merchant was registered was added by setting the merchant's address in the isMerchant field and clicking on the "Query" button.
+
+## SupplierManager
+The SupplierManager contract is used to provision suppliers with a gnosis safe to hold tokens that suppliers bridge into layer 2.
+
+### Setup
+The `setup` function is used to configure basic aspects of the SupplierManager contract and allows us to set:
+- The BridgeUtils address
+- the Gnosis Safe master copy address
+- the Gnosis Safe proxy factory address
+
+To call this function:
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the SupplierManager contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
+2. Select the "Write Proxy" tab
+3. Click on the "Connect to Metamask" tab
+4. Select the Trezor Card Protocol Owner for the correct network in metamask
+5. Locate the "Setup" row and enter all the values (from above) that you wish to set for the SupplierManager. If you wish to retain the current value, then use the "Read Proxy" tab to look up the current value for any of the settings above.
+8. Click on the "Write" button in the "Setup" row.
+9. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
+10. After the transaction has completed, you can confirm the setup configuration by clicking on the "Read Proxy" tab and reviewing all the fields that pertain to the setup parameters.
+
+### Register Supplier
+The `registerSupplier` function adds the address of a supplier in the SupplierManager and associates the supplier's address with a gnosis safe so that the supplier can receive bridged tokens in their safe.
+
+To call this function:
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the SupplierManager contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
+2. Select the "Write Proxy" tab
+3. Click on the "Connect to Metamask" tab
+4. Select the Trezor Card Protocol Owner for the correct network in metamask
+5. Locate the "registerSupplier" row and enter the merchant's address
+6. Click on the "Write" button in the "registerSupplier" row.
+9. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
+
+## PayMerchantHandler
+This contract handles "payMerchant" actions dispatched from the ActionDispatcher contract.
+
+### Setup
+The `setup` function is used to configure the PayMerchantHandler. This function configures:
+- The ActionDispatcher address
+- The MerchantManager address
+- The PrepaidCardManager address
+- The RevenuePool address
+- The SPEND token address
+- The TokenManager address
+
+To call this function:
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the PayMerchantHandler contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
+2. Select the "Write Proxy" tab
+3. Click on the "Connect to Metamask" tab
+4. Select the Trezor Card Protocol Owner for the correct network in metamask
+5. Locate the "Setup" row and enter all the values (from above) that you wish to set for the PayMerchantHandler. If you wish to retain the current value, then use the "Read Proxy" tab to look up the current value for any of the settings above.
+8. Click on the "Write" button in the "Setup" row.
+9. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
+10. After the transaction has completed, you can confirm the setup configuration by clicking on the "Read Proxy" tab and reviewing all the fields that pertain to the setup parameters.
+
+## RegisterMerchantHandler
+This contract handles the "registerMerchant" actions dispatched from the ActionDispatcher contract.
+### Setup
+The `setup` function is used to configure the RegisterMerchantHandler. This function configures:
+- The ActionDispatcher address
+- The MerchantManager address
+- The PrepaidCardManager address
+- The RevenuePool address
+- The Exchange contract address
+- The TokenManager address
+
+To call this function:
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the RegisterMerchantHandler contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
+2. Select the "Write Proxy" tab
+3. Click on the "Connect to Metamask" tab
+4. Select the Trezor Card Protocol Owner for the correct network in metamask
+5. Locate the "Setup" row and enter all the values (from above) that you wish to set for the RegisterMerchantHandler. If you wish to retain the current value, then use the "Read Proxy" tab to look up the current value for any of the settings above.
+8. Click on the "Write" button in the "Setup" row.
+9. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
+10. After the transaction has completed, you can confirm the setup configuration by clicking on the "Read Proxy" tab and reviewing all the fields that pertain to the setup parameters.
+
+## SplitPrepaidCardHandler
+This contract handles the "split" actions dispatched from the ActionDispatcher contract.
+### Setup
+The `setup` function is used to configure the SplitPrepaidCardHandler. This function configures:
+- The ActionDispatcher address
+- The PrepaidCardManager address
+- The TokenManager address
+
+To call this function:
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the SplitPrepaidCardHandler contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
+2. Select the "Write Proxy" tab
+3. Click on the "Connect to Metamask" tab
+4. Select the Trezor Card Protocol Owner for the correct network in metamask
+5. Locate the "Setup" row and enter all the values (from above) that you wish to set for the SplitPrepaidCardHandler. If you wish to retain the current value, then use the "Read Proxy" tab to look up the current value for any of the settings above.
+8. Click on the "Write" button in the "Setup" row.
+9. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
+10. After the transaction has completed, you can confirm the setup configuration by clicking on the "Read Proxy" tab and reviewing all the fields that pertain to the setup parameters.
+
+## TransferPrepaidCardHandler
+This contract handles the "transfer" actions dispatched from the ActionDispatcher contract.
+
+### Setup
+The `setup` function is used to configure the TransferPrepaidCardHandler. This function configures:
+- The ActionDispatcher address
+- The PrepaidCardManager address
+- The TokenManager address
+
+To call this function:
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the TransferPrepaidCardHandler contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
+2. Select the "Write Proxy" tab
+3. Click on the "Connect to Metamask" tab
+4. Select the Trezor Card Protocol Owner for the correct network in metamask
+5. Locate the "Setup" row and enter all the values (from above) that you wish to set for the TransferPrepaidCardHandler. If you wish to retain the current value, then use the "Read Proxy" tab to look up the current value for any of the settings above.
+8. Click on the "Write" button in the "Setup" row.
+9. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
+10. After the transaction has completed, you can confirm the setup configuration by clicking on the "Read Proxy" tab and reviewing all the fields that pertain to the setup parameters.
+
+
+## RevenuePool
+The Revenue pool collects the L2 tokens used to pay merchants, and mints SPEND tokens that the merchants can redeem against the funds collected in the revenue pool.
+
+### Setup
+The `setup` function of the revenue pool allows us to configure some basic aspects of how this contract functions including:
+- setting the Exchange contract address
+- setting the MerchantManager address
+- setting the ActionDispatcher address
+- setting the PrepaidCardManager address
+- setting the merchant fee receiver address
+- setting the merchant fee percentage (as decimal 8 uint256)
+- setting the merchant registration fee
+
+1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the RevenuePool contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
+2. Select the "Write Proxy" tab
+3. Click on the "Connect to Metamask" tab
+4. Select the Trezor Card Protocol Owner for the correct network in metamask
+5. Locate the "Setup" row and enter all the values (from above) that you wish to set for the RevenuePool. If you wish to retain the current value, then use the "Read Proxy" tab to look up the current value for any of the settings above.
+8. Click on the "Write" button in the "Setup" row.
+9. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
+10. After the transaction has completed, you can confirm the setup configuration by clicking on the "Read Proxy" tab and reviewing all the fields that pertain to the setup parameters.
+
+## BridgeUtils
 The BridgeUtils contract is responsible for facilitating the Token Bridge's ability to move tokens from layer 1 into layer 2 (xDai), such that issuers can perform gasless transactions to create prepaid cards from the tokens that they have bridged into the layer 2 network.
 
 ### Setup
 The `setup` function of the bridge utils allows us to configure some basic aspects of how this contract functions including:
-- setting an array of Tally contract addresses (these are addresses that are allowed to invoke the redeem SPEND function on the revenue pool contract)
-- setting the address of the revenue pool
-- setting the address of the prepaid card manager
-- setting the Gnosis safe master copy address
-- setting the Gnosis safe factory address
+- setting the TokenManager address
+- setting the SupplierManager address
+- setting the Exchange contract address
 - setting the address of the layer 2 token bridge contract
 
 This function should be called if the layer 2 token bridge contract has not yet been configured for the Card Protocol.
 
 1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the BridgeUtils contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
-2. Select the "Write Contract" tab
+2. Select the "Write Proxy" tab
 3. Click on the "Connect to Metamask" tab
 4. Select the Trezor Card Protocol Owner for the correct network in metamask
-5. Locate the "Setup" row and enter all the values (from above) that you wish to set for the BridgeUtils. If you wish to retain the current value, then use the "Read Contract" tab to look up the current value for any of the settings above.
+5. Locate the "Setup" row and enter all the values (from above) that you wish to set for the BridgeUtils. If you wish to retain the current value, then use the "Read Proxy" tab to look up the current value for any of the settings above.
 8. Click on the "Write" button in the "Setup" row.
 9. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
-10. After the transaction has completed, you can confirm the setup configuration by clicking on the "Read Contract" tab and reviewing all the fields that pertain to the setup parameters.
+10. After the transaction has completed, you can confirm the setup configuration by clicking on the "Read Proxy" tab and reviewing all the fields that pertain to the setup parameters.
 
-### Update Supplier
-The `updateSupplier` function allows a supplier to configure their details, specifically their brand name and a URL for their profile. The sender of this transaction needs to originate from the gnosis safe address assigned to the suppliers (the Card Protocol Owner cannot call this function).
+## RewardPool
 
-Because this is a gnosis safe transaction, the gnosis safe application should be used to update a supplier's details. https://xdai.gnosis-safe.io/app (currently there is no sokol gnosis safe app).
-
-### Check Supplier Registration
-The `isRegistered` function allows us to know if a supplier has been registered.
-
-1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the BridgeUtils contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
-
-1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the BridgeUtils contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
-2. Select the "Read Contract" tab
-3. Enter the supplier's "depot" gnosis safe address in the address field in the `isRegistered` row and click on the "Query" button.
-
-
-## Reward Pool
-
-The Reward pool is responsible for rewarding tokens to payee addresses at every payment cycle. For every payment cycle, the map of reward tokens to each payee address is recorded via a merkle root; payees will be able to withdraw their balance using a generated proof. 
+The Reward pool is responsible for rewarding tokens to payee addresses at every payment cycle. For every payment cycle, the map of reward tokens to each payee address is recorded via a merkle root; payees will be able to withdraw their balance using a generated proof.
 
 ### Setup Tally
 The `setup` function of the reward pool allows us to configure the tally address. The wallet of tally address will be able to execute administrative functions on the reward pool, most importantly, "submitPayeeMerkleRoot".
 
 1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the RewardPool contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
-2. Select the "Write Contract" tab.
+2. Select the "Write Proxy" tab.
 3. Click on the "Connect to Metamask" tab.
 4. Select the Trezor Card Protocol Owner for the correct network in metamask.
 5. Locate the "Setup" row and enter tally address into the input field.
 8. Click on the "Write" button in the "Setup" row.
 9. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
-10. After the transaction has completed, you can confirm the setup configuration by clicking on the "Read Contract" tab and reviewing the field "tally". 
+10. After the transaction has completed, you can confirm the setup configuration by clicking on the "Read Proxy" tab and reviewing the field "tally".
 
 ### Submit Merkle Root
 
 1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the RewardPool contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
-2. Select the "Write Contract" tab.
+2. Select the "Write Proxy" tab.
 3. Click on the "Connect to Metamask" tab.
 4. Select the Trezor Tally for the correct network in metamask.
 5. To generate the merkle root, there is no convenient api to do so. But, you can run this [test file](https://github.com/cardstack/tally-service/blob/master/safe_transaction_service/history/tests/test_merkle_tree.py) with the payment list as your input data. Ensure that token address in input data used is the same as ones that you find from "getTokens" row in readProxy tab of TokenManager contract.
@@ -275,12 +516,12 @@ The `setup` function of the reward pool allows us to configure the tally address
 ### Withdraw Rewards
 
 1. In the blockscout explorer, select the network that you are working within (xDai or Sokol) and navigate to the RewardPool contract (we keep a record of the deployed contracts at `addresses-{network}.json`) by entering the contract address in the blockscout search field.
-2. Select the "Write Contract" tab
+2. Select the "Write Proxy" tab
 3. Click on the "Connect to Metamask" tab
-4. Select your User Wallet that controls the rewarded address (payee address) for the correct network in metamask. The rewarded address is usually the owner of a prepaid card. 
+4. Select your User Wallet that controls the rewarded address (payee address) for the correct network in metamask. The rewarded address is usually the owner of a prepaid card.
 5. Navigate to tally's open api (staging: https://tally-service-staging.stack.cards/, production: TODO). Enter your address into `payee_address` field in `/merkle-proofs` api. You will get a list of objects that include proofs. Choose one object and extract the values for `proof` and `tokenAddress`.
 6. Locate the "balanceForProof" at readProxy tab. Enter the token address into `payableToken`, the proof into `proof`, into each input field respectively. Repeat usual metamask steps and click button "Query". Take note of the balance.
 7. Locate the "withdraw" row at writeProxy tab. Enter the token address into `payableToken`, the amount to withdraw in wei into `amount`,the proof into `proof`, into each input field respectively. The `amount` value cannot exceed balance in step 6.
-8. Click on the "Write" button in the "withdraw" row. 
+8. Click on the "Write" button in the "withdraw" row.
 9. In the Metamask popup that appears click on the "Confirm" button. The default gas price selected is probably just fine since gas is so plentiful in Layer 2 networks.
 10. After the transaction has completed, you can confirm your balance by entering your address in the the blockscout explorer search field. Inspect the Tokens tab to find transfers of new tokens.
