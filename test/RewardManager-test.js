@@ -300,7 +300,7 @@ contract("RewardManager", (accounts) => {
       });
       expect(await rewardManager.isLocked(rewardProgramID)).to.equal(true);
     });
-    it.only("update rewardProgramAdmin of reward program", async () => {
+    it("update rewardProgramAdmin of reward program", async () => {
       expect(await rewardManager.adminRewardProgram(rewardProgramID)).to.equal(
         rewardProgramAdmin
       );
