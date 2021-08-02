@@ -8,9 +8,10 @@ const SupplierManager = artifacts.require("SupplierManager");
 const RewardManager = artifacts.require("RewardManager");
 const RevenuePool = artifacts.require("RevenuePool.sol");
 const MerchantManager = artifacts.require("MerchantManager");
+const ERC677Token = artifacts.require("ERC677Token.sol");
 
 const { randomHex } = require("web3").utils;
-const { expect } = require("./setup");
+const { expect, TOKEN_DETAIL_DATA } = require("./setup");
 const utils = require("./utils/general");
 const { ZERO_ADDRESS } = utils;
 
@@ -29,6 +30,7 @@ const {
 
 const { getParamsFromEvent } = require("./utils/general");
 const eventABIs = require("./utils/constant/eventABIs");
+const AbiCoder = require("web3-eth-abi");
 
 const REWARDEE_REGISTRATION_FEE_IN_SPEND = 500;
 const tallyRuleDID = "did:cardstack:1tdnHDwr8Z4Z7sHGceo2kArC9a5a297f45ef5491";
@@ -43,10 +45,11 @@ contract("RewardManager", (accounts) => {
     spendToken,
     actionDispatcher,
     revenuePool,
-    merchantManager;
+    merchantManager,
+    registerRewardeeHandler;
 
   // tokens
-  let daicpxdToken, cardcpxdToken;
+  let daicpxdToken, cardcpxdToken, fakeDaicpxdToken;
   let exchange;
 
   // reward manager contract
@@ -153,7 +156,7 @@ contract("RewardManager", (accounts) => {
       prepaidCardManager.address
     );
 
-    await addActionHandlers(
+    ({ registerRewardeeHandler } = await addActionHandlers(
       prepaidCardManager,
       revenuePool,
       actionDispatcher,
@@ -163,13 +166,17 @@ contract("RewardManager", (accounts) => {
       owner,
       exchange.address,
       spendToken.address
-    );
+    ));
 
     await daicpxdToken.mint(owner, toTokenUnit(100));
 
     //safes
     depot = await createDepotFromSupplierMgr(supplierManager, issuer);
     await daicpxdToken.mint(depot.address, toTokenUnit(1000));
+
+    fakeDaicpxdToken = await ERC677Token.new();
+    await fakeDaicpxdToken.initialize(...TOKEN_DETAIL_DATA, owner);
+    await fakeDaicpxdToken.mint(owner, toTokenUnit(1000));
   });
 
   describe("setup contract", () => {
@@ -386,6 +393,43 @@ contract("RewardManager", (accounts) => {
       expect(
         await rewardManager.hasRewardSafe(rewardProgramID, prepaidCardOwner)
       ).to.equal(true);
+    });
+
+    it("does not allow non-action handler to call transfer on PrepaidCardManager", async () => {
+      await daicpxdToken
+        .transferAndCall(
+          registerRewardeeHandler.address,
+          toTokenUnit(5),
+          AbiCoder.encodeParameters(
+            ["address", "uint256", "bytes"],
+            [
+              prepaidCard.address,
+              0, // doesn't matter what this is
+              AbiCoder.encodeParameters(["address"], [rewardProgramID]),
+            ]
+          )
+        )
+        .should.be.rejectedWith(
+          Error,
+          "can only accept tokens from action dispatcher"
+        );
+    });
+
+    it("does not allow non-CPXD token to call registerRewardeeHandler", async () => {
+      await fakeDaicpxdToken
+        .transferAndCall(
+          registerRewardeeHandler.address,
+          toTokenUnit(5),
+          AbiCoder.encodeParameters(
+            ["address", "uint256", "bytes"],
+            [
+              prepaidCard.address,
+              0, //doesn't matter what this is
+              AbiCoder.encodeParameters(["address"], [rewardProgramID]),
+            ]
+          )
+        )
+        .should.be.rejectedWith(Error, "calling token is unaccepted");
     });
 
     it("reverts when rewardee already has a safe for the reward program", async () => {
