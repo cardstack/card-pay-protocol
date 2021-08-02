@@ -100,6 +100,21 @@ const eventABIs = {
       },
     ],
   },
+  REWARD_SAFE_CREATED: {
+    topic: web3EthAbi.encodeEventSignature(
+      "RewardSafeCreated(address,address)"
+    ),
+    abis: [
+      {
+        type: "address",
+        name: "prepaidCardOwner",
+      },
+      {
+        type: "address",
+        name: "rewardSafe",
+      },
+    ],
+  },
 };
 
 module.exports = eventABIs;
