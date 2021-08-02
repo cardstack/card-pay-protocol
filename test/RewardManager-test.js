@@ -395,6 +395,14 @@ contract("RewardManager", (accounts) => {
       ).to.equal(true);
     });
 
+    it("does not allow non-action handler to call registerRewardee", async () => {
+      await rewardManager
+        .register(rewardProgramID, prepaidCardOwner)
+        .should.be.rejectedWith(
+          Error,
+          "caller is not a registered action handler"
+        );
+    });
     it("does not allow non-action handler to call transfer on PrepaidCardManager", async () => {
       await daicpxdToken
         .transferAndCall(
