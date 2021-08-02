@@ -516,7 +516,6 @@ contract("RewardManager", (accounts) => {
         undefined,
         rewardProgramID
       );
-      console.log(tx.receipt.rawLogs);
       rewardSafeCreation = await getParamsFromEvent(
         tx,
         eventABIs.REWARD_SAFE_CREATED,
@@ -526,7 +525,6 @@ contract("RewardManager", (accounts) => {
     it.only("transfer reward safe ownership", async () => {
       rewardSafe = await GnosisSafe.at(rewardSafeCreation[0].rewardSafe);
       let owners = await rewardSafe.getOwners();
-      console.log(owners);
       expect(owners.length).to.equal(2);
       expect(owners[1]).to.equal(prepaidCardOwner);
       await daicpxdToken.mint(rewardSafe.address, toTokenUnit(10));
