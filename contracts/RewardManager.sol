@@ -2,6 +2,8 @@ pragma solidity ^0.5.17;
 
 import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contract-upgradeable/contracts/utils/EnumerableSet.sol";
+import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
+import "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
 
 import "./core/Safe.sol";
 import "./core/Versionable.sol";
@@ -17,12 +19,17 @@ contract RewardManager is Ownable, Versionable, Safe {
     event RewardProgramRemoved(address rewardProgramID);
     event RewardProgramAdminUpdated(address newAdmin);
     event RewardProgramLocked(address rewardProgramID);
-    event RewardSafeTransferred(address from, address to);
+    event RewardSafeCreated(address owner, address rewardSafe);
+    event RewardSafeTransferred();
     event RewardRuleAdded(string ruleDID);
     event RewardRuleRemoved(string ruleDID);
+    event RewardeeRegistered(address rewardProgramID, address rewardee);
+
+    // Constants
+    address internal constant ZERO_ADDRESS = address(0);
+    bytes4 public constant SWAP_OWNER = 0xe318b52b; //swapOwner(address,address,address)
 
     //State Variables
-    address internal constant ZERO_ADDRESS = address(0);
     address public actionDispatcher;
     uint256 public rewardeeRegistrationFeeInSPEND;
     address payable public rewardFeeReceiver; // will receive rewardeeRegistrationFeeInSPEND
@@ -149,12 +156,54 @@ contract RewardManager is Ownable, Versionable, Safe {
             rewardSafe == ZERO_ADDRESS,
             "prepaid card owner already registered for reward program"
         );
-        rewardSafe = createSafe(prepaidCardOwner);
+        address[] memory owners = new address[](2);
+
+        owners[0] = address(this);
+        owners[1] = prepaidCardOwner;
+        rewardSafe = createSafe(owners, 1);
         rewardSafes[rewardProgramID][prepaidCardOwner] = rewardSafe;
+        emit RewardeeRegistered(rewardProgramID, prepaidCardOwner);
+        emit RewardSafeCreated(prepaidCardOwner, rewardSafe);
         return rewardSafe;
     }
 
-    // function transferRewardSafe(address RewardSafe) external {}
+    function transferRewardSafe(
+        address payable rewardSafe,
+        address gasToken,
+        address payable gasRecipient,
+        bytes calldata previousOwnerSignature,
+        bytes calldata data
+    ) external {
+
+        GnosisSafe(rewardSafe).execTransaction(
+            rewardSafe,
+            0,
+            data,
+            Enum.Operation.Call,
+            0,
+            0,
+            0,
+            gasToken,
+            gasRecipient,
+            previousOwnerSignature
+        );
+        emit RewardSafeTransferred();
+    }
+
+    function getTransferRewardSafeData(
+        address payable rewardSafe,
+        address newOwner
+    ) public view returns (bytes memory) {
+        // Swap owner
+        address previousOwner = GnosisSafe(rewardSafe).getOwners()[1];
+        return
+            abi.encodeWithSelector(
+                SWAP_OWNER,
+                address(this),
+                previousOwner,
+                newOwner
+            );
+    }
 
     // External View Functions
     function isLocked(address rewardProgramID) external view returns (bool) {
