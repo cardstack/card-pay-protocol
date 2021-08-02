@@ -522,13 +522,13 @@ contract("RewardManager", (accounts) => {
         rewardManager.address
       );
     });
-    it.only("transfer reward safe ownership", async () => {
+    it("transfer reward safe ownership", async () => {
       rewardSafe = await GnosisSafe.at(rewardSafeCreation[0].rewardSafe);
       let owners = await rewardSafe.getOwners();
       expect(owners.length).to.equal(2);
       expect(owners[1]).to.equal(prepaidCardOwner);
       await daicpxdToken.mint(rewardSafe.address, toTokenUnit(10));
-      const txn = await transferRewardSafe(
+      await transferRewardSafe(
         rewardManager,
         rewardSafe,
         prepaidCardOwner,
