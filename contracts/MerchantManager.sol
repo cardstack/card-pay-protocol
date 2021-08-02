@@ -66,5 +66,7 @@ contract MerchantManager is Ownable, Versionable, Safe {
     return merchantSafe;
   }
 
+  // TODO This is problematic now that we dont use this as a base contract. remove this
+  // at our first opportunity
   uint256[50] private ____gap;
 }
