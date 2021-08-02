@@ -24,7 +24,11 @@ const {
   addActionHandlers,
   registerRewardee,
   createDepotFromSupplierMgr,
+  transferRewardSafe,
 } = require("./utils/helper");
+
+const { getParamsFromEvent } = require("./utils/general");
+const eventABIs = require("./utils/constant/eventABIs");
 
 const REWARDEE_REGISTRATION_FEE_IN_SPEND = 500;
 const tallyRuleDID = "did:cardstack:1tdnHDwr8Z4Z7sHGceo2kArC9a5a297f45ef5491";
@@ -48,7 +52,12 @@ contract("RewardManager", (accounts) => {
   // reward manager contract
   let rewardManager;
   //roles
-  let owner, issuer, prepaidCardOwner, relayer, merchantFeeReceiver;
+  let owner,
+    issuer,
+    prepaidCardOwner,
+    relayer,
+    merchantFeeReceiver,
+    otherPrepaidCardOwner;
   // safes
   let depot;
   // reward roles
@@ -63,6 +72,7 @@ contract("RewardManager", (accounts) => {
     relayer = accounts[4];
     merchantFeeReceiver = accounts[5];
     rewardFeeReceiver = accounts[6];
+    otherPrepaidCardOwner = accounts[7];
 
     // deploy
     proxyFactory = await ProxyFactory.new();
@@ -466,6 +476,71 @@ contract("RewardManager", (accounts) => {
         rewardFeeReceiver,
         startingRewardFeeReceiverDaicpxdBalance.add(toTokenUnit(5))
       );
+    });
+  });
+
+  describe("transfer reward safe", () => {
+    let prepaidCard, rewardSafe, rewardSafeCreation;
+    beforeEach(async () => {
+      rewardProgramID = randomHex(20);
+      await rewardManager.registerRewardProgram(owner, rewardProgramID);
+      ({
+        prepaidCards: [prepaidCard],
+      } = await createPrepaidCards(
+        depot,
+        prepaidCardManager,
+        daicpxdToken,
+        daicpxdToken,
+        issuer,
+        relayer,
+        [toTokenUnit(50 + 1)]
+      ));
+      await cardcpxdToken.mint(prepaidCard.address, toTokenUnit(1));
+      await transferOwner(
+        prepaidCardManager,
+        prepaidCard,
+        issuer,
+        prepaidCardOwner,
+        cardcpxdToken,
+        relayer,
+        daicpxdToken
+      );
+      const tx = await registerRewardee(
+        prepaidCardManager,
+        prepaidCard,
+        daicpxdToken,
+        cardcpxdToken,
+        relayer,
+        prepaidCardOwner,
+        REWARDEE_REGISTRATION_FEE_IN_SPEND,
+        undefined,
+        rewardProgramID
+      );
+      console.log(tx.receipt.rawLogs);
+      rewardSafeCreation = await getParamsFromEvent(
+        tx,
+        eventABIs.REWARD_SAFE_CREATED,
+        rewardManager.address
+      );
+    });
+    it.only("transfer reward safe ownership", async () => {
+      rewardSafe = await GnosisSafe.at(rewardSafeCreation[0].rewardSafe);
+      let owners = await rewardSafe.getOwners();
+      console.log(owners);
+      expect(owners.length).to.equal(2);
+      expect(owners[1]).to.equal(prepaidCardOwner);
+      await daicpxdToken.mint(rewardSafe.address, toTokenUnit(10));
+      const txn = await transferRewardSafe(
+        rewardManager,
+        rewardSafe,
+        prepaidCardOwner,
+        otherPrepaidCardOwner,
+        daicpxdToken,
+        rewardSafe.address
+      );
+      owners = await rewardSafe.getOwners();
+      expect(owners.length).to.equal(2);
+      expect(owners[1]).to.equal(otherPrepaidCardOwner);
     });
   });
 });
