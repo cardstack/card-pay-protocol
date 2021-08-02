@@ -40,7 +40,6 @@ contract RewardManager is Ownable, Versionable, Safe {
     mapping(address => address) public rewardProgramAdmins; //reward program id <> reward program admins
     mapping(address => RewardProgram) public rewardPrograms; //reward program ids
     mapping(address => mapping(address => address)) public rewardSafes; //reward program id <> prepaid card owner <> reward safes
-    mapping(address => address) public rewardees;
     mapping(address => mapping(string => Rule)) public rule; //reward program id <> rule did <> Rule
     mapping(address => bool) public rewardProgramLocked; //reward program id <> locked
 
