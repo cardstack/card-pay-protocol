@@ -174,7 +174,6 @@ contract RewardManager is Ownable, Versionable, Safe {
         bytes calldata previousOwnerSignature,
         bytes calldata data
     ) external {
-
         GnosisSafe(rewardSafe).execTransaction(
             rewardSafe,
             0,
@@ -195,7 +194,7 @@ contract RewardManager is Ownable, Versionable, Safe {
         address newOwner
     ) public view returns (bytes memory) {
         // Swap owner
-        address previousOwner = GnosisSafe(rewardSafe).getOwners()[1];
+        address previousOwner = getRewardSafeOwner(rewardSafe);
         return
             abi.encodeWithSelector(
                 SWAP_OWNER,
@@ -252,6 +251,19 @@ contract RewardManager is Ownable, Versionable, Safe {
         } else {
             return true;
         }
+    }
+
+    function getRewardSafeOwner(address payable rewardSafe)
+        public
+        view
+        returns (address)
+    {
+        address[] memory owners = GnosisSafe(rewardSafe).getOwners();
+        require(
+            owners.length == 2,
+            "unexpected number of owners for prepaid card"
+        );
+        return owners[0] == address(this) ? owners[1] : owners[0];
     }
 
     //Internal View Functions
