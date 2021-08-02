@@ -673,3 +673,38 @@ exports.registerRewardee = async function (
     { from: relayer }
   );
 };
+
+exports.transferRewardSafe = async function (
+  rewardManager,
+  rewardSafe,
+  oldOwner,
+  newOwner,
+  gasToken,
+  gasRecipient
+) {
+  const data = await rewardManager.getTransferRewardSafeData(
+    rewardSafe.address,
+    newOwner
+  );
+  let previousOwnerSignature = await signSafeTransaction(
+    rewardSafe.address,
+    0,
+    data,
+    0,
+    0,
+    0,
+    0,
+    gasToken.address,
+    rewardSafe.address,
+    await rewardSafe.nonce(),
+    oldOwner,
+    rewardSafe
+  );
+  return await rewardManager.transferRewardSafe(
+    rewardSafe.address,
+    gasToken.address,
+    gasRecipient,
+    previousOwnerSignature,
+    data
+  );
+};
