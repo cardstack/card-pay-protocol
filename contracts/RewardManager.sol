@@ -13,12 +13,13 @@ contract RewardManager is Ownable, Versionable, Safe {
 
     //Events
     event Setup();
-    event RewardProgramCreated(address creator, address rewardProgramID);
-    event RewardProgramRemoved(address creator, address rewardProgramID);
+    event RewardProgramCreated(address admin, address rewardProgramID);
+    event RewardProgramRemoved(address rewardProgramID);
+    event RewardProgramAdminUpdated(address newAdmin);
     event RewardProgramLocked(address rewardProgramID);
     event RewardSafeTransferred(address from, address to);
-    event RewardRuleAdded(bytes hash);
-    event RewardRuleRemoved(bytes hash);
+    event RewardRuleAdded(string ruleDID);
+    event RewardRuleRemoved(string ruleDID);
 
     //State Variables
     address internal constant ZERO_ADDRESS = address(0);
@@ -92,6 +93,7 @@ contract RewardManager is Ownable, Versionable, Safe {
         onlyAdmin(rewardProgramID)
     {
         rewardProgramIDs.remove(rewardProgramID);
+        emit RewardProgramRemoved(rewardProgramID);
     }
 
     function updateAdmin(address rewardProgramID, address admin)
@@ -99,6 +101,7 @@ contract RewardManager is Ownable, Versionable, Safe {
         onlyAdmin(rewardProgramID)
     {
         rewardProgramAdmins[rewardProgramID] = admin;
+        emit RewardProgramAdminUpdated(admin);
     }
 
     function addRewardRule(
@@ -108,6 +111,7 @@ contract RewardManager is Ownable, Versionable, Safe {
         string calldata benefitDID
     ) external onlyAdmin(rewardProgramID) {
         rule[rewardProgramID][ruleDID] = Rule(tallyRuleDID, benefitDID);
+        emit RewardRuleAdded(ruleDID);
     }
 
     function removeRewardRule(address rewardProgramID, string calldata ruleDID)
@@ -115,6 +119,7 @@ contract RewardManager is Ownable, Versionable, Safe {
         onlyAdmin(rewardProgramID)
     {
         delete rule[rewardProgramID][ruleDID];
+        emit RewardRuleRemoved(ruleDID);
     }
 
     function lockRewardProgram(address rewardProgramID)
@@ -122,6 +127,7 @@ contract RewardManager is Ownable, Versionable, Safe {
         onlyAdmin(rewardProgramID)
     {
         rewardPrograms[rewardProgramID].locked = true;
+        emit RewardProgramLocked(rewardProgramID);
     }
 
     function register(address rewardProgramID, address prepaidCardOwner)
