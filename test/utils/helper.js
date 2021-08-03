@@ -133,6 +133,28 @@ exports.getTotalSupply = async (token) => {
   return token.totalSupply();
 };
 
+exports.findAccountBeforeAddress = (accounts, address) => {
+  for (let account of accounts) {
+    if (account.toLowerCase() < address.toLowerCase()) {
+      return account;
+    }
+  }
+  throw new Error(
+    `Could not find an account address that is lexigraphically before the address ${address} from ${accounts.length} possibilities. Make sure you are using ganache (yarn ganache:start) to run your private chain and try increasing the number of accounts to test with.`
+  );
+};
+
+exports.findAccountAfterAddress = (accounts, address) => {
+  for (let account of accounts) {
+    if (account.toLowerCase() > address.toLowerCase()) {
+      return account;
+    }
+  }
+  throw new Error(
+    `Could not find an account address that is lexigraphically after the address ${address} from ${accounts.length} possibilities. Make sure you are using ganache (yarn ganache:start) to run your private chain and try increasing the number of accounts to test with.`
+  );
+};
+
 exports.setupExchanges = async function (owner) {
   let daicpxdToken = await ERC677Token.new();
   await daicpxdToken.initialize(...TOKEN_DETAIL_DATA, owner);
