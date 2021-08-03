@@ -34,7 +34,8 @@ contract RewardManager is Ownable, Versionable, Safe {
     //State Variables
     address public actionDispatcher;
     uint256 public rewardeeRegistrationFeeInSPEND;
-    address payable public rewardFeeReceiver; // will receive rewardeeRegistrationFeeInSPEND
+    uint256 public rewardProgramRegistrationFeeInSPEND;
+    address payable public rewardFeeReceiver; // will receive receive all fees
     struct RewardProgram {
         address admin;
         bool locked;
@@ -74,7 +75,8 @@ contract RewardManager is Ownable, Versionable, Safe {
         address _gsMasterCopy,
         address _gsProxyFactory,
         address payable _rewardFeeReceiver,
-        uint256 _rewardeeRegistrationFeeInSPEND
+        uint256 _rewardeeRegistrationFeeInSPEND,
+        uint256 _rewardProgramRegistrationFeeInSPEND
     ) external onlyOwner {
         require(
             _rewardFeeReceiver != ZERO_ADDRESS,
@@ -84,10 +86,15 @@ contract RewardManager is Ownable, Versionable, Safe {
             _rewardeeRegistrationFeeInSPEND > 0,
             "rewardeeRegistrationFeeInSPEND is not set"
         );
+        require(
+            _rewardProgramRegistrationFeeInSPEND > 0,
+            "rewardProgramRegistrationFeeInSPEND is not set"
+        );
         actionDispatcher = _actionDispatcher;
         Safe.setup(_gsMasterCopy, _gsProxyFactory);
         rewardFeeReceiver = _rewardFeeReceiver;
         rewardeeRegistrationFeeInSPEND = _rewardeeRegistrationFeeInSPEND;
+        rewardProgramRegistrationFeeInSPEND = _rewardProgramRegistrationFeeInSPEND;
         emit Setup();
     }
 
@@ -180,7 +187,7 @@ contract RewardManager is Ownable, Versionable, Safe {
             rewardSafe,
             rewardSafe,
             data,
-            _addContractSignature(rewardSafe,previousOwnerSignature),
+            _addContractSignature(rewardSafe, previousOwnerSignature),
             gasToken,
             gasRecipient
         );
