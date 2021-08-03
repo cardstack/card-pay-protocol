@@ -27,6 +27,8 @@ const {
   registerRewardProgram,
   createDepotFromSupplierMgr,
   transferRewardSafe,
+  findAccountBeforeAddress,
+  findAccountAfterAddress,
 } = require("./utils/helper");
 
 const { getParamsFromEvent } = require("./utils/general");
@@ -63,7 +65,9 @@ contract("RewardManager", (accounts) => {
     prepaidCardOwner,
     relayer,
     merchantFeeReceiver,
-    otherPrepaidCardOwner;
+    otherPrepaidCardOwner,
+    prepaidCardOwnerA,
+    prepaidCardOwnerB;
   // safes
   let depot;
   // reward roles
@@ -104,6 +108,14 @@ contract("RewardManager", (accounts) => {
     rewardManager = await RewardManager.new();
     await rewardManager.initialize(owner);
 
+    prepaidCardOwnerA = findAccountAfterAddress(
+      accounts.slice(10),
+      rewardManager.address
+    );
+    prepaidCardOwnerB = findAccountBeforeAddress(
+      accounts.slice(10),
+      rewardManager.address
+    );
     ({ daicpxdToken, cardcpxdToken, exchange } = await setupExchanges(owner));
 
     // setup
@@ -450,14 +462,14 @@ contract("RewardManager", (accounts) => {
         daicpxdToken,
         rewardFeeReceiver
       );
-      await registerRewardee(
+      await registerRewardProgram(
         prepaidCardManager,
         prepaidCard,
         daicpxdToken,
         cardcpxdToken,
         relayer,
         prepaidCardOwner,
-        REWARDEE_REGISTRATION_FEE_IN_SPEND + 1,
+        REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND + 1,
         undefined,
         rewardProgramAdmin,
         rewardProgramID
@@ -788,7 +800,7 @@ contract("RewardManager", (accounts) => {
   });
 
   describe("transfer reward safe", () => {
-    let prepaidCard, rewardSafe, rewardSafeCreation;
+    let prepaidCard, rewardSafe;
     beforeEach(async () => {
       rewardProgramID = randomHex(20);
       ({
@@ -824,6 +836,8 @@ contract("RewardManager", (accounts) => {
         rewardProgramAdmin,
         rewardProgramID
       );
+    });
+    it("transfer reward safe ownership", async () => {
       const tx = await registerRewardee(
         prepaidCardManager,
         prepaidCard,
@@ -835,22 +849,128 @@ contract("RewardManager", (accounts) => {
         undefined,
         rewardProgramID
       );
-      rewardSafeCreation = await getParamsFromEvent(
+      const rewardSafeCreation = await getParamsFromEvent(
         tx,
         eventABIs.REWARD_SAFE_CREATED,
         rewardManager.address
       );
-    });
-    it("transfer reward safe ownership", async () => {
       rewardSafe = await GnosisSafe.at(rewardSafeCreation[0].rewardSafe);
       let owners = await rewardSafe.getOwners();
       expect(owners.length).to.equal(2);
       expect(owners[1]).to.equal(prepaidCardOwner);
-      await daicpxdToken.mint(rewardSafe.address, toTokenUnit(10));
       await transferRewardSafe(
         rewardManager,
         rewardSafe,
         prepaidCardOwner,
+        otherPrepaidCardOwner,
+        daicpxdToken,
+        rewardSafe.address
+      );
+      owners = await rewardSafe.getOwners();
+      expect(owners.length).to.equal(2);
+      expect(owners[1]).to.equal(otherPrepaidCardOwner);
+    });
+
+    it("can sign with address lexigraphically after prepaid card manager contract address for transfer", async () => {
+      let {
+        prepaidCards: [prepaidCardA],
+      } = await createPrepaidCards(
+        depot,
+        prepaidCardManager,
+        daicpxdToken,
+        daicpxdToken,
+        issuer,
+        relayer,
+        [toTokenUnit(5 + 1)]
+      );
+      await cardcpxdToken.mint(prepaidCardA.address, toTokenUnit(1));
+      await transferOwner(
+        prepaidCardManager,
+        prepaidCardA,
+        issuer,
+        prepaidCardOwnerA,
+        cardcpxdToken,
+        relayer,
+        daicpxdToken
+      );
+      const tx = await registerRewardee(
+        prepaidCardManager,
+        prepaidCardA,
+        daicpxdToken,
+        cardcpxdToken,
+        relayer,
+        prepaidCardOwnerA,
+        REWARDEE_REGISTRATION_FEE_IN_SPEND,
+        undefined,
+        rewardProgramID
+      );
+      const rewardSafeCreation = await getParamsFromEvent(
+        tx,
+        eventABIs.REWARD_SAFE_CREATED,
+        rewardManager.address
+      );
+      rewardSafe = await GnosisSafe.at(rewardSafeCreation[0].rewardSafe);
+      let owners = await rewardSafe.getOwners();
+      expect(owners.length).to.equal(2);
+      expect(owners[1]).to.equal(prepaidCardOwnerA);
+      await transferRewardSafe(
+        rewardManager,
+        rewardSafe,
+        prepaidCardOwnerA,
+        otherPrepaidCardOwner,
+        daicpxdToken,
+        rewardSafe.address
+      );
+      owners = await rewardSafe.getOwners();
+      expect(owners.length).to.equal(2);
+      expect(owners[1]).to.equal(otherPrepaidCardOwner);
+    });
+    it("can sign with address lexigraphically before prepaid card manager contract address for transfer", async () => {
+      let {
+        prepaidCards: [prepaidCardB],
+      } = await createPrepaidCards(
+        depot,
+        prepaidCardManager,
+        daicpxdToken,
+        daicpxdToken,
+        issuer,
+        relayer,
+        [toTokenUnit(5 + 1)]
+      );
+      await cardcpxdToken.mint(prepaidCardB.address, toTokenUnit(1));
+      await transferOwner(
+        prepaidCardManager,
+        prepaidCardB,
+        issuer,
+        prepaidCardOwnerB,
+        cardcpxdToken,
+        relayer,
+        daicpxdToken
+      );
+      const tx = await registerRewardee(
+        prepaidCardManager,
+        prepaidCardB,
+        daicpxdToken,
+        cardcpxdToken,
+        relayer,
+        prepaidCardOwnerB,
+        REWARDEE_REGISTRATION_FEE_IN_SPEND,
+        undefined,
+        rewardProgramID
+      );
+      const rewardSafeCreation = await getParamsFromEvent(
+        tx,
+        eventABIs.REWARD_SAFE_CREATED,
+        rewardManager.address
+      );
+      rewardSafe = await GnosisSafe.at(rewardSafeCreation[0].rewardSafe);
+      let owners = await rewardSafe.getOwners();
+      expect(owners.length).to.equal(2);
+      expect(owners[1]).to.equal(prepaidCardOwnerB);
+      await transferRewardSafe(
+        rewardManager,
+        rewardSafe,
+        prepaidCardOwnerB,
         otherPrepaidCardOwner,
         daicpxdToken,
         rewardSafe.address
