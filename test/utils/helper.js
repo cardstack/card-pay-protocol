@@ -13,6 +13,9 @@ const TransferPrepaidCardHandler = artifacts.require(
   "TransferPrepaidCardHandler"
 );
 const RegisterRewardeeHandler = artifacts.require("RegisterRewardeeHandler");
+const RegisterRewardProgramHandler = artifacts.require(
+  "RegisterRewardProgramHandler"
+);
 const { toBN } = require("web3-utils");
 const { TOKEN_DETAIL_DATA } = require("../setup");
 const eventABIs = require("./constant/eventABIs");
@@ -238,6 +241,18 @@ exports.addActionHandlers = async function (
     rewardManager.address
   );
 
+  let registerRewardProgramHandler = await RegisterRewardProgramHandler.new();
+  await registerRewardProgramHandler.initialize(owner);
+
+  await registerRewardProgramHandler.setup(
+    actionDispatcher.address,
+    merchantManager.address,
+    prepaidCardManager.address,
+    revenuePool.address,
+    exchangeAddress,
+    tokenManager.address,
+    rewardManager.address
+  );
   await actionDispatcher.addHandler(payMerchantHandler.address, "payMerchant");
   await actionDispatcher.addHandler(splitPrepaidCardHandler.address, "split");
   await actionDispatcher.addHandler(
@@ -252,6 +267,10 @@ exports.addActionHandlers = async function (
     registerRewardeeHandler.address,
     "registerRewardee"
   );
+  await actionDispatcher.addHandler(
+    registerRewardProgramHandler.address,
+    "registerRewardProgram"
+  );
 
   return {
     payMerchantHandler,
@@ -259,6 +278,7 @@ exports.addActionHandlers = async function (
     splitPrepaidCardHandler,
     transferPrepaidCardHandler,
     registerRewardeeHandler,
+    registerRewardProgramHandler,
   };
 };
 
@@ -707,5 +727,58 @@ exports.transferRewardSafe = async function (
     gasRecipient,
     previousOwnerSignature,
     data
+  );
+};
+
+exports.registerRewardProgram = async function (
+  prepaidCardManager,
+  prepaidCard,
+  issuingToken,
+  gasToken,
+  relayer,
+  prepaidCardOwner,
+  spendAmount,
+  usdRate,
+  admin,
+  rewardProgramID
+) {
+  if (usdRate == null) {
+    usdRate = 100000000; // 1 DAI = 1 USD
+  }
+  const actionName = "registerRewardProgram";
+  const actionData = AbiCoder.encodeParameters(
+    ["address", "address"],
+    [admin, rewardProgramID]
+  );
+  let data = await prepaidCardManager.getSendData(
+    prepaidCard.address,
+    spendAmount,
+    usdRate,
+    actionName,
+    actionData
+  );
+  let signature = await signSafeTransaction(
+    issuingToken.address,
+    0,
+    data,
+    0,
+    0,
+    0,
+    0,
+    gasToken.address,
+    prepaidCard.address,
+    await prepaidCard.nonce(),
+    prepaidCardOwner,
+    prepaidCard
+  );
+
+  return await prepaidCardManager.send(
+    prepaidCard.address,
+    spendAmount,
+    usdRate,
+    actionName,
+    actionData,
+    signature,
+    { from: relayer }
   );
 };
