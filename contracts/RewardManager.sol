@@ -100,6 +100,7 @@ contract RewardManager is Ownable, Versionable, Safe {
 
     function registerRewardProgram(address admin, address rewardProgramID)
         external
+        onlyHandlers
     {
         require(
             !_isRewardProgram(rewardProgramID),
