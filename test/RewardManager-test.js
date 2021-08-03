@@ -24,6 +24,7 @@ const {
   createPrepaidCards,
   addActionHandlers,
   registerRewardee,
+  registerRewardProgram,
   createDepotFromSupplierMgr,
   transferRewardSafe,
 } = require("./utils/helper");
@@ -46,8 +47,9 @@ contract("RewardManager", (accounts) => {
     spendToken,
     actionDispatcher,
     revenuePool,
-    merchantManager,
-    registerRewardeeHandler;
+    merchantManager;
+  // handlers
+  let registerRewardeeHandler, registerRewardProgramHandler;
 
   // tokens
   let daicpxdToken, cardcpxdToken, fakeDaicpxdToken;
@@ -158,7 +160,10 @@ contract("RewardManager", (accounts) => {
       prepaidCardManager.address
     );
 
-    ({ registerRewardeeHandler } = await addActionHandlers(
+    ({
+      registerRewardeeHandler,
+      registerRewardProgramHandler,
+    } = await addActionHandlers(
       prepaidCardManager,
       revenuePool,
       actionDispatcher,
@@ -266,28 +271,244 @@ contract("RewardManager", (accounts) => {
   });
 
   describe("create reward program", () => {
+    let prepaidCard, otherPrepaidCard;
     beforeEach(async () => {
-      rewardProgramID = randomHex(20); //is just an id. might be better to keccakhash an id
+      rewardProgramID = randomHex(20);
+      ({
+        prepaidCards: [prepaidCard],
+      } = await createPrepaidCards(
+        depot,
+        prepaidCardManager,
+        daicpxdToken,
+        daicpxdToken,
+        issuer,
+        relayer,
+        [toTokenUnit(5 + 1)]
+      ));
+      await cardcpxdToken.mint(prepaidCard.address, toTokenUnit(1));
+      await transferOwner(
+        prepaidCardManager,
+        prepaidCard,
+        issuer,
+        prepaidCardOwner,
+        cardcpxdToken,
+        relayer,
+        daicpxdToken
+      );
     });
-
-    it("register reward program", async () => {
-      await rewardManager.registerRewardProgram(owner, rewardProgramID);
-      expect(await rewardManager.isRewardProgram(rewardProgramID)).to.equal(
-        true
+    it("can register reward program", async () => {
+      let startingPrepaidCardDaicpxdBalance = await getBalance(
+        daicpxdToken,
+        prepaidCard.address
+      );
+      let startingRewardFeeReceiverDaicpxdBalance = await getBalance(
+        daicpxdToken,
+        rewardFeeReceiver
+      );
+      await registerRewardProgram(
+        prepaidCardManager,
+        prepaidCard,
+        daicpxdToken,
+        cardcpxdToken,
+        relayer,
+        prepaidCardOwner,
+        REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
+        undefined,
+        rewardProgramAdmin,
+        rewardProgramID
+      );
+      await shouldBeSameBalance(
+        daicpxdToken,
+        prepaidCard.address,
+        startingPrepaidCardDaicpxdBalance.sub(toTokenUnit(5))
+      );
+      await shouldBeSameBalance(
+        daicpxdToken,
+        rewardFeeReceiver,
+        startingRewardFeeReceiverDaicpxdBalance.add(toTokenUnit(5))
       );
     });
     it("cannot register existing reward program", async () => {
-      await rewardManager.registerRewardProgram(owner, rewardProgramID);
+      ({
+        prepaidCards: [otherPrepaidCard],
+      } = await createPrepaidCards(
+        depot,
+        prepaidCardManager,
+        daicpxdToken,
+        daicpxdToken,
+        issuer,
+        relayer,
+        [toTokenUnit(100)]
+      ));
+      await cardcpxdToken.mint(otherPrepaidCard.address, toTokenUnit(1));
+      await transferOwner(
+        prepaidCardManager,
+        otherPrepaidCard,
+        issuer,
+        prepaidCardOwner,
+        cardcpxdToken,
+        relayer,
+        daicpxdToken
+      );
+      await registerRewardProgram(
+        prepaidCardManager,
+        otherPrepaidCard,
+        daicpxdToken,
+        cardcpxdToken,
+        relayer,
+        prepaidCardOwner,
+        REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
+        undefined,
+        rewardProgramAdmin,
+        rewardProgramID
+      );
+      await registerRewardProgram(
+        prepaidCardManager,
+        otherPrepaidCard,
+        daicpxdToken,
+        cardcpxdToken,
+        relayer,
+        prepaidCardOwner,
+        REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
+        undefined,
+        rewardProgramAdmin,
+        rewardProgramID
+      ).should.be.rejectedWith(Error, "safe transaction was reverted");
+    });
+
+    it("does not allow non-action handler to call registerRewardProgram", async () => {
       await rewardManager
-        .registerRewardProgram(owner, rewardProgramID)
-        .should.be.rejectedWith("reward program already registered");
+        .registerRewardProgram(rewardProgramAdmin, rewardProgramID)
+        .should.be.rejectedWith(
+          Error,
+          "caller is not a registered action handler"
+        );
+    });
+    it("does not allow non-action handler to call transfer on registerRewardProgramHandler", async () => {
+      await daicpxdToken
+        .transferAndCall(
+          registerRewardProgramHandler.address,
+          toTokenUnit(5),
+          AbiCoder.encodeParameters(
+            ["address", "uint256", "bytes"],
+            [
+              prepaidCard.address,
+              0, // doesn't matter what this is
+              AbiCoder.encodeParameters(
+                ["address", "address"],
+                [rewardProgramAdmin, rewardProgramID]
+              ),
+            ]
+          )
+        )
+        .should.be.rejectedWith(
+          Error,
+          "can only accept tokens from action dispatcher"
+        );
+    });
+
+    it("does not allow non-CPXD token to call registerRewardProgramHandler", async () => {
+      await fakeDaicpxdToken
+        .transferAndCall(
+          registerRewardeeHandler.address,
+          toTokenUnit(5),
+          AbiCoder.encodeParameters(
+            ["address", "uint256", "bytes"],
+            [
+              prepaidCard.address,
+              0, //doesn't matter what this is
+              AbiCoder.encodeParameters(
+                ["address", "address"],
+                [rewardProgramAdmin, rewardProgramID]
+              ),
+            ]
+          )
+        )
+        .should.be.rejectedWith(Error, "calling token is unaccepted");
+    });
+
+    it("reverts when prepaid card owner doesn't send enough in their prepaid card for the reward program registration fee amount", async () => {
+      await registerRewardProgram(
+        prepaidCardManager,
+        prepaidCard,
+        daicpxdToken,
+        cardcpxdToken,
+        relayer,
+        prepaidCardOwner,
+        REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND - 1,
+        undefined,
+        rewardProgramAdmin,
+        rewardProgramID
+      ).should.be.rejectedWith(Error, "safe transaction was reverted");
+    });
+    it("refunds the prepaid card if the prepaid card owner pays more than the registration fee", async () => {
+      let startingPrepaidCardDaicpxdBalance = await getBalance(
+        daicpxdToken,
+        prepaidCard.address
+      );
+      let startingRewardFeeReceiverDaicpxdBalance = await getBalance(
+        daicpxdToken,
+        rewardFeeReceiver
+      );
+      await registerRewardee(
+        prepaidCardManager,
+        prepaidCard,
+        daicpxdToken,
+        cardcpxdToken,
+        relayer,
+        prepaidCardOwner,
+        REWARDEE_REGISTRATION_FEE_IN_SPEND + 1,
+        undefined,
+        rewardProgramAdmin,
+        rewardProgramID
+      );
+      await shouldBeSameBalance(
+        daicpxdToken,
+        prepaidCard.address,
+        startingPrepaidCardDaicpxdBalance.sub(toTokenUnit(5))
+      );
+      await shouldBeSameBalance(
+        daicpxdToken,
+        rewardFeeReceiver,
+        startingRewardFeeReceiverDaicpxdBalance.add(toTokenUnit(5))
+      );
     });
   });
 
   describe("update reward program", () => {
     beforeEach(async () => {
-      rewardProgramID = randomHex(20); //is just an id. might be better to keccakhash an id
-      await rewardManager.registerRewardProgram(
+      let prepaidCard;
+      rewardProgramID = randomHex(20);
+      ({
+        prepaidCards: [prepaidCard],
+      } = await createPrepaidCards(
+        depot,
+        prepaidCardManager,
+        daicpxdToken,
+        daicpxdToken,
+        issuer,
+        relayer,
+        [toTokenUnit(5 + 1)]
+      ));
+      await cardcpxdToken.mint(prepaidCard.address, toTokenUnit(1));
+      await transferOwner(
+        prepaidCardManager,
+        prepaidCard,
+        issuer,
+        prepaidCardOwner,
+        cardcpxdToken,
+        relayer,
+        daicpxdToken
+      );
+      await registerRewardProgram(
+        prepaidCardManager,
+        prepaidCard,
+        daicpxdToken,
+        cardcpxdToken,
+        relayer,
+        prepaidCardOwner,
+        REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
+        undefined,
         rewardProgramAdmin,
         rewardProgramID
       );
@@ -358,7 +579,6 @@ contract("RewardManager", (accounts) => {
     let prepaidCard, otherPrepaidCard;
     beforeEach(async () => {
       rewardProgramID = randomHex(20);
-      await rewardManager.registerRewardProgram(owner, rewardProgramID);
       ({
         prepaidCards: [prepaidCard],
       } = await createPrepaidCards(
@@ -368,7 +588,7 @@ contract("RewardManager", (accounts) => {
         daicpxdToken,
         issuer,
         relayer,
-        [toTokenUnit(50 + 1)]
+        [toTokenUnit(10 + 1)]
       ));
       await cardcpxdToken.mint(prepaidCard.address, toTokenUnit(1));
       await transferOwner(
@@ -379,6 +599,18 @@ contract("RewardManager", (accounts) => {
         cardcpxdToken,
         relayer,
         daicpxdToken
+      );
+      await registerRewardProgram(
+        prepaidCardManager,
+        prepaidCard,
+        daicpxdToken,
+        cardcpxdToken,
+        relayer,
+        prepaidCardOwner,
+        REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
+        undefined,
+        rewardProgramAdmin,
+        rewardProgramID
       );
     });
     it("register rewardee for reward program", async () => {
@@ -485,7 +717,7 @@ contract("RewardManager", (accounts) => {
         daicpxdToken,
         issuer,
         relayer,
-        [toTokenUnit(50 + 1)]
+        [toTokenUnit(5 + 1)]
       ));
       await cardcpxdToken.mint(otherPrepaidCard.address, toTokenUnit(1));
       await transferOwner(
@@ -559,7 +791,6 @@ contract("RewardManager", (accounts) => {
     let prepaidCard, rewardSafe, rewardSafeCreation;
     beforeEach(async () => {
       rewardProgramID = randomHex(20);
-      await rewardManager.registerRewardProgram(owner, rewardProgramID);
       ({
         prepaidCards: [prepaidCard],
       } = await createPrepaidCards(
@@ -569,7 +800,7 @@ contract("RewardManager", (accounts) => {
         daicpxdToken,
         issuer,
         relayer,
-        [toTokenUnit(50 + 1)]
+        [toTokenUnit(10 + 1)]
       ));
       await cardcpxdToken.mint(prepaidCard.address, toTokenUnit(1));
       await transferOwner(
@@ -580,6 +811,18 @@ contract("RewardManager", (accounts) => {
         cardcpxdToken,
         relayer,
         daicpxdToken
+      );
+      await registerRewardProgram(
+        prepaidCardManager,
+        prepaidCard,
+        daicpxdToken,
+        cardcpxdToken,
+        relayer,
+        prepaidCardOwner,
+        REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
+        undefined,
+        rewardProgramAdmin,
+        rewardProgramID
       );
       const tx = await registerRewardee(
         prepaidCardManager,
