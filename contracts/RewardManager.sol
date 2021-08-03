@@ -114,7 +114,7 @@ contract RewardManager is Ownable, Versionable, Safe {
 
     function removeRewardProgram(address rewardProgramID)
         external
-        onlyAdmin(rewardProgramID)
+        onlyOwner
     {
         rewardProgramIDs.remove(rewardProgramID);
         emit RewardProgramRemoved(rewardProgramID);
