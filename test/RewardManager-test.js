@@ -515,16 +515,16 @@ contract("RewardManager", (accounts) => {
     });
     it("can remove existing reward program", async () => {
       await rewardManager.removeRewardProgram(rewardProgramID, {
-        from: rewardProgramAdmin,
+        from: owner,
       });
       expect(await rewardManager.isRewardProgram(rewardProgramID)).to.equal(
         false
       );
     });
-    it("cannot remove existing reward program if not rewardProgramAdmin", async () => {
+    it("cannot remove existing reward program if not owner", async () => {
       await rewardManager
-        .removeRewardProgram(rewardProgramID, { from: owner })
-        .should.be.rejectedWith("caller must be admin of reward program");
+        .removeRewardProgram(rewardProgramID, { from: rewardProgramAdmin })
+        .should.be.rejectedWith("Ownable: caller is not the owner");
     });
     it("add rule in reward program", async () => {
       await rewardManager.addRewardRule(
