@@ -33,6 +33,7 @@ const eventABIs = require("./utils/constant/eventABIs");
 const AbiCoder = require("web3-eth-abi");
 
 const REWARDEE_REGISTRATION_FEE_IN_SPEND = 500;
+const REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND = 500;
 const tallyRuleDID = "did:cardstack:1tdnHDwr8Z4Z7sHGceo2kArC9a5a297f45ef5491";
 const benefitDID = "did:cardstack:1b1kyKHhwKF5BT3w4p8w5AGc12ada71be496beea";
 const ruleDID = "did:cardstack:1r4r2PZpazPtbcKU3yR6BTUwf1c425ad7fd6f9ee";
@@ -145,7 +146,8 @@ contract("RewardManager", (accounts) => {
       gnosisSafeMasterCopy.address,
       proxyFactory.address,
       rewardFeeReceiver,
-      REWARDEE_REGISTRATION_FEE_IN_SPEND
+      REWARDEE_REGISTRATION_FEE_IN_SPEND,
+      REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND
     );
     await prepaidCardManager.addGasPolicy("transfer", false, true);
     await prepaidCardManager.addGasPolicy("split", true, true);
@@ -186,7 +188,8 @@ contract("RewardManager", (accounts) => {
         gnosisSafeMasterCopy.address,
         proxyFactory.address,
         rewardFeeReceiver,
-        REWARDEE_REGISTRATION_FEE_IN_SPEND
+        REWARDEE_REGISTRATION_FEE_IN_SPEND,
+        REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND
       );
     });
 
@@ -197,7 +200,8 @@ contract("RewardManager", (accounts) => {
           gnosisSafeMasterCopy.address,
           proxyFactory.address,
           ZERO_ADDRESS,
-          REWARDEE_REGISTRATION_FEE_IN_SPEND
+          REWARDEE_REGISTRATION_FEE_IN_SPEND,
+          REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND
         )
         .should.be.rejectedWith(Error, "rewardFeeReceiver not set");
     });
@@ -208,7 +212,8 @@ contract("RewardManager", (accounts) => {
           gnosisSafeMasterCopy.address,
           proxyFactory.address,
           rewardFeeReceiver,
-          0
+          0,
+          REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND
         )
         .should.be.rejectedWith(
           Error,
@@ -216,6 +221,21 @@ contract("RewardManager", (accounts) => {
         );
     });
 
+    it("reverts when rewardProgramRegistrationFeeInSPEND is not set", async () => {
+      await rewardManager
+        .setup(
+          actionDispatcher.address,
+          gnosisSafeMasterCopy.address,
+          proxyFactory.address,
+          rewardFeeReceiver,
+          REWARDEE_REGISTRATION_FEE_IN_SPEND,
+          0
+        )
+        .should.be.rejectedWith(
+          Error,
+          "rewardProgramRegistrationFeeInSPEND is not set"
+        );
+    });
     it("reverts when non-owner calls setup()", async () => {
       await rewardManager
         .setup(
@@ -224,6 +244,7 @@ contract("RewardManager", (accounts) => {
           proxyFactory.address,
           rewardFeeReceiver,
           REWARDEE_REGISTRATION_FEE_IN_SPEND,
+          REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
           { from: issuer }
         )
         .should.be.rejectedWith(Error, "Ownable: caller is not the owner");
@@ -234,6 +255,9 @@ contract("RewardManager", (accounts) => {
       );
       expect(
         (await rewardManager.rewardeeRegistrationFeeInSPEND()).toString()
+      ).to.equal("500");
+      expect(
+        (await rewardManager.rewardProgramRegistrationFeeInSPEND()).toString()
       ).to.equal("500");
       expect((await rewardManager.actionDispatcher()).toString()).to.equal(
         actionDispatcher.address
