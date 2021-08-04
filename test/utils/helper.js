@@ -804,3 +804,16 @@ exports.registerRewardProgram = async function (
     { from: relayer }
   );
 };
+
+exports.getRewardProgramAdmin = async function (
+  rewardManager,
+  rewardProgramID
+) {
+  return callMapping(rewardManager, "rewardProgramAdmins", [rewardProgramID]);
+};
+
+const callMapping = async function (contract, mappingName, args) {
+  return contract[mappingName].call(...args, (err, res) => {
+    return res;
+  });
+};
