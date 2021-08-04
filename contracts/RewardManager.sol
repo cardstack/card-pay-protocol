@@ -284,7 +284,7 @@ contract RewardManager is Ownable, Versionable, Safe {
         address[] memory owners = GnosisSafe(rewardSafe).getOwners();
         require(
             owners.length == 2,
-            "unexpected number of owners for prepaid card"
+            "unexpected number of owners for reward safe"
         );
         return owners[0] == address(this) ? owners[1] : owners[0];
     }
