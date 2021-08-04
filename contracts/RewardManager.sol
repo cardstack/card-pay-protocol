@@ -55,7 +55,7 @@ contract RewardManager is Ownable, Versionable, Safe {
 
     modifier onlyAdmin(address rewardProgramID) {
         require(
-            _adminRewardProgram(rewardProgramID) == msg.sender,
+            rewardProgramAdmins[rewardProgramID] == msg.sender,
             "caller must be admin of reward program"
         );
         _;
@@ -112,10 +112,7 @@ contract RewardManager is Ownable, Versionable, Safe {
         emit RewardProgramCreated(admin, rewardProgramID);
     }
 
-    function removeRewardProgram(address rewardProgramID)
-        external
-        onlyOwner
-    {
+    function removeRewardProgram(address rewardProgramID) external onlyOwner {
         rewardProgramIDs.remove(rewardProgramID);
         emit RewardProgramRemoved(rewardProgramID);
     }
@@ -267,14 +264,6 @@ contract RewardManager is Ownable, Versionable, Safe {
         return _isRewardProgram(rewardProgramID);
     }
 
-    function adminRewardProgram(address rewardProgramID)
-        external
-        view
-        returns (address)
-    {
-        return _adminRewardProgram(rewardProgramID);
-    }
-
     function hasRewardSafe(address rewardProgramID, address prepaidCardOwner)
         external
         view
@@ -301,13 +290,6 @@ contract RewardManager is Ownable, Versionable, Safe {
     }
 
     //Internal View Functions
-    function _adminRewardProgram(address rewardProgramID)
-        internal
-        view
-        returns (address)
-    {
-        return rewardProgramAdmins[rewardProgramID];
-    }
 
     function _isRewardProgram(address rewardProgramID)
         internal
