@@ -29,6 +29,7 @@ const {
   transferRewardSafe,
   findAccountBeforeAddress,
   findAccountAfterAddress,
+  getRewardProgramAdmin,
 } = require("./utils/helper");
 
 const { getParamsFromEvent } = require("./utils/general");
@@ -575,15 +576,15 @@ contract("RewardManager", (accounts) => {
       expect(await rewardManager.isLocked(rewardProgramID)).to.equal(true);
     });
     it("update rewardProgramAdmin of reward program", async () => {
-      expect(await rewardManager.adminRewardProgram(rewardProgramID)).to.equal(
-        rewardProgramAdmin
-      );
+      expect(
+        await getRewardProgramAdmin(rewardManager, rewardProgramID)
+      ).to.equal(rewardProgramAdmin);
       await rewardManager.updateAdmin(rewardProgramID, owner, {
         from: rewardProgramAdmin,
       });
-      expect(await rewardManager.adminRewardProgram(rewardProgramID)).to.equal(
-        owner
-      );
+      expect(
+        await getRewardProgramAdmin(rewardManager, rewardProgramID)
+      ).to.equal(owner);
     });
   });
 
