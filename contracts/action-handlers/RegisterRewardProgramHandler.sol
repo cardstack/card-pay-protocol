@@ -83,7 +83,7 @@ contract RegisterRewardProgramHandler is Ownable, Versionable {
             );
         require(
             amount >= rewardProgramRegistrationFeeInToken,
-            "Insufficient funds for merchant registration"
+            "Insufficient funds for reward program registration"
         );
 
         IERC677(msg.sender).transfer(
