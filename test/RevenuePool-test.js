@@ -107,7 +107,8 @@ contract("RevenuePool", (accounts) => {
     await merchantManager.setup(
       actionDispatcher.address,
       gnosisSafeMasterCopy.address,
-      proxyFactory.address
+      proxyFactory.address,
+      ZERO_ADDRESS
     );
     await prepaidCardManager.setup(
       tokenManager.address,
@@ -276,14 +277,14 @@ contract("RevenuePool", (accounts) => {
       );
       merchantSafe = merchantCreation[0]["merchantSafe"]; // Warning: this is reused in other tests
 
-      expect((await merchantManager.merchants(merchant)).merchantSafe).to.equal(
-        merchantSafe
-      );
+      expect(
+        await merchantManager.merchantSafesForMerchant(merchant)
+      ).to.deep.equal([merchantSafe]);
       expect(await merchantManager.merchantSafes(merchantSafe)).to.equal(
         merchant
       );
       expect(await merchantManager.isMerchantSafe(merchantSafe)).to.equal(true);
-      expect((await merchantManager.merchants(merchant)).infoDID).to.equal(
+      expect(await merchantManager.merchantSafeInfoDIDs(merchantSafe)).to.equal(
         "did:cardstack:56d6fc54-d399-443b-8778-d7e4512d3a49"
       );
 
@@ -533,7 +534,7 @@ contract("RevenuePool", (accounts) => {
       );
     });
 
-    it("reverts when a merchant re-registers", async () => {
+    it("allows merchant to register multiple merchant safes", async () => {
       // This test assumes that 'merchant' has already been registered in previous test
       let {
         prepaidCards: [merchantPrepaidCard],
@@ -563,29 +564,46 @@ contract("RevenuePool", (accounts) => {
         relayer,
         daicpxdToken
       );
-      await registerMerchant(
+      let merchantTx = await registerMerchant(
         prepaidCardManager,
         merchantPrepaidCard,
         daicpxdToken,
         cardcpxdToken,
         relayer,
         merchant,
-        1000
-      ).should.be.rejectedWith(
-        Error,
-        // the real revert reason is behind the gnosis safe execTransaction
-        // boundary, so we just get this generic error
-        "safe transaction was reverted"
+        1000,
+        undefined,
+        "did:cardstack:another-merchant-safe"
       );
+      let merchantCreation = await getParamsFromEvent(
+        merchantTx,
+        eventABIs.MERCHANT_CREATION,
+        merchantManager.address
+      );
+      let anotherMerchantSafe = merchantCreation[0]["merchantSafe"]; // Warning: this is reused in other tests
+
+      expect(
+        await merchantManager.merchantSafesForMerchant(merchant)
+      ).to.deep.equal([merchantSafe, anotherMerchantSafe]);
+      expect(await merchantManager.merchantSafes(anotherMerchantSafe)).to.equal(
+        merchant
+      );
+      expect(
+        await merchantManager.isMerchantSafe(anotherMerchantSafe)
+      ).to.equal(true);
+      expect(
+        await merchantManager.merchantSafeInfoDIDs(anotherMerchantSafe)
+      ).to.equal("did:cardstack:another-merchant-safe");
+
       await shouldBeSameBalance(
         daicpxdToken,
         merchantPrepaidCard.address,
-        startingPrepaidCardDaicpxdBalance
+        startingPrepaidCardDaicpxdBalance.sub(toTokenUnit(10))
       );
       await shouldBeSameBalance(
         daicpxdToken,
         merchantFeeReceiver,
-        startingMerchantFeeReceiverDaicpxdBalance
+        startingMerchantFeeReceiverDaicpxdBalance.add(toTokenUnit(10))
       );
     });
 
@@ -603,8 +621,8 @@ contract("RevenuePool", (accounts) => {
       let anotherMerchantSafe = merchantCreation[0]["merchantSafe"];
 
       expect(
-        (await merchantManager.merchants(anotherMerchant)).merchantSafe
-      ).to.equal(anotherMerchantSafe);
+        await merchantManager.merchantSafesForMerchant(anotherMerchant)
+      ).to.deep.equal([anotherMerchantSafe]);
       expect(await merchantManager.merchantSafes(anotherMerchantSafe)).to.equal(
         anotherMerchant
       );
@@ -612,7 +630,7 @@ contract("RevenuePool", (accounts) => {
         await merchantManager.isMerchantSafe(anotherMerchantSafe)
       ).to.equal(true);
       expect(
-        (await merchantManager.merchants(anotherMerchant)).infoDID
+        await merchantManager.merchantSafeInfoDIDs(anotherMerchantSafe)
       ).to.equal("did:cardstack:56d6fc54-d399-443b-8778-d7e4512d3a49-xx");
     });
 

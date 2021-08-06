@@ -142,7 +142,8 @@ contract("PrepaidCardManager", (accounts) => {
     await merchantManager.setup(
       actionDispatcher.address,
       gnosisSafeMasterCopy.address,
-      proxyFactory.address
+      proxyFactory.address,
+      ZERO_ADDRESS
     );
     await actionDispatcher.setup(
       tokenManager.address,

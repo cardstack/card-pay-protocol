@@ -135,7 +135,8 @@ contract("Action Dispatcher", (accounts) => {
     await merchantManager.setup(
       actionDispatcher.address,
       gnosisSafeMasterCopy.address,
-      proxyFactory.address
+      proxyFactory.address,
+      ZERO_ADDRESS
     );
     await supplierManager.setup(
       ZERO_ADDRESS,
