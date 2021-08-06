@@ -50,6 +50,13 @@ module.exports = async function (_deployer, network) {
   if (["ganache", "test", "soliditycoverage"].includes(network)) {
     return;
   }
+  // TODO after the next deploy with these addresses we can just use zero
+  // address for this
+  const deprecatedMerchantManager =
+    network === "xdai"
+      ? "0x3C29B2A563F4bB9D625175bE823c528A4Ddd1107" // v0.6.4+xdai
+      : "0xA113ECa0Af275e1906d1fe1B7Bef1dDB033113E2"; // v0.6.7+sokol
+
   const addressesFile = resolve(
     __dirname,
     "..",
@@ -135,12 +142,14 @@ Configuring TokenManager ${tokenManagerAddress}
 Configuring MerchantManager ${merchantManagerAddress}
   ActionDispatcher address: ${actionDispatcherAddress}
   gnosis master copy: ${GNOSIS_SAFE_MASTER_COPY}
-  gnosis proxy factory: ${GNOSIS_SAFE_FACTORY}`);
+  gnosis proxy factory: ${GNOSIS_SAFE_FACTORY}
+  DeprecatedMerchantManager: ${deprecatedMerchantManager}`);
   await sendTx(() =>
     merchantManager.setup(
       actionDispatcherAddress,
       GNOSIS_SAFE_MASTER_COPY,
-      GNOSIS_SAFE_FACTORY
+      GNOSIS_SAFE_FACTORY,
+      deprecatedMerchantManager
     )
   );
 
