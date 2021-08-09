@@ -31,10 +31,6 @@
     "proxy": "0x40F1559042DBF9dbC974754b9020DDdcC24Af418",
     "contractName": "TokenManager"
   },
-  "MerchantManager": {
-    "proxy": "0xA113ECa0Af275e1906d1fe1B7Bef1dDB033113E2",
-    "contractName": "MerchantManager"
-  },
   "SupplierManager": {
     "proxy": "0xBB6BaE445c8E43d929c0EE4C915c8ef002088D25",
     "contractName": "SupplierManager"
@@ -70,5 +66,9 @@
   "Exchange": {
     "proxy": "0x95C13a7CFf0c12bAD1AAD2e7C962103988bD4444",
     "contractName": "Exchange"
+  },
+  "MerchantManager": {
+    "proxy": "0xD764e42Af9B63aDb21a79974f80Ed381c79aC90A",
+    "contractName": "MerchantManager"
   }
 }
