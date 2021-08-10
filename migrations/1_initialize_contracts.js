@@ -119,29 +119,29 @@ module.exports = async function (deployer, network, addresses) {
       DAIOracle: { contractName: "ChainlinkFeedAdapter", init: [addresses[0]] },
       CARDOracle: { contractName: "DIAOracleAdapter", init: [addresses[0]] },
 
-      RewardManager: { contractName: RewardManager, init: [addresses[0]] },
+      RewardManager: { contractName: "RewardManager", init: [addresses[0]] },
       AddRewardRuleHandler: {
-        contractName: AddRewardRuleHandler,
+        contractName: "AddRewardRuleHandler",
         init: [addresses[0]],
       },
       LockRewardProgramHandler: {
-        contractName: LockRewardProgramHandler,
+        contractName: "LockRewardProgramHandler",
         init: [addresses[0]],
       },
       RegisterRewardProgramHandler: {
-        contractName: RegisterRewardProgramHandler,
+        contractName: "RegisterRewardProgramHandler",
         init: [addresses[0]],
       },
       RegisterRewardeeHandler: {
-        contractName: RegisterRewardeeHandler,
+        contractName: "RegisterRewardeeHandler",
         init: [addresses[0]],
       },
       RemoveRewardRuleHandler: {
-        contractName: RemoveRewardRuleHandler,
+        contractName: "RemoveRewardRuleHandler",
         init: [addresses[0]],
       },
       UpdateRewardProgramAdminHandler: {
-        contractName: UpdateRewardProgramAdminHandler,
+        contractName: "UpdateRewardProgramAdminHandler",
         init: [addresses[0]],
       },
     };
