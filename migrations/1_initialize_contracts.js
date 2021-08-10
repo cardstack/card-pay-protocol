@@ -22,6 +22,17 @@ const SplitPrepaidCardHandler = artifacts.require("SplitPrepaidCardHandler");
 const TransferPrepaidCardHandler = artifacts.require(
   "TransferPrepaidCardHandler"
 );
+const RewardManager = artifacts.require("RewardManager");
+const RegisterRewardProgramHandler = artifacts.require(
+  "RegisterRewardProgramHandler"
+);
+const RegisterRewardeeHandler = artifacts.require("RegisterRewardeeHandler");
+const LockRewardProgramHandler = artifacts.require("LockRewardProgramHandler");
+const UpdateRewardProgramAdminHandler = artifacts.require(
+  "UpdateRewardProgramAdminHandler"
+);
+const AddRewardRuleHandler = artifacts.require("AddRewardRuleHandler");
+const RemoveRewardRuleHandler = artifacts.require("RemoveRewardRuleHandler");
 
 // we only maintain these migrations purely to measure the amount of gas it
 // takes to perform a deployment for each contract
@@ -49,6 +60,13 @@ module.exports = async function (deployer, network, addresses) {
       deployer.deploy(MerchantManager),
       deployer.deploy(SplitPrepaidCardHandler),
       deployer.deploy(TransferPrepaidCardHandler),
+      deployer.deploy(RewardManager),
+      deployer.deploy(RegisterRewardProgramHandler),
+      deployer.deploy(RegisterRewardeeHandler),
+      deployer.deploy(LockRewardProgramHandler),
+      deployer.deploy(UpdateRewardProgramAdminHandler),
+      deployer.deploy(AddRewardRuleHandler),
+      deployer.deploy(RemoveRewardRuleHandler),
     ]);
   } else {
     console.log(`Deploying from address ${addresses[0]}`);
@@ -100,6 +118,32 @@ module.exports = async function (deployer, network, addresses) {
       SPEND: { contractName: "SPEND", init: [addresses[0]] },
       DAIOracle: { contractName: "ChainlinkFeedAdapter", init: [addresses[0]] },
       CARDOracle: { contractName: "DIAOracleAdapter", init: [addresses[0]] },
+
+      RewardManager: { contractName: RewardManager, init: [addresses[0]] },
+      AddRewardRuleHandler: {
+        contractName: AddRewardRuleHandler,
+        init: [addresses[0]],
+      },
+      LockRewardProgramHandler: {
+        contractName: LockRewardProgramHandler,
+        init: [addresses[0]],
+      },
+      RegisterRewardProgramHandler: {
+        contractName: RegisterRewardProgramHandler,
+        init: [addresses[0]],
+      },
+      RegisterRewardeeHandler: {
+        contractName: RegisterRewardeeHandler,
+        init: [addresses[0]],
+      },
+      RemoveRewardRuleHandler: {
+        contractName: RemoveRewardRuleHandler,
+        init: [addresses[0]],
+      },
+      UpdateRewardProgramAdminHandler: {
+        contractName: UpdateRewardProgramAdminHandler,
+        init: [addresses[0]],
+      },
     };
 
     // Use manual feeds in sokol

@@ -20,6 +20,17 @@ const ActionDispatcher = artifacts.require("ActionDispatcher");
 const TokenManager = artifacts.require("TokenManager");
 const SupplierManager = artifacts.require("SupplierManager");
 const MerchantManager = artifacts.require("MerchantManager");
+const RewardManager = artifacts.require("RewardManager");
+const RegisterRewardProgramHandler = artifacts.require(
+  "RegisterRewardProgramHandler"
+);
+const RegisterRewardeeHandler = artifacts.require("RegisterRewardeeHandler");
+const LockRewardProgramHandler = artifacts.require("LockRewardProgramHandler");
+const UpdateRewardProgramAdminHandler = artifacts.require(
+  "UpdateRewardProgramAdminHandler"
+);
+const AddRewardRuleHandler = artifacts.require("AddRewardRuleHandler");
+const RemoveRewardRuleHandler = artifacts.require("RemoveRewardRuleHandler");
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const GAS_FEE_RECEIVER = process.env.GAS_FEE_RECEIVER ?? ZERO_ADDRESS;
@@ -45,6 +56,12 @@ const GNOSIS_SAFE_FACTORY =
 const MINIMUM_AMOUNT = process.env.MINIMUM_AMOUNT ?? "100"; // minimum face value (in SPEND) for new prepaid card
 const MAXIMUM_AMOUNT = process.env.MAXIMUM_AMOUNT ?? "100000"; // maximum face value (in SPEND) for new prepaid card
 const TALLY = process.env.TALLY ?? ZERO_ADDRESS;
+
+const REWARD_FEE_RECEIVER = process.env.REWARD_FEE_RECEIVER ?? ZERO_ADDRESS;
+const REWARDEE_REGISTRATION_FEE_IN_SPEND =
+  process.env.REWARDEE_REGISTRATION_FEE_IN_SPEND ?? 500;
+const REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND =
+  process.env.REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND ?? 500;
 
 module.exports = async function (_deployer, network) {
   if (["ganache", "test", "soliditycoverage"].includes(network)) {
@@ -94,14 +111,40 @@ module.exports = async function (_deployer, network) {
     "TransferPrepaidCardHandler",
     proxyAddresses
   );
-  let revenuePool = await RevenuePool.at(revenuePoolAddress);
   let spendTokenAddress = getAddress("SPEND", proxyAddresses);
   let daiOracleAddress = getAddress("DAIOracle", proxyAddresses);
   let cardOracleAddress = getAddress("CARDOracle", proxyAddresses);
   let bridgeUtilsAddress = getAddress("BridgeUtils", proxyAddresses);
   let rewardPoolAddress = getAddress("RewardPool", proxyAddresses);
+  let rewardManagerAddress = getAddress("RewardManager", proxyAddresses);
+
+  let registerRewardProgramHandlerAddress = getAddress(
+    "RegisterRewardProgramHandler",
+    proxyAddresses
+  );
+  let registerRewardeeHandlerAddress = getAddress(
+    "RegisterRewardeeHandler",
+    proxyAddresses
+  );
+  let lockRewardProgramHandlerAddress = getAddress(
+    "LockRewardProgramHandler",
+    proxyAddresses
+  );
+  let updateRewardProgramAdminHandlerAddress = getAddress(
+    "UpdateRewardProgramAdminHandler",
+    proxyAddresses
+  );
+  let addRewardRuleHandlerAddress = getAddress(
+    "AddRewardRuleHandler",
+    proxyAddresses
+  );
+  let removeRewardRuleHandlerAddress = getAddress(
+    "RemoveRewardRuleHandler",
+    proxyAddresses
+  );
 
   // RevenuePool configuration
+  let revenuePool = await RevenuePool.at(revenuePoolAddress);
   console.log(`
 ==================================================
 Configuring RevenuePool ${revenuePoolAddress}
@@ -387,6 +430,146 @@ Configuring BridgeUtils ${bridgeUtilsAddress}
 Configuring SPEND: ${spendTokenAddress}
   adding minter: ${payMerchantHandlerAddress} (PayMerchantHandler)`);
   await sendTx(() => spend.addMinter(payMerchantHandlerAddress));
+
+  let rewardManager = await RewardManager.at(rewardManagerAddress);
+  console.log(`
+==================================================
+Configuring RewardManager ${rewardManagerAddress}
+  ActionDispatcher address: ${actionDispatcherAddress}
+  gnosis master copy: ${GNOSIS_SAFE_MASTER_COPY}
+  gnosis proxy factory: ${GNOSIS_SAFE_FACTORY}
+  reward fee receiver: ${MERCHANT_FEE_RECEIVER}
+  rewardee registration fee: §${MERCHANT_REGISTRATION_FEE_IN_SPEND} SPEND`);
+  await sendTx(() =>
+    rewardManager.setup(
+      actionDispatcherAddress,
+      GNOSIS_SAFE_MASTER_COPY,
+      GNOSIS_SAFE_FACTORY,
+      REWARD_FEE_RECEIVER,
+      REWARDEE_REGISTRATION_FEE_IN_SPEND,
+      REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND
+    )
+  );
+
+  let registerRewardProgramHandler = await RegisterRewardProgramHandler.at(
+    registerRewardProgramHandlerAddress
+  );
+  console.log(`
+==================================================
+Configuring RegisterRewardProgramHandler ${registerRewardProgramHandlerAddress}
+  ActionDispatcher address: ${actionDispatcherAddress}
+  Exchange address: ${exchangeAddress}
+  TokenManager address: ${tokenManagerAddress}
+  RewardManager address: ${rewardManagerAddress}
+  `);
+  await sendTx(() =>
+    registerRewardProgramHandler.setup(
+      actionDispatcherAddress,
+      exchangeAddress,
+      tokenManagerAddress,
+      rewardManagerAddress
+    )
+  );
+
+  let registerRewardeeHandler = await RegisterRewardeeHandler.at(
+    registerRewardeeHandlerAddress
+  );
+  console.log(`
+==================================================
+Configuring RegisterRewardeeHandler ${registerRewardeeHandlerAddress}
+  ActionDispatcher address: ${actionDispatcherAddress}
+  Exchange address: ${exchangeAddress}
+  TokenManager address: ${tokenManagerAddress}
+  RewardManager address: ${rewardManagerAddress}
+  `);
+  await sendTx(() =>
+    registerRewardeeHandler.setup(
+      actionDispatcherAddress,
+      exchangeAddress,
+      tokenManagerAddress,
+      rewardManagerAddress
+    )
+  );
+
+  let lockRewardProgramHandler = await LockRewardProgramHandler.at(
+    lockRewardProgramHandlerAddress
+  );
+  console.log(`
+==================================================
+Configuring LockRewardProgramHandler ${lockRewardProgramHandlerAddress}
+  ActionDispatcher address: ${actionDispatcherAddress}
+  Exchange address: ${exchangeAddress}
+  TokenManager address: ${tokenManagerAddress}
+  RewardManager address: ${rewardManagerAddress}
+  `);
+  await sendTx(() =>
+    lockRewardProgramHandler.setup(
+      actionDispatcherAddress,
+      exchangeAddress,
+      tokenManagerAddress,
+      rewardManagerAddress
+    )
+  );
+
+  let updateRewardProgramAdminHandler = await UpdateRewardProgramAdminHandler.at(
+    updateRewardProgramAdminHandlerAddress
+  );
+  console.log(`
+==================================================
+Configuring UpdateRewardProgramAdminHandler ${updateRewardProgramAdminHandlerAddress}
+  ActionDispatcher address: ${actionDispatcherAddress}
+  Exchange address: ${exchangeAddress}
+  TokenManager address: ${tokenManagerAddress}
+  RewardManager address: ${rewardManagerAddress}
+  `);
+  await sendTx(() =>
+    updateRewardProgramAdminHandler.setup(
+      actionDispatcherAddress,
+      exchangeAddress,
+      tokenManagerAddress,
+      rewardManagerAddress
+    )
+  );
+
+  let addRewardRuleHandler = await AddRewardRuleHandler.at(
+    addRewardRuleHandlerAddress
+  );
+  console.log(`
+==================================================
+Configuring AddRewardRule ${addRewardRuleHandlerAddress}
+  ActionDispatcher address: ${actionDispatcherAddress}
+  Exchange address: ${exchangeAddress}
+  TokenManager address: ${tokenManagerAddress}
+  RewardManager address: ${rewardManagerAddress}
+  `);
+  await sendTx(() =>
+    addRewardRuleHandler.setup(
+      actionDispatcherAddress,
+      exchangeAddress,
+      tokenManagerAddress,
+      rewardManagerAddress
+    )
+  );
+
+  let removeRewardRuleHandler = await RemoveRewardRuleHandler.at(
+    removeRewardRuleHandlerAddress
+  );
+  console.log(`
+==================================================
+Configuring RemoveRewardRule ${removeRewardRuleHandlerAddress}
+  ActionDispatcher address: ${actionDispatcherAddress}
+  Exchange address: ${exchangeAddress}
+  TokenManager address: ${tokenManagerAddress}
+  RewardManager address: ${rewardManagerAddress}
+  `);
+  await sendTx(() =>
+    removeRewardRuleHandler.setup(
+      actionDispatcherAddress,
+      exchangeAddress,
+      tokenManagerAddress,
+      rewardManagerAddress
+    )
+  );
 };
 
 function getAddress(contractId, addresses) {
