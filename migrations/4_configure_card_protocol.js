@@ -270,6 +270,62 @@ Configuring ActionDispatcher ${actionDispatcherAddress}
   await sendTx(() =>
     actionDispatcher.addHandler(transferPrepaidCardHandlerAddress, "transfer")
   );
+  console.log(
+    `  adding action handler for "registerRewardee": ${registerRewardeeHandlerAddress}`
+  );
+  await sendTx(() =>
+    actionDispatcher.addHandler(
+      registerRewardeeHandlerAddress,
+      "registerRewardee"
+    )
+  );
+
+  console.log(
+    `  adding action handler for "registerRewardProgram": ${registerRewardProgramHandlerAddress}`
+  );
+  await sendTx(() =>
+    actionDispatcher.addHandler(
+      registerRewardProgramHandlerAddress,
+      "registerRewardProgram"
+    )
+  );
+
+  console.log(
+    `  adding action handler for "lockRewardProgram": ${lockRewardProgramHandlerAddress}`
+  );
+  await sendTx(() =>
+    actionDispatcher.addHandler(
+      lockRewardProgramHandlerAddress,
+      "lockRewardProgram"
+    )
+  );
+
+  console.log(
+    `  adding action handler for "addRewardRule": ${addRewardRuleHandlerAddress}`
+  );
+  await sendTx(() =>
+    actionDispatcher.addHandler(addRewardRuleHandlerAddress, "addRewardRule")
+  );
+
+  console.log(
+    `  adding action handler for "removeRewardRule": ${removeRewardRuleHandlerAddress}`
+  );
+  await sendTx(() =>
+    actionDispatcher.addHandler(
+      removeRewardRuleHandlerAddress,
+      "removeRewardRule"
+    )
+  );
+
+  console.log(
+    `  adding action handler for "updateRewardProgramAdmin": ${updateRewardProgramAdminHandlerAddress}`
+  );
+  await sendTx(() =>
+    actionDispatcher.addHandler(
+      updateRewardProgramAdminHandlerAddress,
+      "updateRewardProgramAdmin"
+    )
+  );
 
   // PayMerchantHandler configuration
   let payMerchantHandler = await PayMerchantHandler.at(
