@@ -534,6 +534,7 @@ Configuring RegisterRewardProgramHandler ${registerRewardProgramHandlerAddress}
 ==================================================
 Configuring RegisterRewardeeHandler ${registerRewardeeHandlerAddress}
   ActionDispatcher address: ${actionDispatcherAddress}
+  PrepaidCardManager address: ${prepaidCardManagerAddress}
   Exchange address: ${exchangeAddress}
   TokenManager address: ${tokenManagerAddress}
   RewardManager address: ${rewardManagerAddress}
@@ -541,6 +542,7 @@ Configuring RegisterRewardeeHandler ${registerRewardeeHandlerAddress}
   await sendTx(() =>
     registerRewardeeHandler.setup(
       actionDispatcherAddress,
+      prepaidCardManagerAddress,
       exchangeAddress,
       tokenManagerAddress,
       rewardManagerAddress
@@ -554,6 +556,7 @@ Configuring RegisterRewardeeHandler ${registerRewardeeHandlerAddress}
 ==================================================
 Configuring LockRewardProgramHandler ${lockRewardProgramHandlerAddress}
   ActionDispatcher address: ${actionDispatcherAddress}
+  PrepaidCardManager address: ${prepaidCardManagerAddress}
   Exchange address: ${exchangeAddress}
   TokenManager address: ${tokenManagerAddress}
   RewardManager address: ${rewardManagerAddress}
@@ -561,6 +564,7 @@ Configuring LockRewardProgramHandler ${lockRewardProgramHandlerAddress}
   await sendTx(() =>
     lockRewardProgramHandler.setup(
       actionDispatcherAddress,
+      prepaidCardManagerAddress,
       exchangeAddress,
       tokenManagerAddress,
       rewardManagerAddress
@@ -574,6 +578,7 @@ Configuring LockRewardProgramHandler ${lockRewardProgramHandlerAddress}
 ==================================================
 Configuring UpdateRewardProgramAdminHandler ${updateRewardProgramAdminHandlerAddress}
   ActionDispatcher address: ${actionDispatcherAddress}
+  PrepaidCardManager address: ${prepaidCardManagerAddress}
   Exchange address: ${exchangeAddress}
   TokenManager address: ${tokenManagerAddress}
   RewardManager address: ${rewardManagerAddress}
@@ -581,6 +586,7 @@ Configuring UpdateRewardProgramAdminHandler ${updateRewardProgramAdminHandlerAdd
   await sendTx(() =>
     updateRewardProgramAdminHandler.setup(
       actionDispatcherAddress,
+      prepaidCardManagerAddress,
       exchangeAddress,
       tokenManagerAddress,
       rewardManagerAddress
@@ -594,6 +600,7 @@ Configuring UpdateRewardProgramAdminHandler ${updateRewardProgramAdminHandlerAdd
 ==================================================
 Configuring AddRewardRule ${addRewardRuleHandlerAddress}
   ActionDispatcher address: ${actionDispatcherAddress}
+  PrepaidCardManager address: ${prepaidCardManagerAddress}
   Exchange address: ${exchangeAddress}
   TokenManager address: ${tokenManagerAddress}
   RewardManager address: ${rewardManagerAddress}
@@ -601,6 +608,7 @@ Configuring AddRewardRule ${addRewardRuleHandlerAddress}
   await sendTx(() =>
     addRewardRuleHandler.setup(
       actionDispatcherAddress,
+      prepaidCardManagerAddress,
       exchangeAddress,
       tokenManagerAddress,
       rewardManagerAddress
@@ -614,6 +622,7 @@ Configuring AddRewardRule ${addRewardRuleHandlerAddress}
 ==================================================
 Configuring RemoveRewardRule ${removeRewardRuleHandlerAddress}
   ActionDispatcher address: ${actionDispatcherAddress}
+  PrepaidCardManager address: ${prepaidCardManagerAddress}
   Exchange address: ${exchangeAddress}
   TokenManager address: ${tokenManagerAddress}
   RewardManager address: ${rewardManagerAddress}
@@ -621,6 +630,7 @@ Configuring RemoveRewardRule ${removeRewardRuleHandlerAddress}
   await sendTx(() =>
     removeRewardRuleHandler.setup(
       actionDispatcherAddress,
+      prepaidCardManagerAddress,
       exchangeAddress,
       tokenManagerAddress,
       rewardManagerAddress
