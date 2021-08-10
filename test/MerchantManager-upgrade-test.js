@@ -11,6 +11,7 @@ const MerchantManager = artifacts.require("MerchantManager");
 const DeprecatedMerchantManager = artifacts.require(
   "DeprecatedMerchantManager"
 );
+const RewardManager = artifacts.require("RewardManager");
 
 const utils = require("./utils/general");
 const eventABIs = require("./utils/constant/eventABIs");
@@ -45,6 +46,7 @@ contract(
       actionDispatcher,
       merchantManager,
       deprecatedMerchantManager,
+      rewardManager,
       merchantSafe,
       merchantFeeReceiver,
       proxyFactory,
@@ -81,6 +83,8 @@ contract(
       await merchantManager.initialize(owner);
       deprecatedMerchantManager = await DeprecatedMerchantManager.new();
       await deprecatedMerchantManager.initialize(owner);
+      rewardManager = await RewardManager.new();
+      await rewardManager.initialize(owner);
 
       ({ daicpxdToken, cardcpxdToken, exchange } = await setupExchanges(owner));
 
@@ -138,6 +142,7 @@ contract(
         actionDispatcher,
         deprecatedMerchantManager,
         tokenManager,
+        rewardManager,
         owner,
         exchange.address,
         spendToken.address

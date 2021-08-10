@@ -227,4 +227,5 @@ We use the Open Zeppelin SDK to manage our upgradable contracts (via truffle mig
    ```
 8. `git push` to merge the commits back into the main branch. These changes reflect the new contract upgrade state, and its very important that this state is shared with the team so it can remain consistent within our organization.
 
+
 ##

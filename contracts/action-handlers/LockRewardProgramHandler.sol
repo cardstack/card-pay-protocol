@@ -7,15 +7,9 @@ import "../PrepaidCardManager.sol";
 import "../Exchange.sol";
 import "../RewardManager.sol";
 
-contract RegisterRewardeeHandler is Ownable, Versionable {
+contract LockRewardProgramHandler is Ownable, Versionable {
     using SafeMath for uint256;
     event Setup();
-    event RewardeeRegistrationFee(
-        address prepaidCard,
-        address issuingToken,
-        uint256 issuingTokenAmount,
-        uint256 spendAmount
-    );
     address public actionDispatcher;
     address public prepaidCardManager;
     address public exchangeAddress;
@@ -40,7 +34,7 @@ contract RegisterRewardeeHandler is Ownable, Versionable {
 
     function onTokenTransfer(
         address payable from,
-        uint256 amount,
+        uint256 amount, // solhint-disable-line no-unused-vars
         bytes calldata data
     ) external returns (bool) {
         require(
@@ -51,51 +45,22 @@ contract RegisterRewardeeHandler is Ownable, Versionable {
             from == actionDispatcher,
             "can only accept tokens from action dispatcher"
         );
-        RewardManager rewardManager = RewardManager(rewardManagerAddress);
-        address issuingToken = msg.sender;
-        uint256 rewardeeRegistrationFeeInSpend =
-            rewardManager.rewardeeRegistrationFeeInSPEND();
-
         (address payable prepaidCard, , bytes memory actionData) =
             abi.decode(data, (address, uint256, bytes));
 
         address rewardProgramID = abi.decode(actionData, (address));
-
-        uint256 rewardeeRegistrationFeeInToken =
-            Exchange(exchangeAddress).convertFromSpend(
-                issuingToken,
-                rewardeeRegistrationFeeInSpend
-            );
-        require(
-            amount >= rewardeeRegistrationFeeInToken,
-            "Insufficient funds for merchant registration"
-        );
-
-        IERC677(msg.sender).transfer(
-            rewardManager.rewardFeeReceiver(),
-            rewardeeRegistrationFeeInToken
-        );
-
-        uint256 refund = amount.sub(rewardeeRegistrationFeeInToken);
-        if (refund > 0) {
-            IERC677(issuingToken).transfer(prepaidCard, refund);
-        }
-
         address prepaidCardOwner =
             PrepaidCardManager(prepaidCardManager).getPrepaidCardOwner(
                 prepaidCard
             );
 
-        emit RewardeeRegistrationFee(
-            prepaidCard,
-            issuingToken,
-            amount,
-            rewardeeRegistrationFeeInSpend
+        require(
+            RewardManager(rewardManagerAddress).rewardProgramAdmins(
+                rewardProgramID
+            ) == prepaidCardOwner,
+            "can only be called by reward program admin"
         );
-        RewardManager(rewardManagerAddress).registerRewardee(
-            rewardProgramID,
-            prepaidCardOwner
-        );
+        RewardManager(rewardManagerAddress).lockRewardProgram(rewardProgramID);
         return true;
     }
 }

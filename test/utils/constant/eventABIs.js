@@ -107,11 +107,11 @@ const eventABIs = {
     abis: [
       {
         type: "address",
-        name: "prepaidCardOwner",
+        name: "rewardSafe",
       },
       {
         type: "address",
-        name: "rewardSafe",
+        name: "prepaidCardOwner",
       },
     ],
   },

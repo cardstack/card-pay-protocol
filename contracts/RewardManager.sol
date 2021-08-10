@@ -17,19 +17,18 @@ contract RewardManager is Ownable, Versionable, Safe {
 
     //Events
     event Setup();
-    event RewardProgramCreated(address admin, address rewardProgramID);
+    event RewardProgramCreated(address rewardProgramID, address admin);
     event RewardProgramRemoved(address rewardProgramID);
-    event RewardProgramAdminUpdated(address newAdmin);
+    event RewardProgramAdminUpdated(address rewardProgramID, address newAdmin);
     event RewardProgramLocked(address rewardProgramID);
-    event RewardSafeCreated(address owner, address rewardSafe);
-    event RewardSafeTransferred();
-    event RewardRuleAdded(string ruleDID);
-    event RewardRuleRemoved(string ruleDID);
+    event RewardSafeCreated(address rewardSafe, address owner);
+    event RewardSafeTransferred(address oldOwner, address newOwner);
+    event RewardRuleAdded(address rewardProgramID, string ruleDID);
+    event RewardRuleRemoved(address rewardProgramID, string ruleDID);
     event RewardeeRegistered(address rewardProgramID, address rewardee);
 
     // Constants
     address internal constant ZERO_ADDRESS = address(0);
-    bytes4 public constant SWAP_OWNER = 0xe318b52b; //swapOwner(address,address,address)
 
     //State Variables
     address public actionDispatcher;
@@ -52,14 +51,6 @@ contract RewardManager is Ownable, Versionable, Safe {
     mapping(address => mapping(address => address)) public rewardSafes; //reward program id <> prepaid card owner <> reward safes
     mapping(address => mapping(string => Rule)) public rule; //reward program id <> rule did <> Rule
     mapping(address => bool) public rewardProgramLocked; //reward program id <> locked
-
-    modifier onlyAdmin(address rewardProgramID) {
-        require(
-            rewardProgramAdmins[rewardProgramID] == msg.sender,
-            "caller must be admin of reward program"
-        );
-        _;
-    }
 
     modifier onlyHandlers() {
         require(
@@ -103,26 +94,27 @@ contract RewardManager is Ownable, Versionable, Safe {
         onlyHandlers
     {
         require(
-            !_isRewardProgram(rewardProgramID),
+            !isRewardProgram(rewardProgramID),
             "reward program already registered"
         );
         rewardProgramIDs.add(rewardProgramID);
         rewardProgramAdmins[rewardProgramID] = admin;
-        rewardPrograms[rewardProgramID] = RewardProgram(msg.sender, false);
-        emit RewardProgramCreated(admin, rewardProgramID);
+        rewardPrograms[rewardProgramID] = RewardProgram(admin, false);
+        emit RewardProgramCreated(rewardProgramID, admin);
     }
 
     function removeRewardProgram(address rewardProgramID) external onlyOwner {
         rewardProgramIDs.remove(rewardProgramID);
+        delete rewardProgramAdmins[rewardProgramID];
         emit RewardProgramRemoved(rewardProgramID);
     }
 
     function updateAdmin(address rewardProgramID, address admin)
         external
-        onlyAdmin(rewardProgramID)
+        onlyHandlers
     {
         rewardProgramAdmins[rewardProgramID] = admin;
-        emit RewardProgramAdminUpdated(admin);
+        emit RewardProgramAdminUpdated(rewardProgramID, admin);
     }
 
     function addRewardRule(
@@ -130,28 +122,25 @@ contract RewardManager is Ownable, Versionable, Safe {
         string calldata ruleDID,
         string calldata tallyRuleDID,
         string calldata benefitDID
-    ) external onlyAdmin(rewardProgramID) {
+    ) external onlyHandlers {
         rule[rewardProgramID][ruleDID] = Rule(tallyRuleDID, benefitDID);
-        emit RewardRuleAdded(ruleDID);
+        emit RewardRuleAdded(rewardProgramID, ruleDID);
     }
 
     function removeRewardRule(address rewardProgramID, string calldata ruleDID)
         external
-        onlyAdmin(rewardProgramID)
+        onlyHandlers
     {
         delete rule[rewardProgramID][ruleDID];
-        emit RewardRuleRemoved(ruleDID);
+        emit RewardRuleRemoved(rewardProgramID, ruleDID);
     }
 
-    function lockRewardProgram(address rewardProgramID)
-        external
-        onlyAdmin(rewardProgramID)
-    {
+    function lockRewardProgram(address rewardProgramID) external onlyHandlers {
         rewardPrograms[rewardProgramID].locked = true;
         emit RewardProgramLocked(rewardProgramID);
     }
 
-    function register(address rewardProgramID, address prepaidCardOwner)
+    function registerRewardee(address rewardProgramID, address prepaidCardOwner)
         external
         onlyHandlers
         returns (address)
@@ -170,26 +159,36 @@ contract RewardManager is Ownable, Versionable, Safe {
         rewardSafe = createSafe(owners, 2);
         rewardSafes[rewardProgramID][prepaidCardOwner] = rewardSafe;
         emit RewardeeRegistered(rewardProgramID, prepaidCardOwner);
-        emit RewardSafeCreated(prepaidCardOwner, rewardSafe);
+        emit RewardSafeCreated(rewardSafe, prepaidCardOwner);
         return rewardSafe;
     }
 
     function transferRewardSafe(
         address payable rewardSafe,
+        address rewardProgramID,
         address gasToken,
         address payable gasRecipient,
-        bytes calldata previousOwnerSignature,
+        bytes calldata oldOwnerSignature,
         bytes calldata data
     ) external {
+        address rewardSafeOwner = getRewardSafeOwner(rewardSafe);
+        require(
+            rewardSafes[rewardProgramID][rewardSafeOwner] == rewardSafe,
+            "reward safe cannot be transferred"
+        );
+
+        (, address oldOwner, address newOwner) =
+            abi.decode(data, (address, address, address));
+
         execTransaction(
             rewardSafe,
             rewardSafe,
             data,
-            _addContractSignature(rewardSafe, previousOwnerSignature),
+            _addContractSignature(rewardSafe, oldOwnerSignature),
             gasToken,
             gasRecipient
         );
-        emit RewardSafeTransferred();
+        emit RewardSafeTransferred(oldOwner, newOwner);
     }
 
     // somehow using a private function gets rid of the callstack too deep error
@@ -220,30 +219,29 @@ contract RewardManager is Ownable, Versionable, Safe {
         return true;
     }
 
-    function getTransferRewardSafeData(
-        address payable rewardSafe,
-        address newOwner
-    ) public view returns (bytes memory) {
-        // Swap owner
-        address previousOwner = getRewardSafeOwner(rewardSafe);
-        return
-            abi.encodeWithSelector(
-                SWAP_OWNER,
-                address(this),
-                previousOwner,
-                newOwner
-            );
+    //Public View Functions
+    function getRewardSafeOwner(address payable rewardSafe)
+        public
+        view
+        returns (address)
+    {
+        address[] memory owners = GnosisSafe(rewardSafe).getOwners();
+        require(
+            owners.length == 2,
+            "unexpected number of owners for reward safe"
+        );
+        return owners[0] == address(this) ? owners[1] : owners[0];
+    }
+
+    function isRewardProgram(address rewardProgramID)
+        public
+        view
+        returns (bool)
+    {
+        return rewardProgramIDs.contains(rewardProgramID);
     }
 
     // External View Functions
-    function isLocked(address rewardProgramID) external view returns (bool) {
-        if (rewardPrograms[rewardProgramID].locked) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
     function hasRule(address rewardProgramID, string calldata ruleDID)
         external
         view
@@ -254,14 +252,6 @@ contract RewardManager is Ownable, Versionable, Safe {
         } else {
             return true;
         }
-    }
-
-    function isRewardProgram(address rewardProgramID)
-        external
-        view
-        returns (bool)
-    {
-        return _isRewardProgram(rewardProgramID);
     }
 
     function hasRewardSafe(address rewardProgramID, address prepaidCardOwner)
@@ -276,29 +266,8 @@ contract RewardManager is Ownable, Versionable, Safe {
         }
     }
 
-    function getRewardSafeOwner(address payable rewardSafe)
-        public
-        view
-        returns (address)
-    {
-        address[] memory owners = GnosisSafe(rewardSafe).getOwners();
-        require(
-            owners.length == 2,
-            "unexpected number of owners for reward safe"
-        );
-        return owners[0] == address(this) ? owners[1] : owners[0];
-    }
 
     //Internal View Functions
-
-    function _isRewardProgram(address rewardProgramID)
-        internal
-        view
-        returns (bool)
-    {
-        return rewardProgramIDs.contains(rewardProgramID);
-    }
-
     function _equalRule(Rule memory rule1, Rule memory rule2)
         internal
         pure

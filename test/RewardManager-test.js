@@ -20,16 +20,19 @@ const {
   shouldBeSameBalance,
   getBalance,
   setupExchanges,
-  transferOwner,
-  createPrepaidCards,
   addActionHandlers,
   registerRewardee,
   registerRewardProgram,
+  lockRewardProgram,
   createDepotFromSupplierMgr,
   transferRewardSafe,
   findAccountBeforeAddress,
   findAccountAfterAddress,
-  getRewardProgramAdmin,
+  addRewardRule,
+  removeRewardRule,
+  updateRewardProgramAdmin,
+  airdropGas,
+  createPrepaidCardAndTransfer,
 } = require("./utils/helper");
 
 const { getParamsFromEvent } = require("./utils/general");
@@ -52,7 +55,12 @@ contract("RewardManager", (accounts) => {
     revenuePool,
     merchantManager;
   // handlers
-  let registerRewardeeHandler, registerRewardProgramHandler;
+  let registerRewardeeHandler,
+    registerRewardProgramHandler,
+    lockRewardProgramHandler,
+    addRewardRuleHandler,
+    removeRewardRuleHandler,
+    updateRewardProgramAdminHandler;
 
   // tokens
   let daicpxdToken, cardcpxdToken, fakeDaicpxdToken;
@@ -79,7 +87,7 @@ contract("RewardManager", (accounts) => {
     owner = accounts[0];
     issuer = accounts[1];
     rewardProgramAdmin = accounts[2];
-    prepaidCardOwner = accounts[3];
+    prepaidCardOwner = accounts[3]; //original reward program admin
     relayer = accounts[4];
     merchantFeeReceiver = accounts[5];
     rewardFeeReceiver = accounts[6];
@@ -132,7 +140,8 @@ contract("RewardManager", (accounts) => {
     await merchantManager.setup(
       actionDispatcher.address,
       gnosisSafeMasterCopy.address,
-      proxyFactory.address
+      proxyFactory.address,
+      ZERO_ADDRESS
     );
     await prepaidCardManager.setup(
       tokenManager.address,
@@ -176,6 +185,10 @@ contract("RewardManager", (accounts) => {
     ({
       registerRewardeeHandler,
       registerRewardProgramHandler,
+      lockRewardProgramHandler,
+      addRewardRuleHandler,
+      removeRewardRuleHandler,
+      updateRewardProgramAdminHandler,
     } = await addActionHandlers(
       prepaidCardManager,
       revenuePool,
@@ -287,26 +300,16 @@ contract("RewardManager", (accounts) => {
     let prepaidCard, otherPrepaidCard;
     beforeEach(async () => {
       rewardProgramID = randomHex(20);
-      ({
-        prepaidCards: [prepaidCard],
-      } = await createPrepaidCards(
+      prepaidCard = await createPrepaidCardAndTransfer(
+        prepaidCardManager,
+        relayer,
         depot,
-        prepaidCardManager,
-        daicpxdToken,
-        daicpxdToken,
         issuer,
-        relayer,
-        [toTokenUnit(5 + 1)]
-      ));
-      await cardcpxdToken.mint(prepaidCard.address, toTokenUnit(1));
-      await transferOwner(
-        prepaidCardManager,
-        prepaidCard,
-        issuer,
+        daicpxdToken,
+        toTokenUnit(5 + 1),
+        daicpxdToken,
         prepaidCardOwner,
-        cardcpxdToken,
-        relayer,
-        daicpxdToken
+        cardcpxdToken
       );
     });
     it("can register reward program", async () => {
@@ -342,26 +345,16 @@ contract("RewardManager", (accounts) => {
       );
     });
     it("cannot register existing reward program", async () => {
-      ({
-        prepaidCards: [otherPrepaidCard],
-      } = await createPrepaidCards(
+      otherPrepaidCard = await createPrepaidCardAndTransfer(
+        prepaidCardManager,
+        relayer,
         depot,
-        prepaidCardManager,
-        daicpxdToken,
-        daicpxdToken,
         issuer,
-        relayer,
-        [toTokenUnit(100)]
-      ));
-      await cardcpxdToken.mint(otherPrepaidCard.address, toTokenUnit(1));
-      await transferOwner(
-        prepaidCardManager,
-        otherPrepaidCard,
-        issuer,
+        daicpxdToken,
+        toTokenUnit(5 + 1),
+        daicpxdToken,
         prepaidCardOwner,
-        cardcpxdToken,
-        relayer,
-        daicpxdToken
+        cardcpxdToken
       );
       await registerRewardProgram(
         prepaidCardManager,
@@ -489,29 +482,19 @@ contract("RewardManager", (accounts) => {
   });
 
   describe("update reward program", () => {
+    let prepaidCard, otherPrepaidCard;
     beforeEach(async () => {
-      let prepaidCard;
       rewardProgramID = randomHex(20);
-      ({
-        prepaidCards: [prepaidCard],
-      } = await createPrepaidCards(
+      prepaidCard = await createPrepaidCardAndTransfer(
+        prepaidCardManager,
+        relayer,
         depot,
-        prepaidCardManager,
-        daicpxdToken,
-        daicpxdToken,
         issuer,
-        relayer,
-        [toTokenUnit(5 + 1)]
-      ));
-      await cardcpxdToken.mint(prepaidCard.address, toTokenUnit(1));
-      await transferOwner(
-        prepaidCardManager,
-        prepaidCard,
-        issuer,
+        daicpxdToken,
+        toTokenUnit(5 + 1),
+        daicpxdToken,
         prepaidCardOwner,
-        cardcpxdToken,
-        relayer,
-        daicpxdToken
+        cardcpxdToken
       );
       await registerRewardProgram(
         prepaidCardManager,
@@ -522,7 +505,7 @@ contract("RewardManager", (accounts) => {
         prepaidCardOwner,
         REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
         undefined,
-        rewardProgramAdmin,
+        prepaidCardOwner, //current rewardProgramAdmin
         rewardProgramID
       );
     });
@@ -533,58 +516,465 @@ contract("RewardManager", (accounts) => {
       expect(await rewardManager.isRewardProgram(rewardProgramID)).to.equal(
         false
       );
+      expect(
+        await rewardManager.rewardProgramAdmins.call(rewardProgramID)
+      ).to.equal(ZERO_ADDRESS);
     });
     it("cannot remove existing reward program if not owner", async () => {
       await rewardManager
         .removeRewardProgram(rewardProgramID, { from: rewardProgramAdmin })
         .should.be.rejectedWith("Ownable: caller is not the owner");
     });
-    it("add rule in reward program", async () => {
-      await rewardManager.addRewardRule(
+    it("can add rule in reward program", async () => {
+      expect(await rewardManager.hasRule(rewardProgramID, ruleDID)).to.equal(
+        false
+      );
+      await addRewardRule(
+        prepaidCardManager,
+        prepaidCard,
+        daicpxdToken,
+        cardcpxdToken,
+        relayer,
+        prepaidCardOwner,
+        0, //paying nothing from prepaid card
+        undefined,
         rewardProgramID,
         ruleDID,
         tallyRuleDID,
-        benefitDID,
-        { from: rewardProgramAdmin }
+        benefitDID
       );
-      expect(
-        await rewardManager.hasRule(rewardProgramID, ruleDID, {
-          from: rewardProgramAdmin,
-        })
-      ).to.equal(true);
+      expect(await rewardManager.hasRule(rewardProgramID, ruleDID)).to.equal(
+        true
+      );
     });
-    it("remove reward program", async () => {
-      await rewardManager.addRewardRule(
+    it("cannot add rule reward program if not admin", async () => {
+      otherPrepaidCard = await createPrepaidCardAndTransfer(
+        prepaidCardManager,
+        relayer,
+        depot,
+        issuer,
+        daicpxdToken,
+        toTokenUnit(5 + 1),
+        daicpxdToken,
+        otherPrepaidCardOwner,
+        cardcpxdToken
+      );
+      await addRewardRule(
+        prepaidCardManager,
+        otherPrepaidCard,
+        daicpxdToken,
+        cardcpxdToken,
+        relayer,
+        otherPrepaidCardOwner,
+        0, //paying nothing from prepaid card
+        undefined,
         rewardProgramID,
         ruleDID,
         tallyRuleDID,
-        benefitDID,
-        { from: rewardProgramAdmin }
+        benefitDID
+      ).should.be.rejectedWith(Error, "safe transaction was reverted");
+    });
+    it("does not allow non-action handler to call addRewardRule", async () => {
+      await rewardManager
+        .addRewardRule(rewardProgramID, ruleDID, tallyRuleDID, benefitDID)
+        .should.be.rejectedWith(
+          Error,
+          "caller is not a registered action handler"
+        );
+    });
+    it("does not allow non-action handler to call transfer on addRewardRule", async () => {
+      await daicpxdToken
+        .transferAndCall(
+          addRewardRuleHandler.address,
+          toTokenUnit(0),
+          AbiCoder.encodeParameters(
+            ["address", "uint256", "bytes"],
+            [
+              prepaidCard.address,
+              0, // doesn't matter what this is
+              AbiCoder.encodeParameters(
+                ["address", "string", "string", "string"],
+                [rewardProgramID, ruleDID, tallyRuleDID, benefitDID]
+              ),
+            ]
+          )
+        )
+        .should.be.rejectedWith(
+          Error,
+          "can only accept tokens from action dispatcher"
+        );
+    });
+
+    it("does not allow non-CPXD token to call addRewardRule", async () => {
+      await fakeDaicpxdToken
+        .transferAndCall(
+          addRewardRuleHandler.address,
+          toTokenUnit(0),
+          AbiCoder.encodeParameters(
+            ["address", "uint256", "bytes"],
+            [
+              prepaidCard.address,
+              0, //doesn't matter what this is
+              AbiCoder.encodeParameters(
+                ["address", "string", "string", "string"],
+                [rewardProgramID, ruleDID, tallyRuleDID, benefitDID]
+              ),
+            ]
+          )
+        )
+        .should.be.rejectedWith(Error, "calling token is unaccepted");
+    });
+    it("can remove reward rule", async () => {
+      await addRewardRule(
+        prepaidCardManager,
+        prepaidCard,
+        daicpxdToken,
+        cardcpxdToken,
+        relayer,
+        prepaidCardOwner,
+        0,
+        undefined,
+        rewardProgramID,
+        ruleDID,
+        tallyRuleDID,
+        benefitDID
       );
-      await rewardManager.removeRewardRule(rewardProgramID, ruleDID, {
-        from: rewardProgramAdmin,
-      });
+      expect(await rewardManager.hasRule(rewardProgramID, ruleDID)).to.equal(
+        true
+      );
+      await removeRewardRule(
+        prepaidCardManager,
+        prepaidCard,
+        daicpxdToken,
+        cardcpxdToken,
+        relayer,
+        prepaidCardOwner,
+        0, //paying nothing from prepaid card
+        undefined,
+        rewardProgramID,
+        ruleDID
+      );
       expect(await rewardManager.hasRule(rewardProgramID, ruleDID)).to.equal(
         false
       );
     });
-    it("lock reward program", async () => {
-      expect(await rewardManager.isLocked(rewardProgramID)).to.equal(false);
-      await rewardManager.lockRewardProgram(rewardProgramID, {
-        from: rewardProgramAdmin,
-      });
-      expect(await rewardManager.isLocked(rewardProgramID)).to.equal(true);
+    it("cannot remove reward rule if not admin", async () => {
+      await addRewardRule(
+        prepaidCardManager,
+        prepaidCard,
+        daicpxdToken,
+        cardcpxdToken,
+        relayer,
+        prepaidCardOwner,
+        0,
+        undefined,
+        rewardProgramID,
+        ruleDID,
+        tallyRuleDID,
+        benefitDID
+      );
+      otherPrepaidCard = await createPrepaidCardAndTransfer(
+        prepaidCardManager,
+        relayer,
+        depot,
+        issuer,
+        daicpxdToken,
+        toTokenUnit(5 + 1),
+        daicpxdToken,
+        otherPrepaidCardOwner,
+        cardcpxdToken
+      );
+      await removeRewardRule(
+        prepaidCardManager,
+        otherPrepaidCard,
+        daicpxdToken,
+        cardcpxdToken,
+        relayer,
+        otherPrepaidCardOwner,
+        0, //paying nothing from prepaid card
+        undefined,
+        rewardProgramID,
+        ruleDID
+      ).should.be.rejectedWith(Error, "safe transaction was reverted");
     });
-    it("update rewardProgramAdmin of reward program", async () => {
+    it("does not allow non-action handler to call removeRewardRule", async () => {
+      await addRewardRule(
+        prepaidCardManager,
+        prepaidCard,
+        daicpxdToken,
+        cardcpxdToken,
+        relayer,
+        prepaidCardOwner,
+        0,
+        undefined,
+        rewardProgramID,
+        ruleDID,
+        tallyRuleDID,
+        benefitDID
+      );
+      await rewardManager
+        .removeRewardRule(rewardProgramID, ruleDID)
+        .should.be.rejectedWith(
+          Error,
+          "caller is not a registered action handler"
+        );
+    });
+    it("does not allow non-action handler to call transfer on removeRewardRule", async () => {
+      await addRewardRule(
+        prepaidCardManager,
+        prepaidCard,
+        daicpxdToken,
+        cardcpxdToken,
+        relayer,
+        prepaidCardOwner,
+        0,
+        undefined,
+        rewardProgramID,
+        ruleDID,
+        tallyRuleDID,
+        benefitDID
+      );
+      await daicpxdToken
+        .transferAndCall(
+          removeRewardRuleHandler.address,
+          toTokenUnit(0),
+          AbiCoder.encodeParameters(
+            ["address", "uint256", "bytes"],
+            [
+              prepaidCard.address,
+              0, // doesn't matter what this is
+              AbiCoder.encodeParameters(
+                ["address", "string"],
+                [rewardProgramID, ruleDID]
+              ),
+            ]
+          )
+        )
+        .should.be.rejectedWith(
+          Error,
+          "can only accept tokens from action dispatcher"
+        );
+    });
+
+    it("does not allow non-CPXD token to call removeRewardRule", async () => {
+      await addRewardRule(
+        prepaidCardManager,
+        prepaidCard,
+        daicpxdToken,
+        cardcpxdToken,
+        relayer,
+        prepaidCardOwner,
+        0,
+        undefined,
+        rewardProgramID,
+        ruleDID,
+        tallyRuleDID,
+        benefitDID
+      );
+      await fakeDaicpxdToken
+        .transferAndCall(
+          removeRewardRuleHandler.address,
+          toTokenUnit(0),
+          AbiCoder.encodeParameters(
+            ["address", "uint256", "bytes"],
+            [
+              prepaidCard.address,
+              0, //doesn't matter what this is
+              AbiCoder.encodeParameters(
+                ["address", "string"],
+                [rewardProgramID, ruleDID]
+              ),
+            ]
+          )
+        )
+        .should.be.rejectedWith(Error, "calling token is unaccepted");
+    });
+    it("can lock reward program", async () => {
       expect(
-        await getRewardProgramAdmin(rewardManager, rewardProgramID)
+        (await rewardManager.rewardPrograms.call(rewardProgramID)).locked
+      ).to.equal(false);
+      await lockRewardProgram(
+        prepaidCardManager,
+        prepaidCard,
+        daicpxdToken,
+        cardcpxdToken,
+        relayer,
+        prepaidCardOwner,
+        0, //paying nothing from prepaid card
+        undefined,
+        rewardProgramID
+      );
+      expect(
+        (await rewardManager.rewardPrograms.call(rewardProgramID)).locked
+      ).to.equal(true);
+    });
+    it("cannot lock reward program if not admin", async () => {
+      otherPrepaidCard = await createPrepaidCardAndTransfer(
+        prepaidCardManager,
+        relayer,
+        depot,
+        issuer,
+        daicpxdToken,
+        toTokenUnit(5 + 1),
+        daicpxdToken,
+        otherPrepaidCardOwner,
+        cardcpxdToken
+      );
+      expect(
+        (await rewardManager.rewardPrograms.call(rewardProgramID)).locked
+      ).to.equal(false);
+      await lockRewardProgram(
+        prepaidCardManager,
+        otherPrepaidCard,
+        daicpxdToken,
+        cardcpxdToken,
+        relayer,
+        otherPrepaidCardOwner,
+        0, //paying nothing from prepaid card
+        undefined,
+        rewardProgramID
+      ).should.be.rejectedWith(Error, "safe transaction was reverted");
+    });
+
+    it("does not allow non-action handler to call lockRewardProgram", async () => {
+      await rewardManager
+        .lockRewardProgram(rewardProgramID)
+        .should.be.rejectedWith(
+          Error,
+          "caller is not a registered action handler"
+        );
+    });
+    it("does not allow non-action handler to call transfer on lockRewardProgram", async () => {
+      await daicpxdToken
+        .transferAndCall(
+          lockRewardProgramHandler.address,
+          toTokenUnit(0),
+          AbiCoder.encodeParameters(
+            ["address", "uint256", "bytes"],
+            [
+              prepaidCard.address,
+              0, // doesn't matter what this is
+              AbiCoder.encodeParameters(["address"], [rewardProgramID]),
+            ]
+          )
+        )
+        .should.be.rejectedWith(
+          Error,
+          "can only accept tokens from action dispatcher"
+        );
+    });
+
+    it("does not allow non-CPXD token to call lockRewardProgram", async () => {
+      await fakeDaicpxdToken
+        .transferAndCall(
+          lockRewardProgramHandler.address,
+          toTokenUnit(0),
+          AbiCoder.encodeParameters(
+            ["address", "uint256", "bytes"],
+            [
+              prepaidCard.address,
+              0, //doesn't matter what this is
+              AbiCoder.encodeParameters(["address"], [rewardProgramID]),
+            ]
+          )
+        )
+        .should.be.rejectedWith(Error, "calling token is unaccepted");
+    });
+    it("can update rewardProgramAdmin of reward program", async () => {
+      expect(
+        await rewardManager.rewardProgramAdmins.call(rewardProgramID)
+      ).to.equal(prepaidCardOwner);
+      await updateRewardProgramAdmin(
+        prepaidCardManager,
+        prepaidCard,
+        daicpxdToken,
+        cardcpxdToken,
+        relayer,
+        prepaidCardOwner,
+        0, //paying nothing from prepaid card
+        undefined,
+        rewardProgramID,
+        rewardProgramAdmin
+      );
+      expect(
+        await rewardManager.rewardProgramAdmins.call(rewardProgramID)
       ).to.equal(rewardProgramAdmin);
-      await rewardManager.updateAdmin(rewardProgramID, owner, {
-        from: rewardProgramAdmin,
-      });
-      expect(
-        await getRewardProgramAdmin(rewardManager, rewardProgramID)
-      ).to.equal(owner);
+    });
+    it("cannot update reward program admin if not admin", async () => {
+      otherPrepaidCard = await createPrepaidCardAndTransfer(
+        prepaidCardManager,
+        relayer,
+        depot,
+        issuer,
+        daicpxdToken,
+        toTokenUnit(5 + 1),
+        daicpxdToken,
+        otherPrepaidCardOwner,
+        cardcpxdToken
+      );
+
+      await updateRewardProgramAdmin(
+        prepaidCardManager,
+        otherPrepaidCard,
+        daicpxdToken,
+        cardcpxdToken,
+        relayer,
+        otherPrepaidCardOwner,
+        0, //paying nothing from prepaid card
+        undefined,
+        rewardProgramID,
+        rewardProgramAdmin
+      ).should.be.rejectedWith(Error, "safe transaction was reverted");
+    });
+    it("does not allow non-action handler to call updateRewardProgramAdmin", async () => {
+      await rewardManager
+        .updateAdmin(rewardProgramID, rewardProgramAdmin)
+        .should.be.rejectedWith(
+          Error,
+          "caller is not a registered action handler"
+        );
+    });
+    it("does not allow non-action handler to call transfer on updateRewardProgramAdmin", async () => {
+      await daicpxdToken
+        .transferAndCall(
+          updateRewardProgramAdminHandler.address,
+          toTokenUnit(0),
+          AbiCoder.encodeParameters(
+            ["address", "uint256", "bytes"],
+            [
+              prepaidCard.address,
+              0, // doesn't matter what this is
+              AbiCoder.encodeParameters(
+                ["address", "address"],
+                [rewardProgramID, rewardProgramAdmin]
+              ),
+            ]
+          )
+        )
+        .should.be.rejectedWith(
+          Error,
+          "can only accept tokens from action dispatcher"
+        );
+    });
+
+    it("does not allow non-CPXD token to call updateRewardProgramAdmin", async () => {
+      await fakeDaicpxdToken
+        .transferAndCall(
+          updateRewardProgramAdminHandler.address,
+          toTokenUnit(0),
+          AbiCoder.encodeParameters(
+            ["address", "uint256", "bytes"],
+            [
+              prepaidCard.address,
+              0, //doesn't matter what this is
+              AbiCoder.encodeParameters(
+                ["address", "address"],
+                [rewardProgramID, rewardProgramAdmin]
+              ),
+            ]
+          )
+        )
+        .should.be.rejectedWith(Error, "calling token is unaccepted");
     });
   });
 
@@ -592,26 +982,16 @@ contract("RewardManager", (accounts) => {
     let prepaidCard, otherPrepaidCard;
     beforeEach(async () => {
       rewardProgramID = randomHex(20);
-      ({
-        prepaidCards: [prepaidCard],
-      } = await createPrepaidCards(
+      prepaidCard = await createPrepaidCardAndTransfer(
+        prepaidCardManager,
+        relayer,
         depot,
-        prepaidCardManager,
-        daicpxdToken,
-        daicpxdToken,
         issuer,
-        relayer,
-        [toTokenUnit(10 + 1)]
-      ));
-      await cardcpxdToken.mint(prepaidCard.address, toTokenUnit(1));
-      await transferOwner(
-        prepaidCardManager,
-        prepaidCard,
-        issuer,
+        daicpxdToken,
+        toTokenUnit(10 + 1),
+        daicpxdToken,
         prepaidCardOwner,
-        cardcpxdToken,
-        relayer,
-        daicpxdToken
+        cardcpxdToken
       );
       await registerRewardProgram(
         prepaidCardManager,
@@ -666,7 +1046,7 @@ contract("RewardManager", (accounts) => {
 
     it("does not allow non-action handler to call registerRewardee", async () => {
       await rewardManager
-        .register(rewardProgramID, prepaidCardOwner)
+        .registerRewardee(rewardProgramID, prepaidCardOwner)
         .should.be.rejectedWith(
           Error,
           "caller is not a registered action handler"
@@ -721,26 +1101,16 @@ contract("RewardManager", (accounts) => {
         undefined,
         rewardProgramID
       );
-      ({
-        prepaidCards: [otherPrepaidCard],
-      } = await createPrepaidCards(
+      otherPrepaidCard = await createPrepaidCardAndTransfer(
+        prepaidCardManager,
+        relayer,
         depot,
-        prepaidCardManager,
-        daicpxdToken,
-        daicpxdToken,
         issuer,
-        relayer,
-        [toTokenUnit(5 + 1)]
-      ));
-      await cardcpxdToken.mint(otherPrepaidCard.address, toTokenUnit(1));
-      await transferOwner(
-        prepaidCardManager,
-        otherPrepaidCard,
-        issuer,
+        daicpxdToken,
+        toTokenUnit(5 + 1),
+        daicpxdToken,
         prepaidCardOwner,
-        cardcpxdToken,
-        relayer,
-        daicpxdToken
+        cardcpxdToken
       );
       await registerRewardee(
         prepaidCardManager,
@@ -804,26 +1174,16 @@ contract("RewardManager", (accounts) => {
     let prepaidCard, rewardSafe;
     beforeEach(async () => {
       rewardProgramID = randomHex(20);
-      ({
-        prepaidCards: [prepaidCard],
-      } = await createPrepaidCards(
+      prepaidCard = await createPrepaidCardAndTransfer(
+        prepaidCardManager,
+        relayer,
         depot,
-        prepaidCardManager,
-        daicpxdToken,
-        daicpxdToken,
         issuer,
-        relayer,
-        [toTokenUnit(10 + 1)]
-      ));
-      await cardcpxdToken.mint(prepaidCard.address, toTokenUnit(1));
-      await transferOwner(
-        prepaidCardManager,
-        prepaidCard,
-        issuer,
+        daicpxdToken,
+        toTokenUnit(10 + 1),
+        daicpxdToken,
         prepaidCardOwner,
-        cardcpxdToken,
-        relayer,
-        daicpxdToken
+        cardcpxdToken
       );
       await registerRewardProgram(
         prepaidCardManager,
@@ -859,13 +1219,15 @@ contract("RewardManager", (accounts) => {
       let owners = await rewardSafe.getOwners();
       expect(owners.length).to.equal(2);
       expect(owners[1]).to.equal(prepaidCardOwner);
+      await airdropGas(cardcpxdToken, rewardSafe.address, toTokenUnit(1));
       await transferRewardSafe(
         rewardManager,
         rewardSafe,
         prepaidCardOwner,
         otherPrepaidCardOwner,
         daicpxdToken,
-        rewardSafe.address
+        rewardSafe.address,
+        rewardProgramID
       );
       owners = await rewardSafe.getOwners();
       expect(owners.length).to.equal(2);
@@ -873,26 +1235,16 @@ contract("RewardManager", (accounts) => {
     });
 
     it("can sign with address lexigraphically after prepaid card manager contract address for transfer", async () => {
-      let {
-        prepaidCards: [prepaidCardA],
-      } = await createPrepaidCards(
+      const prepaidCardA = await createPrepaidCardAndTransfer(
+        prepaidCardManager,
+        relayer,
         depot,
-        prepaidCardManager,
-        daicpxdToken,
-        daicpxdToken,
         issuer,
-        relayer,
-        [toTokenUnit(5 + 1)]
-      );
-      await cardcpxdToken.mint(prepaidCardA.address, toTokenUnit(1));
-      await transferOwner(
-        prepaidCardManager,
-        prepaidCardA,
-        issuer,
+        daicpxdToken,
+        toTokenUnit(5 + 1),
+        daicpxdToken,
         prepaidCardOwnerA,
-        cardcpxdToken,
-        relayer,
-        daicpxdToken
+        cardcpxdToken
       );
       const tx = await registerRewardee(
         prepaidCardManager,
@@ -914,39 +1266,31 @@ contract("RewardManager", (accounts) => {
       let owners = await rewardSafe.getOwners();
       expect(owners.length).to.equal(2);
       expect(owners[1]).to.equal(prepaidCardOwnerA);
+      await airdropGas(cardcpxdToken, rewardSafe.address, toTokenUnit(1));
       await transferRewardSafe(
         rewardManager,
         rewardSafe,
         prepaidCardOwnerA,
         otherPrepaidCardOwner,
         daicpxdToken,
-        rewardSafe.address
+        rewardSafe.address,
+        rewardProgramID
       );
       owners = await rewardSafe.getOwners();
       expect(owners.length).to.equal(2);
       expect(owners[1]).to.equal(otherPrepaidCardOwner);
     });
     it("can sign with address lexigraphically before prepaid card manager contract address for transfer", async () => {
-      let {
-        prepaidCards: [prepaidCardB],
-      } = await createPrepaidCards(
+      const prepaidCardB = await createPrepaidCardAndTransfer(
+        prepaidCardManager,
+        relayer,
         depot,
-        prepaidCardManager,
-        daicpxdToken,
-        daicpxdToken,
         issuer,
-        relayer,
-        [toTokenUnit(5 + 1)]
-      );
-      await cardcpxdToken.mint(prepaidCardB.address, toTokenUnit(1));
-      await transferOwner(
-        prepaidCardManager,
-        prepaidCardB,
-        issuer,
+        daicpxdToken,
+        toTokenUnit(5 + 1),
+        daicpxdToken,
         prepaidCardOwnerB,
-        cardcpxdToken,
-        relayer,
-        daicpxdToken
+        cardcpxdToken
       );
       const tx = await registerRewardee(
         prepaidCardManager,
@@ -968,13 +1312,15 @@ contract("RewardManager", (accounts) => {
       let owners = await rewardSafe.getOwners();
       expect(owners.length).to.equal(2);
       expect(owners[1]).to.equal(prepaidCardOwnerB);
+      await airdropGas(cardcpxdToken, rewardSafe.address, toTokenUnit(1));
       await transferRewardSafe(
         rewardManager,
         rewardSafe,
         prepaidCardOwnerB,
         otherPrepaidCardOwner,
         daicpxdToken,
-        rewardSafe.address
+        rewardSafe.address,
+        rewardProgramID
       );
       owners = await rewardSafe.getOwners();
       expect(owners.length).to.equal(2);
