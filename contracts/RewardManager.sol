@@ -177,7 +177,7 @@ contract RewardManager is Ownable, Versionable, Safe {
         require(rewardSafeOwner != ZERO_ADDRESS);
         require(
             rewardSafes[rewardProgramID][rewardSafeOwner] == rewardSafe,
-            "reward safe cannot be transferred"
+            "not a valid reward safe for reward program ID"
         );
 
         (, address oldOwner, address newOwner) =
