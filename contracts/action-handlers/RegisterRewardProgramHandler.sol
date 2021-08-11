@@ -13,7 +13,9 @@ contract RegisterRewardProgramHandler is Ownable, Versionable {
         address prepaidCard,
         address issuingToken,
         uint256 issuingTokenAmount,
-        uint256 spendAmount
+        uint256 spendAmount,
+        address admin,
+        address rewardProgramID
     );
     address public actionDispatcher;
     address public exchangeAddress;
@@ -81,7 +83,9 @@ contract RegisterRewardProgramHandler is Ownable, Versionable {
             prepaidCard,
             msg.sender,
             amount,
-            rewardProgramRegistrationFeeInSPEND
+            rewardProgramRegistrationFeeInSPEND,
+            admin,
+            rewardProgramID
         );
         RewardManager(rewardManagerAddress).registerRewardProgram(
             admin,
