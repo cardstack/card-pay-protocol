@@ -100,18 +100,22 @@ const eventABIs = {
       },
     ],
   },
-  REWARD_SAFE_CREATED: {
+  REWARDEE_REGISTERED: {
     topic: web3EthAbi.encodeEventSignature(
-      "RewardSafeCreated(address,address)"
+      "RewardeeRegistered(address,address,address)"
     ),
     abis: [
       {
         type: "address",
-        name: "rewardSafe",
+        name: "rewardProgramID",
       },
       {
         type: "address",
-        name: "prepaidCardOwner",
+        name: "rewardee",
+      },
+      {
+        type: "address",
+        name: "rewardSafe",
       },
     ],
   },

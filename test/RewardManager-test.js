@@ -1212,7 +1212,7 @@ contract("RewardManager", (accounts) => {
       );
       const rewardSafeCreation = await getParamsFromEvent(
         tx,
-        eventABIs.REWARD_SAFE_CREATED,
+        eventABIs.REWARDEE_REGISTERED,
         rewardManager.address
       );
       rewardSafe = await GnosisSafe.at(rewardSafeCreation[0].rewardSafe);
@@ -1259,7 +1259,7 @@ contract("RewardManager", (accounts) => {
       );
       const rewardSafeCreation = await getParamsFromEvent(
         tx,
-        eventABIs.REWARD_SAFE_CREATED,
+        eventABIs.REWARDEE_REGISTERED,
         rewardManager.address
       );
       rewardSafe = await GnosisSafe.at(rewardSafeCreation[0].rewardSafe);
@@ -1305,7 +1305,7 @@ contract("RewardManager", (accounts) => {
       );
       const rewardSafeCreation = await getParamsFromEvent(
         tx,
-        eventABIs.REWARD_SAFE_CREATED,
+        eventABIs.REWARDEE_REGISTERED,
         rewardManager.address
       );
       rewardSafe = await GnosisSafe.at(rewardSafeCreation[0].rewardSafe);
