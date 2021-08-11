@@ -24,7 +24,11 @@ contract RewardManager is Ownable, Versionable, Safe {
     event RewardSafeTransferred(address oldOwner, address newOwner);
     event RewardRuleAdded(address rewardProgramID, string ruleDID);
     event RewardRuleRemoved(address rewardProgramID, string ruleDID);
-    event RewardeeRegistered(address rewardProgramID, address rewardee, address rewardSafe);
+    event RewardeeRegistered(
+        address rewardProgramID,
+        address rewardee,
+        address rewardSafe
+    );
 
     // Constants
     address internal constant ZERO_ADDRESS = address(0);
@@ -170,6 +174,7 @@ contract RewardManager is Ownable, Versionable, Safe {
         bytes calldata data
     ) external {
         address rewardSafeOwner = getRewardSafeOwner(rewardSafe);
+        require(rewardSafeOwner != ZERO_ADDRESS);
         require(
             rewardSafes[rewardProgramID][rewardSafeOwner] == rewardSafe,
             "reward safe cannot be transferred"
@@ -263,7 +268,6 @@ contract RewardManager is Ownable, Versionable, Safe {
             return true;
         }
     }
-
 
     //Internal View Functions
     function _equalRule(Rule memory rule1, Rule memory rule2)
