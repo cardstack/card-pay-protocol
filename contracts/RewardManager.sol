@@ -21,11 +21,10 @@ contract RewardManager is Ownable, Versionable, Safe {
     event RewardProgramRemoved(address rewardProgramID);
     event RewardProgramAdminUpdated(address rewardProgramID, address newAdmin);
     event RewardProgramLocked(address rewardProgramID);
-    event RewardSafeCreated(address rewardSafe, address owner);
     event RewardSafeTransferred(address oldOwner, address newOwner);
     event RewardRuleAdded(address rewardProgramID, string ruleDID);
     event RewardRuleRemoved(address rewardProgramID, string ruleDID);
-    event RewardeeRegistered(address rewardProgramID, address rewardee);
+    event RewardeeRegistered(address rewardProgramID, address rewardee, address rewardSafe);
 
     // Constants
     address internal constant ZERO_ADDRESS = address(0);
@@ -158,8 +157,7 @@ contract RewardManager is Ownable, Versionable, Safe {
         owners[1] = prepaidCardOwner;
         rewardSafe = createSafe(owners, 2);
         rewardSafes[rewardProgramID][prepaidCardOwner] = rewardSafe;
-        emit RewardeeRegistered(rewardProgramID, prepaidCardOwner);
-        emit RewardSafeCreated(rewardSafe, prepaidCardOwner);
+        emit RewardeeRegistered(rewardProgramID, prepaidCardOwner, rewardSafe);
         return rewardSafe;
     }
 
