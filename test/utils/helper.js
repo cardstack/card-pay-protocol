@@ -779,7 +779,8 @@ exports.transferRewardSafe = async function (
   newOwner,
   gasToken,
   gasRecipient,
-  rewardProgramID
+  rewardProgramID,
+  relayer
 ) {
   const data = AbiCoder.encodeFunctionCall(
     {
@@ -822,7 +823,8 @@ exports.transferRewardSafe = async function (
     gasToken.address,
     gasRecipient,
     previousOwnerSignature,
-    data
+    data,
+    { from: relayer }
   );
 };
 

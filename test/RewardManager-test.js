@@ -1227,7 +1227,8 @@ contract("RewardManager", (accounts) => {
         otherPrepaidCardOwner,
         daicpxdToken,
         rewardSafe.address,
-        rewardProgramID
+        rewardProgramID,
+        relayer
       );
       owners = await rewardSafe.getOwners();
       expect(owners.length).to.equal(2);
@@ -1274,7 +1275,8 @@ contract("RewardManager", (accounts) => {
         otherPrepaidCardOwner,
         daicpxdToken,
         rewardSafe.address,
-        rewardProgramID
+        rewardProgramID,
+        relayer
       );
       owners = await rewardSafe.getOwners();
       expect(owners.length).to.equal(2);
@@ -1320,7 +1322,8 @@ contract("RewardManager", (accounts) => {
         otherPrepaidCardOwner,
         daicpxdToken,
         rewardSafe.address,
-        rewardProgramID
+        rewardProgramID,
+        relayer
       );
       owners = await rewardSafe.getOwners();
       expect(owners.length).to.equal(2);
