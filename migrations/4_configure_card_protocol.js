@@ -452,6 +452,42 @@ Configuring PrepaidCardManager ${prepaidCardManagerAddress}
     `  setting gas policy for "split" to use issuing token for gas and to pay gas recipient`
   );
   await sendTx(() => prepaidCardManager.addGasPolicy("split", true, true));
+  console.log(
+    `  setting gas policy for "registerRewardProgram" to use issuing token for gas and to pay gas recipient`
+  );
+  await sendTx(() =>
+    prepaidCardManager.addGasPolicy("registerRewardProgram", true, true)
+  );
+  console.log(
+    `  setting gas policy for "registerRewardee" to use issuing token for gas and to pay gas recipient`
+  );
+  await sendTx(() =>
+    prepaidCardManager.addGasPolicy("registerRewardee", true, true)
+  );
+  console.log(
+    `  setting gas policy for "lockRewardProgram" to use issuing token for gas and to pay gas recipient`
+  );
+  await sendTx(() =>
+    prepaidCardManager.addGasPolicy("lockRewardProgram", true, true)
+  );
+  console.log(
+    `  setting gas policy for "updateRewardProgramAdmin" to use issuing token for gas and to pay gas recipient`
+  );
+  await sendTx(() =>
+    prepaidCardManager.addGasPolicy("updateRewardProgramAdmin", true, true)
+  );
+  console.log(
+    `  setting gas policy for "addRewardRule" to use issuing token for gas and to pay gas recipient`
+  );
+  await sendTx(() =>
+    prepaidCardManager.addGasPolicy("addRewardRule", true, true)
+  );
+  console.log(
+    `  setting gas policy for "removeRewardRule" to use issuing token for gas and to pay gas recipient`
+  );
+  await sendTx(() =>
+    prepaidCardManager.addGasPolicy("removeRewardRule", true, true)
+  );
 
   // RewardPool configuration
   let rewardPool = await RewardPool.at(rewardPoolAddress);
