@@ -86,7 +86,7 @@ contract AddRewardRuleHandler is Ownable, Versionable {
             rewardProgramID,
             ruleDID,
             tallyRuleDID,
-            benefitRuleDID
+            benefitDID
         );
         return true;
     }
