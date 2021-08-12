@@ -1074,7 +1074,7 @@ exports.updateRewardProgramAdmin = async function (
     0,
     0,
     gasToken.address,
-    prepaidCard.address,
+    ZERO_ADDRESS,
     await prepaidCard.nonce(),
     prepaidCardOwner,
     prepaidCard

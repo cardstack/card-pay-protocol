@@ -178,6 +178,11 @@ contract("RewardManager", (accounts) => {
     await prepaidCardManager.addGasPolicy("registerRewardProgram", true, true);
     await prepaidCardManager.addGasPolicy("registerRewardee", true, true);
     await prepaidCardManager.addGasPolicy("lockRewardProgram", true, true);
+    await prepaidCardManager.addGasPolicy(
+      "updateRewardProgramAdmin",
+      true,
+      true
+    );
     await prepaidCardManager.addGasPolicy("addRewardRule", true, true);
     await prepaidCardManager.addGasPolicy("removeRewardRule", true, true);
 
@@ -893,7 +898,7 @@ contract("RewardManager", (accounts) => {
         prepaidCardManager,
         prepaidCard,
         daicpxdToken,
-        cardcpxdToken,
+        daicpxdToken,
         relayer,
         prepaidCardOwner,
         0, //paying nothing from prepaid card
@@ -922,7 +927,7 @@ contract("RewardManager", (accounts) => {
         prepaidCardManager,
         otherPrepaidCard,
         daicpxdToken,
-        cardcpxdToken,
+        daicpxdToken,
         relayer,
         otherPrepaidCardOwner,
         0, //paying nothing from prepaid card
