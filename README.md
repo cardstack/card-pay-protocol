@@ -62,6 +62,24 @@ The `SplitPrepaidCardHandler` is a contract that handles the `split` action. Thi
 ### TransferPrepaidCardHandler
 The `TransferPrepaidCardHandler` is a contract that handles the `transfer` action. This contract will receive a "transfer" action and an ABI encoded signature from the prepaid card's original EOA owner that authorizes the transfer of ownership from the `ActionHandler`. This contract will then call the `PrepaidCardManager.transfer()` function to perform a gnosis safe transfer of the prepaid card to the new EOA owner using the provided signature of the previous EOA owner of the prepaid card.
 
+### RegisterRewardProgramHandler
+The `RegisterRewardProgramHandler` is a contract that handles the `registerRewardProgram` action. This contract will receive reward program registration payments from the `ActionHandler`. This contract will call the `RewardManager` to register the reward program that tally knows about. This contract will collect a protocol fee from the registration to offset the gas charges for reward functions. This contract sends the protocol fee to a designated address that is used to collect protocol fees (for rewards). TODO: the protocol fee will then be sent to ??.
+
+### RegisterRewardeeHandler
+The `RegisterRewardeeHandler` is a contract that handles the `registerRewardee` action. This contract will receive rewardee registration payments from the `ActionHandler`. This contract will call the `RewardManager` to register rewardee under a reward program and create a reward safe for the rewardee. This contract will collect a protocol fee from the registration to offset the gas charges for reward functions. This contract sends the protocol fee to a designated address that is used to collect protocol fees (for rewards). TODO: the protocol fee will then be sent to ??.
+
+### LockRewardProgramHandler
+The `LockRewardProgramHandler` is a contract that handles the `lockRewardProgram` action. This contract will call the `RewardManager` to update the lock state of the reward program. 
+
+### UpdateRewardProgramAdminHandler
+The `UpdateRewardProgramAdminHandler` is a contract that handles the `updateRewardProgramAdmin` action. This contract will call the `RewardManager` to update the `rewardProgramAdmin` that can control the reward program. 
+
+### AddRewardRuleHandler
+The `AddRewardRuleHandler` is a contract that handles the `addRewardRule` action. This contract will call the `RewardManager` to add a rule to a reward program. 
+
+### RemoveRewardRuleHandler 
+The `RemoveRewardRuleHandler ` is a contract that handles the `removeRewardRule` action. This contract will call the `RewardManager` to remove a rule from a reward program. 
+
 ### Exchange
 The `Exchange` is a contract that handles converting to and from §SPEND tokens from any other CPXD token, as well as getting the current USD rate for any of the CPXD tokens (which accompanies calls to `PrepaidCardManager.send()`). This contract is also responsible to determining if the USD rate that is being requested by `PrepaidCardManager.send()` calls falls within an allowable margin. We use the idea of a "rate lock" as part of the way in which callers call the `PrepaidCardManager.send()` function. The reason being is that these calls are normally issued from a gnosis relay server in 2 steps. The first step is to get an estimation of the transaction and then generate a signature, and the second step is to issue the transaction with the data from the transaction estimate along with the signature. In between those 2 steps the USD rate for the prepaid card's issuing token may have changed. To accommodate USD rate fluctuations the caller is allowed to specify the USD rate they used as part of the transaction estimation. This contract will then determine if that requested rate is actually allowable given the current USD rate and a configured "rate drift" percentage. If the requested rate falls outside of the "rate drift" percentage, then the transaction will be reverted. To accommodate the fact that we allow the caller to provide the USD rate to use, we have a pessimistic prepaid card face value calculation that we employ in `PrepaidCardManager.faceValue()` which uses the most pessimistic rate allowable given the "rate drift percentage" to calculate the prepaid card's face value after it's been used at least one time.
 
@@ -81,6 +99,13 @@ In order to determine the amount of SPEND token to mint for *Customer* payments 
 
 ### RewardPool
 The `RewardPool` contract enables rewards to be distributed *Merchants*, *Customers* and *Suppliers*. An offchain service, Tally, will be able to submit a merkle root, a hash to indicate how many tokens each party can redeem within each period cycle. Any party is able to `withdraw` the amount of token redeemable as long as a correct proof is provided. These proofs will be attainable from the Tally service.
+
+### Reward Manager
+The `RewardManager` contract enables a `rewardProgramAdmin` to create and manage a reward program that distributes rewards based on a set of rules and benefits. Once a reward program is created, two things occur: 1) tally (reward-calculating offchain service) begins to read rules and deliver rewards to accounts based on these rules/benefits. 2) the accounts owners which get a reward are able to redeem for a particular reward program by registering and creating a reward safe for themselves. 
+
+The `RewardManager` contract is responsible for creating the gnosis safes that are considered as *Reward Cards*. These safes are used to redeem assets/rewards or levels; a person cannot get rewards if he doesn't have a *Reward Card*. *Reward Cards* are one-to-one with reward programs, therefore, an account can own more than one *Reward Card*. These safes are created as a result of the `registerRewardee` action. This safe is created with 2 owners:
+1. The `rewardee` or the owner of the prepaid card that executed the `registerRewardee` action. 
+2. The `RewardManager` contract itself.
 
 ## Prerequisites
 The following prerequisites are required for this project:
@@ -163,6 +188,9 @@ Determine the address that you are using to perform the deployment (usually we u
     - `MERCHANT_FEE_PERCENTAGE` This is the numerator of the merchant fee percentage, where the denominator is 10<sup>8</sup>
     - `MERCHANT_REGISTRATION_FEE_IN_SPEND` This is the registration fee that merchants must pay to register in SPEND tokens.
     - `MERCHANT_FEE_RECEIVER` This is the address that will receive the merchant fees (presumably a gnosis safe on layer 2)
+    - `REWARD_FEE_RECIEVER` This is the address that will receive the reward registration fees (presumably a gnosis safe on layer 2)
+    - `REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND` This is the registration fee that `rewardProgramAdmins` must pay to register a reward program. 
+    - `REWARDEE_REGISTRATION_FEE_IN_SPEND` This is the registration fee that `rewardees` must pay to register to become a rewardee of a reward program. 
 
     The contract addresses that are created are saved in a `./openzeppelin/addresses-{network}.json` file.
 
