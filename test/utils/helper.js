@@ -755,7 +755,7 @@ exports.registerRewardee = async function (
     0,
     0,
     gasToken.address,
-    prepaidCard.address,
+    ZERO_ADDRESS,
     await prepaidCard.nonce(),
     prepaidCardOwner,
     prepaidCard
@@ -864,7 +864,7 @@ exports.registerRewardProgram = async function (
     0,
     0,
     gasToken.address,
-    prepaidCard.address,
+    ZERO_ADDRESS,
     await prepaidCard.nonce(),
     prepaidCardOwner,
     prepaidCard
@@ -914,7 +914,7 @@ exports.lockRewardProgram = async function (
     0,
     0,
     gasToken.address,
-    prepaidCard.address,
+    ZERO_ADDRESS,
     await prepaidCard.nonce(),
     prepaidCardOwner,
     prepaidCard
@@ -969,7 +969,7 @@ exports.addRewardRule = async function (
     0,
     0,
     gasToken.address,
-    prepaidCard.address,
+    ZERO_ADDRESS,
     await prepaidCard.nonce(),
     prepaidCardOwner,
     prepaidCard
@@ -1022,7 +1022,7 @@ exports.removeRewardRule = async function (
     0,
     0,
     gasToken.address,
-    prepaidCard.address,
+    ZERO_ADDRESS,
     await prepaidCard.nonce(),
     prepaidCardOwner,
     prepaidCard
