@@ -14,7 +14,8 @@ contract RegisterRewardeeHandler is Ownable, Versionable {
         address prepaidCard,
         address issuingToken,
         uint256 issuingTokenAmount,
-        uint256 spendAmount
+        uint256 spendAmount,
+        address rewardProgramID
     );
     address public actionDispatcher;
     address public prepaidCardManager;
@@ -90,7 +91,8 @@ contract RegisterRewardeeHandler is Ownable, Versionable {
             prepaidCard,
             issuingToken,
             amount,
-            rewardeeRegistrationFeeInSpend
+            rewardeeRegistrationFeeInSpend,
+            rewardProgramID
         );
         RewardManager(rewardManagerAddress).registerRewardee(
             rewardProgramID,
