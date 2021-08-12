@@ -9,6 +9,7 @@ const ActionDispatcher = artifacts.require("ActionDispatcher");
 const TokenManager = artifacts.require("TokenManager");
 const SupplierManager = artifacts.require("SupplierManager");
 const MerchantManager = artifacts.require("MerchantManager");
+const RewardManager = artifacts.require("RewardManager");
 
 const utils = require("./utils/general");
 const eventABIs = require("./utils/constant/eventABIs");
@@ -46,6 +47,7 @@ contract("Action Dispatcher", (accounts) => {
     proxyFactory,
     gnosisSafeMasterCopy,
     prepaidCardManager,
+    rewardManager,
     depot;
 
   before(async () => {
@@ -76,6 +78,8 @@ contract("Action Dispatcher", (accounts) => {
     await tokenManager.initialize(owner);
     merchantManager = await MerchantManager.new();
     await merchantManager.initialize(owner);
+    rewardManager = await RewardManager.new();
+    await rewardManager.initialize(owner);
 
     ({ daicpxdToken, cardcpxdToken, exchange } = await setupExchanges(owner));
 
@@ -117,6 +121,7 @@ contract("Action Dispatcher", (accounts) => {
       actionDispatcher,
       merchantManager,
       tokenManager,
+      rewardManager,
       owner,
       exchange.address,
       spendToken.address

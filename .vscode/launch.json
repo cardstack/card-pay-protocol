@@ -26,7 +26,8 @@
         "PAYABLE_TOKENS": "0xB236ca8DbAB0644ffCD32518eBF4924ba866f7Ee,0xFeDc0c803390bbdA5C4C296776f4b574eC4F30D1",
         "GAS_TOKEN": "0xB236ca8DbAB0644ffCD32518eBF4924ba866f7Ee",
         "GAS_FEE_RECEIVER": "0xD7182E380b7dFa33C186358De7E1E5d0950fCAE7",
-        "TALLY": "0x159ADe032073d930E85f95AbBAB9995110c43C71", // Justin's trezor
+        "TALLY": "0x159ADe032073d930E85f95AbBAB9995110c43C71", // Justin's trezor 1
+        "REWARD_FEE_RECEIVER": "0x4D624118a9B8a1DE34D34F9009a249787A8c3236", //Justin's trezor 2
         "MERCHANT_FEE_RECEIVER": "0x09FBEDDc5f94fA2713CDa75A68457cA8A4527adf" // Hassan's test trezor
       },
       "args": ["migrate", "--network", "sokol", "--compile-all", "--reset"]

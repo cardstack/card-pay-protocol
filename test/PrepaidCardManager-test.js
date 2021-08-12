@@ -9,6 +9,8 @@ const TokenManager = artifacts.require("TokenManager");
 const SupplierManager = artifacts.require("SupplierManager");
 const MerchantManager = artifacts.require("MerchantManager");
 
+const RewardManager = artifacts.require("RewardManager");
+
 const eventABIs = require("./utils/constant/eventABIs");
 const {
   ZERO_ADDRESS,
@@ -28,6 +30,8 @@ const {
   createDepotFromSupplierMgr,
   addActionHandlers,
   splitPrepaidCard,
+  findAccountBeforeAddress,
+  findAccountAfterAddress,
 } = require("./utils/helper");
 
 const { expect, TOKEN_DETAIL_DATA, toBN } = require("./setup");
@@ -63,7 +67,8 @@ contract("PrepaidCardManager", (accounts) => {
     merchantSafe,
     relayer,
     depot,
-    prepaidCards = [];
+    prepaidCards = [],
+    rewardManager;
 
   before(async () => {
     owner = accounts[0];
@@ -88,6 +93,8 @@ contract("PrepaidCardManager", (accounts) => {
     await tokenManager.initialize(owner);
     merchantManager = await MerchantManager.new();
     await merchantManager.initialize(owner);
+    rewardManager = await RewardManager.new();
+    await rewardManager.initialize(owner);
 
     customerA = findAccountBeforeAddress(
       accounts.slice(10),
@@ -130,6 +137,7 @@ contract("PrepaidCardManager", (accounts) => {
       actionDispatcher,
       merchantManager,
       tokenManager,
+      rewardManager,
       owner,
       exchange.address,
       spendToken.address
@@ -1601,25 +1609,3 @@ contract("PrepaidCardManager", (accounts) => {
     });
   });
 });
-
-function findAccountBeforeAddress(accounts, address) {
-  for (let account of accounts) {
-    if (account.toLowerCase() < address.toLowerCase()) {
-      return account;
-    }
-  }
-  throw new Error(
-    `Could not find an account address that is lexigraphically before the address ${address} from ${accounts.length} possibilities. Make sure you are using ganache (yarn ganache:start) to run your private chain and try increasing the number of accounts to test with.`
-  );
-}
-
-function findAccountAfterAddress(accounts, address) {
-  for (let account of accounts) {
-    if (account.toLowerCase() > address.toLowerCase()) {
-      return account;
-    }
-  }
-  throw new Error(
-    `Could not find an account address that is lexigraphically after the address ${address} from ${accounts.length} possibilities. Make sure you are using ganache (yarn ganache:start) to run your private chain and try increasing the number of accounts to test with.`
-  );
-}

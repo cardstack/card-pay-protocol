@@ -100,6 +100,25 @@ const eventABIs = {
       },
     ],
   },
+  REWARDEE_REGISTERED: {
+    topic: web3EthAbi.encodeEventSignature(
+      "RewardeeRegistered(address,address,address)"
+    ),
+    abis: [
+      {
+        type: "address",
+        name: "rewardProgramID",
+      },
+      {
+        type: "address",
+        name: "rewardee",
+      },
+      {
+        type: "address",
+        name: "rewardSafe",
+      },
+    ],
+  },
 };
 
 module.exports = eventABIs;
