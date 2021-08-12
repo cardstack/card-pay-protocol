@@ -10,6 +10,11 @@ import "../RewardManager.sol";
 contract RemoveRewardRuleHandler is Ownable, Versionable {
     using SafeMath for uint256;
     event Setup();
+    event RewardRuleRemoved(
+        address prepaidCard,
+        address rewardProgramID,
+        string ruleDID
+    );
     address public actionDispatcher;
     address public prepaidCardManager;
     address public exchangeAddress;
@@ -67,6 +72,7 @@ contract RemoveRewardRuleHandler is Ownable, Versionable {
             rewardProgramID,
             ruleDID
         );
+        emit RewardRuleRemoved(prepaidCard, rewardProgramID, ruleDID);
         return true;
     }
 }

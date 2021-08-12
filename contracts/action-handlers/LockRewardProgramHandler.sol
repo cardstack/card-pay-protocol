@@ -10,6 +10,7 @@ import "../RewardManager.sol";
 contract LockRewardProgramHandler is Ownable, Versionable {
     using SafeMath for uint256;
     event Setup();
+    event RewardProgramLocked(address prepaidCard, address rewardProgramID);
     address public actionDispatcher;
     address public prepaidCardManager;
     address public exchangeAddress;
@@ -61,6 +62,7 @@ contract LockRewardProgramHandler is Ownable, Versionable {
             "can only be called by reward program admin"
         );
         RewardManager(rewardManagerAddress).lockRewardProgram(rewardProgramID);
+        emit RewardProgramLocked(prepaidCard, rewardProgramID);
         return true;
     }
 }

@@ -112,12 +112,12 @@ contract RewardManager is Ownable, Versionable, Safe {
         emit RewardProgramRemoved(rewardProgramID);
     }
 
-    function updateAdmin(address rewardProgramID, address admin)
+    function updateAdmin(address rewardProgramID, address newAdmin)
         external
         onlyHandlers
     {
-        rewardProgramAdmins[rewardProgramID] = admin;
-        emit RewardProgramAdminUpdated(rewardProgramID, admin);
+        rewardProgramAdmins[rewardProgramID] = newAdmin;
+        emit RewardProgramAdminUpdated(rewardProgramID, newAdmin);
     }
 
     function addRewardRule(

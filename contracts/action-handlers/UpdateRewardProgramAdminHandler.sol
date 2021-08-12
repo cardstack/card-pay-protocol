@@ -10,6 +10,12 @@ import "../RewardManager.sol";
 contract UpdateRewardProgramAdminHandler is Ownable, Versionable {
     using SafeMath for uint256;
     event Setup();
+    event RewardProgramAdminUpdated(
+        address prepaidCard,
+        address rewardProgramID,
+        address oldAdmin,
+        address newAdmin
+    );
     address public actionDispatcher;
     address public prepaidCardManager;
     address public exchangeAddress;
@@ -66,6 +72,12 @@ contract UpdateRewardProgramAdminHandler is Ownable, Versionable {
 
         RewardManager(rewardManagerAddress).updateAdmin(
             rewardProgramID,
+            newAdmin
+        );
+        emit RewardProgramAdminUpdated(
+            prepaidCard,
+            rewardProgramID,
+            prepaidCardOwner,
             newAdmin
         );
         return true;

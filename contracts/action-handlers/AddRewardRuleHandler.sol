@@ -10,6 +10,14 @@ import "../RewardManager.sol";
 contract AddRewardRuleHandler is Ownable, Versionable {
     using SafeMath for uint256;
     event Setup();
+    event RewardRuleAdded(
+        address prepaidCard,
+        address rewardProgramID,
+        string ruleDID,
+        string tallyRuleDID,
+        string benefitRuleDID
+    );
+
     address public actionDispatcher;
     address public prepaidCardManager;
     address public exchangeAddress;
@@ -72,6 +80,13 @@ contract AddRewardRuleHandler is Ownable, Versionable {
             ruleDID,
             tallyRuleDID,
             benefitDID
+        );
+        emit RewardRuleAdded(
+            prepaidCard,
+            rewardProgramID,
+            ruleDID,
+            tallyRuleDID,
+            benefitRuleDID
         );
         return true;
     }
