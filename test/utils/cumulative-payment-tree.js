@@ -63,7 +63,7 @@ class CumulativePaymentTree extends MerkleTree {
     ]);
   }
 
-  withdrawData(payee, paymentCycle) {
+  claimData(payee, paymentCycle) {
     let leaves = _.filter(this.paymentNodes, { payee });
     return leaves.map((leaf) => {
       return {

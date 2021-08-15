@@ -16,7 +16,7 @@ contract RewardPool is Initializable, Versionable, Ownable {
   using MerkleProof for bytes32[];
 
   event Setup(address tally, address rewardManager);
-  event PayeeWithdraw(address indexed payee, uint256 amount);
+  event PayeeClaim(address indexed payee, uint256 amount);
   event MerkleRootSubmission(bytes32 payeeRoot, uint256 numPaymentCycles);
   event PaymentCycleEnded(
     uint256 paymentCycle,
@@ -30,7 +30,7 @@ contract RewardPool is Initializable, Versionable, Ownable {
   uint256 public currentPaymentCycleStartBlock;
   address public rewardManager;
 
-  mapping(address => mapping(address => uint256)) public withdrawals;
+  mapping(address => mapping(address => uint256)) public claims;
   mapping(uint256 => bytes32) payeeRoots;
 
   modifier onlyTally() {
@@ -64,12 +64,12 @@ contract RewardPool is Initializable, Versionable, Ownable {
     return true;
   }
 
-  function withdraw(
+  function claim(
     address payableToken,
     uint256 amount,
     bytes calldata proof
   ) external returns (bool) {
-    require(amount > 0, "Cannot withdraw non-positive amount");
+    require(amount > 0, "Cannot claim non-positive amount");
 
     uint256 balance = balanceForProof(payableToken, proof);
     require(balance >= amount, "Insufficient balance for proof");
@@ -78,13 +78,13 @@ contract RewardPool is Initializable, Versionable, Ownable {
       "Reward pool has insufficient balance"
     );
 
-    withdrawals[payableToken][msg.sender] = withdrawals[payableToken][
+    claims[payableToken][msg.sender] = claims[payableToken][
       msg.sender
     ]
       .add(amount);
     IERC677(payableToken).transfer(msg.sender, amount);
 
-    emit PayeeWithdraw(msg.sender, amount);
+    emit PayeeClaim(msg.sender, amount);
     return true;
   }
 
@@ -141,10 +141,10 @@ contract RewardPool is Initializable, Versionable, Ownable {
     bytes32 leaf =
       keccak256(abi.encodePacked(payableToken, _address, cumulativeAmount));
     if (
-      withdrawals[payableToken][_address] < cumulativeAmount &&
+      claims[payableToken][_address] < cumulativeAmount &&
       _proof.verify(payeeRoots[paymentCycleNumber], leaf)
     ) {
-      return cumulativeAmount.sub(withdrawals[payableToken][_address]);
+      return cumulativeAmount.sub(claims[payableToken][_address]);
     } else {
       return 0;
     }
