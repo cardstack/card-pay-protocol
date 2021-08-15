@@ -10,7 +10,7 @@ const RevenuePool = artifacts.require("RevenuePool.sol");
 const MerchantManager = artifacts.require("MerchantManager");
 const ERC677Token = artifacts.require("ERC677Token.sol");
 
-const { randomHex } = require("web3").utils;
+const { randomHex } = require("web3-utils");
 const { expect, TOKEN_DETAIL_DATA } = require("./setup");
 const utils = require("./utils/general");
 const { ZERO_ADDRESS } = utils;

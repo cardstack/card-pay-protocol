@@ -9,12 +9,13 @@ import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 
 import "./token/IERC677.sol";
 import "./core/Versionable.sol";
+import "./RewardManager.sol";
 
 contract RewardPool is Initializable, Versionable, Ownable {
   using SafeMath for uint256;
   using MerkleProof for bytes32[];
 
-  event Setup(address tally);
+  event Setup(address tally, address rewardManager);
   event PayeeWithdraw(address indexed payee, uint256 amount);
   event MerkleRootSubmission(bytes32 payeeRoot, uint256 numPaymentCycles);
   event PaymentCycleEnded(
@@ -27,6 +28,7 @@ contract RewardPool is Initializable, Versionable, Ownable {
   address public tally;
   uint256 public numPaymentCycles;
   uint256 public currentPaymentCycleStartBlock;
+  address public rewardManager;
 
   mapping(address => mapping(address => uint256)) public withdrawals;
   mapping(uint256 => bytes32) payeeRoots;
@@ -41,10 +43,12 @@ contract RewardPool is Initializable, Versionable, Ownable {
     Ownable.initialize(owner);
   }
 
-  function setup(address _tally) external onlyOwner {
+  function setup(address _tally, address _rewardManager) external onlyOwner {
     tally = _tally;
+    rewardManager = _rewardManager;
     require(tally != ZERO_ADDRESS, "Tally should not be zero address");
-    emit Setup(_tally);
+    require(rewardManager != ZERO_ADDRESS, "Reward Manager should not be zero address");
+    emit Setup(_tally, _rewardManager);
   }
 
   function submitPayeeMerkleRoot(bytes32 payeeRoot)

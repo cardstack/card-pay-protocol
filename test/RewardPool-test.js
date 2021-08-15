@@ -1,31 +1,93 @@
 const CumulativePaymentTree = require("./utils/cumulative-payment-tree");
 
-const { TOKEN_DETAIL_DATA, assert } = require("./setup");
-const { toTokenUnit, advanceBlock } = require("./utils/helper");
+const { assert, expect } = require("./setup");
+const { advanceBlock } = require("./utils/helper");
 const _ = require("lodash");
 
 const ERC20Token = artifacts.require(
   "@openzeppelin/contract-upgradeable/contracts/token/ERC20/ERC20Mintable.sol"
 );
-const ERC677Token = artifacts.require("ERC677Token.sol");
+
 const RewardPool = artifacts.require("RewardPool.sol");
+
 const { ZERO_ADDRESS } = require("./utils/general");
+const { setupProtocol, setupRoles } = require("./utils/setup");
+const { randomHex } = require("web3-utils");
+const {
+  toTokenUnit,
+  createPrepaidCardAndTransfer,
+  registerRewardProgram,
+} = require("./utils/helper");
+
+const REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND = 500;
 
 contract("RewardPool", function (accounts) {
-  let owner;
+  //main contracts
+  let prepaidCardManager;
+
+  let daicpxdToken, cardcpxdToken;
+
+  let rewardManager;
+
+  let owner, issuer, prepaidCardOwner, relayer;
+
+  let depot;
+  // reward roles
+  let rewardProgramID;
   let tally;
   let rewardPool;
-  let daicpxdToken;
-  let cardcpxdToken;
   let payments;
   describe("Reward Pool", function () {
+    let prepaidCard;
+    before(async () => {
+      //accounts
+      ({ owner, tally, issuer, prepaidCardOwner, relayer } = setupRoles(
+        accounts
+      ));
+
+      //do not run this fixture inside a beforeEach
+      // until we find a way to instantiate the objects that are only required
+      ({
+        prepaidCardManager,
+        rewardManager,
+        depot,
+        //tokens
+        daicpxdToken,
+        cardcpxdToken,
+      } = await setupProtocol(accounts));
+    });
     beforeEach(async function () {
-      owner = accounts[0];
-      tally = accounts[1];
-      daicpxdToken = await ERC677Token.new();
-      await daicpxdToken.initialize(...TOKEN_DETAIL_DATA, owner);
-      cardcpxdToken = await ERC677Token.new();
-      await cardcpxdToken.initialize(...TOKEN_DETAIL_DATA, owner);
+      //setting up reward pool
+      rewardPool = await RewardPool.new();
+      await rewardPool.initialize(owner);
+      await rewardPool.setup(tally, rewardManager.address);
+      //setting up prepaid cards
+      rewardProgramID = randomHex(20);
+      prepaidCard = await createPrepaidCardAndTransfer(
+        prepaidCardManager,
+        relayer,
+        depot,
+        issuer,
+        daicpxdToken,
+        toTokenUnit(5 + 1),
+        daicpxdToken,
+        prepaidCardOwner,
+        cardcpxdToken
+      );
+      await registerRewardProgram(
+        prepaidCardManager,
+        prepaidCard,
+        daicpxdToken,
+        daicpxdToken,
+        relayer,
+        prepaidCardOwner,
+        REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
+        undefined,
+        prepaidCardOwner, //current rewardProgramAdmin
+        rewardProgramID
+      );
+
+      //setting up prepaid cards
       payments = [
         {
           payee: accounts[2],
@@ -68,20 +130,37 @@ contract("RewardPool", function (accounts) {
           amount: toTokenUnit(101), // this amount is used to test logic when the payment pool doesn't have sufficient funds
         },
       ];
-      rewardPool = await RewardPool.new();
-      await rewardPool.initialize(owner);
-      await rewardPool.setup(tally);
     });
 
     afterEach(async function () {
-      payments[0].amount = toTokenUnit(10); // one of the tests is bleeding state...
+      payments[0].amount = toTokenUnit(10); //one of the tests is bleeding state...
+      let balance = await cardcpxdToken.balanceOf(accounts[2]);
+      console.log("balancebefore", balance.toString());
+      await cardcpxdToken.burn(balance, { from: accounts[2] });
+      let balanceAfter = await cardcpxdToken.balanceOf(accounts[2]);
+      console.log("balanceafter", balanceAfter.toString());
     });
 
     describe("initial reward pool contract", () => {
       it("reverts when tally is set to zero address", async () => {
         await rewardPool
-          .setup(ZERO_ADDRESS)
+          .setup(ZERO_ADDRESS, rewardManager.address)
           .should.be.rejectedWith(Error, "Tally should not be zero address");
+      });
+
+      it("reverts when reward manager is set to zero address", async () => {
+        await rewardPool
+          .setup(tally, ZERO_ADDRESS)
+          .should.be.rejectedWith(
+            Error,
+            "Reward Manager should not be zero address"
+          );
+      });
+      it("check reward pool parameters", async () => {
+        expect(await rewardPool.tally()).to.equal(tally);
+        expect(await rewardPool.rewardManager()).to.equal(
+          rewardManager.address
+        );
       });
     });
 
@@ -335,7 +414,9 @@ contract("RewardPool", function (accounts) {
         balance = await rewardPool.balanceForProof(
           cardcpxdToken.address,
           proof,
-          { from: payee }
+          {
+            from: payee,
+          }
         );
         assert(
           balance.eq(paymentAmount),
