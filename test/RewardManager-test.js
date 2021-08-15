@@ -13,6 +13,7 @@ const ERC677Token = artifacts.require("ERC677Token.sol");
 const { randomHex } = require("web3-utils");
 const { expect, TOKEN_DETAIL_DATA } = require("./setup");
 const utils = require("./utils/general");
+const { getRewardSafeFromEventLog } = require("./utils/general");
 const { ZERO_ADDRESS } = utils;
 
 const {
@@ -36,7 +37,6 @@ const {
 } = require("./utils/helper");
 
 const { getParamsFromEvent } = require("./utils/general");
-const eventABIs = require("./utils/constant/eventABIs");
 const AbiCoder = require("web3-eth-abi");
 
 const REWARDEE_REGISTRATION_FEE_IN_SPEND = 500;
@@ -1220,12 +1220,7 @@ contract("RewardManager", (accounts) => {
         undefined,
         rewardProgramID
       );
-      const rewardSafeCreation = await getParamsFromEvent(
-        tx,
-        eventABIs.REWARDEE_REGISTERED,
-        rewardManager.address
-      );
-      rewardSafe = await GnosisSafe.at(rewardSafeCreation[0].rewardSafe);
+      rewardSafe = await getRewardSafeFromEventLog(tx, rewardManager.address);
       let owners = await rewardSafe.getOwners();
       expect(owners.length).to.equal(2);
       expect(owners[1]).to.equal(prepaidCardOwner);
@@ -1268,12 +1263,7 @@ contract("RewardManager", (accounts) => {
         undefined,
         rewardProgramID
       );
-      const rewardSafeCreation = await getParamsFromEvent(
-        tx,
-        eventABIs.REWARDEE_REGISTERED,
-        rewardManager.address
-      );
-      rewardSafe = await GnosisSafe.at(rewardSafeCreation[0].rewardSafe);
+      rewardSafe = await getRewardSafeFromEventLog(tx, rewardManager.address);
       let owners = await rewardSafe.getOwners();
       expect(owners.length).to.equal(2);
       expect(owners[1]).to.equal(prepaidCardOwnerA);
@@ -1315,12 +1305,7 @@ contract("RewardManager", (accounts) => {
         undefined,
         rewardProgramID
       );
-      const rewardSafeCreation = await getParamsFromEvent(
-        tx,
-        eventABIs.REWARDEE_REGISTERED,
-        rewardManager.address
-      );
-      rewardSafe = await GnosisSafe.at(rewardSafeCreation[0].rewardSafe);
+      rewardSafe = await getRewardSafeFromEventLog(tx, rewardManager.address);
       let owners = await rewardSafe.getOwners();
       expect(owners.length).to.equal(2);
       expect(owners[1]).to.equal(prepaidCardOwnerB);
