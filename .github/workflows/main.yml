@@ -3,7 +3,7 @@ name: CI
 on:
   # Triggers the workflow on push or pull request events but only for the main branch
   push:
-    branches: [main]
+    branches: [main, hardhat-port]
   pull_request:
     branches: [main]
 
@@ -18,7 +18,7 @@ jobs:
         run: yarn install
 
       - name: Test
-        run: yarn ganache:start && sleep 10 && yarn test && yarn ganache:stop
+        run: yarn test
 
   size-check:
     runs-on: ubuntu-latest
@@ -42,7 +42,7 @@ jobs:
         run: yarn install
 
       - name: Generate coverage report
-        run: yarn ganache:start && sleep 10 && yarn test:coverage && yarn ganache:stop
+        run: yarn test:coverage
 
       - name: Very Good Coverage
         uses: VeryGoodOpenSource/very_good_coverage@v1.1.1
