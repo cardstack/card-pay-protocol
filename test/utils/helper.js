@@ -1144,6 +1144,47 @@ exports.createPrepaidCardAndTransfer = async function (
   return prepaidCard;
 };
 
+exports.claimReward = async function (
+  //reward manager
+  rewardManager,
+  rewardPool,
+  relayer,
+  // reward safe
+  rewardSafe,
+  rewardSafeOwner,
+  rewardProgramID,
+  token,
+  claimAmount,
+  proof
+) {
+  console.log("claimAmount", claimAmount);
+  let claimReward = rewardPool.contract.methods.claim(
+    token.address,
+    claimAmount,
+    proof
+  );
+
+  let payload = claimReward.encodeABI();
+  let gasEstimate = await claimReward.estimateGas({ from: rewardSafe.address });
+
+  let safeTxData = {
+    to: rewardPool.address,
+    data: payload,
+    txGasEstimate: gasEstimate,
+    gasPrice: 0,
+    txGasToken: token.address,
+    refundReceive: relayer,
+  };
+
+  let { safeTx } = await signAndSendSafeTransaction(
+    safeTxData,
+    rewardSafeOwner,
+    rewardSafe,
+    relayer
+  );
+  return safeTx;
+};
+
 exports.toTokenUnit = toTokenUnit;
 exports.encodeCreateCardsData = encodeCreateCardsData;
 exports.packExecutionData = packExecutionData;
