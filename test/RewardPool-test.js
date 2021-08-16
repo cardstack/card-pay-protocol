@@ -64,7 +64,6 @@ contract("RewardPool", function (accounts) {
       await rewardPool.initialize(owner);
       await rewardPool.setup(tally, rewardManager.address);
       //create depot
-
       depot = await createDepotFromSupplierMgr(supplierManager, issuer);
       await daicpxdToken.mint(depot.address, toTokenUnit(1000));
       //setting up prepaid cards
@@ -109,42 +108,42 @@ contract("RewardPool", function (accounts) {
       //setting up prepaid cards
       payments = [
         {
-          payee: accounts[2],
+          payee: accounts[11],
           token: cardcpxdToken.address,
           amount: toTokenUnit(10),
         },
         {
-          payee: accounts[3],
+          payee: accounts[12],
           token: cardcpxdToken.address,
           amount: toTokenUnit(12),
         },
         {
-          payee: accounts[4],
+          payee: accounts[13],
           token: cardcpxdToken.address,
           amount: toTokenUnit(2),
         },
         {
-          payee: accounts[5],
+          payee: accounts[14],
           token: cardcpxdToken.address,
           amount: toTokenUnit(1),
         },
         {
-          payee: accounts[6],
+          payee: accounts[15],
           token: cardcpxdToken.address,
           amount: toTokenUnit(32),
         },
         {
-          payee: accounts[7],
+          payee: accounts[16],
           token: cardcpxdToken.address,
           amount: toTokenUnit(10),
         },
         {
-          payee: accounts[8],
+          payee: accounts[17],
           token: cardcpxdToken.address,
           amount: toTokenUnit(9),
         },
         {
-          payee: accounts[9],
+          payee: accounts[18],
           token: cardcpxdToken.address,
           amount: toTokenUnit(101), // this amount is used to test logic when the payment pool doesn't have sufficient funds
         },
@@ -153,10 +152,10 @@ contract("RewardPool", function (accounts) {
 
     afterEach(async function () {
       payments[0].amount = toTokenUnit(10); //one of the tests is bleeding state...
-      let balance = await cardcpxdToken.balanceOf(accounts[2]);
+      let balance = await cardcpxdToken.balanceOf(accounts[11]);
       console.log("balancebefore", balance.toString());
-      await cardcpxdToken.burn(balance, { from: accounts[2] });
-      let balanceAfter = await cardcpxdToken.balanceOf(accounts[2]);
+      await cardcpxdToken.burn(balance, { from: accounts[11] });
+      let balanceAfter = await cardcpxdToken.balanceOf(accounts[11]);
       console.log("balanceafter", balanceAfter.toString());
     });
 
@@ -299,7 +298,7 @@ contract("RewardPool", function (accounts) {
         let root = merkleTree.getHexRoot();
 
         await rewardPool
-          .submitPayeeMerkleRoot(root, { from: accounts[2] })
+          .submitPayeeMerkleRoot(root, { from: accounts[11] })
           .should.be.rejectedWith(Error, "Caller is not tally");
 
         await rewardPool
@@ -1126,7 +1125,7 @@ contract("RewardPool", function (accounts) {
       let erc20Token;
 
       beforeEach(async function () {
-        payee = accounts[2];
+        payee = accounts[11];
         erc20Token = await ERC20Token.new();
         await erc20Token.initialize(owner);
         payments = [
