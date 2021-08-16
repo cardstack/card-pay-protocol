@@ -36,7 +36,6 @@ const {
   createPrepaidCardAndTransfer,
 } = require("./utils/helper");
 
-const { getParamsFromEvent } = require("./utils/general");
 const AbiCoder = require("web3-eth-abi");
 
 const REWARDEE_REGISTRATION_FEE_IN_SPEND = 500;

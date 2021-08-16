@@ -10,28 +10,29 @@ const ERC20Token = artifacts.require(
 
 const RewardPool = artifacts.require("RewardPool.sol");
 
-const { ZERO_ADDRESS } = require("./utils/general");
+const { ZERO_ADDRESS, getRewardSafeFromEventLog } = require("./utils/general");
 const { setupProtocol, setupRoles } = require("./utils/setup");
 const { randomHex } = require("web3-utils");
 const {
   toTokenUnit,
+  createDepotFromSupplierMgr,
   createPrepaidCardAndTransfer,
   registerRewardProgram,
+  registerRewardee,
 } = require("./utils/helper");
 
 const REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND = 500;
+const REWARDEE_REGISTRATION_FEE_IN_SPEND = 500;
 
 contract("RewardPool", function (accounts) {
   //main contracts
-  let prepaidCardManager;
-
   let daicpxdToken, cardcpxdToken;
 
-  let rewardManager;
+  let rewardManager, supplierManager, prepaidCardManager;
 
   let owner, issuer, prepaidCardOwner, relayer;
 
-  let depot;
+  let depot, rewardSafe;
   // reward roles
   let rewardProgramID;
   let tally;
@@ -45,11 +46,12 @@ contract("RewardPool", function (accounts) {
         accounts
       ));
 
-      //do not run this fixture inside a beforeEach
+      // do not run this fixture inside a beforeEach
       // until we find a way to instantiate the objects that are only required
       ({
         prepaidCardManager,
         rewardManager,
+        supplierManager,
         depot,
         //tokens
         daicpxdToken,
@@ -61,6 +63,10 @@ contract("RewardPool", function (accounts) {
       rewardPool = await RewardPool.new();
       await rewardPool.initialize(owner);
       await rewardPool.setup(tally, rewardManager.address);
+      //create depot
+
+      depot = await createDepotFromSupplierMgr(supplierManager, issuer);
+      await daicpxdToken.mint(depot.address, toTokenUnit(1000));
       //setting up prepaid cards
       rewardProgramID = randomHex(20);
       prepaidCard = await createPrepaidCardAndTransfer(
@@ -69,24 +75,37 @@ contract("RewardPool", function (accounts) {
         depot,
         issuer,
         daicpxdToken,
-        toTokenUnit(5 + 1),
+        toTokenUnit(10 + 1), // must be enough to pay registration fees
         daicpxdToken,
         prepaidCardOwner,
         cardcpxdToken
       );
+
+      // //register for rewards
       await registerRewardProgram(
         prepaidCardManager,
         prepaidCard,
         daicpxdToken,
         daicpxdToken,
         relayer,
-        prepaidCardOwner,
+        prepaidCardOwner, //reward program admin
         REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
         undefined,
         prepaidCardOwner, //current rewardProgramAdmin
         rewardProgramID
       );
-
+      const tx = await registerRewardee(
+        prepaidCardManager,
+        prepaidCard,
+        daicpxdToken,
+        daicpxdToken,
+        relayer,
+        prepaidCardOwner,
+        REWARDEE_REGISTRATION_FEE_IN_SPEND,
+        undefined,
+        rewardProgramID
+      );
+      rewardSafe = await getRewardSafeFromEventLog(tx, rewardManager.address);
       //setting up prepaid cards
       payments = [
         {
@@ -1188,6 +1207,9 @@ contract("RewardPool", function (accounts) {
           rewardPoolBalanceErc20After.eq(rewardPoolBalance.sub(erc20Amount))
         );
       });
+
+      //TODO
+      it("can claim nft tokens", async () => {});
 
       it("claim data aggregate is correct", async () => {
         const daiProof = merkleTree.hexProofForPayee(
