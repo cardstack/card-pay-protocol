@@ -10,6 +10,7 @@ import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 import "./token/IERC677.sol";
 import "./core/Versionable.sol";
 import "./RewardManager.sol";
+import "./TokenManager.sol";
 
 contract RewardPool is Initializable, Versionable, Ownable {
   using SafeMath for uint256;
@@ -47,7 +48,10 @@ contract RewardPool is Initializable, Versionable, Ownable {
     tally = _tally;
     rewardManager = _rewardManager;
     require(tally != ZERO_ADDRESS, "Tally should not be zero address");
-    require(rewardManager != ZERO_ADDRESS, "Reward Manager should not be zero address");
+    require(
+      rewardManager != ZERO_ADDRESS,
+      "Reward Manager should not be zero address"
+    );
     emit Setup(_tally, _rewardManager);
   }
 
@@ -64,6 +68,7 @@ contract RewardPool is Initializable, Versionable, Ownable {
     return true;
   }
 
+  //msg.sender is safe
   function claim(
     address payableToken,
     uint256 amount,
@@ -71,15 +76,19 @@ contract RewardPool is Initializable, Versionable, Ownable {
   ) external returns (bool) {
     require(amount > 0, "Cannot claim non-positive amount");
 
-    uint256 balance = balanceForProof(payableToken, proof);
+    address rewardSafeOwner =
+      RewardManager(rewardManager).getRewardSafeOwner(msg.sender);
+    uint256 balance =
+      _balanceForProofWithAddress(payableToken, rewardSafeOwner, proof);
     require(balance >= amount, "Insufficient balance for proof");
+
     require(
       IERC677(payableToken).balanceOf(address(this)) >= amount,
       "Reward pool has insufficient balance"
     );
 
-    claims[payableToken][msg.sender] = claims[payableToken][
-      msg.sender
+    claims[payableToken][rewardSafeOwner] = claims[payableToken][
+      rewardSafeOwner
     ]
       .add(amount);
     IERC677(payableToken).transfer(msg.sender, amount);
