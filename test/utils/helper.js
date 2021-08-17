@@ -1157,8 +1157,8 @@ exports.claimReward = async function (
   claimAmount,
   proof
 ) {
-  console.log("claimAmount", claimAmount);
   let claimReward = rewardPool.contract.methods.claim(
+    rewardProgramID,
     token.address,
     claimAmount,
     proof
@@ -1171,7 +1171,7 @@ exports.claimReward = async function (
     to: rewardPool.address,
     data: payload,
     txGasEstimate: gasEstimate,
-    gasPrice: 0,
+    gasPrice: 0, //TODO:handle gas payment with prepaid card
     txGasToken: token.address,
     refundReceive: relayer,
   };

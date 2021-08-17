@@ -27,7 +27,7 @@ class CumulativePaymentTree extends MerkleTree {
     );
     const o = {};
     let reducedPaymentList = filteredPaymentList.reduce(function (r, e) {
-      const key = e.token + "|" + e.payee;
+      const key = e.rewardProgramID + "|" + e.token + "|" + e.payee;
       if (!o[key]) {
         o[key] = e;
         r.push(o[key]);
@@ -41,8 +41,8 @@ class CumulativePaymentTree extends MerkleTree {
     this.paymentNodes = reducedPaymentList;
   }
 
-  amountForPayee(payee, token) {
-    let payment = _.find(this.paymentNodes, { payee, token });
+  amountForPayee(rewardProgramID, payee, token) {
+    let payment = _.find(this.paymentNodes, { rewardProgramID, payee, token });
     if (!payment) {
       return 0;
     }
@@ -50,8 +50,8 @@ class CumulativePaymentTree extends MerkleTree {
     return payment.amount;
   }
 
-  hexProofForPayee(payee, token, paymentCycle) {
-    let leaf = _.find(this.paymentNodes, { payee, token });
+  hexProofForPayee(rewardProgramID, payee, token, paymentCycle) {
+    let leaf = _.find(this.paymentNodes, { rewardProgramID, payee, token });
 
     // find a better way to check this
     if (!leaf) {
@@ -59,7 +59,7 @@ class CumulativePaymentTree extends MerkleTree {
     }
     return this.getHexProof(leaf, [
       paymentCycle,
-      this.amountForPayee(payee, token),
+      this.amountForPayee(rewardProgramID, payee, token),
     ]);
   }
 

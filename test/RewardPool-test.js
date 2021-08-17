@@ -36,7 +36,7 @@ contract("RewardPool", function (accounts) {
 
   let depot, rewardSafe;
   // reward roles
-  let rewardProgramID;
+  let rewardProgramID, otherRewardProgramID;
   let tally;
   let rewardPool;
   let payments;
@@ -70,6 +70,7 @@ contract("RewardPool", function (accounts) {
       await daicpxdToken.mint(depot.address, toTokenUnit(1000));
       //setting up prepaid cards
       rewardProgramID = randomHex(20);
+      otherRewardProgramID = randomHex(20);
       prepaidCard = await createPrepaidCardAndTransfer(
         prepaidCardManager,
         relayer,
@@ -99,41 +100,49 @@ contract("RewardPool", function (accounts) {
       //setting up prepaid cards
       payments = [
         {
+          rewardProgramID: rewardProgramID,
           payee: accounts[11],
           token: cardcpxdToken.address,
           amount: toTokenUnit(10),
         },
         {
+          rewardProgramID: rewardProgramID,
           payee: accounts[12],
           token: cardcpxdToken.address,
           amount: toTokenUnit(12),
         },
         {
+          rewardProgramID: rewardProgramID,
           payee: accounts[13],
           token: cardcpxdToken.address,
           amount: toTokenUnit(2),
         },
         {
+          rewardProgramID: rewardProgramID,
           payee: accounts[14],
           token: cardcpxdToken.address,
           amount: toTokenUnit(1),
         },
         {
+          rewardProgramID: rewardProgramID,
           payee: accounts[15],
           token: cardcpxdToken.address,
           amount: toTokenUnit(32),
         },
         {
+          rewardProgramID: otherRewardProgramID,
           payee: accounts[16],
           token: cardcpxdToken.address,
           amount: toTokenUnit(10),
         },
         {
+          rewardProgramID: otherRewardProgramID,
           payee: accounts[17],
           token: cardcpxdToken.address,
           amount: toTokenUnit(9),
         },
         {
+          rewardProgramID: rewardProgramID,
           payee: accounts[18],
           token: cardcpxdToken.address,
           amount: toTokenUnit(101), // this amount is used to test logic when the payment pool doesn't have sufficient funds
@@ -315,7 +324,6 @@ contract("RewardPool", function (accounts) {
       let merkleTree;
       let root;
       let proof;
-      let rewardeePrepaidCard;
 
       beforeEach(async function () {
         payee = payments[payeeIndex].payee;
@@ -326,6 +334,7 @@ contract("RewardPool", function (accounts) {
         paymentCycle = paymentCycle.toNumber();
         merkleTree = new CumulativePaymentTree(payments);
         proof = merkleTree.hexProofForPayee(
+          rewardProgramID,
           payee,
           cardcpxdToken.address,
           paymentCycle
@@ -336,6 +345,7 @@ contract("RewardPool", function (accounts) {
 
       it("payee can get their available balance in the payment pool from their proof", async function () {
         let balance = await rewardPool.balanceForProof(
+          rewardProgramID,
           cardcpxdToken.address,
           proof,
           { from: payee }
@@ -345,6 +355,7 @@ contract("RewardPool", function (accounts) {
 
       it("non-payee can get the available balance in the payment pool for an address and proof", async function () {
         let balance = await rewardPool.balanceForProofWithAddress(
+          rewardProgramID,
           cardcpxdToken.address,
           payee,
           proof
@@ -355,11 +366,13 @@ contract("RewardPool", function (accounts) {
       it("an invalid proof/address pair returns a balance of 0 in the payment pool", async function () {
         let differentPayee = payments[4].payee;
         let differentUsersProof = merkleTree.hexProofForPayee(
+          rewardProgramID,
           differentPayee,
           cardcpxdToken.address,
           paymentCycle
         );
         let balance = await rewardPool.balanceForProofWithAddress(
+          rewardProgramID,
           cardcpxdToken.address,
           payee,
           differentUsersProof
@@ -370,6 +383,7 @@ contract("RewardPool", function (accounts) {
       it("garbage proof data returns a balance of 0 in payment pool", async function () {
         const randomProof = web3.utils.randomHex(32 * 5);
         let balance = await rewardPool.balanceForProofWithAddress(
+          rewardProgramID,
           cardcpxdToken.address,
           payee,
           randomProof
@@ -380,14 +394,24 @@ contract("RewardPool", function (accounts) {
       it("proof that is not the correct size returns revert", async function () {
         const randomProof = web3.utils.randomHex(31 * 5);
         await rewardPool
-          .balanceForProofWithAddress(cardcpxdToken.address, payee, randomProof)
+          .balanceForProofWithAddress(
+            rewardProgramID,
+            cardcpxdToken.address,
+            payee,
+            randomProof
+          )
           .should.be.rejectedWith(Error, "Bytearray provided has wrong shape");
       });
 
       it("proof that is too big returns revert", async function () {
         const randomProof = web3.utils.randomHex(51 * 32);
         await rewardPool
-          .balanceForProofWithAddress(cardcpxdToken.address, payee, randomProof)
+          .balanceForProofWithAddress(
+            rewardProgramID,
+            cardcpxdToken.address,
+            payee,
+            randomProof
+          )
           .should.be.rejectedWith(Error, "Bytearray provided is too big");
       });
 
@@ -403,6 +427,7 @@ contract("RewardPool", function (accounts) {
         let paymentCycle = await rewardPool.numPaymentCycles();
         paymentCycle = paymentCycle.toNumber();
         let updatedProof = updatedMerkleTree.hexProofForPayee(
+          rewardProgramID,
           payee,
           cardcpxdToken.address,
           paymentCycle
@@ -410,6 +435,7 @@ contract("RewardPool", function (accounts) {
         await rewardPool.submitPayeeMerkleRoot(updatedRoot, { from: tally });
 
         let balance = await rewardPool.balanceForProof(
+          rewardProgramID,
           cardcpxdToken.address,
           updatedProof,
           {
@@ -422,6 +448,7 @@ contract("RewardPool", function (accounts) {
         );
 
         balance = await rewardPool.balanceForProof(
+          rewardProgramID,
           cardcpxdToken.address,
           proof,
           {
@@ -438,6 +465,7 @@ contract("RewardPool", function (accounts) {
         let aPayee = accounts[1];
         let updatedPayments = payments.slice();
         updatedPayments.push({
+          rewardProgramID,
           payee: aPayee,
           token: cardcpxdToken.address,
           amount: toTokenUnit(0),
@@ -450,6 +478,7 @@ contract("RewardPool", function (accounts) {
         let paymentCycle = await rewardPool.numPaymentCycles();
         paymentCycle = paymentCycle.toNumber();
         let updatedProof = updatedMerkleTree.hexProofForPayee(
+          rewardProgramID,
           aPayee,
           cardcpxdToken.address,
           paymentCycle
@@ -457,6 +486,7 @@ contract("RewardPool", function (accounts) {
         await rewardPool.submitPayeeMerkleRoot(updatedRoot, { from: tally });
 
         let balance = await rewardPool.balanceForProof(
+          rewardProgramID,
           cardcpxdToken.address,
           updatedProof,
           {
@@ -473,6 +503,7 @@ contract("RewardPool", function (accounts) {
       it("balance of proof for payee that has mulitple entries in the payment list returns the sum of all their amounts in the payment pool", async function () {
         let updatedPayments = payments.slice();
         updatedPayments.push({
+          rewardProgramID,
           payee,
           token: cardcpxdToken.address,
           amount: toTokenUnit(8),
@@ -485,6 +516,7 @@ contract("RewardPool", function (accounts) {
         let paymentCycle = await rewardPool.numPaymentCycles();
         paymentCycle = paymentCycle.toNumber();
         let updatedProof = updatedMerkleTree.hexProofForPayee(
+          rewardProgramID,
           payee,
           cardcpxdToken.address,
           paymentCycle
@@ -492,6 +524,7 @@ contract("RewardPool", function (accounts) {
         await rewardPool.submitPayeeMerkleRoot(updatedRoot, { from: tally });
 
         let balance = await rewardPool.balanceForProof(
+          rewardProgramID,
           cardcpxdToken.address,
           updatedProof,
           {
@@ -527,6 +560,7 @@ contract("RewardPool", function (accounts) {
         paymentCycle = await rewardPool.numPaymentCycles();
         paymentCycle = paymentCycle.toNumber();
         proof = merkleTree.hexProofForPayee(
+          rewardProgramID,
           payee,
           cardcpxdToken.address,
           paymentCycle
@@ -566,17 +600,9 @@ contract("RewardPool", function (accounts) {
           cardcpxdToken,
           rewardPool.address
         );
-        console.log(
-          "reward pool previous",
-          rewardPoolPreviousBalance.toString()
-        );
-        console.log(
-          "reward safe previous",
-          rewardSafePreviousBalance.toString()
-        );
 
         await claimReward(
-          //reward manager
+          // reward manager
           rewardManager,
           rewardPool,
           relayer,
@@ -598,15 +624,21 @@ contract("RewardPool", function (accounts) {
           rewardPool.address
         );
         let proofBalance = await rewardPool.balanceForProof(
+          rewardProgramID,
           cardcpxdToken.address,
           proof,
           { from: payee }
         );
 
-        let claims = await rewardPool.claims(cardcpxdToken.address, payee);
+        let claims = await rewardPool.claims(
+          rewardProgramID,
+          cardcpxdToken.address,
+          payee
+        );
+        console.log(claims.toString());
         assert(
-          rewardSafeBalance.eq(paymentAmount),
-          "the payee balance is correct"
+          rewardSafeBalance.eq(rewardSafePreviousBalance.add(paymentAmount)),
+          "the reward safe balance is correct"
         );
         assert(
           rewardPoolBalance.eq(rewardPoolPreviousBalance.sub(paymentAmount)),
