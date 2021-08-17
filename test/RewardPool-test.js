@@ -575,16 +575,7 @@ contract("RewardPool", function (accounts) {
           rewardSafePreviousBalance.toString()
         );
 
-        const safeOwners = await rewardSafe.getOwners();
-        console.log("payee", payee);
-        console.log("safe owners", safeOwners);
-        let balance = await rewardPool.balanceForProof(
-          cardcpxdToken.address,
-          proof,
-          { from: payee }
-        );
-        console.log("balance for proof", balance.toString());
-        let tx = await claimReward(
+        await claimReward(
           //reward manager
           rewardManager,
           rewardPool,
@@ -597,23 +588,8 @@ contract("RewardPool", function (accounts) {
           paymentAmount,
           proof
         );
-        // let txn = await rewardPool.claim(
-        //   cardcpxdToken.address,
-        //   paymentAmount,
-        //   proof,
-        //   {
-        //     from: payee,
-        //   }
-        // );
 
-        // let claimEvent = tx.logs.find((log) => log.event === "PayeeClaim");
-        // assert.equal(claimEvent.args.payee, payee, "event payee is correct");
-        // assert(
-        //   claimEvent.args.amount.eq(paymentAmount),
-        //   "event amount is correct"
-        // );
-
-        let rewardSafeNewBalance = await getBalance(
+        let rewardSafeBalance = await getBalance(
           cardcpxdToken,
           rewardSafe.address
         );
@@ -621,25 +597,23 @@ contract("RewardPool", function (accounts) {
           cardcpxdToken,
           rewardPool.address
         );
+        let proofBalance = await rewardPool.balanceForProof(
+          cardcpxdToken.address,
+          proof,
+          { from: payee }
+        );
 
-        // let claims = await rewardPool.claims(cardcpxdToken.address, payee);
-        // let proofBalance = await rewardPool.balanceForProof(
-        //   cardcpxdToken.address,
-        //   proof,
-        //   {
-        //     from: payee,
-        //   }
-        // );
-
-        console.log("reward safe new balance", rewardSafeNewBalance.toString());
-        console.log("reward pool new balance", rewardPoolBalance.toString());
-        // assert(payeeBalance.eq(paymentAmount), "the payee balance is correct");
-        // assert(
-        //   poolBalance.eq(rewardPoolBalance.sub(paymentAmount)),
-        //   "the pool balance is correct"
-        // );
-        // assert(claims.eq(paymentAmount), "the claims amount is correct");
-        // assert.equal(Number(proofBalance), 0, "the proof balance is correct");
+        let claims = await rewardPool.claims(cardcpxdToken.address, payee);
+        assert(
+          rewardSafeBalance.eq(paymentAmount),
+          "the payee balance is correct"
+        );
+        assert(
+          rewardPoolBalance.eq(rewardPoolPreviousBalance.sub(paymentAmount)),
+          "the pool balance is correct"
+        );
+        assert(claims.eq(paymentAmount), "the claims amount is correct");
+        assert.equal(Number(proofBalance), 0, "the proof balance is correct");
       });
 
       it("payee can make a claim less than their allotted amount from the pool", async function () {
