@@ -159,7 +159,7 @@ contract RewardManager is Ownable, Versionable, Safe {
 
         owners[0] = address(this);
         owners[1] = prepaidCardOwner;
-        rewardSafe = createSafe(owners, 2);
+        rewardSafe = createSafe(owners[1]);
         rewardSafes[rewardProgramID][prepaidCardOwner] = rewardSafe;
         emit RewardeeRegistered(rewardProgramID, prepaidCardOwner, rewardSafe);
         return rewardSafe;
@@ -229,11 +229,12 @@ contract RewardManager is Ownable, Versionable, Safe {
         returns (address)
     {
         address[] memory owners = GnosisSafe(rewardSafe).getOwners();
-        require(
-            owners.length == 2,
-            "unexpected number of owners for reward safe"
-        );
-        return owners[0] == address(this) ? owners[1] : owners[0];
+        // require(
+        //     owners.length == 2,
+        //     "unexpected number of owners for reward safe"
+        // );
+        // return owners[0] == address(this) ? owners[1] : owners[0];
+        return owners[0];
     }
 
     function isRewardProgram(address rewardProgramID)
@@ -326,4 +327,5 @@ contract RewardManager is Ownable, Versionable, Safe {
             }
         }
     }
+
 }

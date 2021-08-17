@@ -13,7 +13,7 @@ const ERC677Token = artifacts.require("ERC677Token.sol");
 const { randomHex } = require("web3-utils");
 const { expect, TOKEN_DETAIL_DATA } = require("./setup");
 const utils = require("./utils/general");
-const { getRewardSafeFromEventLog } = require("./utils/general");
+// const { getRewardSafeFromEventLog } = require("./utils/general");
 const { ZERO_ADDRESS } = utils;
 
 const {
@@ -26,13 +26,13 @@ const {
   registerRewardProgram,
   lockRewardProgram,
   createDepotFromSupplierMgr,
-  transferRewardSafe,
-  findAccountBeforeAddress,
-  findAccountAfterAddress,
+  // transferRewardSafe,
+  // findAccountBeforeAddress,
+  // findAccountAfterAddress,
   addRewardRule,
   removeRewardRule,
   updateRewardProgramAdmin,
-  airdropGas,
+  // airdropGas,
   createPrepaidCardAndTransfer,
 } = require("./utils/helper");
 
@@ -73,9 +73,9 @@ contract("RewardManager", (accounts) => {
     prepaidCardOwner,
     relayer,
     merchantFeeReceiver,
-    otherPrepaidCardOwner,
-    prepaidCardOwnerA,
-    prepaidCardOwnerB;
+    otherPrepaidCardOwner;
+  // prepaidCardOwnerA,
+  // prepaidCardOwnerB;
   // safes
   let depot;
   // reward roles
@@ -116,14 +116,14 @@ contract("RewardManager", (accounts) => {
     rewardManager = await RewardManager.new();
     await rewardManager.initialize(owner);
 
-    prepaidCardOwnerA = findAccountAfterAddress(
-      accounts.slice(10),
-      rewardManager.address
-    );
-    prepaidCardOwnerB = findAccountBeforeAddress(
-      accounts.slice(10),
-      rewardManager.address
-    );
+    // prepaidCardOwnerA = findAccountAfterAddress(
+    //   accounts.slice(10),
+    //   rewardManager.address
+    // );
+    // prepaidCardOwnerB = findAccountBeforeAddress(
+    //   accounts.slice(10),
+    //   rewardManager.address
+    // );
     ({ daicpxdToken, cardcpxdToken, exchange } = await setupExchanges(owner));
 
     // setup
@@ -1180,7 +1180,8 @@ contract("RewardManager", (accounts) => {
   });
 
   describe("transfer reward safe", () => {
-    let prepaidCard, rewardSafe;
+    let prepaidCard;
+    // , rewardSafe;
     beforeEach(async () => {
       rewardProgramID = randomHex(20);
       prepaidCard = await createPrepaidCardAndTransfer(
@@ -1207,121 +1208,121 @@ contract("RewardManager", (accounts) => {
         rewardProgramID
       );
     });
-    it("transfer reward safe ownership", async () => {
-      const tx = await registerRewardee(
-        prepaidCardManager,
-        prepaidCard,
-        daicpxdToken,
-        daicpxdToken,
-        relayer,
-        prepaidCardOwner,
-        REWARDEE_REGISTRATION_FEE_IN_SPEND,
-        undefined,
-        rewardProgramID
-      );
-      rewardSafe = await getRewardSafeFromEventLog(tx, rewardManager.address);
-      let owners = await rewardSafe.getOwners();
-      expect(owners.length).to.equal(2);
-      expect(owners[1]).to.equal(prepaidCardOwner);
-      await airdropGas(cardcpxdToken, rewardSafe.address, toTokenUnit(1));
-      await transferRewardSafe(
-        rewardManager,
-        rewardSafe,
-        prepaidCardOwner,
-        otherPrepaidCardOwner,
-        daicpxdToken,
-        rewardSafe.address,
-        rewardProgramID,
-        relayer
-      );
-      owners = await rewardSafe.getOwners();
-      expect(owners.length).to.equal(2);
-      expect(owners[1]).to.equal(otherPrepaidCardOwner);
-    });
+    // it("transfer reward safe ownership", async () => {
+    //   const tx = await registerRewardee(
+    //     prepaidCardManager,
+    //     prepaidCard,
+    //     daicpxdToken,
+    //     daicpxdToken,
+    //     relayer,
+    //     prepaidCardOwner,
+    //     REWARDEE_REGISTRATION_FEE_IN_SPEND,
+    //     undefined,
+    //     rewardProgramID
+    //   );
+    //   rewardSafe = await getRewardSafeFromEventLog(tx, rewardManager.address);
+    //   let owners = await rewardSafe.getOwners();
+    //   expect(owners.length).to.equal(2);
+    //   expect(owners[1]).to.equal(prepaidCardOwner);
+    //   await airdropGas(cardcpxdToken, rewardSafe.address, toTokenUnit(1));
+    //   await transferRewardSafe(
+    //     rewardManager,
+    //     rewardSafe,
+    //     prepaidCardOwner,
+    //     otherPrepaidCardOwner,
+    //     daicpxdToken,
+    //     rewardSafe.address,
+    //     rewardProgramID,
+    //     relayer
+    //   );
+    //   owners = await rewardSafe.getOwners();
+    //   expect(owners.length).to.equal(2);
+    //   expect(owners[1]).to.equal(otherPrepaidCardOwner);
+    // });
 
-    it("can sign with address lexigraphically after prepaid card manager contract address for transfer", async () => {
-      const prepaidCardA = await createPrepaidCardAndTransfer(
-        prepaidCardManager,
-        relayer,
-        depot,
-        issuer,
-        daicpxdToken,
-        toTokenUnit(5 + 1),
-        daicpxdToken,
-        prepaidCardOwnerA,
-        cardcpxdToken
-      );
-      const tx = await registerRewardee(
-        prepaidCardManager,
-        prepaidCardA,
-        daicpxdToken,
-        daicpxdToken,
-        relayer,
-        prepaidCardOwnerA,
-        REWARDEE_REGISTRATION_FEE_IN_SPEND,
-        undefined,
-        rewardProgramID
-      );
-      rewardSafe = await getRewardSafeFromEventLog(tx, rewardManager.address);
-      let owners = await rewardSafe.getOwners();
-      expect(owners.length).to.equal(2);
-      expect(owners[1]).to.equal(prepaidCardOwnerA);
-      await airdropGas(cardcpxdToken, rewardSafe.address, toTokenUnit(1));
-      await transferRewardSafe(
-        rewardManager,
-        rewardSafe,
-        prepaidCardOwnerA,
-        otherPrepaidCardOwner,
-        daicpxdToken,
-        rewardSafe.address,
-        rewardProgramID,
-        relayer
-      );
-      owners = await rewardSafe.getOwners();
-      expect(owners.length).to.equal(2);
-      expect(owners[1]).to.equal(otherPrepaidCardOwner);
-    });
-    it("can sign with address lexigraphically before prepaid card manager contract address for transfer", async () => {
-      const prepaidCardB = await createPrepaidCardAndTransfer(
-        prepaidCardManager,
-        relayer,
-        depot,
-        issuer,
-        daicpxdToken,
-        toTokenUnit(5 + 1),
-        daicpxdToken,
-        prepaidCardOwnerB,
-        cardcpxdToken
-      );
-      const tx = await registerRewardee(
-        prepaidCardManager,
-        prepaidCardB,
-        daicpxdToken,
-        daicpxdToken,
-        relayer,
-        prepaidCardOwnerB,
-        REWARDEE_REGISTRATION_FEE_IN_SPEND,
-        undefined,
-        rewardProgramID
-      );
-      rewardSafe = await getRewardSafeFromEventLog(tx, rewardManager.address);
-      let owners = await rewardSafe.getOwners();
-      expect(owners.length).to.equal(2);
-      expect(owners[1]).to.equal(prepaidCardOwnerB);
-      await airdropGas(cardcpxdToken, rewardSafe.address, toTokenUnit(1));
-      await transferRewardSafe(
-        rewardManager,
-        rewardSafe,
-        prepaidCardOwnerB,
-        otherPrepaidCardOwner,
-        daicpxdToken,
-        rewardSafe.address,
-        rewardProgramID,
-        relayer
-      );
-      owners = await rewardSafe.getOwners();
-      expect(owners.length).to.equal(2);
-      expect(owners[1]).to.equal(otherPrepaidCardOwner);
-    });
+    // it("can sign with address lexigraphically after prepaid card manager contract address for transfer", async () => {
+    //   const prepaidCardA = await createPrepaidCardAndTransfer(
+    //     prepaidCardManager,
+    //     relayer,
+    //     depot,
+    //     issuer,
+    //     daicpxdToken,
+    //     toTokenUnit(5 + 1),
+    //     daicpxdToken,
+    //     prepaidCardOwnerA,
+    //     cardcpxdToken
+    //   );
+    //   const tx = await registerRewardee(
+    //     prepaidCardManager,
+    //     prepaidCardA,
+    //     daicpxdToken,
+    //     daicpxdToken,
+    //     relayer,
+    //     prepaidCardOwnerA,
+    //     REWARDEE_REGISTRATION_FEE_IN_SPEND,
+    //     undefined,
+    //     rewardProgramID
+    //   );
+    //   rewardSafe = await getRewardSafeFromEventLog(tx, rewardManager.address);
+    //   let owners = await rewardSafe.getOwners();
+    //   expect(owners.length).to.equal(2);
+    //   expect(owners[1]).to.equal(prepaidCardOwnerA);
+    //   await airdropGas(cardcpxdToken, rewardSafe.address, toTokenUnit(1));
+    //   await transferRewardSafe(
+    //     rewardManager,
+    //     rewardSafe,
+    //     prepaidCardOwnerA,
+    //     otherPrepaidCardOwner,
+    //     daicpxdToken,
+    //     rewardSafe.address,
+    //     rewardProgramID,
+    //     relayer
+    //   );
+    //   owners = await rewardSafe.getOwners();
+    //   expect(owners.length).to.equal(2);
+    //   expect(owners[1]).to.equal(otherPrepaidCardOwner);
+    // });
+    // it("can sign with address lexigraphically before prepaid card manager contract address for transfer", async () => {
+    //   const prepaidCardB = await createPrepaidCardAndTransfer(
+    //     prepaidCardManager,
+    //     relayer,
+    //     depot,
+    //     issuer,
+    //     daicpxdToken,
+    //     toTokenUnit(5 + 1),
+    //     daicpxdToken,
+    //     prepaidCardOwnerB,
+    //     cardcpxdToken
+    //   );
+    //   const tx = await registerRewardee(
+    //     prepaidCardManager,
+    //     prepaidCardB,
+    //     daicpxdToken,
+    //     daicpxdToken,
+    //     relayer,
+    //     prepaidCardOwnerB,
+    //     REWARDEE_REGISTRATION_FEE_IN_SPEND,
+    //     undefined,
+    //     rewardProgramID
+    //   );
+    //   rewardSafe = await getRewardSafeFromEventLog(tx, rewardManager.address);
+    //   let owners = await rewardSafe.getOwners();
+    //   expect(owners.length).to.equal(2);
+    //   expect(owners[1]).to.equal(prepaidCardOwnerB);
+    //   await airdropGas(cardcpxdToken, rewardSafe.address, toTokenUnit(1));
+    //   await transferRewardSafe(
+    //     rewardManager,
+    //     rewardSafe,
+    //     prepaidCardOwnerB,
+    //     otherPrepaidCardOwner,
+    //     daicpxdToken,
+    //     rewardSafe.address,
+    //     rewardProgramID,
+    //     relayer
+    //   );
+    //   owners = await rewardSafe.getOwners();
+    //   expect(owners.length).to.equal(2);
+    //   expect(owners[1]).to.equal(otherPrepaidCardOwner);
+    // });
   });
 });
