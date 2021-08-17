@@ -165,63 +165,6 @@ contract RewardManager is Ownable, Versionable, Safe {
         return rewardSafe;
     }
 
-    // function transferRewardSafe(
-    //     address payable rewardSafe,
-    //     address rewardProgramID,
-    //     address gasToken,
-    //     address payable gasRecipient,
-    //     bytes calldata oldOwnerSignature,
-    //     bytes calldata data
-    // ) external {
-    //     address rewardSafeOwner = getRewardSafeOwner(rewardSafe);
-    //     require(rewardSafeOwner != ZERO_ADDRESS);
-    //     require(
-    //         rewardSafes[rewardProgramID][rewardSafeOwner] == rewardSafe,
-    //         "not a valid reward safe for reward program ID"
-    //     );
-
-    //     (, address oldOwner, address newOwner) =
-    //         abi.decode(data, (address, address, address));
-
-    //     execTransaction(
-    //         rewardSafe,
-    //         rewardSafe,
-    //         data,
-    //         _addContractSignature(rewardSafe, oldOwnerSignature),
-    //         gasToken,
-    //         gasRecipient
-    //     );
-    //     emit RewardSafeTransferred(oldOwner, newOwner);
-    // }
-
-    // somehow using a private function gets rid of the callstack too deep error
-    // function execTransaction(
-    //     address payable rewardSafe,
-    //     address to,
-    //     bytes memory data,
-    //     bytes memory signatures,
-    //     address _gasToken,
-    //     address payable _gasRecipient
-    // ) private returns (bool) {
-    //     require(
-    //         GnosisSafe(rewardSafe).execTransaction(
-    //             to,
-    //             0,
-    //             data,
-    //             Enum.Operation.Call,
-    //             0,
-    //             0,
-    //             0, //If there is no gas price, there will be no transfer to _gasRecipient
-    //             _gasToken,
-    //             _gasRecipient,
-    //             signatures
-    //         ),
-    //         "safe transaction was reverted"
-    //     );
-
-    //     return true;
-    // }
-
     //Public View Functions
     function getRewardSafeOwner(address payable rewardSafe)
         public
@@ -229,11 +172,6 @@ contract RewardManager is Ownable, Versionable, Safe {
         returns (address)
     {
         address[] memory owners = GnosisSafe(rewardSafe).getOwners();
-        // require(
-        //     owners.length == 2,
-        //     "unexpected number of owners for reward safe"
-        // );
-        // return owners[0] == address(this) ? owners[1] : owners[0];
         return owners[0];
     }
 
@@ -293,46 +231,4 @@ contract RewardManager is Ownable, Versionable, Safe {
             ) ==
             keccak256(abi.encodePacked(rule2.tallyRuleDID, rule2.benefitDID));
     }
-
-    // function _getContractSignature()
-    //     internal
-    //     view
-    //     returns (bytes memory contractSignature)
-    // {
-    //     // Create signature
-    //     contractSignature = new bytes(65);
-    //     bytes memory encodeData = abi.encode(this, address(0));
-    //     for (uint256 i = 1; i <= 64; i++) {
-    //         contractSignature[64 - i] = encodeData[encodeData.length.sub(i)];
-    //     }
-    //     bytes1 v = 0x01;
-    //     contractSignature[64] = v;
-    // }
-
-    // function _addContractSignature(
-    //     address payable rewardSafe,
-    //     bytes memory signature
-    // ) internal view returns (bytes memory signatures) {
-    //     require(signature.length == 65, "Invalid signature!");
-
-    //     address owner = getRewardSafeOwner(rewardSafe);
-    //     bytes memory contractSignature = _getContractSignature();
-    //     signatures = new bytes(130); // 2 x 65 bytes
-    //     // Gnosis safe require signature must be sort by owner' address.
-    //     if (address(this) > owner) {
-    //         for (uint256 i = 0; i < signature.length; i++) {
-    //             signatures[i] = signature[i];
-    //         }
-    //         for (uint256 i = 0; i < contractSignature.length; i++) {
-    //             signatures[i.add(65)] = contractSignature[i];
-    //         }
-    //     } else {
-    //         for (uint256 i = 0; i < contractSignature.length; i++) {
-    //             signatures[i] = contractSignature[i];
-    //         }
-    //         for (uint256 i = 0; i < signature.length; i++) {
-    //             signatures[i.add(65)] = signature[i];
-    //         }
-    //     }
-    // }
 }
