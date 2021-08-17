@@ -17,7 +17,12 @@ contract RewardPool is Initializable, Versionable, Ownable {
   using MerkleProof for bytes32[];
 
   event Setup(address tally, address rewardManager);
-  event PayeeClaim(address indexed payee, uint256 amount);
+  event RewardeeClaim(
+    address rewardProgramID,
+    address rewardee,
+    address rewardSafe,
+    uint256 amount
+  );
   event MerkleRootSubmission(bytes32 payeeRoot, uint256 numPaymentCycles);
   event PaymentCycleEnded(
     uint256 paymentCycle,
@@ -70,6 +75,7 @@ contract RewardPool is Initializable, Versionable, Ownable {
 
   //msg.sender is safe
   function claim(
+    address rewardProgramID,
     address payableToken,
     uint256 amount,
     bytes calldata proof
@@ -93,7 +99,7 @@ contract RewardPool is Initializable, Versionable, Ownable {
       .add(amount);
     IERC677(payableToken).transfer(msg.sender, amount);
 
-    emit PayeeClaim(msg.sender, amount);
+    emit RewardeeClaim(rewardProgramID, rewardSafeOwner, msg.sender, amount);
     return true;
   }
 
