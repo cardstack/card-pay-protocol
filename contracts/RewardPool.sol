@@ -36,7 +36,8 @@ contract RewardPool is Initializable, Versionable, Ownable {
   uint256 public currentPaymentCycleStartBlock;
   address public rewardManager;
 
-  mapping(address => mapping(address => mapping(address => uint256))) public claims; // token <> rewardee
+  mapping(address => mapping(address => mapping(address => uint256)))
+    public claims; // token <> rewardee
   mapping(uint256 => bytes32) payeeRoots;
 
   modifier onlyTally() {
@@ -83,7 +84,13 @@ contract RewardPool is Initializable, Versionable, Ownable {
     require(amount > 0, "Cannot claim non-positive amount");
     address rewardSafeOwner =
       RewardManager(rewardManager).getRewardSafeOwner(msg.sender);
-    require(RewardManager(rewardManager).isValidRewardSafe(msg.sender, rewardProgramID), "can only withdraw for safe registered on reward program");
+    require(
+      RewardManager(rewardManager).isValidRewardSafe(
+        msg.sender,
+        rewardProgramID
+      ),
+      "can only withdraw for safe registered on reward program"
+    );
     uint256 balance =
       _balanceForProofWithAddress(
         rewardProgramID,
@@ -98,9 +105,9 @@ contract RewardPool is Initializable, Versionable, Ownable {
       "Reward pool has insufficient balance"
     );
 
-    claims[rewardProgramID][payableToken][rewardSafeOwner] = claims[rewardProgramID][payableToken][
-      rewardSafeOwner
-    ]
+    claims[rewardProgramID][payableToken][rewardSafeOwner] = claims[
+      rewardProgramID
+    ][payableToken][rewardSafeOwner]
       .add(amount);
     IERC677(payableToken).transfer(msg.sender, amount);
 
@@ -185,7 +192,8 @@ contract RewardPool is Initializable, Versionable, Ownable {
       claims[rewardProgramID][payableToken][_address] < cumulativeAmount &&
       _proof.verify(payeeRoots[paymentCycleNumber], leaf)
     ) {
-      return cumulativeAmount.sub(claims[rewardProgramID][payableToken][_address]);
+      return
+        cumulativeAmount.sub(claims[rewardProgramID][payableToken][_address]);
     } else {
       return 0;
     }
