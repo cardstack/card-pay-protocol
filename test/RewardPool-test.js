@@ -642,6 +642,116 @@ contract("RewardPool", function (accounts) {
         assert.equal(Number(proofBalance), 0, "the proof balance is correct");
       });
 
+      it("payee cannot claim using an eoa", async function () {
+        await rewardPool
+          .claim(rewardProgramID, cardcpxdToken.address, paymentAmount, proof, {
+            from: payee,
+          })
+          .should.be.rejectedWith(
+            Error,
+            "Returned error: VM Exception while processing transaction: revert"
+          );
+      });
+      it("payee cannot claim from a safe associated with different reward program", async function () {
+        let aPayee = payments[4].payee;
+        await registerRewardProgram(
+          prepaidCardManager,
+          prepaidCard,
+          daicpxdToken,
+          daicpxdToken,
+          relayer,
+          prepaidCardOwner, //reward program admin
+          REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
+          undefined,
+          prepaidCardOwner, //current rewardProgramAdmin
+          otherRewardProgramID
+        );
+
+        rewardeePrepaidCard = await createPrepaidCardAndTransfer(
+          prepaidCardManager,
+          relayer,
+          depot,
+          issuer,
+          daicpxdToken,
+          toTokenUnit(10 + 1), // must be enough to pay registration fees
+          daicpxdToken,
+          aPayee,
+          cardcpxdToken
+        );
+        const tx = await registerRewardee(
+          prepaidCardManager,
+          rewardeePrepaidCard,
+          daicpxdToken,
+          daicpxdToken,
+          relayer,
+          aPayee,
+          REWARDEE_REGISTRATION_FEE_IN_SPEND,
+          undefined,
+          otherRewardProgramID
+        );
+        let otherRewardSafe = await getRewardSafeFromEventLog(
+          tx,
+          rewardManager.address
+        );
+        await claimReward(
+          rewardManager,
+          rewardPool,
+          relayer,
+          otherRewardSafe,
+          aPayee,
+          rewardProgramID,
+          cardcpxdToken,
+          paymentAmount,
+          proof
+        ).should.be.rejectedWith(
+          Error,
+          "can only withdraw for safe registered on reward program"
+        );
+      });
+      it("payee cannot claim up without a reward safe", async function () {
+        await claimReward(
+          rewardManager,
+          rewardPool,
+          relayer,
+          rewardSafe,
+          payee,
+          rewardProgramID,
+          cardcpxdToken,
+          paymentAmount,
+          proof
+        );
+
+        let rewardSafeBalance = await getBalance(
+          cardcpxdToken,
+          rewardSafe.address
+        );
+        let rewardPoolBalance = await getBalance(
+          cardcpxdToken,
+          rewardPool.address
+        );
+        let proofBalance = await rewardPool.balanceForProof(
+          rewardProgramID,
+          cardcpxdToken.address,
+          proof,
+          { from: payee }
+        );
+
+        let claims = await rewardPool.claims(
+          rewardProgramID,
+          cardcpxdToken.address,
+          payee
+        );
+        assert(
+          rewardSafeBalance.eq(rewardSafePreviousBalance.add(paymentAmount)),
+          "the reward safe balance is correct"
+        );
+        assert(
+          rewardPoolBalance.eq(rewardPoolPreviousBalance.sub(paymentAmount)),
+          "the pool balance is correct"
+        );
+        assert(claims.eq(paymentAmount), "the claims amount is correct");
+        assert.equal(Number(proofBalance), 0, "the proof balance is correct");
+      });
       it("payee can make a claim less than their allotted amount from the pool", async function () {
         let claimAmount = toTokenUnit(8);
         assert(

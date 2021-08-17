@@ -245,6 +245,14 @@ contract RewardManager is Ownable, Versionable, Safe {
         return rewardProgramIDs.contains(rewardProgramID);
     }
 
+    function isValidRewardSafe(
+        address payable rewardSafe,
+        address rewardProgramID
+    ) public view returns (bool) {
+        address rewardSafeOwner = getRewardSafeOwner(rewardSafe);
+        return rewardSafe == rewardSafes[rewardProgramID][rewardSafeOwner];
+    }
+
     // External View Functions
     function hasRule(address rewardProgramID, string calldata ruleDID)
         external
@@ -327,5 +335,4 @@ contract RewardManager is Ownable, Versionable, Safe {
             }
         }
     }
-
 }

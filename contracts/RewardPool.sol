@@ -81,9 +81,9 @@ contract RewardPool is Initializable, Versionable, Ownable {
     bytes calldata proof
   ) external returns (bool) {
     require(amount > 0, "Cannot claim non-positive amount");
-
     address rewardSafeOwner =
       RewardManager(rewardManager).getRewardSafeOwner(msg.sender);
+    require(RewardManager(rewardManager).isValidRewardSafe(msg.sender, rewardProgramID), "can only withdraw for safe registered on reward program");
     uint256 balance =
       _balanceForProofWithAddress(
         rewardProgramID,
