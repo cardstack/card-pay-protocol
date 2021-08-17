@@ -151,12 +151,8 @@ contract("RewardPool", function (accounts) {
     });
 
     afterEach(async function () {
-      payments[0].amount = toTokenUnit(10); //one of the tests is bleeding state...
       let balance = await cardcpxdToken.balanceOf(accounts[11]);
-      console.log("balancebefore", balance.toString());
       await cardcpxdToken.burn(balance, { from: accounts[11] });
-      let balanceAfter = await cardcpxdToken.balanceOf(accounts[11]);
-      console.log("balanceafter", balanceAfter.toString());
     });
 
     describe("initial reward pool contract", () => {
@@ -549,6 +545,7 @@ contract("RewardPool", function (accounts) {
       let merkleTree;
       let root;
       let rewardeePrepaidCard;
+      let rewardSafePreviousBalance, rewardPoolPreviousBalance;
 
       beforeEach(async function () {
         payee = payments[payeeIndex].payee;
@@ -589,24 +586,22 @@ contract("RewardPool", function (accounts) {
           rewardProgramID
         );
         rewardSafe = await getRewardSafeFromEventLog(tx, rewardManager.address);
-      });
 
-      it.only("payee can claim up to their allotted amount from pool", async function () {
-        let rewardSafePreviousBalance = await getBalance(
+        rewardSafePreviousBalance = await getBalance(
           cardcpxdToken,
           rewardSafe.address
         );
-        let rewardPoolPreviousBalance = await getBalance(
+        rewardPoolPreviousBalance = await getBalance(
           cardcpxdToken,
           rewardPool.address
         );
+      });
 
+      it("payee can claim up to their allotted amount from pool", async function () {
         await claimReward(
-          // reward manager
           rewardManager,
           rewardPool,
           relayer,
-          // reward safe
           rewardSafe,
           payee,
           rewardProgramID,
@@ -635,7 +630,6 @@ contract("RewardPool", function (accounts) {
           cardcpxdToken.address,
           payee
         );
-        console.log(claims.toString());
         assert(
           rewardSafeBalance.eq(rewardSafePreviousBalance.add(paymentAmount)),
           "the reward safe balance is correct"
@@ -650,40 +644,48 @@ contract("RewardPool", function (accounts) {
 
       it("payee can make a claim less than their allotted amount from the pool", async function () {
         let claimAmount = toTokenUnit(8);
-        let txn = await rewardPool.claim(
-          cardcpxdToken.address,
-          claimAmount,
-          proof,
-          {
-            from: payee,
-          }
-        );
-
-        let claimEvent = txn.logs.find((log) => log.event === "PayeeClaim");
-        assert.equal(claimEvent.args.payee, payee, "event payee is correct");
         assert(
-          claimEvent.args.amount.eq(claimAmount),
-          "event amount is correct"
+          claimAmount.lt(paymentAmount),
+          "claim amoount is less than payment"
+        );
+        await claimReward(
+          rewardManager,
+          rewardPool,
+          relayer,
+          rewardSafe,
+          payee,
+          rewardProgramID,
+          cardcpxdToken,
+          claimAmount,
+          proof
         );
 
-        let payeeBalance = await cardcpxdToken.balanceOf(payee);
-        let poolBalance = await cardcpxdToken.balanceOf(rewardPool.address);
-        let claims = await rewardPool.claims(cardcpxdToken.address, payee);
+        let rewardSafeBalance = await getBalance(
+          cardcpxdToken,
+          rewardSafe.address
+        );
+        let rewardPoolBalance = await getBalance(
+          cardcpxdToken,
+          rewardPool.address
+        );
         let proofBalance = await rewardPool.balanceForProof(
+          rewardProgramID,
           cardcpxdToken.address,
           proof,
-          {
-            from: payee,
-          }
+          { from: payee }
         );
 
-        assert.equal(
-          Number(payeeBalance),
-          claimAmount,
-          "the payee balance is correct"
+        let claims = await rewardPool.claims(
+          rewardProgramID,
+          cardcpxdToken.address,
+          payee
         );
         assert(
-          poolBalance.eq(rewardPoolBalance.sub(claimAmount)),
+          claimAmount.eq(rewardSafeBalance.sub(rewardSafePreviousBalance)),
+          "the reward safe balance is correct"
+        );
+        assert(
+          rewardPoolBalance.eq(rewardPoolPreviousBalance.sub(claimAmount)),
           "the pool balance is correct"
         );
         assert(claims.eq(claimAmount), "the claims amount is correct");
@@ -695,17 +697,45 @@ contract("RewardPool", function (accounts) {
 
       it("payee can make mulitple claims within their allotted amount from the pool", async function () {
         let claimAmount = toTokenUnit(4).add(toTokenUnit(6));
-        await rewardPool.claim(cardcpxdToken.address, toTokenUnit(4), proof, {
-          from: payee,
-        });
-        await rewardPool.claim(cardcpxdToken.address, toTokenUnit(6), proof, {
-          from: payee,
-        });
 
-        let payeeBalance = await cardcpxdToken.balanceOf(payee);
-        let poolBalance = await cardcpxdToken.balanceOf(rewardPool.address);
-        let claims = await rewardPool.claims(cardcpxdToken.address, payee);
+        await claimReward(
+          rewardManager,
+          rewardPool,
+          relayer,
+          rewardSafe,
+          payee,
+          rewardProgramID,
+          cardcpxdToken,
+          toTokenUnit(4),
+          proof
+        );
+
+        await claimReward(
+          rewardManager,
+          rewardPool,
+          relayer,
+          rewardSafe,
+          payee,
+          rewardProgramID,
+          cardcpxdToken,
+          toTokenUnit(6),
+          proof
+        );
+        let rewardSafeBalance = await getBalance(
+          cardcpxdToken,
+          rewardSafe.address
+        );
+        let rewardPoolBalance = await getBalance(
+          cardcpxdToken,
+          rewardPool.address
+        );
+        let claims = await rewardPool.claims(
+          rewardProgramID,
+          cardcpxdToken.address,
+          payee
+        );
         let proofBalance = await rewardPool.balanceForProof(
+          rewardProgramID,
           cardcpxdToken.address,
           proof,
           {
@@ -713,9 +743,12 @@ contract("RewardPool", function (accounts) {
           }
         );
 
-        assert(payeeBalance.eq(claimAmount), "the payee balance is correct");
         assert(
-          poolBalance.eq(rewardPoolBalance.sub(claimAmount)),
+          rewardSafeBalance.eq(rewardSafePreviousBalance.add(claimAmount)),
+          "the reward safe balance is correct"
+        );
+        assert(
+          rewardPoolBalance.eq(rewardPoolPreviousBalance.sub(claimAmount)),
           "the pool balance is correct"
         );
         assert(claims.eq(claimAmount), "the claims amount is correct");
@@ -727,67 +760,43 @@ contract("RewardPool", function (accounts) {
 
       it("payee cannot claim more than their allotted amount from the pool", async function () {
         let claimAmount = toTokenUnit(11);
-        await rewardPool
-          .claim(cardcpxdToken.address, claimAmount, proof, {
-            from: payee,
-          })
-          .should.be.rejectedWith(Error, "Insufficient balance for proof");
-
-        let payeeBalance = await cardcpxdToken.balanceOf(payee);
-        let poolBalance = await cardcpxdToken.balanceOf(rewardPool.address);
-        let claims = await rewardPool.claims(cardcpxdToken.address, payee);
-        let proofBalance = await rewardPool.balanceForProof(
-          cardcpxdToken.address,
-          proof,
-          {
-            from: payee,
-          }
-        );
-
-        assert.equal(Number(payeeBalance), 0, "the payee balance is correct");
-        assert(
-          poolBalance.eq(rewardPoolBalance),
-          "the pool balance is correct"
-        );
-        assert.equal(Number(claims), 0, "the claims amount is correct");
-        assert(proofBalance.eq(paymentAmount), "the proof balance is correct");
+        await claimReward(
+          rewardManager,
+          rewardPool,
+          relayer,
+          rewardSafe,
+          payee,
+          rewardProgramID,
+          cardcpxdToken,
+          claimAmount,
+          proof
+        ).should.be.rejectedWith(Error, "Insufficient balance for proof");
       });
 
       it("payee cannot claim using a proof whose metadata has been tampered with", async function () {
-        let claimAmount = 11;
+        let claimAmount = toTokenUnit(10);
         // the cumulative amount in in the proof's meta has been increased artifically to 12 tokens: note the "c" in the 127th position of the proof, here ---v
         let tamperedProof =
           "0x0000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000c2e46ed0464b1e11097030a04086c9f068606b4c9808ccdac0343863c5e4f8244749e106fa8d91408f2578e5d93447f727f59279be85ce491faf212a7201d3b836b94214bff74426647e9cf0b5c5c3cbc9cef25b7e08759ca2b85357ec22c9b40";
 
-        await rewardPool
-          .claim(cardcpxdToken.address, claimAmount, tamperedProof, {
-            from: payee,
-          })
-          .should.be.rejectedWith(Error, "Insufficient balance for proof");
+        await claimReward(
+          rewardManager,
+          rewardPool,
+          relayer,
+          rewardSafe,
+          payee,
+          rewardProgramID,
+          cardcpxdToken,
+          claimAmount,
+          tamperedProof
+        ).should.be.rejectedWith(Error, "Insufficient balance for proof");
 
-        let payeeBalance = await cardcpxdToken.balanceOf(payee);
-        let poolBalance = await cardcpxdToken.balanceOf(rewardPool.address);
-        let claims = await rewardPool.claims(cardcpxdToken.address, payee);
-        let proofBalance = await rewardPool.balanceForProof(
-          cardcpxdToken.address,
-          proof,
-          {
-            from: payee,
-          }
-        );
         let tamperedProofBalance = await rewardPool.balanceForProof(
+          rewardProgramID,
           cardcpxdToken.address,
           tamperedProof,
           { from: payee }
         );
-
-        assert.equal(payeeBalance, 0, "the payee balance is correct");
-        assert(
-          poolBalance.eq(rewardPoolBalance),
-          "the pool balance is correct"
-        );
-        assert.equal(Number(claims), 0, "the claims amount is correct");
-        assert(proofBalance.eq(paymentAmount), "the proof balance is correct");
         assert.equal(
           tamperedProofBalance,
           0,
@@ -797,149 +806,150 @@ contract("RewardPool", function (accounts) {
 
       it("payee cannot make mulitple claim that total to more than their allotted amount from the pool", async function () {
         let claimAmount = toTokenUnit(4);
-        await rewardPool.claim(cardcpxdToken.address, toTokenUnit(4), proof, {
-          from: payee,
-        });
-        await rewardPool
-          .claim(cardcpxdToken.address, toTokenUnit(7), proof, {
-            from: payee,
-          })
-          .should.be.rejectedWith(Error, "Insufficient balance for proof");
-
-        let payeeBalance = await cardcpxdToken.balanceOf(payee);
-        let poolBalance = await cardcpxdToken.balanceOf(rewardPool.address);
-        let claims = await rewardPool.claims(cardcpxdToken.address, payee);
-        let proofBalance = await rewardPool.balanceForProof(
-          cardcpxdToken.address,
-          proof,
-          {
-            from: payee,
-          }
+        let secondClaimAmount = toTokenUnit(7);
+        assert(
+          secondClaimAmount.add(claimAmount).gt(paymentAmount),
+          "total claim amoount exceeds paymentAmount"
+        );
+        await claimReward(
+          rewardManager,
+          rewardPool,
+          relayer,
+          rewardSafe,
+          payee,
+          rewardProgramID,
+          cardcpxdToken,
+          claimAmount,
+          proof
         );
 
-        assert(payeeBalance.eq(claimAmount), "the payee balance is correct");
-        assert(
-          poolBalance.eq(rewardPoolBalance.sub(claimAmount)),
-          "the pool balance is correct"
-        );
-        assert(claims.eq(claimAmount), "the claims amount is correct");
-        assert(
-          proofBalance.eq(paymentAmount.sub(claimAmount)),
-          "the proof balance is correct"
-        );
+        await claimReward(
+          rewardManager,
+          rewardPool,
+          relayer,
+          rewardSafe,
+          payee,
+          rewardProgramID,
+          cardcpxdToken,
+          secondClaimAmount,
+          proof
+        ).should.be.rejectedWith(Error, "Insufficient balance for proof");
       });
 
       it("payee cannot claim 0 tokens from payment pool", async function () {
         let claimAmount = toTokenUnit(0);
-        await rewardPool
-          .claim(cardcpxdToken.address, claimAmount, proof, {
-            from: payee,
-          })
-          .should.be.rejectedWith(Error, "Cannot claim non-positive amount");
-
-        let payeeBalance = await cardcpxdToken.balanceOf(payee);
-        let poolBalance = await cardcpxdToken.balanceOf(rewardPool.address);
-        let claims = await rewardPool.claims(cardcpxdToken.address, payee);
-        let proofBalance = await rewardPool.balanceForProof(
-          cardcpxdToken.address,
-          proof,
-          {
-            from: payee,
-          }
-        );
-
-        assert.equal(Number(payeeBalance), 0, "the payee balance is correct");
-        assert(
-          poolBalance.eq(rewardPoolBalance),
-          "the pool balance is correct"
-        );
-        assert.equal(Number(claims), 0, "the claims amount is correct");
-        assert(proofBalance.eq(paymentAmount), "the proof balance is correct");
+        await claimReward(
+          rewardManager,
+          rewardPool,
+          relayer,
+          rewardSafe,
+          payee,
+          rewardProgramID,
+          cardcpxdToken,
+          claimAmount,
+          proof
+        ).should.be.rejectedWith(Error, "Cannot claim non-positive amount");
       });
 
       it("non-payee cannot claim from pool", async function () {
         let claimAmount = toTokenUnit(10);
-        await rewardPool
-          .claim(cardcpxdToken.address, claimAmount, proof, {
-            from: accounts[0],
-          })
-          .should.be.rejectedWith(Error, "Insufficient balance for proof");
-
-        let payeeBalance = await cardcpxdToken.balanceOf(payee);
-        let poolBalance = await cardcpxdToken.balanceOf(rewardPool.address);
-        let claims = await rewardPool.claims(cardcpxdToken.address, payee);
-        let proofBalance = await rewardPool.balanceForProof(
-          cardcpxdToken.address,
-          proof,
-          {
-            from: payee,
-          }
+        let aPayee = accounts[1];
+        let somePrepaidCard = await createPrepaidCardAndTransfer(
+          prepaidCardManager,
+          relayer,
+          depot,
+          issuer,
+          daicpxdToken,
+          toTokenUnit(10 + 1), // must be enough to pay registration fees
+          daicpxdToken,
+          aPayee,
+          cardcpxdToken
+        );
+        const tx = await registerRewardee(
+          prepaidCardManager,
+          somePrepaidCard,
+          daicpxdToken,
+          daicpxdToken,
+          relayer,
+          aPayee,
+          REWARDEE_REGISTRATION_FEE_IN_SPEND,
+          undefined,
+          rewardProgramID
         );
 
-        assert.equal(payeeBalance, 0, "the payee balance is correct");
-        assert(
-          poolBalance.eq(rewardPoolBalance),
-          "the pool balance is correct"
+        let someRewardSafe = await getRewardSafeFromEventLog(
+          tx,
+          rewardManager.address
         );
-        assert.equal(claims, 0, "the claims amount is correct");
-        assert(proofBalance.eq(paymentAmount), "the proof balance is correct");
+        await claimReward(
+          rewardManager,
+          rewardPool,
+          relayer,
+          someRewardSafe,
+          aPayee,
+          rewardProgramID,
+          cardcpxdToken,
+          claimAmount,
+          proof //this is the wrong proof
+        ).should.be.rejectedWith(Error, "Insufficient balance for proof");
       });
 
       it("payee cannot claim their allotted tokens from the pool when the pool does not have enough tokens", async function () {
-        let insufficientFundsPayeeIndex = 7;
-        let insufficientFundsPayee =
-          payments[insufficientFundsPayeeIndex].payee;
-        let insufficientFundsPaymentAmount =
-          payments[insufficientFundsPayeeIndex].amount;
-        let insufficientFundsProof = merkleTree.hexProofForPayee(
-          insufficientFundsPayee,
+        let payeeIndex = 7; //the payment with 101
+        let rewardee = payments[payeeIndex].payee;
+        let paymentAmountAbove100 = payments[payeeIndex].amount;
+        let proof = merkleTree.hexProofForPayee(
+          rewardProgramID,
+          rewardee,
           cardcpxdToken.address,
           paymentCycle
         );
 
-        await rewardPool
-          .claim(
-            cardcpxdToken.address,
-            insufficientFundsPaymentAmount,
-            insufficientFundsProof,
-            { from: insufficientFundsPayee }
-          )
-          .should.be.rejectedWith(
-            Error,
-            "Reward pool has insufficient balance"
-          );
-
-        let payeeBalance = await cardcpxdToken.balanceOf(
-          insufficientFundsPayee
-        );
-        let poolBalance = await cardcpxdToken.balanceOf(rewardPool.address);
-        let claims = await rewardPool.claims(
-          cardcpxdToken.address,
-          insufficientFundsPayee
-        );
-        let proofBalance = await rewardPool.balanceForProof(
-          cardcpxdToken.address,
-          insufficientFundsProof,
-          { from: insufficientFundsPayee }
-        );
-
-        assert.equal(Number(payeeBalance), 0, "the payee balance is correct");
         assert(
-          poolBalance.eq(rewardPoolBalance),
-          "the pool balance is correct"
+          paymentAmountAbove100.gt(rewardPoolPreviousBalance),
+          "reward pool does not have enough balance"
         );
-        assert.equal(Number(claims), 0, "the claims amount is correct");
-        assert(
-          proofBalance.eq(insufficientFundsPaymentAmount),
-          "the proof balance is correct"
+        let somePrepaidCard = await createPrepaidCardAndTransfer(
+          prepaidCardManager,
+          relayer,
+          depot,
+          issuer,
+          daicpxdToken,
+          toTokenUnit(10 + 1), // must be enough to pay registration fees
+          daicpxdToken,
+          rewardee,
+          cardcpxdToken
         );
+        const tx = await registerRewardee(
+          prepaidCardManager,
+          somePrepaidCard,
+          daicpxdToken,
+          daicpxdToken,
+          relayer,
+          rewardee,
+          REWARDEE_REGISTRATION_FEE_IN_SPEND,
+          undefined,
+          rewardProgramID
+        );
+        let someRewardSafe = await getRewardSafeFromEventLog(
+          tx,
+          rewardManager.address
+        );
+        await claimReward(
+          rewardManager,
+          rewardPool,
+          relayer,
+          someRewardSafe,
+          rewardee,
+          rewardProgramID,
+          cardcpxdToken,
+          paymentAmountAbove100,
+          proof
+        ).should.be.rejectedWith(Error, "Reward pool has insufficient balance");
       });
 
       it("payee claim their allotted amount from an older proof", async function () {
         let updatedPayments = payments.slice();
-        updatedPayments[payeeIndex].amount = updatedPayments[
-          payeeIndex
-        ].amount.add(toTokenUnit(2));
         let updatedPaymentAmount = updatedPayments[payeeIndex].amount;
         let updatedMerkleTree = new CumulativePaymentTree(updatedPayments);
         let updatedRoot = updatedMerkleTree.getHexRoot();
@@ -949,36 +959,58 @@ contract("RewardPool", function (accounts) {
         let paymentCycle = await rewardPool.numPaymentCycles();
         paymentCycle = paymentCycle.toNumber();
         let updatedProof = updatedMerkleTree.hexProofForPayee(
+          rewardProgramID,
           payee,
           cardcpxdToken.address,
           paymentCycle
         );
         await rewardPool.submitPayeeMerkleRoot(updatedRoot, { from: tally });
 
-        let claimAmount = toTokenUnit(8);
-        await rewardPool.claim(cardcpxdToken.address, claimAmount, proof, {
-          from: payee,
-        });
+        let claimAmount = toTokenUnit(8); //person should have total of 10(old proof)+12(new proof) to his name
 
-        let payeeBalance = await cardcpxdToken.balanceOf(payee);
-        let poolBalance = await cardcpxdToken.balanceOf(rewardPool.address);
-        let claims = await rewardPool.claims(cardcpxdToken.address, payee);
+        await claimReward(
+          rewardManager,
+          rewardPool,
+          relayer,
+          rewardSafe,
+          payee,
+          rewardProgramID,
+          cardcpxdToken,
+          claimAmount,
+          proof
+        );
+
+        let rewardSafeBalance = await getBalance(
+          cardcpxdToken,
+          rewardSafe.address
+        );
+        let rewardPoolBalance = await getBalance(
+          cardcpxdToken,
+          rewardPool.address
+        );
         let proofBalance = await rewardPool.balanceForProof(
+          rewardProgramID,
           cardcpxdToken.address,
           proof,
-          {
-            from: payee,
-          }
+          { from: payee }
         );
         let updatedProofBalance = await rewardPool.balanceForProof(
+          rewardProgramID,
           cardcpxdToken.address,
           updatedProof,
           { from: payee }
         );
-
-        assert(payeeBalance.eq(claimAmount), "the payee balance is correct");
+        let claims = await rewardPool.claims(
+          rewardProgramID,
+          cardcpxdToken.address,
+          payee
+        );
         assert(
-          poolBalance.eq(rewardPoolBalance.sub(claimAmount)),
+          rewardSafeBalance.eq(rewardSafePreviousBalance.add(claimAmount)),
+          "the payee balance is correct"
+        );
+        assert(
+          rewardPoolBalance.eq(rewardPoolPreviousBalance.sub(claimAmount)),
           "the pool balance is correct"
         );
         assert(claims.eq(claimAmount), "the claims amount is correct");
@@ -986,6 +1018,7 @@ contract("RewardPool", function (accounts) {
           proofBalance.eq(paymentAmount.sub(claimAmount)),
           "the proof balance is correct"
         );
+        // TODO: Major bug. new proofs get deducted claims from previous proofs
         assert(
           updatedProofBalance.eq(updatedPaymentAmount.sub(claimAmount)),
           "the updated proof balance is correct"
@@ -994,9 +1027,6 @@ contract("RewardPool", function (accounts) {
 
       it("payee claim their allotted amount from a newer proof", async function () {
         let updatedPayments = payments.slice();
-        updatedPayments[payeeIndex].amount = updatedPayments[
-          payeeIndex
-        ].amount.add(toTokenUnit(2));
         let updatedPaymentAmount = updatedPayments[payeeIndex].amount;
         let updatedMerkleTree = new CumulativePaymentTree(updatedPayments);
         let updatedRoot = updatedMerkleTree.getHexRoot();
@@ -1006,6 +1036,7 @@ contract("RewardPool", function (accounts) {
         let paymentCycle = await rewardPool.numPaymentCycles();
         paymentCycle = paymentCycle.toNumber();
         let updatedProof = updatedMerkleTree.hexProofForPayee(
+          rewardProgramID,
           payee,
           cardcpxdToken.address,
           paymentCycle
@@ -1013,172 +1044,48 @@ contract("RewardPool", function (accounts) {
         await rewardPool.submitPayeeMerkleRoot(updatedRoot, { from: tally });
 
         let claimAmount = toTokenUnit(8);
-        await rewardPool.claim(
-          cardcpxdToken.address,
-          claimAmount,
-          updatedProof,
-          {
-            from: payee,
-          }
-        );
 
-        let payeeBalance = await cardcpxdToken.balanceOf(payee);
-        let poolBalance = await cardcpxdToken.balanceOf(rewardPool.address);
-        let claims = await rewardPool.claims(cardcpxdToken.address, payee);
-        let proofBalance = await rewardPool.balanceForProof(
-          cardcpxdToken.address,
-          proof,
-          {
-            from: payee,
-          }
-        );
-        let updatedProofBalance = await rewardPool.balanceForProof(
-          cardcpxdToken.address,
-          updatedProof,
-          { from: payee }
-        );
-
-        assert(payeeBalance.eq(claimAmount), "the payee balance is correct");
-        assert(
-          poolBalance.eq(rewardPoolBalance.sub(claimAmount)),
-          "the pool balance is correct"
-        );
-        assert(claims.eq(claimAmount), "the claims amount is correct");
-        assert(
-          proofBalance.eq(paymentAmount.sub(claimAmount)),
-          "the proof balance is correct"
-        );
-        assert(
-          updatedProofBalance.eq(updatedPaymentAmount.sub(claimAmount)),
-          "the updated proof balance is correct"
-        );
-      });
-
-      it("payee claim their allotted amount from both an older and new proof", async function () {
-        let updatedPayments = payments.slice();
-        updatedPayments[payeeIndex].amount = updatedPayments[
-          payeeIndex
-        ].amount.add(toTokenUnit(2));
-        let updatedPaymentAmount = updatedPayments[payeeIndex].amount;
-        let updatedMerkleTree = new CumulativePaymentTree(updatedPayments);
-        let updatedRoot = updatedMerkleTree.getHexRoot();
-
-        await advanceBlock(web3);
-
-        let paymentCycle = await rewardPool.numPaymentCycles();
-        paymentCycle = paymentCycle.toNumber();
-        let updatedProof = updatedMerkleTree.hexProofForPayee(
+        await claimReward(
+          rewardManager,
+          rewardPool,
+          relayer,
+          rewardSafe,
           payee,
-          cardcpxdToken.address,
-          paymentCycle
-        );
-        await rewardPool.submitPayeeMerkleRoot(updatedRoot, { from: tally });
-
-        let claimAmount = toTokenUnit(8).add(toTokenUnit(4));
-        await rewardPool.claim(cardcpxdToken.address, toTokenUnit(8), proof, {
-          from: payee,
-        });
-        await rewardPool.claim(
-          cardcpxdToken.address,
-          toTokenUnit(4),
-          updatedProof,
-          {
-            from: payee,
-          }
-        );
-
-        let payeeBalance = await cardcpxdToken.balanceOf(payee);
-        let poolBalance = await cardcpxdToken.balanceOf(rewardPool.address);
-        let claims = await rewardPool.claims(cardcpxdToken.address, payee);
-        let proofBalance = await rewardPool.balanceForProof(
-          cardcpxdToken.address,
-          proof,
-          {
-            from: payee,
-          }
-        );
-        let updatedProofBalance = await rewardPool.balanceForProof(
-          cardcpxdToken.address,
-          updatedProof,
-          { from: payee }
-        );
-
-        assert(payeeBalance.eq(claimAmount), "the payee balance is correct");
-        assert(
-          poolBalance.eq(rewardPoolBalance.sub(claimAmount)),
-          "the pool balance is correct"
-        );
-        assert(claims.eq(claimAmount), "the claims amount is correct");
-        assert.equal(Number(proofBalance), 0, "the proof balance is correct");
-        assert(
-          updatedProofBalance.eq(updatedPaymentAmount.sub(claimAmount)),
-
-          "the updated proof balance is correct"
-        );
-      });
-
-      it("does not allow a payee to exceed their provided proof's allotted amount when claim from an older proof and a newer proof", async function () {
-        let updatedPayments = payments.slice();
-        updatedPayments[payeeIndex].amount = updatedPayments[
-          payeeIndex
-        ].amount.add(toTokenUnit(2));
-        let updatedPaymentAmount = updatedPayments[payeeIndex].amount;
-        let updatedMerkleTree = new CumulativePaymentTree(updatedPayments);
-        let updatedRoot = updatedMerkleTree.getHexRoot();
-
-        await advanceBlock(web3);
-
-        let paymentCycle = await rewardPool.numPaymentCycles();
-        paymentCycle = paymentCycle.toNumber();
-        let updatedProof = updatedMerkleTree.hexProofForPayee(
-          payee,
-          cardcpxdToken.address,
-          paymentCycle
-        );
-        await rewardPool.submitPayeeMerkleRoot(updatedRoot, { from: tally });
-
-        let claimAmount = toTokenUnit(8);
-        await rewardPool.claim(
-          cardcpxdToken.address,
+          rewardProgramID,
+          cardcpxdToken,
           claimAmount,
-          updatedProof,
-          {
-            from: payee,
-          }
+          updatedProof
         );
-        rewardPool
-          .claim(cardcpxdToken.address, toTokenUnit(4), proof, {
-            from: payee,
-          })
-          .should.be.rejectedWith(Error, "Insufficient balance for proof");
-        // this proof only permits 10 - 8 tokens to be claim, even though the newer proof permits 12 - 8 tokens to be claim
 
-        let payeeBalance = await cardcpxdToken.balanceOf(payee);
-        let poolBalance = await cardcpxdToken.balanceOf(rewardPool.address);
-        let claims = await rewardPool.claims(cardcpxdToken.address, payee);
-        let proofBalance = await rewardPool.balanceForProof(
-          cardcpxdToken.address,
-          proof,
-          {
-            from: payee,
-          }
+        let rewardSafeBalance = await getBalance(
+          cardcpxdToken,
+          rewardSafe.address
+        );
+        let rewardPoolBalance = await getBalance(
+          cardcpxdToken,
+          rewardPool.address
         );
         let updatedProofBalance = await rewardPool.balanceForProof(
+          rewardProgramID,
           cardcpxdToken.address,
           updatedProof,
           { from: payee }
         );
+        let claims = await rewardPool.claims(
+          rewardProgramID,
+          cardcpxdToken.address,
+          payee
+        );
 
-        assert(payeeBalance.eq(claimAmount), "the payee balance is correct");
         assert(
-          poolBalance.eq(rewardPoolBalance.sub(claimAmount)),
+          rewardSafeBalance.eq(rewardSafePreviousBalance.add(claimAmount)),
+          "the payee balance is correct"
+        );
+        assert(
+          rewardPoolBalance.eq(rewardPoolPreviousBalance.sub(claimAmount)),
           "the pool balance is correct"
         );
         assert(claims.eq(claimAmount), "the claims amount is correct");
-        assert(
-          proofBalance.eq(paymentAmount.sub(claimAmount)),
-          "the proof balance is correct"
-        );
         assert(
           updatedProofBalance.eq(updatedPaymentAmount.sub(claimAmount)),
           "the updated proof balance is correct"
@@ -1193,6 +1100,14 @@ contract("RewardPool", function (accounts) {
       let merkleTree;
       let root;
       let erc20Token;
+      let rewardSafe, rewardeePrepaidCard;
+
+      let rewardPoolPreviousBalanceCard,
+        rewardPoolPreviousBalanceDai,
+        rewardPoolPreviousBalanceErc20,
+        rewardSafePreviousBalanceCard,
+        rewardSafePreviousBalanceDai,
+        rewardSafePreviousBalanceErc20;
 
       beforeEach(async function () {
         payee = accounts[11];
@@ -1200,21 +1115,25 @@ contract("RewardPool", function (accounts) {
         await erc20Token.initialize(owner);
         payments = [
           {
+            rewardProgramID,
             payee,
             token: daicpxdToken.address,
             amount: toTokenUnit(10),
           },
           {
+            rewardProgramID,
             payee,
             token: daicpxdToken.address,
             amount: toTokenUnit(12),
           },
           {
+            rewardProgramID,
             payee,
             token: cardcpxdToken.address,
             amount: toTokenUnit(100),
           },
           {
+            rewardProgramID,
             payee,
             token: erc20Token.address,
             amount: toTokenUnit(10),
@@ -1225,136 +1144,199 @@ contract("RewardPool", function (accounts) {
         await cardcpxdToken.mint(rewardPool.address, rewardPoolBalance);
         await daicpxdToken.mint(rewardPool.address, rewardPoolBalance);
         await erc20Token.mint(rewardPool.address, rewardPoolBalance);
+
         merkleTree = new CumulativePaymentTree(payments);
         root = merkleTree.getHexRoot();
+
         paymentCycle = await rewardPool.numPaymentCycles();
         paymentCycle = paymentCycle.toNumber();
-        const rewardPoolBalanceCard = await cardcpxdToken.balanceOf(
+        await rewardPool.submitPayeeMerkleRoot(root, { from: tally });
+
+        //registering rewardee
+        rewardeePrepaidCard = await createPrepaidCardAndTransfer(
+          prepaidCardManager,
+          relayer,
+          depot,
+          issuer,
+          daicpxdToken,
+          toTokenUnit(10 + 1), // must be enough to pay registration fees
+          daicpxdToken,
+          payee,
+          cardcpxdToken
+        );
+        const tx = await registerRewardee(
+          prepaidCardManager,
+          rewardeePrepaidCard,
+          daicpxdToken,
+          daicpxdToken,
+          relayer,
+          payee,
+          REWARDEE_REGISTRATION_FEE_IN_SPEND,
+          undefined,
+          rewardProgramID
+        );
+        rewardSafe = await getRewardSafeFromEventLog(tx, rewardManager.address);
+
+        //get balance
+        rewardPoolPreviousBalanceCard = await getBalance(
+          cardcpxdToken,
           rewardPool.address
         );
-        const rewardPoolBalanceDai = await daicpxdToken.balanceOf(
+        rewardPoolPreviousBalanceDai = await getBalance(
+          daicpxdToken,
           rewardPool.address
         );
-        const rewardPoolBalanceErc20 = await erc20Token.balanceOf(
+        rewardPoolPreviousBalanceErc20 = await getBalance(
+          erc20Token,
           rewardPool.address
         );
-        assert(rewardPoolBalanceCard.eq(rewardPoolBalance));
-        assert(rewardPoolBalanceDai.eq(rewardPoolBalance));
-        assert(rewardPoolBalanceErc20.eq(rewardPoolBalance));
+        rewardSafePreviousBalanceCard = await getBalance(
+          cardcpxdToken,
+          rewardSafe.address
+        );
+        rewardSafePreviousBalanceDai = await getBalance(
+          daicpxdToken,
+          rewardSafe.address
+        );
+        rewardSafePreviousBalanceErc20 = await getBalance(
+          erc20Token,
+          rewardSafe.address
+        );
       });
 
       it("can claim erc20 tokens", async () => {
         const erc20Amount = toTokenUnit(5);
-        await rewardPool.submitPayeeMerkleRoot(root, { from: tally });
         const erc20Proof = merkleTree.hexProofForPayee(
+          rewardProgramID,
           payee,
           erc20Token.address,
           paymentCycle
         );
-        const payeePoolBalanceBefore = await rewardPool.balanceForProofWithAddress(
+        await claimReward(
+          rewardManager,
+          rewardPool,
+          relayer,
+          rewardSafe,
+          payee,
+          rewardProgramID,
+          erc20Token,
+          erc20Amount,
+          erc20Proof
+        );
+        const proofBalance = await rewardPool.balanceForProofWithAddress(
+          rewardProgramID,
           erc20Token.address,
           payee,
           erc20Proof
         );
-        await rewardPool.claim(erc20Token.address, erc20Amount, erc20Proof, {
-          from: payee,
-        });
-        const payeePoolBalanceAfter = await rewardPool.balanceForProofWithAddress(
-          erc20Token.address,
-          payee,
-          erc20Proof
+        const rewardSafeBalance = await getBalance(
+          erc20Token,
+          rewardSafe.address
         );
-        const payeeBalanceAfter = await erc20Token.balanceOf(payee);
-        const rewardPoolBalanceErc20After = await erc20Token.balanceOf(
+        let rewardPoolBalance = await getBalance(
+          erc20Token,
+          rewardPool.address
+        );
+
+        assert(
+          rewardSafeBalance.eq(rewardSafePreviousBalanceErc20.add(erc20Amount)),
+          "the reward safe balance is correct"
+        );
+        assert(
+          rewardPoolBalance.eq(rewardPoolPreviousBalanceErc20.sub(erc20Amount)),
+          "the pool balance is correct"
+        );
+
+        assert(
+          proofBalance.eq(toTokenUnit(10).sub(erc20Amount)),
+          "the proof balance is correct"
+        );
+      });
+
+      it("claim from two different tokens", async () => {
+        const cardAmount = toTokenUnit(100);
+        const daiAmount = toTokenUnit(10).add(toTokenUnit(12));
+        const cardProof = merkleTree.hexProofForPayee(
+          rewardProgramID,
+          payee,
+          cardcpxdToken.address,
+          paymentCycle
+        );
+        const daiProof = merkleTree.hexProofForPayee(
+          rewardProgramID,
+          payee,
+          daicpxdToken.address,
+          paymentCycle
+        );
+
+        await claimReward(
+          rewardManager,
+          rewardPool,
+          relayer,
+          rewardSafe,
+          payee,
+          rewardProgramID,
+          cardcpxdToken,
+          cardAmount,
+          cardProof
+        );
+
+        await claimReward(
+          rewardManager,
+          rewardPool,
+          relayer,
+          rewardSafe,
+          payee,
+          rewardProgramID,
+          daicpxdToken,
+          daiAmount,
+          daiProof
+        );
+
+        const rewardSafeBalanceCard = await getBalance(
+          cardcpxdToken,
+          rewardSafe.address
+        );
+        let rewardPoolBalanceCard = await getBalance(
+          cardcpxdToken,
+          rewardPool.address
+        );
+
+        const rewardSafeBalanceDai = await getBalance(
+          daicpxdToken,
+          rewardSafe.address
+        );
+        let rewardPoolBalanceDai = await getBalance(
+          daicpxdToken,
           rewardPool.address
         );
         assert(
-          payeePoolBalanceBefore.eq(payeePoolBalanceAfter.add(erc20Amount))
+          rewardSafeBalanceCard.eq(
+            rewardSafePreviousBalanceCard.add(cardAmount)
+          ),
+          "the reward safe balance is correct"
         );
-        assert(payeeBalanceAfter.eq(erc20Amount));
+
         assert(
-          rewardPoolBalanceErc20After.eq(rewardPoolBalance.sub(erc20Amount))
+          rewardPoolBalanceCard.eq(
+            rewardPoolPreviousBalanceCard.sub(cardAmount)
+          ),
+          "the pool balance is correct"
+        );
+
+        assert(
+          rewardSafeBalanceDai.eq(rewardSafePreviousBalanceDai.add(daiAmount)),
+          "the reward safe balance is correct"
+        );
+
+        assert(
+          rewardPoolBalanceDai.eq(rewardPoolPreviousBalanceDai.sub(daiAmount)),
+          "the pool balance is correct"
         );
       });
 
       //TODO
       it("can claim nft tokens", async () => {});
-
-      it("claim data aggregate is correct", async () => {
-        const daiProof = merkleTree.hexProofForPayee(
-          payee,
-          daicpxdToken.address,
-          paymentCycle
-        );
-        const cardProof = merkleTree.hexProofForPayee(
-          payee,
-          cardcpxdToken.address,
-          paymentCycle
-        );
-        const claim = merkleTree.claimData(payee, paymentCycle);
-
-        const { proof: daiProofPrime, amount: daiAvailable } = _.find(claim, {
-          token: daicpxdToken.address,
-        });
-        const { proof: cardProofPrime, amount: cardAvailable } = _.find(claim, {
-          token: cardcpxdToken.address,
-        });
-        assert.equal(claim.length, 3);
-        assert.equal(daiProof, daiProofPrime);
-        assert.equal(cardProof, cardProofPrime);
-        assert(cardAvailable.eq(toTokenUnit(100)));
-        assert(daiAvailable.eq(toTokenUnit(22)));
-      });
-
-      it("claim from two different tokens", async () => {
-        await rewardPool.submitPayeeMerkleRoot(root, { from: tally });
-        const cardProof = merkleTree.hexProofForPayee(
-          payee,
-          cardcpxdToken.address,
-          paymentCycle
-        );
-        const daiProof = merkleTree.hexProofForPayee(
-          payee,
-          daicpxdToken.address,
-          paymentCycle
-        );
-        const daiBalanceBefore = await rewardPool.balanceForProofWithAddress(
-          daicpxdToken.address,
-          payee,
-          daiProof
-        );
-        const cardBalanceBefore = await rewardPool.balanceForProofWithAddress(
-          cardcpxdToken.address,
-          payee,
-          cardProof
-        );
-        const amountCard = toTokenUnit(50);
-        const amountDai = daiBalanceBefore;
-        assert(amountCard.lte(cardBalanceBefore));
-        assert(amountDai.lte(daiBalanceBefore));
-        await rewardPool.claim(cardcpxdToken.address, amountCard, cardProof, {
-          from: payee,
-        });
-        await rewardPool.claim(daicpxdToken.address, amountDai, daiProof, {
-          from: payee,
-        });
-        const daiBalanceAfter = await rewardPool.balanceForProofWithAddress(
-          daicpxdToken.address,
-          payee,
-          daiProof
-        );
-        const cardBalanceAfter = await rewardPool.balanceForProofWithAddress(
-          cardcpxdToken.address,
-          payee,
-          cardProof
-        );
-        const payeeCardBalance = await cardcpxdToken.balanceOf(payee);
-        const payeeDaiBalance = await daicpxdToken.balanceOf(payee);
-        assert(cardBalanceBefore.eq(cardBalanceAfter.add(amountCard)));
-        assert(daiBalanceBefore.eq(daiBalanceAfter.add(amountDai)));
-        assert(payeeCardBalance.eq(amountCard));
-        assert(payeeDaiBalance.eq(amountDai));
-      });
     });
   });
 });
