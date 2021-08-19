@@ -13,7 +13,6 @@ const ERC677Token = artifacts.require("ERC677Token.sol");
 const { randomHex } = require("web3-utils");
 const { expect, TOKEN_DETAIL_DATA } = require("./setup");
 const utils = require("./utils/general");
-// const { getRewardSafeFromEventLog } = require("./utils/general");
 const { ZERO_ADDRESS } = utils;
 
 const {

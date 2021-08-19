@@ -27,7 +27,6 @@ const REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND = 500;
 const REWARDEE_REGISTRATION_FEE_IN_SPEND = 500;
 
 contract("RewardPool", function (accounts) {
-  //main contracts
   let daicpxdToken, cardcpxdToken;
 
   let rewardManager, supplierManager, prepaidCardManager;
@@ -35,7 +34,6 @@ contract("RewardPool", function (accounts) {
   let owner, issuer, prepaidCardOwner, relayer;
 
   let depot, rewardSafe;
-  // reward roles
   let rewardProgramID, otherRewardProgramID;
   let tally;
   let rewardPool;
@@ -43,7 +41,6 @@ contract("RewardPool", function (accounts) {
   describe("Reward Pool", function () {
     let prepaidCard;
     before(async () => {
-      //accounts
       ({ owner, tally, issuer, prepaidCardOwner, relayer } = setupRoles(
         accounts
       ));
@@ -55,20 +52,16 @@ contract("RewardPool", function (accounts) {
         rewardManager,
         supplierManager,
         depot,
-        //tokens
         daicpxdToken,
         cardcpxdToken,
       } = await setupProtocol(accounts));
     });
     beforeEach(async function () {
-      //setting up reward pool
       rewardPool = await RewardPool.new();
       await rewardPool.initialize(owner);
       await rewardPool.setup(tally, rewardManager.address);
-      //create depot
       depot = await createDepotFromSupplierMgr(supplierManager, issuer);
       await daicpxdToken.mint(depot.address, toTokenUnit(1000));
-      //setting up prepaid cards
       rewardProgramID = randomHex(20);
       otherRewardProgramID = randomHex(20);
       prepaidCard = await createPrepaidCardAndTransfer(
@@ -77,27 +70,25 @@ contract("RewardPool", function (accounts) {
         depot,
         issuer,
         daicpxdToken,
-        toTokenUnit(10 + 1), // must be enough to pay registration fees
+        toTokenUnit(10 + 1),
         daicpxdToken,
         prepaidCardOwner,
         cardcpxdToken
       );
 
-      // //register for rewards
       await registerRewardProgram(
         prepaidCardManager,
         prepaidCard,
         daicpxdToken,
         daicpxdToken,
         relayer,
-        prepaidCardOwner, //reward program admin
+        prepaidCardOwner,
         REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
         undefined,
-        prepaidCardOwner, //current rewardProgramAdmin
+        prepaidCardOwner,
         rewardProgramID
       );
 
-      //setting up prepaid cards
       payments = [
         {
           rewardProgramID: rewardProgramID,
@@ -298,7 +289,7 @@ contract("RewardPool", function (accounts) {
           .should.be.rejectedWith(Error, "Caller is not tally");
 
         await rewardPool
-          .submitPayeeMerkleRoot(root, { from: owner }) // also doesn't allow owner to submit merkle root
+          .submitPayeeMerkleRoot(root, { from: owner })
           .should.be.rejectedWith(Error, "Caller is not tally");
 
         let paymentCycleNumber = await rewardPool.numPaymentCycles();
@@ -569,7 +560,7 @@ contract("RewardPool", function (accounts) {
           depot,
           issuer,
           daicpxdToken,
-          toTokenUnit(10 + 1), // must be enough to pay registration fees
+          toTokenUnit(10 + 1),
           daicpxdToken,
           payee,
           cardcpxdToken
@@ -660,10 +651,10 @@ contract("RewardPool", function (accounts) {
           daicpxdToken,
           daicpxdToken,
           relayer,
-          prepaidCardOwner, //reward program admin
+          prepaidCardOwner,
           REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
           undefined,
-          prepaidCardOwner, //current rewardProgramAdmin
+          prepaidCardOwner,
           otherRewardProgramID
         );
 
@@ -673,7 +664,7 @@ contract("RewardPool", function (accounts) {
           depot,
           issuer,
           daicpxdToken,
-          toTokenUnit(10 + 1), // must be enough to pay registration fees
+          toTokenUnit(10 + 1),
           daicpxdToken,
           aPayee,
           cardcpxdToken
@@ -926,7 +917,7 @@ contract("RewardPool", function (accounts) {
           depot,
           issuer,
           daicpxdToken,
-          toTokenUnit(10 + 1), // must be enough to pay registration fees
+          toTokenUnit(10 + 1),
           daicpxdToken,
           aPayee,
           cardcpxdToken
@@ -961,7 +952,7 @@ contract("RewardPool", function (accounts) {
       });
 
       it("payee cannot claim their allotted tokens from the pool when the pool does not have enough tokens", async function () {
-        let payeeIndex = 7; //the payment with 101
+        let payeeIndex = 7;
         let rewardee = payments[payeeIndex].payee;
         let paymentAmountAbove100 = payments[payeeIndex].amount;
         let proof = merkleTree.hexProofForPayee(
@@ -981,7 +972,7 @@ contract("RewardPool", function (accounts) {
           depot,
           issuer,
           daicpxdToken,
-          toTokenUnit(10 + 1), // must be enough to pay registration fees
+          toTokenUnit(10 + 1),
           daicpxdToken,
           rewardee,
           cardcpxdToken
@@ -1032,7 +1023,7 @@ contract("RewardPool", function (accounts) {
         );
         await rewardPool.submitPayeeMerkleRoot(updatedRoot, { from: tally });
 
-        let claimAmount = toTokenUnit(8); //person should have total of 10(old proof)+12(new proof) to his name
+        let claimAmount = toTokenUnit(8);
 
         await claimReward(
           rewardManager,
@@ -1218,14 +1209,13 @@ contract("RewardPool", function (accounts) {
         paymentCycle = paymentCycle.toNumber();
         await rewardPool.submitPayeeMerkleRoot(root, { from: tally });
 
-        //registering rewardee
         rewardeePrepaidCard = await createPrepaidCardAndTransfer(
           prepaidCardManager,
           relayer,
           depot,
           issuer,
           daicpxdToken,
-          toTokenUnit(10 + 1), // must be enough to pay registration fees
+          toTokenUnit(10 + 1),
           daicpxdToken,
           payee,
           cardcpxdToken
@@ -1243,7 +1233,6 @@ contract("RewardPool", function (accounts) {
         );
         rewardSafe = await getRewardSafeFromEventLog(tx, rewardManager.address);
 
-        //get balance
         rewardPoolPreviousBalanceCard = await getBalance(
           cardcpxdToken,
           rewardPool.address
@@ -1400,9 +1389,6 @@ contract("RewardPool", function (accounts) {
           "the pool balance is correct"
         );
       });
-
-      //TODO
-      it("can claim nft tokens", async () => {});
     });
   });
 });
