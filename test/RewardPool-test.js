@@ -708,50 +708,6 @@ contract("RewardPool", function (accounts) {
           "can only withdraw for safe registered on reward program"
         );
       });
-      it("payee cannot claim up without a reward safe", async function () {
-        await claimReward(
-          rewardManager,
-          rewardPool,
-          relayer,
-          rewardSafe,
-          payee,
-          rewardProgramID,
-          cardcpxdToken,
-          paymentAmount,
-          proof
-        );
-
-        let rewardSafeBalance = await getBalance(
-          cardcpxdToken,
-          rewardSafe.address
-        );
-        let rewardPoolBalance = await getBalance(
-          cardcpxdToken,
-          rewardPool.address
-        );
-        let proofBalance = await rewardPool.balanceForProof(
-          rewardProgramID,
-          cardcpxdToken.address,
-          proof,
-          { from: payee }
-        );
-
-        let claims = await rewardPool.claims(
-          rewardProgramID,
-          cardcpxdToken.address,
-          payee
-        );
-        assert(
-          rewardSafeBalance.eq(rewardSafePreviousBalance.add(paymentAmount)),
-          "the reward safe balance is correct"
-        );
-        assert(
-          rewardPoolBalance.eq(rewardPoolPreviousBalance.sub(paymentAmount)),
-          "the pool balance is correct"
-        );
-        assert(claims.eq(paymentAmount), "the claims amount is correct");
-        assert.equal(Number(proofBalance), 0, "the proof balance is correct");
-      });
       it("payee can make a claim less than their allotted amount from the pool", async function () {
         let claimAmount = toTokenUnit(8);
         assert(
