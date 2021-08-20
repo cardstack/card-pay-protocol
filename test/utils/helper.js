@@ -564,7 +564,7 @@ exports.registerMerchant = async function (
   infoDID = ""
 ) {
   if (usdRate == null) {
-    usdRate = 100000000; // 1 DAI = 1 USD
+    usdRate = 100000000;
   }
   let data = await prepaidCardManager.getSendData(
     prepaidCard.address,
@@ -612,7 +612,7 @@ exports.splitPrepaidCard = async function (
   usdRate
 ) {
   if (usdRate == null) {
-    usdRate = 100000000; // 1 DAI = 1 USD
+    usdRate = 100000000;
   }
   let data = await prepaidCardManager.getSendData(
     prepaidCard.address,
@@ -633,7 +633,7 @@ exports.splitPrepaidCard = async function (
     0,
     0,
     0,
-    issuingToken.address, // we use the issuing token for gas
+    issuingToken.address,
     ZERO_ADDRESS,
     await prepaidCard.nonce(),
     issuer,
@@ -666,7 +666,7 @@ exports.payMerchant = async function (
   usdRate
 ) {
   if (usdRate == null) {
-    usdRate = 100000000; // 1 DAI = 1 USD
+    usdRate = 100000000;
   }
   let data = await prepaidCardManager.getSendData(
     prepaidCard.address,
@@ -703,7 +703,6 @@ exports.payMerchant = async function (
 };
 
 exports.advanceBlock = async function (web3) {
-  //passes local ganache web3
   return new Promise((resolve, reject) => {
     web3.currentProvider.send(
       {
@@ -735,7 +734,7 @@ exports.registerRewardee = async function (
   rewardProgramID
 ) {
   if (usdRate == null) {
-    usdRate = 100000000; // 1 DAI = 1 USD
+    usdRate = 100000000;
   }
   const actionName = "registerRewardee";
   const actionData = AbiCoder.encodeParameters(["address"], [rewardProgramID]);
@@ -841,7 +840,7 @@ exports.registerRewardProgram = async function (
   rewardProgramID
 ) {
   if (usdRate == null) {
-    usdRate = 100000000; // 1 DAI = 1 USD
+    usdRate = 100000000;
   }
   const actionName = "registerRewardProgram";
   const actionData = AbiCoder.encodeParameters(
@@ -1102,20 +1101,14 @@ const airdropGas = async function (
   return token.mint(to, amountInWei);
 };
 
-// function to create prepaid cards
-// - abstracts away issuer prepaid card creation and transfer
-// - creates 1 prepaid card
 exports.createPrepaidCardAndTransfer = async function (
-  //general
   prepaidCardManager,
   relayer,
-  //create prepaid card
   depot,
   issuer,
   issuingToken,
   issuingTokenAmount,
   gasToken,
-  //transfer
   newOwner,
   transferGasToken
 ) {
@@ -1142,6 +1135,45 @@ exports.createPrepaidCardAndTransfer = async function (
     issuingToken
   );
   return prepaidCard;
+};
+
+exports.claimReward = async function (
+  rewardManager,
+  rewardPool,
+  relayer,
+  rewardSafe,
+  rewardSafeOwner,
+  rewardProgramID,
+  token,
+  claimAmount,
+  proof
+) {
+  let claimReward = rewardPool.contract.methods.claim(
+    rewardProgramID,
+    token.address,
+    claimAmount,
+    proof
+  );
+
+  let payload = claimReward.encodeABI();
+  let gasEstimate = await claimReward.estimateGas({ from: rewardSafe.address });
+
+  let safeTxData = {
+    to: rewardPool.address,
+    data: payload,
+    txGasEstimate: gasEstimate,
+    gasPrice: 0, //TODO:handle gas payment with prepaid card
+    txGasToken: token.address,
+    refundReceive: relayer,
+  };
+
+  let { safeTx } = await signAndSendSafeTransaction(
+    safeTxData,
+    rewardSafeOwner,
+    rewardSafe,
+    relayer
+  );
+  return safeTx;
 };
 
 exports.toTokenUnit = toTokenUnit;

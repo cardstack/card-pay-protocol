@@ -150,6 +150,16 @@ function getGnosisSafeFromEventLog(receipt, prepaidCardManagerAddr) {
   return Promise.all(cards);
 }
 
+const getRewardSafeFromEventLog = async function (receipt, rewardManagerAddr) {
+  const rewardSafeCreation = await getParamsFromEvent(
+    receipt,
+    eventABIs.REWARDEE_REGISTERED,
+    rewardManagerAddr
+  );
+
+  return GnosisSafe.at(rewardSafeCreation[0].rewardSafe);
+};
+
 function isEventMatching(log, topic, address) {
   return log.topics[0] === topic && log.address === address;
 }
@@ -166,6 +176,7 @@ Object.assign(exports, {
   encodeMultiSendCall,
   signSafeTransaction,
   getGnosisSafeFromEventLog,
+  getRewardSafeFromEventLog,
   getParamsFromEvent,
   padZero,
 });

@@ -119,6 +119,29 @@ const eventABIs = {
       },
     ],
   },
+  REWARDEE_CLAIM: {
+    topic: web3EthAbi.encodeEventSignature(
+      "RewardeeClaim(address,address,address,uint256)"
+    ),
+    abis: [
+      {
+        type: "address",
+        name: "rewardProgramID",
+      },
+      {
+        type: "address",
+        name: "rewardee",
+      },
+      {
+        type: "address",
+        name: "rewardSafe",
+      },
+      {
+        type: "uint256",
+        name: "amount",
+      },
+    ],
+  },
 };
 
 module.exports = eventABIs;
