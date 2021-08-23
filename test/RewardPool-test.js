@@ -617,6 +617,7 @@ contract("RewardPool", function (accounts) {
         );
 
         let claims = await rewardPool.claims(
+          paymentCycle,
           rewardProgramID,
           cardcpxdToken.address,
           payee
@@ -733,6 +734,7 @@ contract("RewardPool", function (accounts) {
         );
 
         let claims = await rewardPool.claims(
+          paymentCycle,
           rewardProgramID,
           cardcpxdToken.address,
           payee
@@ -787,6 +789,7 @@ contract("RewardPool", function (accounts) {
           rewardPool.address
         );
         let claims = await rewardPool.claims(
+          paymentCycle,
           rewardProgramID,
           cardcpxdToken.address,
           payee
@@ -1058,6 +1061,7 @@ contract("RewardPool", function (accounts) {
           { from: payee }
         );
         let claims = await rewardPool.claims(
+          paymentCycle - 1,
           rewardProgramID,
           cardcpxdToken.address,
           payee
@@ -1075,9 +1079,8 @@ contract("RewardPool", function (accounts) {
           proofBalance.eq(paymentAmount.sub(claimAmount)),
           "the proof balance is correct"
         );
-        // TODO: Major bug. new proofs get deducted claims from previous proofs
         assert(
-          updatedProofBalance.eq(updatedPaymentAmount.sub(claimAmount)),
+          updatedProofBalance.eq(updatedPaymentAmount),
           "the updated proof balance is correct"
         );
       });
@@ -1129,6 +1132,7 @@ contract("RewardPool", function (accounts) {
           { from: payee }
         );
         let claims = await rewardPool.claims(
+          paymentCycle,
           rewardProgramID,
           cardcpxdToken.address,
           payee
@@ -1169,7 +1173,6 @@ contract("RewardPool", function (accounts) {
 
         let claimAmount = toTokenUnit(8);
 
-        //claim from older proof
         await claimReward(
           rewardManager,
           rewardPool,
