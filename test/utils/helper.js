@@ -205,7 +205,7 @@ exports.setupExchanges = async function (owner) {
   };
 };
 
-exports.addActionHandlers = async function (
+exports.addActionHandlers = async function ({
   prepaidCardManager,
   revenuePool,
   actionDispatcher,
@@ -214,137 +214,258 @@ exports.addActionHandlers = async function (
   rewardManager,
   owner,
   exchangeAddress,
-  spendAddress
-) {
-  let payMerchantHandler = await PayMerchantHandler.new();
-  await payMerchantHandler.initialize(owner);
-  await payMerchantHandler.setup(
-    actionDispatcher.address,
-    merchantManager.address,
-    prepaidCardManager.address,
-    revenuePool.address,
-    spendAddress,
-    tokenManager.address
-  );
+  spendAddress,
+}) {
+  let payMerchantHandler,
+    registerMerchantHandler,
+    splitPrepaidCardHandler,
+    transferPrepaidCardHandler,
+    registerRewardeeHandler,
+    registerRewardProgramHandler,
+    lockRewardProgramHandler,
+    addRewardRuleHandler,
+    removeRewardRuleHandler,
+    updateRewardProgramAdminHandler;
+  if (
+    owner &&
+    actionDispatcher &&
+    merchantManager &&
+    prepaidCardManager &&
+    revenuePool &&
+    spendAddress &&
+    tokenManager
+  ) {
+    payMerchantHandler = await PayMerchantHandler.new();
+    await payMerchantHandler.initialize(owner);
+    await payMerchantHandler.setup(
+      actionDispatcher.address,
+      merchantManager.address,
+      prepaidCardManager.address,
+      revenuePool.address,
+      spendAddress,
+      tokenManager.address
+    );
+  }
 
-  let registerMerchantHandler = await RegisterMerchantHandler.new();
-  await registerMerchantHandler.initialize(owner);
-  await registerMerchantHandler.setup(
-    actionDispatcher.address,
-    merchantManager.address,
-    prepaidCardManager.address,
-    revenuePool.address,
-    exchangeAddress,
-    tokenManager.address
-  );
+  if (
+    owner &&
+    actionDispatcher &&
+    merchantManager &&
+    prepaidCardManager &&
+    revenuePool &&
+    exchangeAddress &&
+    tokenManager
+  ) {
+    registerMerchantHandler = await RegisterMerchantHandler.new();
+    await registerMerchantHandler.initialize(owner);
+    await registerMerchantHandler.setup(
+      actionDispatcher.address,
+      merchantManager.address,
+      prepaidCardManager.address,
+      revenuePool.address,
+      exchangeAddress,
+      tokenManager.address
+    );
+  }
 
-  let splitPrepaidCardHandler = await SplitPrepaidCardHandler.new();
-  await splitPrepaidCardHandler.initialize(owner);
-  await splitPrepaidCardHandler.setup(
-    actionDispatcher.address,
-    prepaidCardManager.address,
-    tokenManager.address
-  );
+  if (owner && actionDispatcher && prepaidCardManager && tokenManager) {
+    splitPrepaidCardHandler = await SplitPrepaidCardHandler.new();
+    await splitPrepaidCardHandler.initialize(owner);
+    await splitPrepaidCardHandler.setup(
+      actionDispatcher.address,
+      prepaidCardManager.address,
+      tokenManager.address
+    );
+  }
 
-  let transferPrepaidCardHandler = await TransferPrepaidCardHandler.new();
-  await transferPrepaidCardHandler.initialize(owner);
-  await transferPrepaidCardHandler.setup(
-    actionDispatcher.address,
-    prepaidCardManager.address,
-    tokenManager.address
-  );
-  let registerRewardeeHandler = await RegisterRewardeeHandler.new();
-  await registerRewardeeHandler.initialize(owner);
+  if (owner && actionDispatcher && prepaidCardManager && tokenManager) {
+    transferPrepaidCardHandler = await TransferPrepaidCardHandler.new();
+    await transferPrepaidCardHandler.initialize(owner);
+    await transferPrepaidCardHandler.setup(
+      actionDispatcher.address,
+      prepaidCardManager.address,
+      tokenManager.address
+    );
+  }
 
-  await registerRewardeeHandler.setup(
-    actionDispatcher.address,
-    prepaidCardManager.address,
-    exchangeAddress,
-    tokenManager.address,
-    rewardManager.address
-  );
+  if (
+    owner &&
+    actionDispatcher &&
+    prepaidCardManager &&
+    exchangeAddress &&
+    tokenManager &&
+    rewardManager
+  ) {
+    registerRewardeeHandler = await RegisterRewardeeHandler.new();
+    await registerRewardeeHandler.initialize(owner);
+    await registerRewardeeHandler.setup(
+      actionDispatcher.address,
+      prepaidCardManager.address,
+      exchangeAddress,
+      tokenManager.address,
+      rewardManager.address
+    );
+  }
 
-  let registerRewardProgramHandler = await RegisterRewardProgramHandler.new();
-  await registerRewardProgramHandler.initialize(owner);
-  await registerRewardProgramHandler.setup(
-    actionDispatcher.address,
-    exchangeAddress,
-    tokenManager.address,
-    rewardManager.address
-  );
+  if (
+    owner &&
+    actionDispatcher &&
+    exchangeAddress &&
+    tokenManager &&
+    rewardManager
+  ) {
+    registerRewardProgramHandler = await RegisterRewardProgramHandler.new();
+    await registerRewardProgramHandler.initialize(owner);
+    await registerRewardProgramHandler.setup(
+      actionDispatcher.address,
+      exchangeAddress,
+      tokenManager.address,
+      rewardManager.address
+    );
+  }
 
-  let lockRewardProgramHandler = await LockRewardProgramHandler.new();
-  await lockRewardProgramHandler.initialize(owner);
-  await lockRewardProgramHandler.setup(
-    actionDispatcher.address,
-    prepaidCardManager.address,
-    exchangeAddress,
-    tokenManager.address,
-    rewardManager.address
-  );
+  if (
+    owner &&
+    actionDispatcher &&
+    prepaidCardManager &&
+    exchangeAddress &&
+    tokenManager &&
+    rewardManager
+  ) {
+    lockRewardProgramHandler = await LockRewardProgramHandler.new();
+    await lockRewardProgramHandler.initialize(owner);
+    await lockRewardProgramHandler.setup(
+      actionDispatcher.address,
+      prepaidCardManager.address,
+      exchangeAddress,
+      tokenManager.address,
+      rewardManager.address
+    );
+  }
 
-  let addRewardRuleHandler = await AddRewardRuleHandler.new();
-  await addRewardRuleHandler.initialize(owner);
-  await addRewardRuleHandler.setup(
-    actionDispatcher.address,
-    prepaidCardManager.address,
-    exchangeAddress,
-    tokenManager.address,
-    rewardManager.address
-  );
-  let removeRewardRuleHandler = await RemoveRewardRuleHandler.new();
-  await removeRewardRuleHandler.initialize(owner);
-  await removeRewardRuleHandler.setup(
-    actionDispatcher.address,
-    prepaidCardManager.address,
-    exchangeAddress,
-    tokenManager.address,
-    rewardManager.address
-  );
-  let updateRewardProgramAdminHandler = await UpdateRewardProgramAdminHandler.new();
-  await updateRewardProgramAdminHandler.initialize(owner);
-  await updateRewardProgramAdminHandler.setup(
-    actionDispatcher.address,
-    prepaidCardManager.address,
-    exchangeAddress,
-    tokenManager.address,
-    rewardManager.address
-  );
+  if (
+    owner &&
+    actionDispatcher &&
+    prepaidCardManager &&
+    exchangeAddress &&
+    tokenManager &&
+    rewardManager
+  ) {
+    addRewardRuleHandler = await AddRewardRuleHandler.new();
+    await addRewardRuleHandler.initialize(owner);
+    await addRewardRuleHandler.setup(
+      actionDispatcher.address,
+      prepaidCardManager.address,
+      exchangeAddress,
+      tokenManager.address,
+      rewardManager.address
+    );
+  }
 
-  await actionDispatcher.addHandler(payMerchantHandler.address, "payMerchant");
-  await actionDispatcher.addHandler(splitPrepaidCardHandler.address, "split");
-  await actionDispatcher.addHandler(
-    transferPrepaidCardHandler.address,
-    "transfer"
-  );
-  await actionDispatcher.addHandler(
-    registerMerchantHandler.address,
-    "registerMerchant"
-  );
-  await actionDispatcher.addHandler(
-    registerRewardeeHandler.address,
-    "registerRewardee"
-  );
-  await actionDispatcher.addHandler(
-    registerRewardProgramHandler.address,
-    "registerRewardProgram"
-  );
-  await actionDispatcher.addHandler(
-    lockRewardProgramHandler.address,
-    "lockRewardProgram"
-  );
-  await actionDispatcher.addHandler(
-    addRewardRuleHandler.address,
-    "addRewardRule"
-  );
-  await actionDispatcher.addHandler(
-    removeRewardRuleHandler.address,
-    "removeRewardRule"
-  );
-  await actionDispatcher.addHandler(
-    updateRewardProgramAdminHandler.address,
-    "updateRewardProgramAdmin"
-  );
+  if (
+    owner &&
+    actionDispatcher &&
+    prepaidCardManager &&
+    exchangeAddress &&
+    tokenManager &&
+    rewardManager
+  ) {
+    removeRewardRuleHandler = await RemoveRewardRuleHandler.new();
+    await removeRewardRuleHandler.initialize(owner);
+    await removeRewardRuleHandler.setup(
+      actionDispatcher.address,
+      prepaidCardManager.address,
+      exchangeAddress,
+      tokenManager.address,
+      rewardManager.address
+    );
+  }
+
+  if (
+    owner &&
+    actionDispatcher &&
+    prepaidCardManager &&
+    exchangeAddress &&
+    tokenManager &&
+    rewardManager
+  ) {
+    updateRewardProgramAdminHandler = await UpdateRewardProgramAdminHandler.new();
+    await updateRewardProgramAdminHandler.initialize(owner);
+    await updateRewardProgramAdminHandler.setup(
+      actionDispatcher.address,
+      prepaidCardManager.address,
+      exchangeAddress,
+      tokenManager.address,
+      rewardManager.address
+    );
+  }
+
+  if (payMerchantHandler) {
+    await actionDispatcher.addHandler(
+      payMerchantHandler.address,
+      "payMerchant"
+    );
+  }
+
+  if (splitPrepaidCardHandler) {
+    await actionDispatcher.addHandler(splitPrepaidCardHandler.address, "split");
+  }
+
+  if (transferPrepaidCardHandler) {
+    await actionDispatcher.addHandler(
+      transferPrepaidCardHandler.address,
+      "transfer"
+    );
+  }
+
+  if (registerMerchantHandler) {
+    await actionDispatcher.addHandler(
+      registerMerchantHandler.address,
+      "registerMerchant"
+    );
+  }
+
+  if (registerRewardeeHandler) {
+    await actionDispatcher.addHandler(
+      registerRewardeeHandler.address,
+      "registerRewardee"
+    );
+  }
+
+  if (registerRewardProgramHandler) {
+    await actionDispatcher.addHandler(
+      registerRewardProgramHandler.address,
+      "registerRewardProgram"
+    );
+  }
+
+  if (lockRewardProgramHandler) {
+    await actionDispatcher.addHandler(
+      lockRewardProgramHandler.address,
+      "lockRewardProgram"
+    );
+  }
+
+  if (addRewardRuleHandler) {
+    await actionDispatcher.addHandler(
+      addRewardRuleHandler.address,
+      "addRewardRule"
+    );
+  }
+
+  if (removeRewardRuleHandler) {
+    await actionDispatcher.addHandler(
+      removeRewardRuleHandler.address,
+      "removeRewardRule"
+    );
+  }
+
+  if (updateRewardProgramAdminHandler) {
+    await actionDispatcher.addHandler(
+      updateRewardProgramAdminHandler.address,
+      "updateRewardProgramAdmin"
+    );
+  }
   return {
     payMerchantHandler,
     registerMerchantHandler,

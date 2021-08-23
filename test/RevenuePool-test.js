@@ -9,7 +9,6 @@ const ActionDispatcher = artifacts.require("ActionDispatcher");
 const TokenManager = artifacts.require("TokenManager");
 const SupplierManager = artifacts.require("SupplierManager");
 const MerchantManager = artifacts.require("MerchantManager");
-const RewardManager = artifacts.require("RewardManager");
 
 const utils = require("./utils/general");
 const eventABIs = require("./utils/constant/eventABIs");
@@ -54,8 +53,7 @@ contract("RevenuePool", (accounts) => {
     proxyFactory,
     gnosisSafeMasterCopy,
     prepaidCardManager,
-    depot,
-    rewardManager;
+    depot;
 
   before(async () => {
     owner = accounts[0];
@@ -86,8 +84,6 @@ contract("RevenuePool", (accounts) => {
     await tokenManager.initialize(owner);
     merchantManager = await MerchantManager.new();
     await merchantManager.initialize(owner);
-    rewardManager = await RewardManager.new();
-    await rewardManager.initialize(owner);
 
     ({ daiFeed, daicpxdToken, cardcpxdToken, exchange } = await setupExchanges(
       owner
@@ -136,17 +132,16 @@ contract("RevenuePool", (accounts) => {
       prepaidCardManager.address
     );
 
-    ({ payMerchantHandler } = await addActionHandlers(
+    ({ payMerchantHandler } = await addActionHandlers({
       prepaidCardManager,
       revenuePool,
       actionDispatcher,
       merchantManager,
       tokenManager,
-      rewardManager,
       owner,
-      exchange.address,
-      spendToken.address
-    ));
+      exchangeAddress: exchange.address,
+      spendAddress: spendToken.address,
+    }));
     await spendToken.addMinter(payMerchantHandler.address);
 
     depot = await createDepotFromSupplierMgr(supplierManager, issuer);

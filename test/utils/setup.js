@@ -131,7 +131,7 @@ const setupProtocol = async (accounts) => {
     prepaidCardManager.address
   );
 
-  await addActionHandlers(
+  await addActionHandlers({
     prepaidCardManager,
     revenuePool,
     actionDispatcher,
@@ -139,9 +139,9 @@ const setupProtocol = async (accounts) => {
     tokenManager,
     rewardManager,
     owner,
-    exchange.address,
-    spendToken.address
-  );
+    exchangeAddress: exchange.address,
+    spendAddress: spendToken.address,
+  });
 
   await daicpxdToken.mint(owner, toTokenUnit(100));
 
