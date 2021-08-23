@@ -197,7 +197,7 @@ contract("RewardManager", (accounts) => {
       addRewardRuleHandler,
       removeRewardRuleHandler,
       updateRewardProgramAdminHandler,
-    } = await addActionHandlers(
+    } = await addActionHandlers({
       prepaidCardManager,
       revenuePool,
       actionDispatcher,
@@ -205,9 +205,9 @@ contract("RewardManager", (accounts) => {
       tokenManager,
       rewardManager,
       owner,
-      exchange.address,
-      spendToken.address
-    ));
+      exchangeAddress: exchange.address,
+      spendAddress: spendToken.address,
+    }));
 
     await daicpxdToken.mint(owner, toTokenUnit(100));
 
