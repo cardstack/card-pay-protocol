@@ -611,7 +611,8 @@ const transferOwner = async function (
   newOwner,
   gasToken,
   relayer,
-  issuingToken
+  issuingToken,
+  eip1271Signature
 ) {
   let usdRate = 100000000; // 1 DAI = 1 USD
   let packData = packExecutionData({
@@ -624,15 +625,17 @@ const transferOwner = async function (
   });
   let safeTxArr = Object.keys(packData).map((key) => packData[key]);
   let nonce = await prepaidCard.nonce();
-  let previousOwnerSignature = await signSafeTransaction(
-    ...safeTxArr,
-    // the quirk here is that we are signing this txn in advance so we need to
-    // optimistically advance the nonce by 1 to account for the fact that we are
-    // executing the "send" action before this one.
-    nonce.add(toBN("1")),
-    oldOwner,
-    prepaidCard
-  );
+  let previousOwnerSignature =
+    eip1271Signature ??
+    (await signSafeTransaction(
+      ...safeTxArr,
+      // the quirk here is that we are signing this txn in advance so we need to
+      // optimistically advance the nonce by 1 to account for the fact that we are
+      // executing the "send" action before this one.
+      nonce.add(toBN("1")),
+      oldOwner,
+      prepaidCard
+    ));
   let data = await prepaidCardManager.getSendData(
     prepaidCard.address,
     0,
@@ -644,20 +647,22 @@ const transferOwner = async function (
     )
   );
 
-  let signature = await signSafeTransaction(
-    issuingToken.address,
-    0,
-    data,
-    0,
-    0,
-    0,
-    0,
-    gasToken.address,
-    ZERO_ADDRESS,
-    nonce,
-    oldOwner,
-    prepaidCard
-  );
+  let signature =
+    eip1271Signature ??
+    (await signSafeTransaction(
+      issuingToken.address,
+      0,
+      data,
+      0,
+      0,
+      0,
+      0,
+      gasToken.address,
+      ZERO_ADDRESS,
+      nonce,
+      oldOwner,
+      prepaidCard
+    ));
 
   return await prepaidCardManager.send(
     prepaidCard.address,

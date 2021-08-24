@@ -15,6 +15,8 @@ import "./ActionDispatcher.sol";
 
 contract PrepaidCardManager is Ownable, Versionable, Safe {
   using SafeMath for uint256;
+  using EnumerableSet for EnumerableSet.AddressSet;
+
   struct CardDetail {
     address issuer;
     address issueToken;
@@ -71,6 +73,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
   mapping(string => GasPolicy) public gasPolicies;
   mapping(address => bool) public hasBeenSplit; // this is deprecated, remove it if possible
   mapping(address => bool) public hasBeenUsed;
+  EnumerableSet.AddressSet internal contractSigners;
 
   modifier onlyHandlers() {
     require(
@@ -104,7 +107,8 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     uint256 _gasFeeInCARD,
     address _gasToken,
     uint256 _minAmount,
-    uint256 _maxAmount
+    uint256 _maxAmount,
+    address[] calldata _contractSigners
   ) external onlyOwner {
     actionDispatcher = _actionDispatcher;
     supplierManager = _supplierManager;
@@ -116,6 +120,9 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     minimumFaceValue = _minAmount;
     maximumFaceValue = _maxAmount;
     Safe.setup(_gsMasterCopy, _gsProxyFactory);
+    for (uint256 i = 0; i < _contractSigners.length; i++) {
+      contractSigners.add(_contractSigners[i]);
+    }
     emit Setup();
   }
 
@@ -250,6 +257,25 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
   }
 
   /**
+   * @dev get the addresses that are configured as EIP-1271 signers for prepaid cards
+   */
+  function getContractSigners() external view returns (address[] memory) {
+    return contractSigners.enumerate();
+  }
+
+  /**
+   * @dev returns a boolean indicating if the prepaid card's owner is an EIP-1271 signer
+   * @param prepaidCard prepaid card address
+   */
+  function isEIP1271Signer(address payable prepaidCard)
+    public
+    view
+    returns (bool)
+  {
+    return contractSigners.contains(getPrepaidCardOwner(prepaidCard));
+  }
+
+  /**
    * @dev Pay token to merchant
    * @param prepaidCard Prepaid Card's address
    * @param spendAmount The amount of SPEND to send
@@ -285,7 +311,9 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
         prepaidCard,
         cardDetails[prepaidCard].issueToken,
         getSendData(prepaidCard, spendAmount, rateLock, action, data),
-        addContractSignature(prepaidCard, ownerSignature),
+        isEIP1271Signer(prepaidCard)
+          ? appendToEIP1271Signature(prepaidCard, ownerSignature)
+          : addOwnSignature(prepaidCard, ownerSignature),
         gasPolicy.gasToken,
         address(uint160(gasPolicy.gasReceiver))
       );
@@ -334,7 +362,8 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
   ) external onlyHandlers returns (bool) {
     address previousOwner = getPrepaidCardOwner(prepaidCard);
     require(
-      cardDetails[prepaidCard].issuer == previousOwner,
+      cardDetails[prepaidCard].issuer == previousOwner ||
+        contractSigners.contains(previousOwner),
       "Has already been transferred"
     );
     require(
@@ -347,7 +376,9 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
       prepaidCard,
       prepaidCard,
       getTransferCardData(prepaidCard, newOwner),
-      addContractSignature(prepaidCard, previousOwnerSignature),
+      isEIP1271Signer(prepaidCard)
+        ? appendToEIP1271Signature(prepaidCard, previousOwnerSignature)
+        : addOwnSignature(prepaidCard, previousOwnerSignature),
       gasPolicy.gasToken,
       address(uint160(gasPolicy.gasReceiver))
     );
@@ -367,14 +398,9 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     returns (bytes memory)
   {
     // Swap owner
-    address previousOwner = getPrepaidCardOwner(prepaidCard);
+    address oldOwner = getPrepaidCardOwner(prepaidCard);
     return
-      abi.encodeWithSelector(
-        SWAP_OWNER,
-        address(this),
-        previousOwner,
-        newOwner
-      );
+      abi.encodeWithSelector(SWAP_OWNER, address(this), oldOwner, newOwner);
   }
 
   /**
@@ -603,7 +629,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
    * r = contract address with padding to 32 bytes
    * {32-bytes r}{32-bytes s}{1-byte signature type}
    */
-  function getContractSignature()
+  function getOwnSignature()
     internal
     view
     returns (bytes memory contractSignature)
@@ -619,35 +645,70 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
   }
 
   /**
-   * @dev Append the contract's own signature to the signature we received from
+   * @dev Append the contract's own signature to the EOA signature we received from
    * the safe owner
    * @param prepaidCard the prepaid card address
-   * @param signature Owner's signature
+   * @param signature Owner's EOA signature
    */
-  function addContractSignature(
-    address payable prepaidCard,
-    bytes memory signature
-  ) internal view returns (bytes memory signatures) {
+  function addOwnSignature(address payable prepaidCard, bytes memory signature)
+    internal
+    view
+    returns (bytes memory signatures)
+  {
     require(signature.length == 65, "Invalid signature!");
 
     address owner = getPrepaidCardOwner(prepaidCard);
-    bytes memory contractSignature = getContractSignature();
+    bytes memory ownSignature = getOwnSignature();
     signatures = new bytes(130); // 2 x 65 bytes
-    // Gnosis safe require signature must be sort by owner' address.
+    // Gnosis safe signatures must be sorted by owners' address.
     if (address(this) > owner) {
-      for (uint256 i = 0; i < signature.length; i++) {
-        signatures[i] = signature[i];
-      }
-      for (uint256 i = 0; i < contractSignature.length; i++) {
-        signatures[i.add(65)] = contractSignature[i];
-      }
+      signatures = abi.encodePacked(signature, ownSignature);
     } else {
-      for (uint256 i = 0; i < contractSignature.length; i++) {
-        signatures[i] = contractSignature[i];
-      }
-      for (uint256 i = 0; i < signature.length; i++) {
-        signatures[i.add(65)] = signature[i];
-      }
+      signatures = abi.encodePacked(ownSignature, signature);
+    }
+  }
+
+  /**
+   * @dev Append the contract's own signature to an EIP-1271 signature we received from
+   * the safe owner
+   * @param prepaidCard the prepaid card address
+   * @param signature Owner's EIP-1271 signature data
+   */
+  function appendToEIP1271Signature(
+    address payable prepaidCard,
+    bytes memory signature
+  ) public view returns (bytes memory signatures) {
+    address owner = getPrepaidCardOwner(prepaidCard);
+    bytes memory ownSignature = getOwnSignature();
+    uint256 eip1271SignatureLength = signature.length;
+    bytes1 v = 0x00;
+    // R,S,V vector for EIP-1271 signature where
+    // R = the owner address
+    // S = the byte offset to find the signature data
+    //     with is 2 x 65 bytes, because the threshold
+    //     is 2, and each RSV vector is 65 bytes
+    // V = signature type, 0x0 is for EIP-1271 signatures
+    bytes memory eip1271RSV =
+      abi.encodePacked(abi.encode(owner), abi.encode(uint256(130)), v);
+
+    // Gnosis safe signatures must be sorted by owners' address. and
+    // additionally EIP-1271 signatures should conclude with 32 bytes for the
+    // EIP-1271 signature length, and then finally the actual EIP-1271 signature
+    // data
+    if (address(this) > owner) {
+      signatures = abi.encodePacked(
+        eip1271RSV,
+        ownSignature,
+        eip1271SignatureLength,
+        signature
+      );
+    } else {
+      signatures = abi.encodePacked(
+        ownSignature,
+        eip1271RSV,
+        eip1271SignatureLength,
+        signature
+      );
     }
   }
 }

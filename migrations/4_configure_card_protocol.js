@@ -429,6 +429,7 @@ Configuring PrepaidCardManager ${prepaidCardManagerAddress}
   gas token: ${GAS_TOKEN}
   minimum face value: ${MINIMUM_AMOUNT}
   maximum face value: ${MAXIMUM_AMOUNT}`);
+  // TODO add contract signers
   await sendTx(() =>
     prepaidCardManager.setup(
       tokenManagerAddress,

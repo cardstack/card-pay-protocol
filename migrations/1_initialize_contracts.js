@@ -4,6 +4,7 @@ const { writeJSONSync, readJSONSync, existsSync } = require("node-fs-extra");
 const { verifyImpl } = require("../lib/verify");
 const { deployProxy, upgradeProxy } = require("@openzeppelin/truffle-upgrades");
 const PrepaidCardManager = artifacts.require("PrepaidCardManager");
+const PrepaidCardMarket = artifacts.require("PrepaidCardMarket");
 const RevenuePool = artifacts.require("RevenuePool");
 const BridgeUtils = artifacts.require("BridgeUtils");
 const SPEND = artifacts.require("SPEND");
@@ -44,6 +45,7 @@ module.exports = async function (deployer, network, addresses) {
       // We use this to measure gas for all our contract creation. Please add
       // any new contracts here:
       deployer.deploy(PrepaidCardManager),
+      deployer.deploy(PrepaidCardMarket),
       deployer.deploy(RevenuePool),
       deployer.deploy(BridgeUtils),
       deployer.deploy(SPEND),

@@ -121,7 +121,8 @@ contract(
         0,
         cardcpxdToken.address,
         100,
-        500000
+        500000,
+        []
       );
       await prepaidCardManager.addGasPolicy("transfer", false, true);
       await prepaidCardManager.addGasPolicy("split", true, true);

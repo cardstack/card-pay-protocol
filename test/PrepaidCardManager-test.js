@@ -133,6 +133,7 @@ contract("PrepaidCardManager", (accounts) => {
       merchantManager,
       tokenManager,
       owner,
+      prepaidCardMarket: ZERO_ADDRESS,
       exchangeAddress: exchange.address,
       spendAddress: spendToken.address,
     }));
@@ -177,7 +178,8 @@ contract("PrepaidCardManager", (accounts) => {
         0,
         cardcpxdToken.address,
         MINIMUM_AMOUNT,
-        MAXIMUM_AMOUNT
+        MAXIMUM_AMOUNT,
+        []
       );
       await prepaidCardManager.addGasPolicy("transfer", false, true);
       await prepaidCardManager.addGasPolicy("split", true, true);
@@ -536,7 +538,8 @@ contract("PrepaidCardManager", (accounts) => {
         toTokenUnit(100),
         cardcpxdToken.address,
         MINIMUM_AMOUNT,
-        MAXIMUM_AMOUNT
+        MAXIMUM_AMOUNT,
+        []
       );
     });
 
@@ -558,7 +561,8 @@ contract("PrepaidCardManager", (accounts) => {
         0, // We are setting this value specifically
         cardcpxdToken.address,
         MINIMUM_AMOUNT,
-        MAXIMUM_AMOUNT
+        MAXIMUM_AMOUNT,
+        []
       );
     });
 
@@ -737,7 +741,8 @@ contract("PrepaidCardManager", (accounts) => {
         toTokenUnit(100),
         cardcpxdToken.address,
         MINIMUM_AMOUNT,
-        MAXIMUM_AMOUNT
+        MAXIMUM_AMOUNT,
+        []
       );
 
       let amount = toTokenUnit(5);
@@ -818,7 +823,8 @@ contract("PrepaidCardManager", (accounts) => {
         toTokenUnit(100),
         cardcpxdToken.address,
         MINIMUM_AMOUNT,
-        MAXIMUM_AMOUNT
+        MAXIMUM_AMOUNT,
+        []
       );
     });
 
