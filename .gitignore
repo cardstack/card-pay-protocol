@@ -10,7 +10,6 @@ address_book
 package-lock.json
 coverage.json
 coverage
-scripts
 *.lock
 
 .openzeppelin/.session
