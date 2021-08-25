@@ -8,5 +8,6 @@
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "solidity.packageDefaultDependenciesContractsDirectory": "",
-  "solidity.packageDefaultDependenciesDirectory": "node_modules"
+  "solidity.packageDefaultDependenciesDirectory": "node_modules",
+  "cSpell.ignoreWords": ["rewardee"]
 }

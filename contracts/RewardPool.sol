@@ -9,13 +9,20 @@ import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 
 import "./token/IERC677.sol";
 import "./core/Versionable.sol";
+import "./RewardManager.sol";
+import "./TokenManager.sol";
 
 contract RewardPool is Initializable, Versionable, Ownable {
   using SafeMath for uint256;
   using MerkleProof for bytes32[];
 
-  event Setup(address tally);
-  event PayeeWithdraw(address indexed payee, uint256 amount);
+  event Setup(address tally, address rewardManager);
+  event RewardeeClaim(
+    address rewardProgramID,
+    address rewardee,
+    address rewardSafe,
+    uint256 amount
+  );
   event MerkleRootSubmission(bytes32 payeeRoot, uint256 numPaymentCycles);
   event PaymentCycleEnded(
     uint256 paymentCycle,
@@ -27,8 +34,10 @@ contract RewardPool is Initializable, Versionable, Ownable {
   address public tally;
   uint256 public numPaymentCycles;
   uint256 public currentPaymentCycleStartBlock;
+  address public rewardManager;
 
-  mapping(address => mapping(address => uint256)) public withdrawals;
+  mapping(address => mapping(address => mapping(address => uint256)))
+    public claims; // token <> rewardee
   mapping(uint256 => bytes32) payeeRoots;
 
   modifier onlyTally() {
@@ -41,10 +50,15 @@ contract RewardPool is Initializable, Versionable, Ownable {
     Ownable.initialize(owner);
   }
 
-  function setup(address _tally) external onlyOwner {
+  function setup(address _tally, address _rewardManager) external onlyOwner {
     tally = _tally;
+    rewardManager = _rewardManager;
     require(tally != ZERO_ADDRESS, "Tally should not be zero address");
-    emit Setup(_tally);
+    require(
+      rewardManager != ZERO_ADDRESS,
+      "Reward Manager should not be zero address"
+    );
+    emit Setup(_tally, _rewardManager);
   }
 
   function submitPayeeMerkleRoot(bytes32 payeeRoot)
@@ -60,44 +74,74 @@ contract RewardPool is Initializable, Versionable, Ownable {
     return true;
   }
 
-  function withdraw(
+  //msg.sender is safe
+  function claim(
+    address rewardProgramID,
     address payableToken,
     uint256 amount,
     bytes calldata proof
   ) external returns (bool) {
-    require(amount > 0, "Cannot withdraw non-positive amount");
-
-    uint256 balance = balanceForProof(payableToken, proof);
+    require(amount > 0, "Cannot claim non-positive amount");
+    address rewardSafeOwner =
+      RewardManager(rewardManager).getRewardSafeOwner(msg.sender);
+    require(
+      RewardManager(rewardManager).isValidRewardSafe(
+        msg.sender,
+        rewardProgramID
+      ),
+      "can only withdraw for safe registered on reward program"
+    );
+    uint256 balance =
+      _balanceForProofWithAddress(
+        rewardProgramID,
+        payableToken,
+        rewardSafeOwner,
+        proof
+      );
     require(balance >= amount, "Insufficient balance for proof");
+
     require(
       IERC677(payableToken).balanceOf(address(this)) >= amount,
       "Reward pool has insufficient balance"
     );
 
-    withdrawals[payableToken][msg.sender] = withdrawals[payableToken][
-      msg.sender
-    ]
+    claims[rewardProgramID][payableToken][rewardSafeOwner] = claims[
+      rewardProgramID
+    ][payableToken][rewardSafeOwner]
       .add(amount);
     IERC677(payableToken).transfer(msg.sender, amount);
 
-    emit PayeeWithdraw(msg.sender, amount);
+    emit RewardeeClaim(rewardProgramID, rewardSafeOwner, msg.sender, amount);
     return true;
   }
 
   function balanceForProofWithAddress(
+    address rewardProgramID,
     address payableToken,
     address _address,
     bytes calldata proof
   ) external view returns (uint256) {
-    return _balanceForProofWithAddress(payableToken, _address, proof);
+    return
+      _balanceForProofWithAddress(
+        rewardProgramID,
+        payableToken,
+        _address,
+        proof
+      );
   }
 
-  function balanceForProof(address payableToken, bytes memory proof)
-    public
-    view
-    returns (uint256)
-  {
-    return _balanceForProofWithAddress(payableToken, msg.sender, proof);
+  function balanceForProof(
+    address rewardProgramID,
+    address payableToken,
+    bytes memory proof
+  ) public view returns (uint256) {
+    return
+      _balanceForProofWithAddress(
+        rewardProgramID,
+        payableToken,
+        msg.sender,
+        proof
+      );
   }
 
   function startNewPaymentCycle() internal onlyTally returns (bool) {
@@ -119,6 +163,7 @@ contract RewardPool is Initializable, Versionable, Ownable {
   }
 
   function _balanceForProofWithAddress(
+    address rewardProgramID,
     address payableToken,
     address _address,
     bytes memory proof
@@ -135,12 +180,20 @@ contract RewardPool is Initializable, Versionable, Ownable {
     }
 
     bytes32 leaf =
-      keccak256(abi.encodePacked(payableToken, _address, cumulativeAmount));
+      keccak256(
+        abi.encodePacked(
+          rewardProgramID,
+          payableToken,
+          _address,
+          cumulativeAmount
+        )
+      );
     if (
-      withdrawals[payableToken][_address] < cumulativeAmount &&
+      claims[rewardProgramID][payableToken][_address] < cumulativeAmount &&
       _proof.verify(payeeRoots[paymentCycleNumber], leaf)
     ) {
-      return cumulativeAmount.sub(withdrawals[payableToken][_address]);
+      return
+        cumulativeAmount.sub(claims[rewardProgramID][payableToken][_address]);
     } else {
       return 0;
     }

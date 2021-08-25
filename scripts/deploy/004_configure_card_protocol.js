@@ -531,7 +531,7 @@ Configuring PrepaidCardManager ${prepaidCardManagerAddress}
 ==================================================
 Configuring RewardPool ${rewardPoolAddress}
   tally ${TALLY}`);
-  await sendTx(() => rewardPool.setup(TALLY));
+  await sendTx(() => rewardPool.setup(TALLY, rewardManagerAddress));
 
   // BridgeUtils configuration
   let bridgeUtils = await BridgeUtils.attach(bridgeUtilsAddress);

@@ -9,8 +9,6 @@ const TokenManager = artifacts.require("TokenManager");
 const SupplierManager = artifacts.require("SupplierManager");
 const MerchantManager = artifacts.require("MerchantManager");
 
-const RewardManager = artifacts.require("RewardManager");
-
 const eventABIs = require("./utils/constant/eventABIs");
 const {
   ZERO_ADDRESS,
@@ -67,8 +65,7 @@ contract("PrepaidCardManager", (accounts) => {
     merchantSafe,
     relayer,
     depot,
-    prepaidCards = [],
-    rewardManager;
+    prepaidCards = [];
 
   before(async () => {
     owner = accounts[0];
@@ -93,8 +90,6 @@ contract("PrepaidCardManager", (accounts) => {
     await tokenManager.initialize(owner);
     merchantManager = await MerchantManager.new();
     await merchantManager.initialize(owner);
-    rewardManager = await RewardManager.new();
-    await rewardManager.initialize(owner);
 
     customerA = findAccountBeforeAddress(
       accounts.slice(10),
@@ -131,17 +126,16 @@ contract("PrepaidCardManager", (accounts) => {
       payMerchantHandler,
       splitPrepaidCardHandler,
       transferPrepaidCardHandler,
-    } = await addActionHandlers(
+    } = await addActionHandlers({
       prepaidCardManager,
       revenuePool,
       actionDispatcher,
       merchantManager,
       tokenManager,
-      rewardManager,
       owner,
-      exchange.address,
-      spendToken.address
-    ));
+      exchangeAddress: exchange.address,
+      spendAddress: spendToken.address,
+    }));
     await spendToken.addMinter(payMerchantHandler.address);
     await tokenManager.setup(ZERO_ADDRESS, [
       daicpxdToken.address,
