@@ -7,11 +7,12 @@ addresses-test.json
 .env
 .env_xdai
 address_book
-build
 package-lock.json
 coverage.json
 coverage
-scripts
 *.lock
 
 .openzeppelin/.session
+cache
+artifacts
+build

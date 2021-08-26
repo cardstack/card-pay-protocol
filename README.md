@@ -120,11 +120,6 @@ yarn install
 ```
 
 ## Testing
-First start your private blockchain
-```sh
-yarn ganache:start
-```
-
 To run all the tests execute:
 ```sh
 yarn test
@@ -137,18 +132,13 @@ To generate the test coverage report execute:
 yarn test:coverage
 ```
 
-When you are done with testing, you can stop your private blockchain by running:
-```sh
-yarn ganache:stop
-```
-
 Solidity contracts has a maximum deployed bytecode size of 24KB. When a contract is larger than this, you'll receive out-of-gas errors when attempting to deploy it. In our tests we attempt a deploy of all our contracts to ensure they are deployable. Additionally you can generate a report of all the contract sizes to see if there are any contracts nearing or exceeding the max 24KB limit.
 ```sh
 yarn test:size
 ```
 
 ## Deployment
-We use a truffle provider that supports trezor hardware wallet signing for contract deployment. When deploying contracts make sure that your trezor hardware wallet is connectd to your computer's USB port.
+We use a provider that supports trezor hardware wallet signing for contract deployment. When deploying contracts make sure that your trezor hardware wallet is connectd to your computer's USB port.
 
 1. **Fund the Wallet**
 
@@ -239,10 +229,10 @@ Determine the address that you are using to perform the deployment (usually we u
    In order for the gnosis relay to airdrop the CARD.CPXD gas token on newly created prepaid card safes, we need to fund the relay txn funder with CARD.CPXD tokens. Bridge a significant amount of CARD tokens from layer 1 to layer 2, and then use the cardpay-sdk to transfer the layer 2 CARD.CPXD tokens from the depot safe that contains the bridge CARD.CPXD to the gnosis relayer txn funder's address. (`curl https://<relay server>/api/v1/about/` to get this address).
 
 ## Upgrading Contracts
-We use the Open Zeppelin SDK to manage our upgradable contracts (via truffle migration). Once a contract has been deployed we have the ability to change the logic in the contract while still retaining the contract state due to the way in which Open Zeppelin maintains proxy contracts and their corresponding implementations. [There are a few limitations to be made aware of when updating a contract, which is outlined in the OZ documentation.](https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable#modifying-your-contracts). The OZ tools will check for any violations to the limitations as part of upgrading the contract and let you know if your changes to the contract are indeed upgradable changes. After you have made changes to the contract that you wish upgrade perform the following:
+We use the Open Zeppelin SDK to manage our upgradable contracts via hardhat scripts. Once a contract has been deployed we have the ability to change the logic in the contract while still retaining the contract state due to the way in which Open Zeppelin maintains proxy contracts and their corresponding implementations. [There are a few limitations to be made aware of when updating a contract, which is outlined in the OZ documentation.](https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable#modifying-your-contracts). The OZ tools will check for any violations to the limitations as part of upgrading the contract and let you know if your changes to the contract are indeed upgradable changes. After you have made changes to the contract that you wish upgrade perform the following:
 1. `git pull` (or `fetch` and `merge` if you prefer) the latest from the `main` git branch.
 2. `git commit` your contract update changes (if they have not been committed already)
-3. Run the truffle deploy via yarn providing the network that you are deploying.  Make sure to use environment variables documented above to retain all the current card protocol settings, such as the home bridge mediator address, the CPXD tokens, gas fee receiver, etc.
+3. Run the deploy via yarn providing the network that you are deploying.  Make sure to use environment variables documented above to retain all the current card protocol settings, such as the home bridge mediator address, the CPXD tokens, gas fee receiver, etc.
    ```sh
    BRIDGE_MEDIATOR=<HOME BRIDGE ADDRESS> PAYABLE_TOKENS=<COMMA SEPARATED TOKEN ADDRESSES>, ... yarn deploy:<network>
    ```

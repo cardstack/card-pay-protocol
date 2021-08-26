@@ -1,12 +1,18 @@
 const { readJSONSync, existsSync } = require("node-fs-extra");
-const ChainlinkOracle = artifacts.require("ChainlinkFeedAdapter");
-const DIAOracle = artifacts.require("DIAOracleAdapter");
-const { sendTxnWithRetry: sendTx } = require("../lib/utils");
+const retry = require("async-retry");
 
-module.exports = async function (_deployer, network) {
-  if (["ganache", "test", "soliditycoverage"].includes(network)) {
-    return;
-  }
+const hre = require("hardhat");
+const { makeFactory, patchNetworks, asyncMain } = require("./util");
+patchNetworks();
+
+
+async function main() {
+  const ChainlinkOracle = await makeFactory("ChainlinkFeedAdapter");
+  const DIAOracle = await makeFactory("DIAOracleAdapter");
+
+  const {
+    network: { name: network }
+  } = hre;
 
   const addressesFile = `./.openzeppelin/addresses-${network}.json`;
   if (!existsSync(addressesFile)) {
@@ -36,30 +42,37 @@ module.exports = async function (_deployer, network) {
 
   let daiOracleAddress = getAddress("DAIOracle", addresses);
   let cardOracleAddress = getAddress("CARDOracle", addresses);
-  let daiOracle = await ChainlinkOracle.at(daiOracleAddress);
-  let cardOracle = await DIAOracle.at(cardOracleAddress);
-  console.log(`
+  let daiOracle = await ChainlinkOracle.attach(daiOracleAddress);
+  let cardOracle = await DIAOracle.attach(cardOracleAddress);
+  await retry(
+    async () => {
+      console.log(`
 ==================================================
 Configuring DAIOracle ${daiOracleAddress}
   DAI/USD chainlink feed address: ${chainlinkDAIUSDAddress}
   ETH/USD chainlink feed address: ${chainlinkETHUSDAddress}`);
-  await sendTx(() =>
-    daiOracle.setup(
-      chainlinkDAIUSDAddress,
-      chainlinkETHUSDAddress,
-      chainlinkDAIUSDAddress
-    )
+
+      await daiOracle.setup(
+        chainlinkDAIUSDAddress,
+        chainlinkETHUSDAddress,
+        chainlinkDAIUSDAddress
+      );
+    },
+    { retries: 3 }
   );
 
-  console.log(`
+  await retry(
+    async () => {
+      console.log(`
 ==================================================
 Configuring CARDOracle ${cardOracleAddress}
   DIA oracle address: ${diaOracleAddress}
   DAI/USD chainlink feed address: ${chainlinkDAIUSDAddress}`);
-  await sendTx(() =>
-    cardOracle.setup(diaOracleAddress, "CARD", chainlinkDAIUSDAddress)
+      await cardOracle.setup(diaOracleAddress, "CARD", chainlinkDAIUSDAddress);
+    },
+    { retries: 3 }
   );
-};
+}
 
 function getAddress(contractId, addresses) {
   let info = addresses[contractId];
@@ -70,3 +83,5 @@ function getAddress(contractId, addresses) {
   }
   return info.proxy;
 }
+
+asyncMain(main);

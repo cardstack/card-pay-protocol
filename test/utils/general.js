@@ -16,7 +16,7 @@ const signTypedData = async function (account, data) {
     web3.currentProvider.send(
       {
         jsonrpc: "2.0",
-        method: "eth_signTypedData",
+        method: "eth_signTypedData_v4",
         params: [account, data],
         id: new Date().getTime(),
       },

@@ -45,7 +45,7 @@ contract("SPEND", (accounts) => {
       await instance.mint(bob, amount, { from: alice });
       assert.fail("don't got error");
     } catch (error) {
-      assert.equal(error.reason, "caller is not a minter");
+      assert.equal(errorReason(error), "caller is not a minter");
     }
   });
 
@@ -54,7 +54,7 @@ contract("SPEND", (accounts) => {
       await instance.addMinter(alice, { from: alice });
       assert.fail("don't got error");
     } catch (error) {
-      assert.equal(error.reason, "caller is not the owner");
+      assert.equal(errorReason(error), "caller is not the owner");
     }
   });
 
@@ -75,7 +75,7 @@ contract("SPEND", (accounts) => {
       await instance.burn(minter, amount, { from: alice });
       assert.fail("don't get error");
     } catch (error) {
-      assert.equal(error.reason, "caller is not a minter");
+      assert.equal(errorReason(error), "caller is not a minter");
     }
   });
 
@@ -85,7 +85,7 @@ contract("SPEND", (accounts) => {
       await instance.burn(bob, amount, { from: minter });
       assert.fail("don't get error");
     } catch (error) {
-      assert.equal(error.reason, "burn amount exceeds balance");
+      assert.equal(errorReason(error), "burn amount exceeds balance");
     }
   });
 
@@ -98,7 +98,7 @@ contract("SPEND", (accounts) => {
       });
     } catch (error) {
       revered = true;
-      assert.equal(error.reason, "cannot mint to zero address");
+      assert.equal(errorReason(error), "cannot mint to zero address");
     }
 
     assert.isTrue(revered);
@@ -113,7 +113,7 @@ contract("SPEND", (accounts) => {
       });
     } catch (error) {
       revered = true;
-      assert.equal(error.reason, "cannot burn from zero address");
+      assert.equal(errorReason(error), "cannot burn from zero address");
     }
 
     assert.isTrue(revered);
@@ -145,3 +145,12 @@ contract("SPEND", (accounts) => {
     );
   });
 });
+
+function errorReason(error) {
+  let match = error.message.match(/^VM Exception while processing transaction: reverted with reason string '(.+)'$/);
+  if (match) {
+    return match[1];
+  } else {
+    throw new Error("Could not extract reason from error");
+  }
+}
