@@ -9,7 +9,7 @@
       "request": "launch",
       "name": "Run Tests",
       "cwd": "${workspaceRoot}",
-      "program": "${workspaceFolder}/node_modules/.bin/truffle",
+      "program": "${workspaceFolder}/node_modules/.bin/hardhat",
       "console": "integratedTerminal",
       "env": {},
       "args": ["test"]
@@ -19,9 +19,10 @@
       "request": "launch",
       "name": "Deploy to Sokol",
       "cwd": "${workspaceRoot}",
-      "program": "${workspaceFolder}/node_modules/.bin/truffle",
+      "program": "${workspaceFolder}/scripts/deploy/001_initialize_contracts.js",
       "console": "integratedTerminal",
       "env": {
+        "HARDHAT_NETWORK": "sokol",
         "BRIDGE_MEDIATOR": "0x16a80598DD2f143CFBf091638CE3fB02c9135528",
         "PAYABLE_TOKENS": "0xB236ca8DbAB0644ffCD32518eBF4924ba866f7Ee,0xFeDc0c803390bbdA5C4C296776f4b574eC4F30D1",
         "GAS_TOKEN": "0xB236ca8DbAB0644ffCD32518eBF4924ba866f7Ee",
@@ -30,16 +31,74 @@
         "REWARD_FEE_RECEIVER": "0x4D624118a9B8a1DE34D34F9009a249787A8c3236", //Justin's trezor 2
         "MERCHANT_FEE_RECEIVER": "0x09FBEDDc5f94fA2713CDa75A68457cA8A4527adf" // Hassan's test trezor
       },
-      "args": ["migrate", "--network", "sokol", "--compile-all", "--reset"]
+      "args": []
     },
     {
       "type": "node",
       "request": "launch",
-      "name": "Deploy to xDai (config-only)",
+      "name": "Config Sokol - manual feeds",
       "cwd": "${workspaceRoot}",
-      "program": "${workspaceFolder}/node_modules/.bin/truffle",
+      "program": "${workspaceFolder}/scripts/deploy/002_configure_manual_chainlink_feeds.js",
       "console": "integratedTerminal",
       "env": {
+        "HARDHAT_NETWORK": "sokol",
+        "BRIDGE_MEDIATOR": "0x16a80598DD2f143CFBf091638CE3fB02c9135528",
+        "PAYABLE_TOKENS": "0xB236ca8DbAB0644ffCD32518eBF4924ba866f7Ee,0xFeDc0c803390bbdA5C4C296776f4b574eC4F30D1",
+        "GAS_TOKEN": "0xB236ca8DbAB0644ffCD32518eBF4924ba866f7Ee",
+        "GAS_FEE_RECEIVER": "0xD7182E380b7dFa33C186358De7E1E5d0950fCAE7",
+        "TALLY": "0x159ADe032073d930E85f95AbBAB9995110c43C71", // Justin's trezor 1
+        "REWARD_FEE_RECEIVER": "0x4D624118a9B8a1DE34D34F9009a249787A8c3236", //Justin's trezor 2
+        "MERCHANT_FEE_RECEIVER": "0x09FBEDDc5f94fA2713CDa75A68457cA8A4527adf" // Hassan's test trezor
+      },
+      "args": []
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Config Sokol - oracles",
+      "cwd": "${workspaceRoot}",
+      "program": "${workspaceFolder}/scripts/deploy/003_configure_price_oracles.js",
+      "console": "integratedTerminal",
+      "env": {
+        "HARDHAT_NETWORK": "sokol",
+        "BRIDGE_MEDIATOR": "0x16a80598DD2f143CFBf091638CE3fB02c9135528",
+        "PAYABLE_TOKENS": "0xB236ca8DbAB0644ffCD32518eBF4924ba866f7Ee,0xFeDc0c803390bbdA5C4C296776f4b574eC4F30D1",
+        "GAS_TOKEN": "0xB236ca8DbAB0644ffCD32518eBF4924ba866f7Ee",
+        "GAS_FEE_RECEIVER": "0xD7182E380b7dFa33C186358De7E1E5d0950fCAE7",
+        "TALLY": "0x159ADe032073d930E85f95AbBAB9995110c43C71", // Justin's trezor 1
+        "REWARD_FEE_RECEIVER": "0x4D624118a9B8a1DE34D34F9009a249787A8c3236", //Justin's trezor 2
+        "MERCHANT_FEE_RECEIVER": "0x09FBEDDc5f94fA2713CDa75A68457cA8A4527adf" // Hassan's test trezor
+      },
+      "args": []
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Config Sokol - protocol",
+      "cwd": "${workspaceRoot}",
+      "program": "${workspaceFolder}/scripts/deploy/004_configure_card_protocol.js",
+      "console": "integratedTerminal",
+      "env": {
+        "HARDHAT_NETWORK": "sokol",
+        "BRIDGE_MEDIATOR": "0x16a80598DD2f143CFBf091638CE3fB02c9135528",
+        "PAYABLE_TOKENS": "0xB236ca8DbAB0644ffCD32518eBF4924ba866f7Ee,0xFeDc0c803390bbdA5C4C296776f4b574eC4F30D1",
+        "GAS_TOKEN": "0xB236ca8DbAB0644ffCD32518eBF4924ba866f7Ee",
+        "GAS_FEE_RECEIVER": "0xD7182E380b7dFa33C186358De7E1E5d0950fCAE7",
+        "TALLY": "0x159ADe032073d930E85f95AbBAB9995110c43C71", // Justin's trezor 1
+        "REWARD_FEE_RECEIVER": "0x4D624118a9B8a1DE34D34F9009a249787A8c3236", //Justin's trezor 2
+        "MERCHANT_FEE_RECEIVER": "0x09FBEDDc5f94fA2713CDa75A68457cA8A4527adf" // Hassan's test trezor
+      },
+      "args": []
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Deploy to xDai",
+      "cwd": "${workspaceRoot}",
+      "program": "${workspaceFolder}/scripts/deploy/001_initialize_contracts.js",
+      "console": "integratedTerminal",
+      "env": {
+        "HARDHAT_NETWORK": "xdai",
         "BRIDGE_MEDIATOR": "0xd1e46b8a371AF04Ce74c993B325b844ef0f48b16",
         "PAYABLE_TOKENS": "0x52031d287Bb58E26A379A7Fec2c84acB54f54fe3,0x26F2319Fbb44772e0ED58fB7c99cf8da59e2b5BE",
         "GAS_TOKEN": "0x52031d287Bb58E26A379A7Fec2c84acB54f54fe3",
@@ -47,16 +106,43 @@
         "TALLY": "0xdA67004a5ABd35361539b6D420C834E6C21e0A1b",
         "MERCHANT_FEE_RECEIVER": "0x0E16caaa670F1Da1211edEfEB65BD13011cC798d"
       },
-      "args": [
-        "migrate",
-        "--network",
-        "xdai",
-        "--compile-all",
-        "--f",
-        "2",
-        "--to",
-        "4"
-      ]
+      "args": []
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Deploy to xDai - oracles",
+      "cwd": "${workspaceRoot}",
+      "program": "${workspaceFolder}/scripts/deploy/003_configure_price_oracles.js",
+      "console": "integratedTerminal",
+      "env": {
+        "HARDHAT_NETWORK": "xdai",
+        "BRIDGE_MEDIATOR": "0xd1e46b8a371AF04Ce74c993B325b844ef0f48b16",
+        "PAYABLE_TOKENS": "0x52031d287Bb58E26A379A7Fec2c84acB54f54fe3,0x26F2319Fbb44772e0ED58fB7c99cf8da59e2b5BE",
+        "GAS_TOKEN": "0x52031d287Bb58E26A379A7Fec2c84acB54f54fe3",
+        "GAS_FEE_RECEIVER": "0x846fcb74913277AF31FF535cC88bfcC62f64346A",
+        "TALLY": "0xdA67004a5ABd35361539b6D420C834E6C21e0A1b",
+        "MERCHANT_FEE_RECEIVER": "0x0E16caaa670F1Da1211edEfEB65BD13011cC798d"
+      },
+      "args": []
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Deploy to xDai - protocol",
+      "cwd": "${workspaceRoot}",
+      "program": "${workspaceFolder}/scripts/deploy/004_configure_card_protocol.js",
+      "console": "integratedTerminal",
+      "env": {
+        "HARDHAT_NETWORK": "xdai",
+        "BRIDGE_MEDIATOR": "0xd1e46b8a371AF04Ce74c993B325b844ef0f48b16",
+        "PAYABLE_TOKENS": "0x52031d287Bb58E26A379A7Fec2c84acB54f54fe3,0x26F2319Fbb44772e0ED58fB7c99cf8da59e2b5BE",
+        "GAS_TOKEN": "0x52031d287Bb58E26A379A7Fec2c84acB54f54fe3",
+        "GAS_FEE_RECEIVER": "0x846fcb74913277AF31FF535cC88bfcC62f64346A",
+        "TALLY": "0xdA67004a5ABd35361539b6D420C834E6C21e0A1b",
+        "MERCHANT_FEE_RECEIVER": "0x0E16caaa670F1Da1211edEfEB65BD13011cC798d"
+      },
+      "args": []
     }
   ]
 }
