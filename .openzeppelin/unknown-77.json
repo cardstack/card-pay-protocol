@@ -1,5 +1,10 @@
 {
-  "manifestVersion": "3.1",
+  "manifestVersion": "3.2",
+  "admin": {
+    "address": "0xAa35dDF64807079b3e630672d7BCa381E85e70a9",
+    "txHash": "0x771cacec12b49a5f036e360626e938b4ced8ce2e6568fe7b8a01907099889630"
+  },
+  "proxies": [],
   "impls": {
     "c63664d7159bd181269fa0e296c211f497efc6bfb5949a3b5ed8ddf368091ea8": {
       "address": "0xf84a6204242C9BA27FeBE0030297261FCFD1eCa9",
@@ -20911,61 +20916,61 @@
             "contract": "Initializable",
             "label": "initialized",
             "type": "t_bool",
-            "src": "../@openzeppelin/upgrades/contracts/Initializable.sol:21"
+            "src": "@openzeppelin/upgrades/contracts/Initializable.sol:21"
           },
           {
             "contract": "Initializable",
             "label": "initializing",
             "type": "t_bool",
-            "src": "../@openzeppelin/upgrades/contracts/Initializable.sol:26"
+            "src": "@openzeppelin/upgrades/contracts/Initializable.sol:26"
           },
           {
             "contract": "Initializable",
             "label": "______gap",
             "type": "t_array(t_uint256)50_storage",
-            "src": "../@openzeppelin/upgrades/contracts/Initializable.sol:61"
+            "src": "@openzeppelin/upgrades/contracts/Initializable.sol:61"
           },
           {
             "contract": "Ownable",
             "label": "_owner",
             "type": "t_address",
-            "src": "../@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol:17"
+            "src": "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol:17"
           },
           {
             "contract": "Ownable",
             "label": "______gap",
             "type": "t_array(t_uint256)50_storage",
-            "src": "../@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol:80"
+            "src": "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol:80"
           },
           {
             "contract": "Versionable",
             "label": "____gap",
             "type": "t_array(t_uint256)50_storage",
-            "src": "core/Versionable.sol:8"
+            "src": "contracts/core/Versionable.sol:8"
           },
           {
             "contract": "ManualFeed",
             "label": "_description",
             "type": "t_string_storage",
-            "src": "oracles/ManualFeed.sol:15"
+            "src": "contracts/oracles/ManualFeed.sol:15"
           },
           {
             "contract": "ManualFeed",
             "label": "_decimals",
             "type": "t_uint8",
-            "src": "oracles/ManualFeed.sol:16"
+            "src": "contracts/oracles/ManualFeed.sol:16"
           },
           {
             "contract": "ManualFeed",
             "label": "_currentRound",
             "type": "t_uint80",
-            "src": "oracles/ManualFeed.sol:17"
+            "src": "contracts/oracles/ManualFeed.sol:17"
           },
           {
             "contract": "ManualFeed",
             "label": "rounds",
-            "type": "t_mapping(t_uint80,t_struct(RoundData)5812_storage)",
-            "src": "oracles/ManualFeed.sol:19"
+            "type": "t_mapping(t_uint80,t_struct(RoundData)11668_storage)",
+            "src": "contracts/oracles/ManualFeed.sol:19"
           }
         ],
         "types": {
@@ -20978,10 +20983,10 @@
           "t_uint80": {
             "label": "uint80"
           },
-          "t_mapping(t_uint80,t_struct(RoundData)5812_storage)": {
+          "t_mapping(t_uint80,t_struct(RoundData)11668_storage)": {
             "label": "mapping(uint80 => struct ManualFeed.RoundData)"
           },
-          "t_struct(RoundData)5812_storage": {
+          "t_struct(RoundData)11668_storage": {
             "label": "struct ManualFeed.RoundData",
             "members": [
               {
@@ -21020,9 +21025,5 @@
         }
       }
     }
-  },
-  "admin": {
-    "address": "0xAa35dDF64807079b3e630672d7BCa381E85e70a9",
-    "txHash": "0x771cacec12b49a5f036e360626e938b4ced8ce2e6568fe7b8a01907099889630"
   }
 }

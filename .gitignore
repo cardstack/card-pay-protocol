@@ -15,3 +15,4 @@ coverage
 .openzeppelin/.session
 cache
 artifacts
+build
