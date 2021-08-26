@@ -55,6 +55,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     bool useIssuingTokenForGas,
     bool payGasRecipient
   );
+  event ContractSignerRemoved(address signer);
 
   bytes4 public constant SWAP_OWNER = 0xe318b52b; //swapOwner(address,address,address)
   bytes4 public constant TRANSFER_AND_CALL = 0x4000aea0; //transferAndCall(address,uint256,bytes)
@@ -79,6 +80,14 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     require(
       ActionDispatcher(actionDispatcher).isHandler(msg.sender),
       "caller is not a registered action handler"
+    );
+    _;
+  }
+  modifier onlyHandlersAndContractSigners() {
+    require(
+      ActionDispatcher(actionDispatcher).isHandler(msg.sender) ||
+        contractSigners.contains(msg.sender),
+      "caller is not a registered action handler nor contract signer"
     );
     _;
   }
@@ -149,6 +158,11 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     return true;
   }
 
+  function removeContractSigner(address signer) external onlyOwner {
+    contractSigners.remove(signer);
+    emit ContractSignerRemoved(signer);
+  }
+
   /**
    * @dev onTokenTransfer(ERC677) - call when token send this contract.
    * @param from Supplier or Prepaid card address
@@ -205,37 +219,14 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
   }
 
   /**
-   * @dev returns the face value for the prepaid card as units of SPEND. The
-   * way we determine face value is that if the prepaid card is unused we'll
-   * return the issuing token balance of the prepaid card converted to SPEND
-   * using the current rate from our oracle. If the prepaid card is used well
-   * return the issuing token balance converted to SPEND using the most
-   * conservative rate based on the rate drift in the exchange contract and the
-   * current rate from our racle.
+   * @dev returns the face value for the prepaid card as units of SPEND.
    * @param prepaidCard the address of the prepaid card for which to get a face value
    */
   function faceValue(address prepaidCard) external view returns (uint256) {
     address issuingToken = cardDetails[prepaidCard].issueToken;
     uint256 issuingTokenBalance = IERC677(issuingToken).balanceOf(prepaidCard);
     Exchange exchange = Exchange(exchangeAddress);
-    if (hasBeenUsed[prepaidCard]) {
-      (uint256 usdRate, ) = exchange.exchangeRateOf(issuingToken);
-      uint256 ten = 10;
-      uint256 mostConservativeRateAllowed =
-        usdRate.sub(
-          usdRate.mul(exchange.rateDriftPercentage()).div(
-            ten**exchange.exchangeRateDecimals()
-          )
-        );
-      return
-        exchange.convertToSpendWithRate(
-          issuingToken,
-          issuingTokenBalance,
-          mostConservativeRateAllowed
-        );
-    } else {
-      return exchange.convertToSpend(issuingToken, issuingTokenBalance);
-    }
+    return exchange.convertToSpend(issuingToken, issuingTokenBalance);
   }
 
   /**
@@ -359,7 +350,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     address payable prepaidCard,
     address newOwner,
     bytes calldata previousOwnerSignature
-  ) external onlyHandlers returns (bool) {
+  ) external onlyHandlersAndContractSigners returns (bool) {
     address previousOwner = getPrepaidCardOwner(prepaidCard);
     require(
       cardDetails[prepaidCard].issuer == previousOwner ||
@@ -685,16 +676,16 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     // R,S,V vector for EIP-1271 signature where
     // R = the owner address
     // S = the byte offset to find the signature data
-    //     with is 2 x 65 bytes, because the threshold
-    //     is 2, and each RSV vector is 65 bytes
-    // V = signature type, 0x0 is for EIP-1271 signatures
+    //     which is 2 x 65 bytes because the threshold
+    //     is 2 and each RSV vector is 65 bytes
+    // V = signature type, 0x00 is for EIP-1271 signatures
     bytes memory eip1271RSV =
       abi.encodePacked(abi.encode(owner), abi.encode(uint256(130)), v);
 
     // Gnosis safe signatures must be sorted by owners' address. and
     // additionally EIP-1271 signatures should conclude with 32 bytes for the
     // EIP-1271 signature length, and then finally the actual EIP-1271 signature
-    // data
+    // data itself
     if (address(this) > owner) {
       signatures = abi.encodePacked(
         eip1271RSV,

@@ -60,7 +60,9 @@ contract SplitPrepaidCardHandler is Ownable, Versionable {
       uint256[] memory issuingTokenAmounts,
       uint256[] memory spendAmounts,
       string memory customizationDID
-    ) = abi.decode(actionData, (uint256[], uint256[], string));
+    ) =
+      // TODO add the market contract address to place the inventory
+      abi.decode(actionData, (uint256[], uint256[], string));
     PrepaidCardManager prepaidCardMgr =
       PrepaidCardManager(prepaidCardManagerAddress);
     address owner = prepaidCardMgr.getPrepaidCardOwner(prepaidCard);
