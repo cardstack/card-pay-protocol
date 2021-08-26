@@ -397,7 +397,8 @@ contract("PrepaidCardManager", (accounts) => {
       });
     });
 
-    it("should create a large number of cards without exceeding the block gas limit (truffle limits tests to 6.7M block gas limit--the true block gas limit is closer to 12.5M)", async () => {
+    it("should create a large number of cards without exceeding the block gas limit (truffle limits tests to 6.7M block gas limit--the true block gas limit is closer to 12.5M)", async function() {
+      this.timeout(40000);
       let numCards = 12;
       let amounts = [];
       for (let i = 0; i < numCards; i++) {

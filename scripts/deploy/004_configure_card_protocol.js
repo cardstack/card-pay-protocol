@@ -1,36 +1,21 @@
 const { readJSONSync, existsSync } = require("node-fs-extra");
 const { resolve } = require("path");
 const Web3 = require("web3");
-const { sendTxnWithRetry: sendTx } = require("../lib/utils");
 const { fromWei } = Web3.utils;
 
-const RevenuePool = artifacts.require("RevenuePool");
-const PrepaidCardManager = artifacts.require("PrepaidCardManager");
-const BridgeUtils = artifacts.require("BridgeUtils");
-const SPEND = artifacts.require("SPEND");
-const RewardPool = artifacts.require("RewardPool");
-const Exchange = artifacts.require("Exchange");
-const PayMerchantHandler = artifacts.require("PayMerchantHandler");
-const RegisterMerchantHandler = artifacts.require("RegisterMerchantHandler");
-const SplitPrepaidCardHandler = artifacts.require("SplitPrepaidCardHandler");
-const TransferPrepaidCardHandler = artifacts.require(
-  "TransferPrepaidCardHandler"
-);
-const ActionDispatcher = artifacts.require("ActionDispatcher");
-const TokenManager = artifacts.require("TokenManager");
-const SupplierManager = artifacts.require("SupplierManager");
-const MerchantManager = artifacts.require("MerchantManager");
-const RewardManager = artifacts.require("RewardManager");
-const RegisterRewardProgramHandler = artifacts.require(
-  "RegisterRewardProgramHandler"
-);
-const RegisterRewardeeHandler = artifacts.require("RegisterRewardeeHandler");
-const LockRewardProgramHandler = artifacts.require("LockRewardProgramHandler");
-const UpdateRewardProgramAdminHandler = artifacts.require(
-  "UpdateRewardProgramAdminHandler"
-);
-const AddRewardRuleHandler = artifacts.require("AddRewardRuleHandler");
-const RemoveRewardRuleHandler = artifacts.require("RemoveRewardRuleHandler");
+const hre = require("hardhat");
+const {
+  makeFactory,
+  patchNetworks,
+  asyncMain,
+  getDeployAddress
+} = require("./util");
+patchNetworks();
+
+const retry = require("async-retry");
+const sendTx = async function (cb) {
+  return await retry(cb, { retries: 3 });
+};
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const GAS_FEE_RECEIVER = process.env.GAS_FEE_RECEIVER ?? ZERO_ADDRESS;
@@ -41,10 +26,10 @@ const RATE_DRIFT_PERCENTAGE = process.env.RATE_DRIFT_PERCENTAGE ?? 125000; // 0.
 const MERCHANT_FEE_PERCENTAGE = process.env.MERCHANT_FEE_PERCENTAGE ?? 500000; // 0.5%
 const MERCHANT_REGISTRATION_FEE_IN_SPEND =
   process.env.MERCHANT_REGISTRATION_FEE_IN_SPEND ?? 100;
-const MERCHANT_FEE_RECEIVER = process.env.MERCHANT_FEE_RECEIVER ?? ZERO_ADDRESS;
+  
 const BRIDGE_MEDIATOR = process.env.BRIDGE_MEDIATOR ?? ZERO_ADDRESS;
 const PAYABLE_TOKENS = process.env.PAYABLE_TOKENS
-  ? process.env.PAYABLE_TOKENS.split(",").map((t) => t.trim())
+  ? process.env.PAYABLE_TOKENS.split(",").map(t => t.trim())
   : [];
 const GAS_TOKEN = process.env.GAS_TOKEN ?? ZERO_ADDRESS;
 const GNOSIS_SAFE_MASTER_COPY =
@@ -55,18 +40,53 @@ const GNOSIS_SAFE_FACTORY =
   "0x76E2cFc1F5Fa8F6a5b3fC4c8F4788F0116861F9B";
 const MINIMUM_AMOUNT = process.env.MINIMUM_AMOUNT ?? "100"; // minimum face value (in SPEND) for new prepaid card
 const MAXIMUM_AMOUNT = process.env.MAXIMUM_AMOUNT ?? "100000"; // maximum face value (in SPEND) for new prepaid card
-const TALLY = process.env.TALLY ?? ZERO_ADDRESS;
+const TALLY = process.env.TALLY ?? "0x76E2cFc1F5Fa8F6a5b3fC4c8F4788F0116861F9B";
 
-const REWARD_FEE_RECEIVER = process.env.REWARD_FEE_RECEIVER ?? ZERO_ADDRESS;
 const REWARDEE_REGISTRATION_FEE_IN_SPEND =
   process.env.REWARDEE_REGISTRATION_FEE_IN_SPEND ?? 500;
 const REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND =
   process.env.REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND ?? 500;
 
-module.exports = async function (_deployer, network) {
-  if (["ganache", "test", "soliditycoverage"].includes(network)) {
-    return;
-  }
+async function main() {
+  const RevenuePool = await makeFactory("RevenuePool");
+  const PrepaidCardManager = await makeFactory("PrepaidCardManager");
+  const BridgeUtils = await makeFactory("BridgeUtils");
+  const SPEND = await makeFactory("SPEND");
+  const RewardPool = await makeFactory("RewardPool");
+  const Exchange = await makeFactory("Exchange");
+  const PayMerchantHandler = await makeFactory("PayMerchantHandler");
+  const RegisterMerchantHandler = await makeFactory("RegisterMerchantHandler");
+  const SplitPrepaidCardHandler = await makeFactory("SplitPrepaidCardHandler");
+  const TransferPrepaidCardHandler = await makeFactory(
+    "TransferPrepaidCardHandler"
+  );
+  const ActionDispatcher = await makeFactory("ActionDispatcher");
+  const TokenManager = await makeFactory("TokenManager");
+  const SupplierManager = await makeFactory("SupplierManager");
+  const MerchantManager = await makeFactory("MerchantManager");
+  const RewardManager = await makeFactory("RewardManager");
+  const RegisterRewardProgramHandler = await makeFactory(
+    "RegisterRewardProgramHandler"
+  );
+  const RegisterRewardeeHandler = await makeFactory("RegisterRewardeeHandler");
+  const LockRewardProgramHandler = await makeFactory(
+    "LockRewardProgramHandler"
+  );
+  const UpdateRewardProgramAdminHandler = await makeFactory(
+    "UpdateRewardProgramAdminHandler"
+  );
+  const AddRewardRuleHandler = await makeFactory("AddRewardRuleHandler");
+  const RemoveRewardRuleHandler = await makeFactory("RemoveRewardRuleHandler");
+
+  const {
+    network: { name: network }
+  } = hre;
+
+  let deployer = await getDeployAddress();
+
+  const MERCHANT_FEE_RECEIVER = process.env.MERCHANT_FEE_RECEIVER ?? deployer;
+  const REWARD_FEE_RECEIVER = process.env.REWARD_FEE_RECEIVER ?? deployer;
+
   // TODO after the next deploy with these addresses we can just use zero
   // address for this
   const deprecatedMerchantManager =
@@ -76,6 +96,7 @@ module.exports = async function (_deployer, network) {
 
   const addressesFile = resolve(
     __dirname,
+    "..",
     "..",
     ".openzeppelin",
     `addresses-${network}.json`
@@ -144,7 +165,7 @@ module.exports = async function (_deployer, network) {
   );
 
   // RevenuePool configuration
-  let revenuePool = await RevenuePool.at(revenuePoolAddress);
+  let revenuePool = await RevenuePool.attach(revenuePoolAddress);
   console.log(`
 ==================================================
 Configuring RevenuePool ${revenuePoolAddress}
@@ -170,7 +191,7 @@ Configuring RevenuePool ${revenuePoolAddress}
   );
 
   // Token Manager configuration
-  let tokenManager = await TokenManager.at(tokenManagerAddress);
+  let tokenManager = await TokenManager.attach(tokenManagerAddress);
   console.log(`
 ==================================================
 Configuring TokenManager ${tokenManagerAddress}
@@ -179,7 +200,7 @@ Configuring TokenManager ${tokenManagerAddress}
   await sendTx(() => tokenManager.setup(bridgeUtilsAddress, PAYABLE_TOKENS));
 
   // Merchant Manager configuration
-  let merchantManager = await MerchantManager.at(merchantManagerAddress);
+  let merchantManager = await MerchantManager.attach(merchantManagerAddress);
   console.log(`
 ==================================================
 Configuring MerchantManager ${merchantManagerAddress}
@@ -197,7 +218,7 @@ Configuring MerchantManager ${merchantManagerAddress}
   );
 
   // Supplier Manager configuration
-  let supplierManager = await SupplierManager.at(supplierManagerAddress);
+  let supplierManager = await SupplierManager.attach(supplierManagerAddress);
   console.log(`
 ==================================================
 Configuring SupplierManager ${supplierManagerAddress}
@@ -214,7 +235,7 @@ Configuring SupplierManager ${supplierManagerAddress}
   );
 
   // Exchange configuration
-  let exchange = await Exchange.at(exchangeAddress);
+  let exchange = await Exchange.attach(exchangeAddress);
   console.log(`
 ==================================================
 Configuring Exchange ${exchangeAddress}
@@ -229,15 +250,18 @@ Configuring Exchange ${exchangeAddress}
   await sendTx(() => exchange.createExchange("CARD", cardOracleAddress));
 
   // ActionDispatcher configuration
-  let actionDispatcher = await ActionDispatcher.at(actionDispatcherAddress);
+
+  async function actionDispatcher() {
+    return await ActionDispatcher.attach(actionDispatcherAddress);
+  }
   console.log(`
 ==================================================
 Configuring ActionDispatcher ${actionDispatcherAddress}
   TokenManager address: ${tokenManagerAddress}
   Exchange address: ${exchangeAddress}
   PrepaidCardManager address: ${prepaidCardManagerAddress}`);
-  await sendTx(() =>
-    actionDispatcher.setup(
+  await sendTx(async () =>
+    (await actionDispatcher()).setup(
       tokenManagerAddress,
       exchangeAddress,
       prepaidCardManagerAddress
@@ -246,14 +270,17 @@ Configuring ActionDispatcher ${actionDispatcherAddress}
   console.log(
     `  adding action handler for "payMerchant": ${payMerchantHandlerAddress}`
   );
-  await sendTx(() =>
-    actionDispatcher.addHandler(payMerchantHandlerAddress, "payMerchant")
+  await sendTx(async () =>
+    (await actionDispatcher()).addHandler(
+      payMerchantHandlerAddress,
+      "payMerchant"
+    )
   );
   console.log(
     `  adding action handler for "registerMerchant": ${registerMerchantHandlerAddress}`
   );
-  await sendTx(() =>
-    actionDispatcher.addHandler(
+  await sendTx(async () =>
+    (await actionDispatcher()).addHandler(
       registerMerchantHandlerAddress,
       "registerMerchant"
     )
@@ -261,20 +288,26 @@ Configuring ActionDispatcher ${actionDispatcherAddress}
   console.log(
     `  adding action handler for "split": ${splitPrepaidCardHandlerAddress}`
   );
-  await sendTx(() =>
-    actionDispatcher.addHandler(splitPrepaidCardHandlerAddress, "split")
+  await sendTx(async () =>
+    (await actionDispatcher()).addHandler(
+      splitPrepaidCardHandlerAddress,
+      "split"
+    )
   );
   console.log(
     `  adding action handler for "transfer": ${transferPrepaidCardHandlerAddress}`
   );
-  await sendTx(() =>
-    actionDispatcher.addHandler(transferPrepaidCardHandlerAddress, "transfer")
+  await sendTx(async () =>
+    (await actionDispatcher()).addHandler(
+      transferPrepaidCardHandlerAddress,
+      "transfer"
+    )
   );
   console.log(
     `  adding action handler for "registerRewardee": ${registerRewardeeHandlerAddress}`
   );
-  await sendTx(() =>
-    actionDispatcher.addHandler(
+  await sendTx(async () =>
+    (await actionDispatcher()).addHandler(
       registerRewardeeHandlerAddress,
       "registerRewardee"
     )
@@ -283,8 +316,8 @@ Configuring ActionDispatcher ${actionDispatcherAddress}
   console.log(
     `  adding action handler for "registerRewardProgram": ${registerRewardProgramHandlerAddress}`
   );
-  await sendTx(() =>
-    actionDispatcher.addHandler(
+  await sendTx(async () =>
+    (await actionDispatcher()).addHandler(
       registerRewardProgramHandlerAddress,
       "registerRewardProgram"
     )
@@ -293,8 +326,8 @@ Configuring ActionDispatcher ${actionDispatcherAddress}
   console.log(
     `  adding action handler for "lockRewardProgram": ${lockRewardProgramHandlerAddress}`
   );
-  await sendTx(() =>
-    actionDispatcher.addHandler(
+  await sendTx(async () =>
+    (await actionDispatcher()).addHandler(
       lockRewardProgramHandlerAddress,
       "lockRewardProgram"
     )
@@ -303,15 +336,18 @@ Configuring ActionDispatcher ${actionDispatcherAddress}
   console.log(
     `  adding action handler for "addRewardRule": ${addRewardRuleHandlerAddress}`
   );
-  await sendTx(() =>
-    actionDispatcher.addHandler(addRewardRuleHandlerAddress, "addRewardRule")
+  await sendTx(async () =>
+    (await actionDispatcher()).addHandler(
+      addRewardRuleHandlerAddress,
+      "addRewardRule"
+    )
   );
 
   console.log(
     `  adding action handler for "removeRewardRule": ${removeRewardRuleHandlerAddress}`
   );
-  await sendTx(() =>
-    actionDispatcher.addHandler(
+  await sendTx(async () =>
+    (await actionDispatcher()).addHandler(
       removeRewardRuleHandlerAddress,
       "removeRewardRule"
     )
@@ -320,15 +356,15 @@ Configuring ActionDispatcher ${actionDispatcherAddress}
   console.log(
     `  adding action handler for "updateRewardProgramAdmin": ${updateRewardProgramAdminHandlerAddress}`
   );
-  await sendTx(() =>
-    actionDispatcher.addHandler(
+  await sendTx(async () =>
+    (await actionDispatcher()).addHandler(
       updateRewardProgramAdminHandlerAddress,
       "updateRewardProgramAdmin"
     )
   );
 
   // PayMerchantHandler configuration
-  let payMerchantHandler = await PayMerchantHandler.at(
+  let payMerchantHandler = await PayMerchantHandler.attach(
     payMerchantHandlerAddress
   );
   console.log(`
@@ -352,7 +388,7 @@ Configuring PayMerchantHandler ${payMerchantHandlerAddress}
   );
 
   // RegisterMerchantHandler configuration
-  let registerMerchantHandler = await RegisterMerchantHandler.at(
+  let registerMerchantHandler = await RegisterMerchantHandler.attach(
     registerMerchantHandlerAddress
   );
   console.log(`
@@ -376,7 +412,7 @@ Configuring RegisterMerchantHandler ${registerMerchantHandlerAddress}
   );
 
   // SplitPrepaidCardHandler configuration
-  let splitPrepaidCardHandler = await SplitPrepaidCardHandler.at(
+  let splitPrepaidCardHandler = await SplitPrepaidCardHandler.attach(
     splitPrepaidCardHandlerAddress
   );
   console.log(`
@@ -394,7 +430,7 @@ Configuring SplitPrepaidCardHandler ${splitPrepaidCardHandlerAddress}
   );
 
   // TransferPrepaidCardHandler configuration
-  let transferPrepaidCardHandler = await TransferPrepaidCardHandler.at(
+  let transferPrepaidCardHandler = await TransferPrepaidCardHandler.attach(
     transferPrepaidCardHandlerAddress
   );
   console.log(`
@@ -412,9 +448,9 @@ Configuring TransferPrepaidCardHandler ${transferPrepaidCardHandlerAddress}
   );
 
   // PrepaidCardManager configuration
-  let prepaidCardManager = await PrepaidCardManager.at(
-    prepaidCardManagerAddress
-  );
+  async function prepaidCardManager() {
+    return await PrepaidCardManager.attach(prepaidCardManagerAddress);
+  }
   console.log(`
 ==================================================
 Configuring PrepaidCardManager ${prepaidCardManagerAddress}
@@ -429,8 +465,8 @@ Configuring PrepaidCardManager ${prepaidCardManagerAddress}
   gas token: ${GAS_TOKEN}
   minimum face value: ${MINIMUM_AMOUNT}
   maximum face value: ${MAXIMUM_AMOUNT}`);
-  await sendTx(() =>
-    prepaidCardManager.setup(
+  await sendTx(async () =>
+    (await prepaidCardManager()).setup(
       tokenManagerAddress,
       supplierManagerAddress,
       exchangeAddress,
@@ -447,50 +483,50 @@ Configuring PrepaidCardManager ${prepaidCardManagerAddress}
   console.log(
     `  setting gas policy for "transfer" to *not* use issuing token for gas and to pay gas recipient`
   );
-  await sendTx(() => prepaidCardManager.addGasPolicy("transfer", false, true));
+  await sendTx(async () => (await prepaidCardManager()).addGasPolicy("transfer", false, true));
   console.log(
     `  setting gas policy for "split" to use issuing token for gas and to pay gas recipient`
   );
-  await sendTx(() => prepaidCardManager.addGasPolicy("split", true, true));
+  await sendTx(async () => (await prepaidCardManager()).addGasPolicy("split", true, true));
   console.log(
     `  setting gas policy for "registerRewardProgram" to use issuing token for gas and to pay gas recipient`
   );
-  await sendTx(() =>
-    prepaidCardManager.addGasPolicy("registerRewardProgram", true, true)
+  await sendTx(async () =>
+    (await prepaidCardManager()).addGasPolicy("registerRewardProgram", true, true)
   );
   console.log(
     `  setting gas policy for "registerRewardee" to use issuing token for gas and to pay gas recipient`
   );
-  await sendTx(() =>
-    prepaidCardManager.addGasPolicy("registerRewardee", true, true)
+  await sendTx(async () =>
+    (await prepaidCardManager()).addGasPolicy("registerRewardee", true, true)
   );
   console.log(
     `  setting gas policy for "lockRewardProgram" to use issuing token for gas and to pay gas recipient`
   );
-  await sendTx(() =>
-    prepaidCardManager.addGasPolicy("lockRewardProgram", true, true)
+  await sendTx(async () =>
+    (await prepaidCardManager()).addGasPolicy("lockRewardProgram", true, true)
   );
   console.log(
     `  setting gas policy for "updateRewardProgramAdmin" to use issuing token for gas and to pay gas recipient`
   );
-  await sendTx(() =>
-    prepaidCardManager.addGasPolicy("updateRewardProgramAdmin", true, true)
+  await sendTx(async () =>
+    (await prepaidCardManager()).addGasPolicy("updateRewardProgramAdmin", true, true)
   );
   console.log(
     `  setting gas policy for "addRewardRule" to use issuing token for gas and to pay gas recipient`
   );
-  await sendTx(() =>
-    prepaidCardManager.addGasPolicy("addRewardRule", true, true)
+  await sendTx(async () =>
+    (await prepaidCardManager()).addGasPolicy("addRewardRule", true, true)
   );
   console.log(
     `  setting gas policy for "removeRewardRule" to use issuing token for gas and to pay gas recipient`
   );
-  await sendTx(() =>
-    prepaidCardManager.addGasPolicy("removeRewardRule", true, true)
+  await sendTx(async () =>
+    (await prepaidCardManager()).addGasPolicy("removeRewardRule", true, true)
   );
 
   // RewardPool configuration
-  let rewardPool = await RewardPool.at(rewardPoolAddress);
+  let rewardPool = await RewardPool.attach(rewardPoolAddress);
   console.log(`
 ==================================================
 Configuring RewardPool ${rewardPoolAddress}
@@ -498,7 +534,7 @@ Configuring RewardPool ${rewardPoolAddress}
   await sendTx(() => rewardPool.setup(TALLY, rewardManagerAddress));
 
   // BridgeUtils configuration
-  let bridgeUtils = await BridgeUtils.at(bridgeUtilsAddress);
+  let bridgeUtils = await BridgeUtils.attach(bridgeUtilsAddress);
   console.log(`
 ==================================================
 Configuring BridgeUtils ${bridgeUtilsAddress}
@@ -516,14 +552,14 @@ Configuring BridgeUtils ${bridgeUtilsAddress}
   );
 
   // SPEND configuration
-  let spend = await SPEND.at(spendTokenAddress);
+  let spend = await SPEND.attach(spendTokenAddress);
   console.log(`
 ==================================================
 Configuring SPEND: ${spendTokenAddress}
   adding minter: ${payMerchantHandlerAddress} (PayMerchantHandler)`);
   await sendTx(() => spend.addMinter(payMerchantHandlerAddress));
 
-  let rewardManager = await RewardManager.at(rewardManagerAddress);
+  let rewardManager = await RewardManager.attach(rewardManagerAddress);
   console.log(`
 ==================================================
 Configuring RewardManager ${rewardManagerAddress}
@@ -543,7 +579,7 @@ Configuring RewardManager ${rewardManagerAddress}
     )
   );
 
-  let registerRewardProgramHandler = await RegisterRewardProgramHandler.at(
+  let registerRewardProgramHandler = await RegisterRewardProgramHandler.attach(
     registerRewardProgramHandlerAddress
   );
   console.log(`
@@ -563,7 +599,7 @@ Configuring RegisterRewardProgramHandler ${registerRewardProgramHandlerAddress}
     )
   );
 
-  let registerRewardeeHandler = await RegisterRewardeeHandler.at(
+  let registerRewardeeHandler = await RegisterRewardeeHandler.attach(
     registerRewardeeHandlerAddress
   );
   console.log(`
@@ -585,7 +621,7 @@ Configuring RegisterRewardeeHandler ${registerRewardeeHandlerAddress}
     )
   );
 
-  let lockRewardProgramHandler = await LockRewardProgramHandler.at(
+  let lockRewardProgramHandler = await LockRewardProgramHandler.attach(
     lockRewardProgramHandlerAddress
   );
   console.log(`
@@ -607,7 +643,7 @@ Configuring LockRewardProgramHandler ${lockRewardProgramHandlerAddress}
     )
   );
 
-  let updateRewardProgramAdminHandler = await UpdateRewardProgramAdminHandler.at(
+  let updateRewardProgramAdminHandler = await UpdateRewardProgramAdminHandler.attach(
     updateRewardProgramAdminHandlerAddress
   );
   console.log(`
@@ -629,7 +665,7 @@ Configuring UpdateRewardProgramAdminHandler ${updateRewardProgramAdminHandlerAdd
     )
   );
 
-  let addRewardRuleHandler = await AddRewardRuleHandler.at(
+  let addRewardRuleHandler = await AddRewardRuleHandler.attach(
     addRewardRuleHandlerAddress
   );
   console.log(`
@@ -651,7 +687,7 @@ Configuring AddRewardRule ${addRewardRuleHandlerAddress}
     )
   );
 
-  let removeRewardRuleHandler = await RemoveRewardRuleHandler.at(
+  let removeRewardRuleHandler = await RemoveRewardRuleHandler.attach(
     removeRewardRuleHandlerAddress
   );
   console.log(`
@@ -672,7 +708,7 @@ Configuring RemoveRewardRule ${removeRewardRuleHandlerAddress}
       rewardManagerAddress
     )
   );
-};
+}
 
 function getAddress(contractId, addresses) {
   let info = addresses[contractId];
@@ -683,3 +719,5 @@ function getAddress(contractId, addresses) {
   }
   return info.proxy;
 }
+
+asyncMain(main);

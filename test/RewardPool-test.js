@@ -640,7 +640,7 @@ contract("RewardPool", function (accounts) {
           })
           .should.be.rejectedWith(
             Error,
-            "Returned error: VM Exception while processing transaction: revert"
+            "Transaction reverted: function call to a non-contract account"
           );
       });
       it("payee cannot claim from a safe associated with different reward program", async function () {
