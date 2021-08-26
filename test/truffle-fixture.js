@@ -1,4 +1,5 @@
 const PrepaidCardManager = artifacts.require("PrepaidCardManager");
+const PrepaidCardMarket = artifacts.require("PrepaidCardMarket");
 const RevenuePool = artifacts.require("RevenuePool");
 const BridgeUtils = artifacts.require("BridgeUtils");
 const SPEND = artifacts.require("SPEND");
@@ -34,6 +35,7 @@ module.exports = async () => {
     // We use this to measure gas for all our contract creation. Please add
     // any new contracts here:
     await PrepaidCardManager.new(),
+    await PrepaidCardMarket.new(),
     await RevenuePool.new(),
     await BridgeUtils.new(),
     await SPEND.new(),
@@ -56,6 +58,6 @@ module.exports = async () => {
     await LockRewardProgramHandler.new(),
     await UpdateRewardProgramAdminHandler.new(),
     await AddRewardRuleHandler.new(),
-    await RemoveRewardRuleHandler.new()
+    await RemoveRewardRuleHandler.new(),
   ]);
 };
