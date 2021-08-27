@@ -3,12 +3,14 @@ pragma solidity 0.5.17;
 import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contract-upgradeable/contracts/utils/EnumerableSet.sol";
 import "@openzeppelin/contract-upgradeable/contracts/math/SafeMath.sol";
+import "hardhat/console.sol";
 
 import "./core/Versionable.sol";
+import "./IPrepaidCardMarket.sol";
 import "./PrepaidCardManager.sol";
 import "./ActionDispatcher.sol";
 
-contract PrepaidCardMarket is Ownable, Versionable {
+contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
   using SafeMath for uint256;
   using EnumerableSet for EnumerableSet.AddressSet;
 
@@ -26,12 +28,12 @@ contract PrepaidCardMarket is Ownable, Versionable {
 
   event Setup();
   event ItemsSet(
-    address[] prepaidCards,
+    address prepaidCard,
     address issuer,
     address issuingToken,
-    uint256[] faceValues,
+    uint256 faceValue,
     string customizationDID,
-    bytes32[] skus
+    bytes32 sku
   );
   event ItemsRemoved(address[] prepaidCards, address issuer, bytes32[] skus);
   event AskSet(
@@ -49,6 +51,7 @@ contract PrepaidCardMarket is Ownable, Versionable {
 
   bytes4 internal constant EIP1271_MAGIC_VALUE = 0x20c13b0b;
   bytes4 internal constant SWAP_OWNER = 0xe318b52b; //swapOwner(address,address,address)
+  uint256 internal nonce = 0;
   address public prepaidCardManagerAddress;
   address public actionDispatcher;
   address public provisioner;
@@ -59,10 +62,25 @@ contract PrepaidCardMarket is Ownable, Versionable {
   mapping(address => address) public provisionedCards; // prepaid card => EOA
   mapping(bytes32 => bool) internal signatures;
 
+  modifier onlyHandlersOrPrepaidCardManager() {
+    require(
+      ActionDispatcher(actionDispatcher).isHandler(msg.sender) ||
+        msg.sender == prepaidCardManagerAddress,
+      "caller is not a registered action handler or PrepaidCardManager"
+    );
+    _;
+  }
   modifier onlyHandlers() {
     require(
       ActionDispatcher(actionDispatcher).isHandler(msg.sender),
       "caller is not a registered action handler"
+    );
+    _;
+  }
+  modifier onlyHandlersOrOwner() {
+    require(
+      isOwner() || ActionDispatcher(actionDispatcher).isHandler(msg.sender),
+      "caller is not a registered action handler nor owner"
     );
     _;
   }
@@ -86,37 +104,31 @@ contract PrepaidCardMarket is Ownable, Versionable {
     emit Setup();
   }
 
-  function setItems(address issuer, address[] calldata prepaidCards)
+  function setItem(address issuer, address prepaidCard)
     external
-    onlyHandlers
+    onlyHandlersOrPrepaidCardManager
     returns (bool)
   {
     (address issuingToken, string memory customizationDID) =
-      validateItems(issuer, prepaidCards);
+      validateItem(issuer, prepaidCard);
     PrepaidCardManager prepaidCardManager =
       PrepaidCardManager(prepaidCardManagerAddress);
-    bytes32[] memory _skus = new bytes32[](prepaidCards.length);
-    uint256[] memory faceValues = new uint256[](prepaidCards.length);
-    for (uint256 i = 0; i < prepaidCards.length; i++) {
-      uint256 faceValue = prepaidCardManager.faceValue(prepaidCards[i]);
-      bytes32 sku = getSKU(issuer, issuingToken, faceValue, customizationDID);
-      if (skus[sku].issuer == address(0)) {
-        skus[sku].issuer = issuer;
-        skus[sku].issuingToken = issuingToken;
-        skus[sku].faceValue = faceValue;
-        skus[sku].customizationDID = customizationDID;
-      }
-      inventory[sku].add(prepaidCards[i]);
-      _skus[i] = sku;
-      faceValues[i] = faceValue;
+    uint256 faceValue = prepaidCardManager.faceValue(prepaidCard);
+    bytes32 sku = getSKU(issuer, issuingToken, faceValue, customizationDID);
+    if (skus[sku].issuer == address(0)) {
+      skus[sku].issuer = issuer;
+      skus[sku].issuingToken = issuingToken;
+      skus[sku].faceValue = faceValue;
+      skus[sku].customizationDID = customizationDID;
     }
+    inventory[sku].add(prepaidCard);
     emit ItemsSet(
-      prepaidCards,
+      prepaidCard,
       issuer,
       issuingToken,
-      faceValues,
+      faceValue,
       customizationDID,
-      _skus
+      sku
     );
     return true;
   }
@@ -126,7 +138,7 @@ contract PrepaidCardMarket is Ownable, Versionable {
     onlyHandlers
     returns (bool)
   {
-    validateItems(issuer, prepaidCards);
+    // validateItems(issuer, prepaidCards);
     bytes32[] memory _skus = new bytes32[](prepaidCards.length);
     for (uint256 i = 0; i < prepaidCards.length; i++) {
       bytes memory signature = contractSignature(prepaidCards[i], issuer);
@@ -153,7 +165,7 @@ contract PrepaidCardMarket is Ownable, Versionable {
     address issuer,
     bytes32 sku,
     uint256 askPrice // a "0" askPrice removes the SKU from the market
-  ) external onlyHandlers returns (bool) {
+  ) external onlyHandlersOrOwner returns (bool) {
     require(skus[sku].issuer != address(0), "Non-existent SKU");
     require(skus[sku].issuer == issuer, "SKU not owned by issuer");
     asks[sku] = askPrice;
@@ -227,14 +239,12 @@ contract PrepaidCardMarket is Ownable, Versionable {
 
   function contractSignature(address prepaidCard, address newOwner)
     internal
-    view
     returns (bytes memory)
   {
+    nonce++;
     return
       abi.encodePacked(
-        keccak256(
-          abi.encodePacked(address(this), prepaidCard, newOwner, block.number)
-        )
+        keccak256(abi.encodePacked(address(this), prepaidCard, newOwner, nonce))
       );
   }
 
@@ -243,66 +253,35 @@ contract PrepaidCardMarket is Ownable, Versionable {
     view
     returns (bytes4)
   {
-    // bytes4 validSig = 0xdeadbeef;
-    // if (
-    //   keccak256(abi.encodePacked(signature)) ==
-    //   keccak256(abi.encodePacked(validSig))
-    // ) {
-    //   return EIP1271_MAGIC_VALUE;
-    // }
     if (signatures[keccak256(signature)]) {
       return EIP1271_MAGIC_VALUE;
     }
     return bytes4(0);
   }
 
-  function validateItems(address issuer, address[] memory prepaidCards)
+  function validateItem(address issuer, address prepaidCard)
     internal
     view
     returns (address issuingToken, string memory customizationDID)
   {
-    require(prepaidCards.length > 0, "No prepaid cards provided");
     PrepaidCardManager prepaidCardManager =
       PrepaidCardManager(prepaidCardManagerAddress);
+    address expectedIssuer;
+    (expectedIssuer, issuingToken, , customizationDID, , ) = prepaidCardManager
+      .cardDetails(prepaidCard);
+
     require(
-      prepaidCards.length <= prepaidCardManager.MAXIMUM_NUMBER_OF_CARD(),
-      "Too many prepaid cards"
+      prepaidCardManager.getPrepaidCardOwner(address(uint160(prepaidCard))) ==
+        address(this),
+      "Market contract does not own the prepaid card"
     );
-
-    (, issuingToken, , customizationDID, , ) = prepaidCardManager.cardDetails(
-      prepaidCards[0]
+    require(
+      expectedIssuer == issuer,
+      "Specified issuer is not the issuer of the prepaid card"
     );
-    for (uint256 i = 0; i < prepaidCards.length; i++) {
-      require(
-        prepaidCardManager.getPrepaidCardOwner(
-          address(uint160(prepaidCards[i]))
-        ) == issuer,
-        "Issuer is not the owner of the prepaid card"
-      );
-      require(
-        prepaidCardManager.getPrepaidCardIssuer(
-          address(uint160(prepaidCards[i]))
-        ) == issuer,
-        "Issuer is not the actual issuer of the prepaid card"
-      );
-      require(
-        !prepaidCardManager.hasBeenUsed(prepaidCards[i]),
-        "Prepaid card has been used"
-      );
-      (
-        ,
-        address currentIssuingToken,
-        ,
-        string memory currentCustomizationDID,
-        ,
-
-      ) = prepaidCardManager.cardDetails(prepaidCards[0]);
-      require(
-        issuingToken == currentIssuingToken &&
-          keccak256(abi.encodePacked(customizationDID)) ==
-          keccak256(abi.encodePacked(currentCustomizationDID)),
-        "Prepaid cards details do not match"
-      );
-    }
+    require(
+      !prepaidCardManager.hasBeenUsed(prepaidCard),
+      "Prepaid card has been used"
+    );
   }
 }

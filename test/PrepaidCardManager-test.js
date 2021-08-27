@@ -399,8 +399,8 @@ contract("PrepaidCardManager", (accounts) => {
       });
     });
 
-    it("should create a large number of cards without exceeding the block gas limit (truffle limits tests to 6.7M block gas limit--the true block gas limit is closer to 12.5M)", async function() {
-      this.timeout(40000);
+    it("should create a large number of cards without exceeding the block gas limit (truffle limits tests to 6.7M block gas limit--the true block gas limit is closer to 12.5M)", async function () {
+      this.timeout(60000);
       let numCards = 12;
       let amounts = [];
       for (let i = 0; i < numCards; i++) {
@@ -922,6 +922,8 @@ contract("PrepaidCardManager", (accounts) => {
           .should.become(true);
 
         shouldBeSameBalance(daicpxdToken, prepaidCard.address, amounts[index]);
+
+        // TODO assert split cards live in the inventory
       });
     });
 
@@ -1364,14 +1366,9 @@ contract("PrepaidCardManager", (accounts) => {
         startingRevenuePoolCardcpxdBalance
       );
 
-      // The face value reflects the most conservative rate allowable for the
-      // prepaid card after it has been used based on the configured rate drift.
-      // this means that the face value is always slightly less than the face
-      // value calculated using the current USD rate from the oracle
-      let result = await prepaidCardManager.faceValue(prepaidCard.address);
-      // the rate drift is 1%, and for a 400 SPEND prepaid card that is 4 SPEND
-      // difference from the optimal rate
-      expect(result.toString()).to.equal("396");
+      expect(
+        (await prepaidCardManager.faceValue(prepaidCard.address)).toString()
+      ).to.equal("400");
     });
 
     it("can sign with address lexigraphically before prepaid card manager contract address", async () => {

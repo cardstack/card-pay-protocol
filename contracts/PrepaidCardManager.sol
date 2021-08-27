@@ -6,6 +6,7 @@ import "@openzeppelin/contract-upgradeable/contracts/math/SafeMath.sol";
 import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
 
 import "./token/IERC677.sol";
+import "./IPrepaidCardMarket.sol";
 import "./TokenManager.sol";
 import "./core/Safe.sol";
 import "./core/Versionable.sol";
@@ -182,8 +183,9 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
       address owner,
       uint256[] memory issuingTokenAmounts,
       uint256[] memory spendAmounts,
-      string memory customizationDID
-    ) = abi.decode(data, (address, uint256[], uint256[], string));
+      string memory customizationDID,
+      address marketAddress
+    ) = abi.decode(data, (address, uint256[], uint256[], string, address));
     require(
       owner != address(0) && issuingTokenAmounts.length > 0,
       "Prepaid card data invalid"
@@ -204,7 +206,8 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
       amount,
       issuingTokenAmounts,
       spendAmounts,
-      customizationDID
+      customizationDID,
+      marketAddress
     );
     return true;
   }
@@ -452,7 +455,8 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     uint256 amountReceived,
     uint256[] memory issuingTokenAmounts,
     uint256[] memory spendAmounts,
-    string memory customizationDID
+    string memory customizationDID,
+    address marketAddress
   ) private returns (bool) {
     uint256 neededAmount = 0;
     uint256 numberCard = issuingTokenAmounts.length;
@@ -480,7 +484,8 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
         token,
         issuingTokenAmounts[i],
         spendAmounts[i],
-        customizationDID
+        customizationDID,
+        marketAddress
       );
     }
 
@@ -513,12 +518,13 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     address token,
     uint256 issuingTokenAmount,
     uint256 spendAmount,
-    string memory customizationDID
+    string memory customizationDID,
+    address marketAddress
   ) private returns (address) {
     address[] memory owners = new address[](2);
 
     owners[0] = address(this);
-    owners[1] = owner;
+    owners[1] = marketAddress != address(0) ? marketAddress : owner;
 
     address card = createSafe(owners, 2);
 
@@ -547,6 +553,10 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
       _gasFee,
       customizationDID
     );
+
+    if (marketAddress != address(0)) {
+      IPrepaidCardMarket(marketAddress).setItem(owner, card);
+    }
 
     return card;
   }

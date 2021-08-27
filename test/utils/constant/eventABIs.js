@@ -100,6 +100,60 @@ const eventABIs = {
       },
     ],
   },
+  SET_PREPAID_CARD_INVENTORY: {
+    topic: web3EthAbi.encodeEventSignature(
+      "ItemsSet(address,address,address,uint256,string,bytes32)"
+    ),
+    abis: [
+      {
+        type: "address",
+        name: "prepaidCard",
+      },
+      {
+        type: "address",
+        name: "issuer",
+      },
+      {
+        type: "address",
+        name: "issuingToken",
+      },
+      {
+        type: "uint256",
+        name: "faceValue",
+      },
+      {
+        type: "string",
+        name: "customizationDID",
+      },
+      {
+        type: "bytes32",
+        name: "sku",
+      },
+    ],
+  },
+  PROVISION_PREPAID_CARD: {
+    topic: web3EthAbi.encodeEventSignature(
+      "ProvisionedPrepaidCard(address,address,bytes32,uint256)"
+    ),
+    abis: [
+      {
+        type: "address",
+        name: "prepaidCard",
+      },
+      {
+        type: "address",
+        name: "customer",
+      },
+      {
+        type: "bytes32",
+        name: "sku",
+      },
+      {
+        type: "uint256",
+        name: "askPrice",
+      },
+    ],
+  },
   REWARDEE_REGISTERED: {
     topic: web3EthAbi.encodeEventSignature(
       "RewardeeRegistered(address,address,address)"

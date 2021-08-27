@@ -48,4 +48,7 @@ module.exports = {
     runOnCompile: true,
     disambiguatePaths: true,
   },
+  mocha: {
+    timeout: 60000,
+  },
 };

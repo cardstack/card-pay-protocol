@@ -294,6 +294,9 @@ Configuring ActionDispatcher ${actionDispatcherAddress}
       "split"
     )
   );
+
+  // TODO action handler for setPrepaidCardInventory
+
   console.log(
     `  adding action handler for "transfer": ${transferPrepaidCardHandlerAddress}`
   );
@@ -465,6 +468,7 @@ Configuring PrepaidCardManager ${prepaidCardManagerAddress}
   gas token: ${GAS_TOKEN}
   minimum face value: ${MINIMUM_AMOUNT}
   maximum face value: ${MAXIMUM_AMOUNT}`);
+  // TODO add contract signers
   await sendTx(async () =>
     (await prepaidCardManager()).setup(
       tokenManagerAddress,
@@ -489,6 +493,9 @@ Configuring PrepaidCardManager ${prepaidCardManagerAddress}
   console.log(
     `  setting gas policy for "split" to use issuing token for gas and to pay gas recipient`
   );
+
+  // TODO gas policy for setPrepaidCardInventory
+
   await sendTx(async () =>
     (await prepaidCardManager()).addGasPolicy("split", true, true)
   );
