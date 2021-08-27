@@ -7,7 +7,7 @@ import "../PrepaidCardManager.sol";
 import "../TokenManager.sol";
 import "../IPrepaidCardMarket.sol";
 
-contract SetPrepaidCardInventoryHandler is Ownable, Versionable {
+contract SetPrepaidCardAskHandler is Ownable, Versionable {
   address public actionDispatcher;
   address public prepaidCardManagerAddress;
   address public tokenManagerAddress;
@@ -32,7 +32,7 @@ contract SetPrepaidCardInventoryHandler is Ownable, Versionable {
    * @param from the token sender (should be the revenue pool)
    * @param amount the amount of tokens being transferred
    * @param data the data encoded as (address prepaidCard, uint256 spendAmount, bytes actionData)
-   * where actionData is encoded as (address prepaidCard, address marketAddress, bytes previousOwnerSignature)
+   * where actionData is encoded as (bytes32 sku, uint256 askPrice, address marketAddress)
    */
   function onTokenTransfer(
     address payable from,
@@ -47,33 +47,21 @@ contract SetPrepaidCardInventoryHandler is Ownable, Versionable {
       from == actionDispatcher,
       "can only accept tokens from action dispatcher"
     );
+
     (address payable prepaidCard, , bytes memory actionData) =
       abi.decode(data, (address, uint256, bytes));
-    (
-      address prepaidCardForInventory,
-      address marketAddress,
-      bytes memory previousOwnerSignature
-    ) = abi.decode(actionData, (address, address, bytes));
+    (bytes32 sku, uint256 askPrice, address marketAddress) =
+      abi.decode(actionData, (bytes32, uint256, address));
     require(marketAddress != address(0), "market address is required");
 
     PrepaidCardManager prepaidCardMgr =
       PrepaidCardManager(prepaidCardManagerAddress);
-    address owner =
-      prepaidCardMgr.getPrepaidCardOwner(
-        address(uint160(prepaidCardForInventory))
-      );
-    address issuer =
-      prepaidCardMgr.getPrepaidCardIssuer(prepaidCardForInventory);
+    IPrepaidCardMarket prepaidCardMarket = IPrepaidCardMarket(marketAddress);
+    address owner = prepaidCardMgr.getPrepaidCardOwner(prepaidCard);
+    (address issuer, , , ) = prepaidCardMarket.getSkuInfo(sku);
     require(issuer == owner, "only issuer can set market inventory");
 
     prepaidCardMgr.setPrepaidCardUsed(prepaidCard);
-
-    PrepaidCardManager(prepaidCardManagerAddress).transfer(
-      address(uint160(prepaidCardForInventory)),
-      marketAddress,
-      previousOwnerSignature
-    );
-
-    IPrepaidCardMarket(marketAddress).setItem(issuer, prepaidCardForInventory);
+    prepaidCardMarket.setAsk(issuer, sku, askPrice);
   }
 }

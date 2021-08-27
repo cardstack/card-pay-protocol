@@ -18,6 +18,13 @@ const SplitPrepaidCardHandler = artifacts.require("SplitPrepaidCardHandler");
 const TransferPrepaidCardHandler = artifacts.require(
   "TransferPrepaidCardHandler"
 );
+const SetPrepaidCardInventoryHandler = artifacts.require(
+  "SetPrepaidCardInventoryHandler"
+);
+const RemovePrepaidCardInventoryHandler = artifacts.require(
+  "RemovePrepaidCardInventoryHandler"
+);
+const SetPrepaidCardAskHandler = artifacts.require("SetPrepaidCardAskHandler");
 const RewardManager = artifacts.require("RewardManager");
 const RegisterRewardProgramHandler = artifacts.require(
   "RegisterRewardProgramHandler"
@@ -52,6 +59,9 @@ module.exports = async () => {
     await MerchantManager.new(),
     await SplitPrepaidCardHandler.new(),
     await TransferPrepaidCardHandler.new(),
+    await SetPrepaidCardInventoryHandler.new(),
+    await RemovePrepaidCardInventoryHandler.new(),
+    await SetPrepaidCardAskHandler.new(),
     await RewardManager.new(),
     await RegisterRewardProgramHandler.new(),
     await RegisterRewardeeHandler.new(),

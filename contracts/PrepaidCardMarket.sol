@@ -27,7 +27,7 @@ contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
   }
 
   event Setup();
-  event ItemsSet(
+  event ItemSet(
     address prepaidCard,
     address issuer,
     address issuingToken,
@@ -35,7 +35,7 @@ contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
     string customizationDID,
     bytes32 sku
   );
-  event ItemsRemoved(address[] prepaidCards, address issuer, bytes32[] skus);
+  event ItemRemoved(address prepaidCard, address issuer, bytes32 sku);
   event AskSet(
     address issuer,
     address issuingToken,
@@ -77,13 +77,6 @@ contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
     );
     _;
   }
-  modifier onlyHandlersOrOwner() {
-    require(
-      isOwner() || ActionDispatcher(actionDispatcher).isHandler(msg.sender),
-      "caller is not a registered action handler nor owner"
-    );
-    _;
-  }
   modifier onlyProvisionerOrOwner() {
     require(
       isOwner() || msg.sender == provisioner,
@@ -122,7 +115,7 @@ contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
       skus[sku].customizationDID = customizationDID;
     }
     inventory[sku].add(prepaidCard);
-    emit ItemsSet(
+    emit ItemSet(
       prepaidCard,
       issuer,
       issuingToken,
@@ -138,24 +131,28 @@ contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
     onlyHandlers
     returns (bool)
   {
-    // validateItems(issuer, prepaidCards);
-    bytes32[] memory _skus = new bytes32[](prepaidCards.length);
+    PrepaidCardManager prepaidCardManager =
+      PrepaidCardManager(prepaidCardManagerAddress);
+    require(
+      prepaidCards.length <= prepaidCardManager.MAXIMUM_NUMBER_OF_CARD(),
+      "too many prepaid cards"
+    );
     for (uint256 i = 0; i < prepaidCards.length; i++) {
+      validateItem(issuer, prepaidCards[i]);
       bytes memory signature = contractSignature(prepaidCards[i], issuer);
       bytes32 sku = skuForPrepaidCard(prepaidCards[i]);
-      _skus[i] = sku;
       inventory[sku].remove(prepaidCards[i]);
       signatures[keccak256(signature)] = true;
       // note that this is not a token transfer, so linter concerns around reetrancy
       // after transfer are not valid
-      PrepaidCardManager(prepaidCardManagerAddress).transfer(
+      prepaidCardManager.transfer(
         address(uint160(prepaidCards[i])),
         issuer,
         signature
       );
       signatures[keccak256(signature)] = false;
+      emit ItemRemoved(prepaidCards[i], issuer, sku);
     }
-    emit ItemsRemoved(prepaidCards, issuer, _skus);
     return true;
   }
 
@@ -165,7 +162,7 @@ contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
     address issuer,
     bytes32 sku,
     uint256 askPrice // a "0" askPrice removes the SKU from the market
-  ) external onlyHandlersOrOwner returns (bool) {
+  ) external onlyHandlers returns (bool) {
     require(skus[sku].issuer != address(0), "Non-existent SKU");
     require(skus[sku].issuer == issuer, "SKU not owned by issuer");
     asks[sku] = askPrice;
@@ -208,6 +205,22 @@ contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
   ) public pure returns (bytes32) {
     return
       keccak256(abi.encodePacked(issuer, token, faceValue, customizationDID));
+  }
+
+  function getSkuInfo(bytes32 sku)
+    external
+    view
+    returns (
+      address issuer,
+      address issuingToken,
+      uint256 faceValue,
+      string memory customizationDID
+    )
+  {
+    issuer = skus[sku].issuer;
+    issuingToken = skus[sku].issuingToken;
+    faceValue = skus[sku].faceValue;
+    customizationDID = skus[sku].customizationDID;
   }
 
   function skuForPrepaidCard(address prepaidCard)

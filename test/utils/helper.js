@@ -13,6 +13,10 @@ const SplitPrepaidCardHandler = artifacts.require("SplitPrepaidCardHandler");
 const SetPrepaidCardInventoryHandler = artifacts.require(
   "SetPrepaidCardInventoryHandler"
 );
+const RemovePrepaidCardInventoryHandler = artifacts.require(
+  "RemovePrepaidCardInventoryHandler"
+);
+const SetPrepaidCardAskHandler = artifacts.require("SetPrepaidCardAskHandler");
 const TransferPrepaidCardHandler = artifacts.require(
   "TransferPrepaidCardHandler"
 );
@@ -260,6 +264,8 @@ exports.addActionHandlers = async function ({
     registerMerchantHandler,
     splitPrepaidCardHandler,
     setPrepaidCardInventoryHandler,
+    removePrepaidCardInventoryHandler,
+    setPrepaidCardAskHandler,
     transferPrepaidCardHandler,
     registerRewardeeHandler,
     registerRewardProgramHandler,
@@ -324,6 +330,20 @@ exports.addActionHandlers = async function ({
     setPrepaidCardInventoryHandler = await SetPrepaidCardInventoryHandler.new();
     await setPrepaidCardInventoryHandler.initialize(owner);
     await setPrepaidCardInventoryHandler.setup(
+      actionDispatcher.address,
+      prepaidCardManager.address,
+      tokenManager.address
+    );
+    removePrepaidCardInventoryHandler = await RemovePrepaidCardInventoryHandler.new();
+    await removePrepaidCardInventoryHandler.initialize(owner);
+    await removePrepaidCardInventoryHandler.setup(
+      actionDispatcher.address,
+      prepaidCardManager.address,
+      tokenManager.address
+    );
+    setPrepaidCardAskHandler = await SetPrepaidCardAskHandler.new();
+    await setPrepaidCardAskHandler.initialize(owner);
+    await setPrepaidCardAskHandler.setup(
       actionDispatcher.address,
       prepaidCardManager.address,
       tokenManager.address
@@ -470,6 +490,20 @@ exports.addActionHandlers = async function ({
     );
   }
 
+  if (removePrepaidCardInventoryHandler) {
+    await actionDispatcher.addHandler(
+      removePrepaidCardInventoryHandler.address,
+      "removePrepaidCardInventory"
+    );
+  }
+
+  if (setPrepaidCardAskHandler) {
+    await actionDispatcher.addHandler(
+      setPrepaidCardAskHandler.address,
+      "setPrepaidCardAsk"
+    );
+  }
+
   if (transferPrepaidCardHandler) {
     await actionDispatcher.addHandler(
       transferPrepaidCardHandler.address,
@@ -530,6 +564,8 @@ exports.addActionHandlers = async function ({
     registerMerchantHandler,
     splitPrepaidCardHandler,
     setPrepaidCardInventoryHandler,
+    removePrepaidCardInventoryHandler,
+    setPrepaidCardAskHandler,
     transferPrepaidCardHandler,
     registerRewardeeHandler,
     registerRewardProgramHandler,
@@ -833,6 +869,106 @@ exports.setPrepaidCardInventory = async function (
     0,
     usdRate,
     "setPrepaidCardInventory",
+    payload,
+    signature,
+    { from: relayer }
+  );
+};
+
+exports.removePrepaidCardInventory = async function (
+  prepaidCardManager,
+  fundingPrepaidCard,
+  prepaidCardsToRemove,
+  prepaidCardMarket,
+  issuingToken,
+  issuer,
+  relayer,
+  usdRate
+) {
+  if (usdRate == null) {
+    usdRate = 100000000;
+  }
+  let payload = AbiCoder.encodeParameters(
+    ["address[]", "address"],
+    [prepaidCardsToRemove.map((p) => p.address), prepaidCardMarket.address]
+  );
+  let data = await prepaidCardManager.getSendData(
+    fundingPrepaidCard.address,
+    0,
+    usdRate,
+    "removePrepaidCardInventory",
+    payload
+  );
+  let signature = await signSafeTransaction(
+    issuingToken.address,
+    0,
+    data,
+    0,
+    0,
+    0,
+    0,
+    issuingToken.address,
+    ZERO_ADDRESS,
+    await fundingPrepaidCard.nonce(),
+    issuer,
+    fundingPrepaidCard
+  );
+
+  return await prepaidCardManager.send(
+    fundingPrepaidCard.address,
+    0,
+    usdRate,
+    "removePrepaidCardInventory",
+    payload,
+    signature,
+    { from: relayer }
+  );
+};
+exports.setPrepaidCardAsk = async function (
+  prepaidCardManager,
+  fundingPrepaidCard,
+  askPrice,
+  sku,
+  prepaidCardMarket,
+  issuingToken,
+  issuer,
+  relayer,
+  usdRate
+) {
+  if (usdRate == null) {
+    usdRate = 100000000;
+  }
+  let payload = AbiCoder.encodeParameters(
+    ["bytes32", "uint256", "address"],
+    [sku, askPrice, prepaidCardMarket.address]
+  );
+  let data = await prepaidCardManager.getSendData(
+    fundingPrepaidCard.address,
+    0,
+    usdRate,
+    "setPrepaidCardAsk",
+    payload
+  );
+  let signature = await signSafeTransaction(
+    issuingToken.address,
+    0,
+    data,
+    0,
+    0,
+    0,
+    0,
+    issuingToken.address,
+    ZERO_ADDRESS,
+    await fundingPrepaidCard.nonce(),
+    issuer,
+    fundingPrepaidCard
+  );
+
+  return await prepaidCardManager.send(
+    fundingPrepaidCard.address,
+    0,
+    usdRate,
+    "setPrepaidCardAsk",
     payload,
     signature,
     { from: relayer }

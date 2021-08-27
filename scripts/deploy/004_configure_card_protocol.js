@@ -60,6 +60,15 @@ async function main() {
   const TransferPrepaidCardHandler = await makeFactory(
     "TransferPrepaidCardHandler"
   );
+  const SetPrepaidCardInventoryHandler = await makeFactory(
+    "SetPrepaidCardInventoryHandler"
+  );
+  const RemovePrepaidCardInventoryHandler = await makeFactory(
+    "RemovePrepaidCardInventoryHandler"
+  );
+  const SetPrepaidCardAskHandler = await makeFactory(
+    "SetPrepaidCardAskHandler"
+  );
   const ActionDispatcher = await makeFactory("ActionDispatcher");
   const TokenManager = await makeFactory("TokenManager");
   const SupplierManager = await makeFactory("SupplierManager");
@@ -296,6 +305,8 @@ Configuring ActionDispatcher ${actionDispatcherAddress}
   );
 
   // TODO action handler for setPrepaidCardInventory
+  // TODO action handler for removePrepaidCardInventory
+  // TODO action handler for setPrepaidCardAsk
 
   console.log(
     `  adding action handler for "transfer": ${transferPrepaidCardHandlerAddress}`
@@ -495,6 +506,8 @@ Configuring PrepaidCardManager ${prepaidCardManagerAddress}
   );
 
   // TODO gas policy for setPrepaidCardInventory
+  // TODO gas policy for removePrepaidCardInventory
+  // TODO gas policy for setPrepaidCardAsk
 
   await sendTx(async () =>
     (await prepaidCardManager()).addGasPolicy("split", true, true)

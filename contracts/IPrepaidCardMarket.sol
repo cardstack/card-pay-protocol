@@ -16,4 +16,14 @@ interface IPrepaidCardMarket {
   function provisionPrepaidCard(address customer, bytes32 sku)
     external
     returns (bool);
+
+  function getSkuInfo(bytes32 sku)
+    external
+    view
+    returns (
+      address issuer,
+      address issuingToken,
+      uint256 faceValue,
+      string memory customizationDID
+    );
 }
