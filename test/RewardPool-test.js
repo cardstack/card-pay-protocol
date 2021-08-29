@@ -1,11 +1,12 @@
 const CumulativePaymentTree = require("./utils/cumulative-payment-tree");
 
-const { assert, expect } = require("./setup");
+const { assert, expect, TOKEN_DETAIL_DATA } = require("./setup");
 const _ = require("lodash");
 
 const ERC20Token = artifacts.require(
   "@openzeppelin/contract-upgradeable/contracts/token/ERC20/ERC20Mintable.sol"
 );
+const ERC677Token = artifacts.require("ERC677Token.sol");
 
 const RewardPool = artifacts.require("RewardPool.sol");
 
@@ -22,6 +23,7 @@ const {
   registerRewardee,
   claimReward,
 } = require("./utils/helper");
+const AbiCoder = require("web3-eth-abi");
 
 const REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND = 500;
 const REWARDEE_REGISTRATION_FEE_IN_SPEND = 500;
@@ -29,7 +31,7 @@ const REWARDEE_REGISTRATION_FEE_IN_SPEND = 500;
 contract("RewardPool", function (accounts) {
   let daicpxdToken, cardcpxdToken;
 
-  let rewardManager, supplierManager, prepaidCardManager;
+  let rewardManager, supplierManager, prepaidCardManager, tokenManager;
 
   let owner, issuer, prepaidCardOwner, relayer;
 
@@ -54,12 +56,17 @@ contract("RewardPool", function (accounts) {
         depot,
         daicpxdToken,
         cardcpxdToken,
+        tokenManager,
       } = await setupProtocol(accounts));
     });
     beforeEach(async function () {
       rewardPool = await RewardPool.new();
       await rewardPool.initialize(owner);
-      await rewardPool.setup(tally, rewardManager.address);
+      await rewardPool.setup(
+        tally,
+        rewardManager.address,
+        tokenManager.address
+      );
       depot = await createDepotFromSupplierMgr(supplierManager, issuer);
       await daicpxdToken.mint(depot.address, toTokenUnit(1000));
       rewardProgramID = randomHex(20);
@@ -1258,6 +1265,128 @@ contract("RewardPool", function (accounts) {
           newerProofBalanceAfterClaim.eq(updatedPaymentAmount.sub(claimAmount)),
           "the newer proof balance is correct"
         );
+      });
+    });
+
+    describe("add reward tokens", function () {
+      let rewardPoolBalance;
+      let paymentCycle;
+      let proof;
+      let payeeIndex = 0;
+      let payee;
+      let paymentAmount;
+      let merkleTree;
+      let root;
+      let rewardeePrepaidCard;
+      let rewardSafePreviousBalance,
+        rewardPoolPreviousBalance,
+        rewardProgramAdminPreviousBalance;
+      let fakeToken;
+
+      beforeEach(async function () {
+        fakeToken = await ERC677Token.new();
+        await fakeToken.initialize(...TOKEN_DETAIL_DATA, owner);
+        payee = payments[payeeIndex].payee;
+        paymentAmount = payments[payeeIndex].amount;
+        merkleTree = new CumulativePaymentTree(payments);
+        root = merkleTree.getHexRoot();
+        rewardPoolBalance = toTokenUnit(100);
+        await cardcpxdToken.mint(rewardPool.address, rewardPoolBalance);
+        paymentCycle = await rewardPool.numPaymentCycles();
+        paymentCycle = paymentCycle.toNumber();
+        proof = merkleTree.hexProofForPayee(
+          rewardProgramID,
+          payee,
+          cardcpxdToken.address,
+          paymentCycle
+        );
+        await rewardPool.submitPayeeMerkleRoot(root, { from: tally });
+        rewardeePrepaidCard = await createPrepaidCardAndTransfer(
+          prepaidCardManager,
+          relayer,
+          depot,
+          issuer,
+          daicpxdToken,
+          toTokenUnit(10 + 1),
+          daicpxdToken,
+          payee,
+          cardcpxdToken
+        );
+        const tx = await registerRewardee(
+          prepaidCardManager,
+          rewardeePrepaidCard,
+          daicpxdToken,
+          daicpxdToken,
+          relayer,
+          payee,
+          REWARDEE_REGISTRATION_FEE_IN_SPEND,
+          undefined,
+          rewardProgramID
+        );
+        rewardSafe = await getRewardSafeFromEventLog(tx, rewardManager.address);
+
+        rewardSafePreviousBalance = await getBalance(
+          cardcpxdToken,
+          rewardSafe.address
+        );
+        rewardPoolPreviousBalance = await getBalance(
+          cardcpxdToken,
+          rewardPool.address
+        );
+        await cardcpxdToken.mint(prepaidCardOwner, toTokenUnit(100));
+        rewardProgramAdminPreviousBalance = await getBalance(
+          cardcpxdToken,
+          prepaidCardOwner
+        );
+      });
+
+      it.only("reward pool can be refilled using an eoa", async function () {
+        await cardcpxdToken.transferAndCall(
+          rewardPool.address,
+          toTokenUnit(50),
+          AbiCoder.encodeParameters(["address"], [rewardProgramID]),
+          { from: prepaidCardOwner }
+        );
+        let rewardPoolBalance = await getBalance(
+          cardcpxdToken,
+          rewardPool.address
+        );
+        let rewardProgramAdminBalance = await getBalance(
+          cardcpxdToken,
+          prepaidCardOwner
+        );
+        assert(
+          rewardPoolBalance.eq(rewardPoolPreviousBalance.add(toTokenUnit(50))),
+          "the pool balance is correct"
+        );
+        assert(
+          rewardProgramAdminBalance.eq(
+            rewardProgramAdminPreviousBalance.sub(toTokenUnit(50))
+          ),
+          "the reward program admin balance is correct"
+        );
+      });
+      it.only("reward pool can be refilled using an eoa", async function () {
+        await cardcpxdToken.mint(prepaidCardOwner, toTokenUnit(100));
+        await cardcpxdToken
+          .transferAndCall(
+            rewardPool.address,
+            toTokenUnit(50),
+            AbiCoder.encodeParameters(["address"], [randomHex(20)]),
+            { from: prepaidCardOwner }
+          )
+          .should.be.rejectedWith(Error, "reward program is not found");
+      });
+      it.only("reward pool cannot be refilled with token not federated by token manager", async function () {
+        await fakeToken.mint(prepaidCardOwner, toTokenUnit(100));
+        await fakeToken
+          .transferAndCall(
+            rewardPool.address,
+            toTokenUnit(50),
+            AbiCoder.encodeParameters(["address"], [rewardProgramID]),
+            { from: prepaidCardOwner }
+          )
+          .should.be.rejectedWith(Error, "calling token is unaccepted");
       });
     });
 
