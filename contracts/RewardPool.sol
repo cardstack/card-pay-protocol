@@ -29,12 +29,14 @@ contract RewardPool is Initializable, Versionable, Ownable {
     uint256 startBlock,
     uint256 endBlock
   );
+  event RewardTokensAdded(address sender, address tokenAddress, uint256 amount);
 
   address internal constant ZERO_ADDRESS = address(0);
   address public tally;
   uint256 public numPaymentCycles;
   uint256 public currentPaymentCycleStartBlock;
   address public rewardManager;
+  address public tokenManager;
 
   mapping(uint256 => mapping(address => mapping(address => mapping(address => uint256))))
     public claims; //payment cycle <> rewardProgramID <> token <> rewardee
@@ -50,9 +52,14 @@ contract RewardPool is Initializable, Versionable, Ownable {
     Ownable.initialize(owner);
   }
 
-  function setup(address _tally, address _rewardManager) external onlyOwner {
+  function setup(
+    address _tally,
+    address _rewardManager,
+    address _tokenManager
+  ) external onlyOwner {
     tally = _tally;
     rewardManager = _rewardManager;
+    tokenManager = _tokenManager;
     require(tally != ZERO_ADDRESS, "Tally should not be zero address");
     require(
       rewardManager != ZERO_ADDRESS,
@@ -120,6 +127,24 @@ contract RewardPool is Initializable, Versionable, Ownable {
 
     emit RewardeeClaim(rewardProgramID, rewardSafeOwner, msg.sender, amount);
     return true;
+  }
+
+  function onTokenTransfer(
+    address from,
+    uint256 amount,
+    bytes calldata data
+  ) external returns (bool) {
+    require(
+      TokenManager(tokenManager).isValidToken(msg.sender),
+      "calling token is unaccepted"
+    );
+    RewardManager rewardManager = RewardManager(rewardManager);
+    address rewardProgramID = abi.decode(data, (address));
+    require(
+      rewardManager.isRewardProgram(rewardProgramID),
+      "reward program is not found"
+    );
+    emit RewardTokensAdded(from, msg.sender, amount);
   }
 
   function balanceForProofWithAddress(
