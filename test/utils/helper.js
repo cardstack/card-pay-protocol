@@ -1297,6 +1297,22 @@ exports.claimReward = async function (
   return safeTx;
 };
 
+exports.mintWalletAndRefillPool = async function (
+  rewardToken,
+  rewardPool,
+  rewardProgramAdmin,
+  amount,
+  rewardProgramID
+) {
+  await rewardToken.mint(rewardProgramAdmin, amount);
+  await rewardToken.transferAndCall(
+    rewardPool.address,
+    amount,
+    AbiCoder.encodeParameters(["address"], [rewardProgramID]),
+    { from: rewardProgramAdmin }
+  );
+};
+
 exports.toTokenUnit = toTokenUnit;
 exports.encodeCreateCardsData = encodeCreateCardsData;
 exports.packExecutionData = packExecutionData;

@@ -19,6 +19,7 @@ const {
   registerRewardProgram,
   registerRewardee,
   claimReward,
+  mintWalletAndRefillPool,
 } = require("./utils/helper");
 const AbiCoder = require("web3-eth-abi");
 
@@ -153,13 +154,13 @@ contract("RewardPool", function (accounts) {
     describe("initial reward pool contract", () => {
       it("reverts when tally is set to zero address", async () => {
         await rewardPool
-          .setup(ZERO_ADDRESS, rewardManager.address)
+          .setup(ZERO_ADDRESS, rewardManager.address, tokenManager.address)
           .should.be.rejectedWith(Error, "Tally should not be zero address");
       });
 
       it("reverts when reward manager is set to zero address", async () => {
         await rewardPool
-          .setup(tally, ZERO_ADDRESS)
+          .setup(tally, ZERO_ADDRESS, tokenManager.address)
           .should.be.rejectedWith(
             Error,
             "Reward Manager should not be zero address"
@@ -320,7 +321,13 @@ contract("RewardPool", function (accounts) {
         payee = payments[payeeIndex].payee;
         rewardPoolBalance = toTokenUnit(100);
         paymentAmount = payments[payeeIndex].amount;
-        await cardcpxdToken.mint(rewardPool.address, rewardPoolBalance);
+        await mintWalletAndRefillPool(
+          cardcpxdToken,
+          rewardPool,
+          prepaidCardOwner,
+          rewardPoolBalance,
+          rewardProgramID
+        );
         paymentCycle = await rewardPool.numPaymentCycles();
         paymentCycle = paymentCycle.toNumber();
         merkleTree = new CumulativePaymentTree(payments);
@@ -548,7 +555,13 @@ contract("RewardPool", function (accounts) {
         merkleTree = new CumulativePaymentTree(payments);
         root = merkleTree.getHexRoot();
         rewardPoolBalance = toTokenUnit(100);
-        await cardcpxdToken.mint(rewardPool.address, rewardPoolBalance);
+        await mintWalletAndRefillPool(
+          cardcpxdToken,
+          rewardPool,
+          prepaidCardOwner,
+          rewardPoolBalance,
+          rewardProgramID
+        );
         paymentCycle = await rewardPool.numPaymentCycles();
         paymentCycle = paymentCycle.toNumber();
         proof = merkleTree.hexProofForPayee(
@@ -1288,7 +1301,6 @@ contract("RewardPool", function (accounts) {
         merkleTree = new CumulativePaymentTree(payments);
         root = merkleTree.getHexRoot();
         rewardPoolBalance = toTokenUnit(100);
-        await cardcpxdToken.mint(rewardPool.address, rewardPoolBalance);
         paymentCycle = await rewardPool.numPaymentCycles();
         paymentCycle = paymentCycle.toNumber();
         proof = merkleTree.hexProofForPayee(
@@ -1337,7 +1349,7 @@ contract("RewardPool", function (accounts) {
         );
       });
 
-      it.only("reward pool can be refilled using an eoa", async function () {
+      it("reward pool can be refilled using an eoa", async function () {
         await cardcpxdToken.transferAndCall(
           rewardPool.address,
           toTokenUnit(50),
@@ -1363,7 +1375,7 @@ contract("RewardPool", function (accounts) {
           "the reward program admin balance is correct"
         );
       });
-      it.only("reward pool cannot be refilled if reward program is unknown", async function () {
+      it("reward pool cannot be refilled if reward program is unknown", async function () {
         await cardcpxdToken.mint(prepaidCardOwner, toTokenUnit(100));
         await cardcpxdToken
           .transferAndCall(
@@ -1374,7 +1386,7 @@ contract("RewardPool", function (accounts) {
           )
           .should.be.rejectedWith(Error, "reward program is not found");
       });
-      it.only("reward pool cannot be refilled with token not federated by token manager", async function () {
+      it("reward pool cannot be refilled with token not federated by token manager", async function () {
         await fakeToken.mint(prepaidCardOwner, toTokenUnit(100));
         await fakeToken
           .transferAndCall(
@@ -1385,6 +1397,7 @@ contract("RewardPool", function (accounts) {
           )
           .should.be.rejectedWith(Error, "calling token is unaccepted");
       });
+      it("reward pool can be refilled using a prepaid card", async function () {});
     });
 
     describe("multi-token support", () => {
