@@ -1366,7 +1366,7 @@ contract("RewardPool", function (accounts) {
           "the reward program admin balance is correct"
         );
       });
-      it.only("reward pool can be refilled using an eoa", async function () {
+      it.only("reward pool cannot be refilled if reward program is unknown", async function () {
         await cardcpxdToken.mint(prepaidCardOwner, toTokenUnit(100));
         await cardcpxdToken
           .transferAndCall(
