@@ -74,7 +74,6 @@ contract RewardPool is Initializable, Versionable, Ownable {
     return true;
   }
 
-  //msg.sender is safe
   function claim(
     address rewardProgramID,
     address payableToken,
@@ -94,7 +93,6 @@ contract RewardPool is Initializable, Versionable, Ownable {
     bytes32[] memory meta;
     bytes32[] memory _proof;
 
-    // only need payment cycle
     (meta, _proof) = splitIntoBytes32(proof, 2);
     uint256 paymentCycleNumber = uint256(meta[0]);
 
