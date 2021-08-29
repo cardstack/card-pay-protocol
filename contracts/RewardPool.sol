@@ -110,9 +110,11 @@ contract RewardPool is Initializable, Versionable, Ownable {
       "Reward pool has insufficient balance"
     );
 
-    claims[paymentCycleNumber][rewardProgramID][payableToken][rewardSafeOwner] = claims[paymentCycleNumber][
-      rewardProgramID
-    ][payableToken][rewardSafeOwner]
+    claims[paymentCycleNumber][rewardProgramID][payableToken][
+      rewardSafeOwner
+    ] = claims[paymentCycleNumber][rewardProgramID][payableToken][
+      rewardSafeOwner
+    ]
       .add(amount);
     IERC677(payableToken).transfer(msg.sender, amount);
 
@@ -194,11 +196,14 @@ contract RewardPool is Initializable, Versionable, Ownable {
         )
       );
     if (
-      claims[paymentCycleNumber][rewardProgramID][payableToken][_address] < cumulativeAmount &&
+      claims[paymentCycleNumber][rewardProgramID][payableToken][_address] <
+      cumulativeAmount &&
       _proof.verify(payeeRoots[paymentCycleNumber], leaf)
     ) {
       return
-        cumulativeAmount.sub(claims[paymentCycleNumber][rewardProgramID][payableToken][_address]);
+        cumulativeAmount.sub(
+          claims[paymentCycleNumber][rewardProgramID][payableToken][_address]
+        );
     } else {
       return 0;
     }
