@@ -1025,6 +1025,77 @@ contract("RewardPool", function (accounts) {
         ).should.be.rejectedWith(Error, "Reward pool has insufficient balance");
       });
 
+      it("payee cannot claim their allotted tokens from the pool when the reward program does not have enough tokens in the pool", async function () {
+        await registerRewardProgram(
+          prepaidCardManager,
+          prepaidCard,
+          daicpxdToken,
+          daicpxdToken,
+          relayer,
+          prepaidCardOwner,
+          REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
+          undefined,
+          prepaidCardOwner,
+          otherRewardProgramID
+        );
+        let payeeIndex = 6;
+        let rewardee = payments[payeeIndex].payee;
+        let paymentAmount = payments[payeeIndex].amount;
+        let proof = merkleTree.hexProofForPayee(
+          otherRewardProgramID,
+          rewardee,
+          cardcpxdToken.address,
+          paymentCycle
+        );
+
+        let somePrepaidCard = await createPrepaidCardAndTransfer(
+          prepaidCardManager,
+          relayer,
+          depot,
+          issuer,
+          daicpxdToken,
+          toTokenUnit(10 + 1),
+          daicpxdToken,
+          rewardee,
+          cardcpxdToken
+        );
+        await mintWalletAndRefillPool(
+          cardcpxdToken,
+          rewardPool,
+          prepaidCardOwner,
+          toTokenUnit(5),
+          otherRewardProgramID
+        );
+        const tx = await registerRewardee(
+          prepaidCardManager,
+          somePrepaidCard,
+          daicpxdToken,
+          daicpxdToken,
+          relayer,
+          rewardee,
+          REWARDEE_REGISTRATION_FEE_IN_SPEND,
+          undefined,
+          otherRewardProgramID
+        );
+        let someRewardSafe = await getRewardSafeFromEventLog(
+          tx,
+          rewardManager.address
+        );
+        await claimReward(
+          rewardManager,
+          rewardPool,
+          relayer,
+          someRewardSafe,
+          rewardee,
+          otherRewardProgramID,
+          cardcpxdToken,
+          paymentAmount,
+          proof
+        ).should.be.rejectedWith(
+          Error,
+          "Reward program has insufficient balance inside reward pool"
+        );
+      });
       it("payee claim their allotted amount from an older proof", async function () {
         let updatedPayments = payments.slice();
         let updatedPaymentAmount = updatedPayments[payeeIndex].amount;
