@@ -41,6 +41,7 @@ contract RewardPool is Initializable, Versionable, Ownable {
   mapping(uint256 => mapping(address => mapping(address => mapping(address => uint256))))
     public claims; //payment cycle <> rewardProgramID <> token <> rewardee
   mapping(uint256 => bytes32) payeeRoots;
+  mapping(address => mapping(address => uint256)) public rewardBalance;
 
   modifier onlyTally() {
     require(tally == msg.sender, "Caller is not tally");
@@ -116,6 +117,10 @@ contract RewardPool is Initializable, Versionable, Ownable {
       IERC677(payableToken).balanceOf(address(this)) >= amount,
       "Reward pool has insufficient balance"
     );
+    require(
+      rewardBalance[rewardProgramID][payableToken] >= amount,
+      "Reward program has insufficient balance inside reward pool"
+    );
 
     claims[paymentCycleNumber][rewardProgramID][payableToken][
       rewardSafeOwner
@@ -123,6 +128,11 @@ contract RewardPool is Initializable, Versionable, Ownable {
       rewardSafeOwner
     ]
       .add(amount);
+
+    rewardBalance[rewardProgramID][payableToken] = rewardBalance[
+      rewardProgramID
+    ][payableToken]
+      .sub(amount);
     IERC677(payableToken).transfer(msg.sender, amount);
 
     emit RewardeeClaim(rewardProgramID, rewardSafeOwner, msg.sender, amount);
@@ -144,6 +154,10 @@ contract RewardPool is Initializable, Versionable, Ownable {
       rewardManager.isRewardProgram(rewardProgramID),
       "reward program is not found"
     );
+    rewardBalance[rewardProgramID][msg.sender] = rewardBalance[rewardProgramID][
+      msg.sender
+    ]
+      .add(amount);
     emit RewardTokensAdded(from, msg.sender, amount);
   }
 
