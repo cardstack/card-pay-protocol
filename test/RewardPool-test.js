@@ -3,9 +3,6 @@ const CumulativePaymentTree = require("./utils/cumulative-payment-tree");
 const { assert, expect, TOKEN_DETAIL_DATA } = require("./setup");
 const _ = require("lodash");
 
-const ERC20Token = artifacts.require(
-  "@openzeppelin/contract-upgradeable/contracts/token/ERC20/ERC20Mintable.sol"
-);
 const ERC677Token = artifacts.require("ERC677Token.sol");
 
 const RewardPool = artifacts.require("RewardPool.sol");
@@ -1396,20 +1393,15 @@ contract("RewardPool", function (accounts) {
       let payee;
       let merkleTree;
       let root;
-      let erc20Token;
       let rewardSafe, rewardeePrepaidCard;
 
       let rewardPoolPreviousBalanceCard,
         rewardPoolPreviousBalanceDai,
-        rewardPoolPreviousBalanceErc20,
         rewardSafePreviousBalanceCard,
-        rewardSafePreviousBalanceDai,
-        rewardSafePreviousBalanceErc20;
+        rewardSafePreviousBalanceDai;
 
       beforeEach(async function () {
         payee = accounts[11];
-        erc20Token = await ERC20Token.new();
-        await erc20Token.initialize(owner);
         payments = [
           {
             rewardProgramID,
@@ -1429,18 +1421,24 @@ contract("RewardPool", function (accounts) {
             token: cardcpxdToken.address,
             amount: toTokenUnit(100),
           },
-          {
-            rewardProgramID,
-            payee,
-            token: erc20Token.address,
-            amount: toTokenUnit(10),
-          },
         ];
 
         rewardPoolBalance = toTokenUnit(500);
-        await cardcpxdToken.mint(rewardPool.address, rewardPoolBalance);
+        await mintWalletAndRefillPool(
+          cardcpxdToken,
+          rewardPool,
+          prepaidCardOwner,
+          rewardPoolBalance,
+          rewardProgramID
+        );
+        await mintWalletAndRefillPool(
+          daicpxdToken,
+          rewardPool,
+          prepaidCardOwner,
+          rewardPoolBalance,
+          rewardProgramID
+        );
         await daicpxdToken.mint(rewardPool.address, rewardPoolBalance);
-        await erc20Token.mint(rewardPool.address, rewardPoolBalance);
 
         merkleTree = new CumulativePaymentTree(payments);
         root = merkleTree.getHexRoot();
@@ -1481,10 +1479,6 @@ contract("RewardPool", function (accounts) {
           daicpxdToken,
           rewardPool.address
         );
-        rewardPoolPreviousBalanceErc20 = await getBalance(
-          erc20Token,
-          rewardPool.address
-        );
         rewardSafePreviousBalanceCard = await getBalance(
           cardcpxdToken,
           rewardSafe.address
@@ -1492,59 +1486,6 @@ contract("RewardPool", function (accounts) {
         rewardSafePreviousBalanceDai = await getBalance(
           daicpxdToken,
           rewardSafe.address
-        );
-        rewardSafePreviousBalanceErc20 = await getBalance(
-          erc20Token,
-          rewardSafe.address
-        );
-      });
-
-      it("can claim erc20 tokens", async () => {
-        const erc20Amount = toTokenUnit(5);
-        const erc20Proof = merkleTree.hexProofForPayee(
-          rewardProgramID,
-          payee,
-          erc20Token.address,
-          paymentCycle
-        );
-        await claimReward(
-          rewardManager,
-          rewardPool,
-          relayer,
-          rewardSafe,
-          payee,
-          rewardProgramID,
-          erc20Token,
-          erc20Amount,
-          erc20Proof
-        );
-        const proofBalance = await rewardPool.balanceForProofWithAddress(
-          rewardProgramID,
-          erc20Token.address,
-          payee,
-          erc20Proof
-        );
-        const rewardSafeBalance = await getBalance(
-          erc20Token,
-          rewardSafe.address
-        );
-        let rewardPoolBalance = await getBalance(
-          erc20Token,
-          rewardPool.address
-        );
-
-        assert(
-          rewardSafeBalance.eq(rewardSafePreviousBalanceErc20.add(erc20Amount)),
-          "the reward safe balance is correct"
-        );
-        assert(
-          rewardPoolBalance.eq(rewardPoolPreviousBalanceErc20.sub(erc20Amount)),
-          "the pool balance is correct"
-        );
-
-        assert(
-          proofBalance.eq(toTokenUnit(10).sub(erc20Amount)),
-          "the proof balance is correct"
         );
       });
 
