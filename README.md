@@ -69,16 +69,19 @@ The `RegisterRewardProgramHandler` is a contract that handles the `registerRewar
 The `RegisterRewardeeHandler` is a contract that handles the `registerRewardee` action. This contract will receive rewardee registration payments from the `ActionHandler`. This contract will call the `RewardManager` to register rewardee under a reward program and create a reward safe for the rewardee. This contract will collect a protocol fee from the registration to offset the gas charges for reward functions. This contract sends the protocol fee to a designated address that is used to collect protocol fees (for rewards). TODO: the protocol fee will then be sent to ??.
 
 ### LockRewardProgramHandler
-The `LockRewardProgramHandler` is a contract that handles the `lockRewardProgram` action. This contract will call the `RewardManager` to update the lock state of the reward program. 
+The `LockRewardProgramHandler` is a contract that handles the `lockRewardProgram` action. This contract will call the `RewardManager` to update the lock state of the reward program. TODO: must add gas policy of CS-1472 
 
 ### UpdateRewardProgramAdminHandler
-The `UpdateRewardProgramAdminHandler` is a contract that handles the `updateRewardProgramAdmin` action. This contract will call the `RewardManager` to update the `rewardProgramAdmin` that can control the reward program. 
+The `UpdateRewardProgramAdminHandler` is a contract that handles the `updateRewardProgramAdmin` action. This contract will call the `RewardManager` to update the `rewardProgramAdmin` that can control the reward program. TODO: must add gas policy of CS-1472 
 
 ### AddRewardRuleHandler
-The `AddRewardRuleHandler` is a contract that handles the `addRewardRule` action. This contract will call the `RewardManager` to add a rule to a reward program. 
+The `AddRewardRuleHandler` is a contract that handles the `addRewardRule` action. This contract will call the `RewardManager` to add a rule to a reward program. TODO: must add gas policy of CS-1472 
 
 ### RemoveRewardRuleHandler 
-The `RemoveRewardRuleHandler ` is a contract that handles the `removeRewardRule` action. This contract will call the `RewardManager` to remove a rule from a reward program. 
+The `RemoveRewardRuleHandler` is a contract that handles the `removeRewardRule` action. This contract will call the `RewardManager` to remove a rule from a reward program. TODO: must add gas policy of CS-1472 
+
+### PayRewardTokensHandler
+The `PayRewardTokensHandler` is a contract that handles the `payRewardTokens` action. This contract will send token transfers to fill up pool for a particular reward program. TODO: must add gas policy of CS-1472 
 
 ### Exchange
 The `Exchange` is a contract that handles converting to and from §SPEND tokens from any other CPXD token, as well as getting the current USD rate for any of the CPXD tokens (which accompanies calls to `PrepaidCardManager.send()`). This contract is also responsible to determining if the USD rate that is being requested by `PrepaidCardManager.send()` calls falls within an allowable margin. We use the idea of a "rate lock" as part of the way in which callers call the `PrepaidCardManager.send()` function. The reason being is that these calls are normally issued from a gnosis relay server in 2 steps. The first step is to get an estimation of the transaction and then generate a signature, and the second step is to issue the transaction with the data from the transaction estimate along with the signature. In between those 2 steps the USD rate for the prepaid card's issuing token may have changed. To accommodate USD rate fluctuations the caller is allowed to specify the USD rate they used as part of the transaction estimation. This contract will then determine if that requested rate is actually allowable given the current USD rate and a configured "rate drift" percentage. If the requested rate falls outside of the "rate drift" percentage, then the transaction will be reverted. To accommodate the fact that we allow the caller to provide the USD rate to use, we have a pessimistic prepaid card face value calculation that we employ in `PrepaidCardManager.faceValue()` which uses the most pessimistic rate allowable given the "rate drift percentage" to calculate the prepaid card's face value after it's been used at least one time.

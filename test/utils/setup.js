@@ -9,6 +9,7 @@ const RewardManager = artifacts.require("RewardManager");
 const RevenuePool = artifacts.require("RevenuePool.sol");
 const MerchantManager = artifacts.require("MerchantManager");
 const ERC677Token = artifacts.require("ERC677Token.sol");
+const RewardPool = artifacts.require("RewardPool.sol");
 const { TOKEN_DETAIL_DATA } = require("../setup");
 
 const {
@@ -42,9 +43,13 @@ const setupRoles = function (accounts) {
 
 // this is bad but I use as placeholder because it greedily loads all contracts
 const setupProtocol = async (accounts) => {
-  const { owner, issuer, merchantFeeReceiver, rewardFeeReceiver } = setupRoles(
-    accounts
-  );
+  const {
+    owner,
+    issuer,
+    merchantFeeReceiver,
+    rewardFeeReceiver,
+    tally,
+  } = setupRoles(accounts);
 
   const proxyFactory = await ProxyFactory.new();
   const gnosisSafeMasterCopy = await utils.deployContract(
@@ -67,6 +72,8 @@ const setupProtocol = async (accounts) => {
   await merchantManager.initialize(owner);
   const rewardManager = await RewardManager.new();
   await rewardManager.initialize(owner);
+  const rewardPool = await RewardPool.new();
+  await rewardPool.initialize(owner);
 
   const { daicpxdToken, cardcpxdToken, exchange } = await setupExchanges(owner);
 
@@ -117,6 +124,8 @@ const setupProtocol = async (accounts) => {
     REWARDEE_REGISTRATION_FEE_IN_SPEND,
     REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND
   );
+  await rewardPool.setup(tally, rewardManager.address, tokenManager.address);
+
   await prepaidCardManager.addGasPolicy("transfer", false, true);
   await prepaidCardManager.addGasPolicy("split", true, true);
   await prepaidCardManager.addGasPolicy("registerRewardProgram", true, true);
@@ -125,6 +134,7 @@ const setupProtocol = async (accounts) => {
   await prepaidCardManager.addGasPolicy("updateRewardProgramAdmin", true, true);
   await prepaidCardManager.addGasPolicy("addRewardRule", true, true);
   await prepaidCardManager.addGasPolicy("removeRewardRule", true, true);
+  await prepaidCardManager.addGasPolicy("payRewardTokens", true, true);
 
   await actionDispatcher.setup(
     tokenManager.address,
@@ -142,6 +152,7 @@ const setupProtocol = async (accounts) => {
     owner,
     exchangeAddress: exchange.address,
     spendAddress: spendToken.address,
+    rewardPool,
   });
 
   await daicpxdToken.mint(owner, toTokenUnit(100));
@@ -149,6 +160,7 @@ const setupProtocol = async (accounts) => {
   //safes
   const depot = await createDepotFromSupplierMgr(supplierManager, issuer);
   await daicpxdToken.mint(depot.address, toTokenUnit(1000));
+  await cardcpxdToken.mint(depot.address, toTokenUnit(1000));
 
   const fakeDaicpxdToken = await ERC677Token.new();
   await fakeDaicpxdToken.initialize(...TOKEN_DETAIL_DATA, owner);
@@ -168,6 +180,7 @@ const setupProtocol = async (accounts) => {
     actionDispatcher,
     exchange,
     spendToken,
+    rewardPool,
 
     //tokens
     daicpxdToken,

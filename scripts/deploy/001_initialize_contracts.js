@@ -111,6 +111,10 @@ async function main() {
       contractName: "UpdateRewardProgramAdminHandler",
       init: [owner],
     },
+    PayRewardTokensHandler: {
+      contractName: "PayRewardTokensHandler",
+      init: [owner],
+    },
   };
 
   // Use manual feeds in sokol
