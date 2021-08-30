@@ -12,6 +12,8 @@ import "./core/Versionable.sol";
 import "./RewardManager.sol";
 import "./TokenManager.sol";
 
+import "hardhat/console.sol";
+
 contract RewardPool is Initializable, Versionable, Ownable {
   using SafeMath for uint256;
   using MerkleProof for bytes32[];
@@ -29,7 +31,12 @@ contract RewardPool is Initializable, Versionable, Ownable {
     uint256 startBlock,
     uint256 endBlock
   );
-  event RewardTokensAdded(address sender, address tokenAddress, uint256 amount);
+  event RewardTokensAdded(
+    address rewardProgramID,
+    address sender,
+    address tokenAddress,
+    uint256 amount
+  );
 
   address internal constant ZERO_ADDRESS = address(0);
   address public tally;
@@ -158,7 +165,7 @@ contract RewardPool is Initializable, Versionable, Ownable {
       msg.sender
     ]
       .add(amount);
-    emit RewardTokensAdded(from, msg.sender, amount);
+    emit RewardTokensAdded(rewardProgramID, from, msg.sender, amount);
   }
 
   function balanceForProofWithAddress(
