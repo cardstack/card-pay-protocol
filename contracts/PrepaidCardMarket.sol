@@ -3,7 +3,6 @@ pragma solidity 0.5.17;
 import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contract-upgradeable/contracts/utils/EnumerableSet.sol";
 import "@openzeppelin/contract-upgradeable/contracts/math/SafeMath.sol";
-import "hardhat/console.sol";
 
 import "./core/Versionable.sol";
 import "./IPrepaidCardMarket.sol";
