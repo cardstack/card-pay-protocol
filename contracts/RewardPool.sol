@@ -36,8 +36,8 @@ contract RewardPool is Initializable, Versionable, Ownable {
   uint256 public currentPaymentCycleStartBlock;
   address public rewardManager;
 
-  mapping(address => mapping(address => mapping(address => uint256)))
-    public claims; // token <> rewardee
+  mapping(uint256 => mapping(address => mapping(address => mapping(address => uint256))))
+    public claims; //payment cycle <> rewardProgramID <> token <> rewardee
   mapping(uint256 => bytes32) payeeRoots;
 
   modifier onlyTally() {
@@ -91,6 +91,13 @@ contract RewardPool is Initializable, Versionable, Ownable {
       ),
       "can only withdraw for safe registered on reward program"
     );
+    bytes32[] memory meta;
+    bytes32[] memory _proof;
+
+    // only need payment cycle
+    (meta, _proof) = splitIntoBytes32(proof, 2);
+    uint256 paymentCycleNumber = uint256(meta[0]);
+
     uint256 balance =
       _balanceForProofWithAddress(
         rewardProgramID,
@@ -105,7 +112,7 @@ contract RewardPool is Initializable, Versionable, Ownable {
       "Reward pool has insufficient balance"
     );
 
-    claims[rewardProgramID][payableToken][rewardSafeOwner] = claims[
+    claims[paymentCycleNumber][rewardProgramID][payableToken][rewardSafeOwner] = claims[paymentCycleNumber][
       rewardProgramID
     ][payableToken][rewardSafeOwner]
       .add(amount);
@@ -189,11 +196,11 @@ contract RewardPool is Initializable, Versionable, Ownable {
         )
       );
     if (
-      claims[rewardProgramID][payableToken][_address] < cumulativeAmount &&
+      claims[paymentCycleNumber][rewardProgramID][payableToken][_address] < cumulativeAmount &&
       _proof.verify(payeeRoots[paymentCycleNumber], leaf)
     ) {
       return
-        cumulativeAmount.sub(claims[rewardProgramID][payableToken][_address]);
+        cumulativeAmount.sub(claims[paymentCycleNumber][rewardProgramID][payableToken][_address]);
     } else {
       return 0;
     }

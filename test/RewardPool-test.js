@@ -617,6 +617,7 @@ contract("RewardPool", function (accounts) {
         );
 
         let claims = await rewardPool.claims(
+          paymentCycle,
           rewardProgramID,
           cardcpxdToken.address,
           payee
@@ -733,6 +734,7 @@ contract("RewardPool", function (accounts) {
         );
 
         let claims = await rewardPool.claims(
+          paymentCycle,
           rewardProgramID,
           cardcpxdToken.address,
           payee
@@ -787,6 +789,7 @@ contract("RewardPool", function (accounts) {
           rewardPool.address
         );
         let claims = await rewardPool.claims(
+          paymentCycle,
           rewardProgramID,
           cardcpxdToken.address,
           payee
@@ -1058,6 +1061,7 @@ contract("RewardPool", function (accounts) {
           { from: payee }
         );
         let claims = await rewardPool.claims(
+          paymentCycle - 1,
           rewardProgramID,
           cardcpxdToken.address,
           payee
@@ -1075,9 +1079,8 @@ contract("RewardPool", function (accounts) {
           proofBalance.eq(paymentAmount.sub(claimAmount)),
           "the proof balance is correct"
         );
-        // TODO: Major bug. new proofs get deducted claims from previous proofs
         assert(
-          updatedProofBalance.eq(updatedPaymentAmount.sub(claimAmount)),
+          updatedProofBalance.eq(updatedPaymentAmount),
           "the updated proof balance is correct"
         );
       });
@@ -1129,6 +1132,7 @@ contract("RewardPool", function (accounts) {
           { from: payee }
         );
         let claims = await rewardPool.claims(
+          paymentCycle,
           rewardProgramID,
           cardcpxdToken.address,
           payee
@@ -1146,6 +1150,113 @@ contract("RewardPool", function (accounts) {
         assert(
           updatedProofBalance.eq(updatedPaymentAmount.sub(claimAmount)),
           "the updated proof balance is correct"
+        );
+      });
+
+      it("payee claim their allotted amount from a newer proof even after claim from older proof", async function () {
+        let updatedPayments = payments.slice();
+        let updatedPaymentAmount = updatedPayments[payeeIndex].amount;
+        let updatedMerkleTree = new CumulativePaymentTree(updatedPayments);
+        let updatedRoot = updatedMerkleTree.getHexRoot();
+
+        await advanceBlock(web3);
+
+        let paymentCycle = await rewardPool.numPaymentCycles();
+        paymentCycle = paymentCycle.toNumber();
+        let updatedProof = updatedMerkleTree.hexProofForPayee(
+          rewardProgramID,
+          payee,
+          cardcpxdToken.address,
+          paymentCycle
+        );
+        await rewardPool.submitPayeeMerkleRoot(updatedRoot, { from: tally });
+
+        let claimAmount = toTokenUnit(8);
+
+        await claimReward(
+          rewardManager,
+          rewardPool,
+          relayer,
+          rewardSafe,
+          payee,
+          rewardProgramID,
+          cardcpxdToken,
+          claimAmount,
+          proof
+        );
+
+        let rewardSafeBalance = await getBalance(
+          cardcpxdToken,
+          rewardSafe.address
+        );
+        let rewardPoolBalance = await getBalance(
+          cardcpxdToken,
+          rewardPool.address
+        );
+        assert(
+          rewardSafeBalance.eq(rewardSafePreviousBalance.add(claimAmount)),
+          "the payee balance is correct"
+        );
+        assert(
+          rewardPoolBalance.eq(rewardPoolPreviousBalance.sub(claimAmount)),
+          "the pool balance is correct"
+        );
+        let olderProofBalance = await rewardPool.balanceForProof(
+          rewardProgramID,
+          cardcpxdToken.address,
+          proof,
+          { from: payee }
+        );
+        let newerProofBalance = await rewardPool.balanceForProof(
+          rewardProgramID,
+          cardcpxdToken.address,
+          updatedProof,
+          { from: payee }
+        );
+        assert(
+          olderProofBalance.eq(paymentAmount.sub(claimAmount)),
+          "the older proof balance is correct"
+        );
+        assert(
+          newerProofBalance.eq(updatedPaymentAmount),
+          "the newer proof balance is correct"
+        );
+
+        //claim from newer proof
+        await claimReward(
+          rewardManager,
+          rewardPool,
+          relayer,
+          rewardSafe,
+          payee,
+          rewardProgramID,
+          cardcpxdToken,
+          claimAmount,
+          updatedProof
+        );
+        rewardSafeBalance = await getBalance(cardcpxdToken, rewardSafe.address);
+        rewardPoolBalance = await getBalance(cardcpxdToken, rewardPool.address);
+        let newerProofBalanceAfterClaim = await rewardPool.balanceForProof(
+          rewardProgramID,
+          cardcpxdToken.address,
+          updatedProof,
+          { from: payee }
+        );
+        assert(
+          rewardSafeBalance.eq(
+            rewardSafePreviousBalance.add(claimAmount).add(claimAmount)
+          ),
+          "the payee balance is correct"
+        );
+        assert(
+          rewardPoolBalance.eq(
+            rewardPoolPreviousBalance.sub(claimAmount).sub(claimAmount)
+          ),
+          "the pool balance is correct"
+        );
+        assert(
+          newerProofBalanceAfterClaim.eq(updatedPaymentAmount.sub(claimAmount)),
+          "the newer proof balance is correct"
         );
       });
     });
