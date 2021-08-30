@@ -403,18 +403,11 @@ exports.addActionHandlers = async function ({
     );
   }
 
-  if (
-    owner &&
-    actionDispatcher &&
-    exchangeAddress &&
-    tokenManager &&
-    rewardPool
-  ) {
+  if (owner && actionDispatcher && tokenManager && rewardPool) {
     payRewardTokensHandler = await PayRewardTokensHandler.new();
     await payRewardTokensHandler.initialize(owner);
     await payRewardTokensHandler.setup(
       actionDispatcher.address,
-      exchangeAddress,
       tokenManager.address,
       rewardPool.address
     );
