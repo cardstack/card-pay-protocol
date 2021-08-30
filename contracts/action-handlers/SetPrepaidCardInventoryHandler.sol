@@ -36,7 +36,7 @@ contract SetPrepaidCardInventoryHandler is Ownable, Versionable {
    */
   function onTokenTransfer(
     address payable from,
-    uint256 amount,
+    uint256 amount, // solhint-disable-line no-unused-vars
     bytes calldata data
   ) external returns (bool) {
     require(

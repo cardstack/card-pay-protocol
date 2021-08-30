@@ -261,11 +261,10 @@ contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
       );
   }
 
-  function isValidSignature(bytes memory data, bytes memory signature)
-    public
-    view
-    returns (bytes4)
-  {
+  function isValidSignature(
+    bytes memory data, // solhint-disable-line no-unused-vars
+    bytes memory signature
+  ) public view returns (bytes4) {
     if (signatures[keccak256(signature)]) {
       return EIP1271_MAGIC_VALUE;
     }

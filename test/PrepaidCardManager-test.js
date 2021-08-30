@@ -922,8 +922,6 @@ contract("PrepaidCardManager", (accounts) => {
           .should.become(true);
 
         shouldBeSameBalance(daicpxdToken, prepaidCard.address, amounts[index]);
-
-        // TODO assert split cards live in the inventory
       });
     });
 

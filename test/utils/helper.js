@@ -826,21 +826,21 @@ exports.setPrepaidCardInventory = async function (
   if (usdRate == null) {
     usdRate = 100000000;
   }
+  let marketAddress =
+    typeof prepaidCardMarket === "string"
+      ? prepaidCardMarket
+      : prepaidCardMarket.address;
   let previousOwnerSignature = await getTransferPrepaidCardOwnerSignature(
     prepaidCardManager,
     prepaidCardForInventory,
     issuer,
-    prepaidCardMarket.address,
+    marketAddress,
     gasToken,
     false
   );
   let payload = AbiCoder.encodeParameters(
     ["address", "address", "bytes"],
-    [
-      prepaidCardForInventory.address,
-      prepaidCardMarket.address,
-      previousOwnerSignature,
-    ]
+    [prepaidCardForInventory.address, marketAddress, previousOwnerSignature]
   );
   let data = await prepaidCardManager.getSendData(
     fundingPrepaidCard.address,
@@ -888,9 +888,13 @@ exports.removePrepaidCardInventory = async function (
   if (usdRate == null) {
     usdRate = 100000000;
   }
+  let marketAddress =
+    typeof prepaidCardMarket === "string"
+      ? prepaidCardMarket
+      : prepaidCardMarket.address;
   let payload = AbiCoder.encodeParameters(
     ["address[]", "address"],
-    [prepaidCardsToRemove.map((p) => p.address), prepaidCardMarket.address]
+    [prepaidCardsToRemove.map((p) => p.address), marketAddress]
   );
   let data = await prepaidCardManager.getSendData(
     fundingPrepaidCard.address,
@@ -938,9 +942,13 @@ exports.setPrepaidCardAsk = async function (
   if (usdRate == null) {
     usdRate = 100000000;
   }
+  let marketAddress =
+    typeof prepaidCardMarket === "string"
+      ? prepaidCardMarket
+      : prepaidCardMarket.address;
   let payload = AbiCoder.encodeParameters(
     ["bytes32", "uint256", "address"],
-    [sku, askPrice, prepaidCardMarket.address]
+    [sku, askPrice, marketAddress]
   );
   let data = await prepaidCardManager.getSendData(
     fundingPrepaidCard.address,
