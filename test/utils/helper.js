@@ -1357,7 +1357,7 @@ exports.payRewardTokens = async function (
   if (usdRate == null) {
     usdRate = 100000000;
   }
-  const actionName = "payRewardToken";
+  const actionName = "payRewardTokens";
   const actionData = AbiCoder.encodeParameters(["address"], [rewardProgramID]);
   let data = await prepaidCardManager.getSendData(
     prepaidCard.address,
@@ -1390,6 +1390,14 @@ exports.payRewardTokens = async function (
     signature,
     { from: relayer }
   );
+};
+
+exports.getBalanceByRewardProgram = async function (
+  rewardProgramID,
+  rewardPool,
+  token
+) {
+  return rewardPool.rewardBalance(rewardProgramID, token.address);
 };
 
 exports.toTokenUnit = toTokenUnit;

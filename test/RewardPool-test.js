@@ -14,12 +14,13 @@ const {
   advanceBlock,
   toTokenUnit,
   getBalance,
-  createDepotFromSupplierMgr,
+  getBalanceByRewardProgram,
   createPrepaidCardAndTransfer,
   registerRewardProgram,
   registerRewardee,
   claimReward,
   mintWalletAndRefillPool,
+  payRewardTokens,
 } = require("./utils/helper");
 const AbiCoder = require("web3-eth-abi");
 
@@ -65,8 +66,6 @@ contract("RewardPool", function (accounts) {
         rewardManager.address,
         tokenManager.address
       );
-      depot = await createDepotFromSupplierMgr(supplierManager, issuer);
-      await daicpxdToken.mint(depot.address, toTokenUnit(1000));
       rewardProgramID = randomHex(20);
       otherRewardProgramID = randomHex(20);
       prepaidCard = await createPrepaidCardAndTransfer(
@@ -1352,7 +1351,7 @@ contract("RewardPool", function (accounts) {
       });
     });
 
-    describe("add reward tokens", function () {
+    describe("addRewardTokens", function () {
       let rewardPoolBalance;
       let paymentCycle;
       let proof;
@@ -1471,7 +1470,78 @@ contract("RewardPool", function (accounts) {
           )
           .should.be.rejectedWith(Error, "calling token is unaccepted");
       });
-      it("reward pool can be refilled using a prepaid card", async function () {});
+      it("reward pool can be refilled using a prepaid card", async function () {
+        ({
+          prepaidCardManager,
+          rewardManager,
+          depot,
+          daicpxdToken,
+          cardcpxdToken,
+          tokenManager,
+          rewardPool,
+        } = await setupProtocol(accounts));
+        rewardProgramID = randomHex(20);
+        const rewardPoolPreviousBalanceCard = await getBalance(
+          daicpxdToken,
+          rewardPool.address
+        );
+        prepaidCard = await createPrepaidCardAndTransfer(
+          prepaidCardManager,
+          relayer,
+          depot,
+          issuer,
+          daicpxdToken,
+          toTokenUnit(10 + 1),
+          daicpxdToken,
+          prepaidCardOwner,
+          cardcpxdToken
+        );
+        await registerRewardProgram(
+          prepaidCardManager,
+          prepaidCard,
+          daicpxdToken,
+          daicpxdToken,
+          relayer,
+          prepaidCardOwner,
+          REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
+          undefined,
+          prepaidCardOwner,
+          rewardProgramID
+        );
+        await payRewardTokens(
+          prepaidCardManager,
+          prepaidCard,
+          daicpxdToken,
+          daicpxdToken,
+          relayer,
+          prepaidCardOwner,
+          500,
+          undefined,
+          rewardProgramID
+        );
+        const rewardPoolBalanceCard = await getBalance(
+          daicpxdToken,
+          rewardPool.address
+        );
+
+        const rewardPoolBalanceCardByRewardProgram = await getBalanceByRewardProgram(
+          rewardProgramID,
+          rewardPool,
+          daicpxdToken
+        );
+        assert(
+          rewardPoolPreviousBalanceCard
+            .add(rewardPoolBalanceCard)
+            .eq(new BN("5000000000000000000")),
+          "the reward pool balance is correct"
+        );
+        assert(
+          rewardPoolBalanceCardByRewardProgram.eq(
+            new BN("5000000000000000000")
+          ),
+          "the reward pool balance is correct"
+        );
+      });
     });
 
     describe("multi-token support", () => {

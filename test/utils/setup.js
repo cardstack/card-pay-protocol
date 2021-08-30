@@ -159,6 +159,7 @@ const setupProtocol = async (accounts) => {
   //safes
   const depot = await createDepotFromSupplierMgr(supplierManager, issuer);
   await daicpxdToken.mint(depot.address, toTokenUnit(1000));
+  await cardcpxdToken.mint(depot.address, toTokenUnit(1000));
 
   const fakeDaicpxdToken = await ERC677Token.new();
   await fakeDaicpxdToken.initialize(...TOKEN_DETAIL_DATA, owner);
