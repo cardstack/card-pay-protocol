@@ -696,20 +696,18 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     // additionally EIP-1271 signatures should conclude with 32 bytes for the
     // EIP-1271 signature length, and then finally the actual EIP-1271 signature
     // data itself
-    if (address(this) > owner) {
-      signatures = abi.encodePacked(
+    signatures = address(this) > owner
+      ? abi.encodePacked(
         eip1271RSV,
         ownSignature,
         eip1271SignatureLength,
         signature
-      );
-    } else {
-      signatures = abi.encodePacked(
+      )
+      : abi.encodePacked(
         ownSignature,
         eip1271RSV,
         eip1271SignatureLength,
         signature
       );
-    }
   }
 }

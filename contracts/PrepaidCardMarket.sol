@@ -264,10 +264,7 @@ contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
     bytes memory data, // solhint-disable-line no-unused-vars
     bytes memory signature
   ) public view returns (bytes4) {
-    if (signatures[keccak256(signature)]) {
-      return EIP1271_MAGIC_VALUE;
-    }
-    return bytes4(0);
+    return signatures[keccak256(signature)] ? EIP1271_MAGIC_VALUE : bytes4(0);
   }
 
   function validateItem(address issuer, address prepaidCard)

@@ -63,6 +63,7 @@ contract("PrepaidCardManager", (accounts) => {
     gasFeeReceiver,
     merchantFeeReceiver,
     merchantSafe,
+    contractSigner,
     relayer,
     depot,
     prepaidCards = [];
@@ -75,6 +76,7 @@ contract("PrepaidCardManager", (accounts) => {
     relayer = accounts[4];
     gasFeeReceiver = accounts[5];
     merchantFeeReceiver = accounts[6];
+    contractSigner = accounts[7];
 
     proxyFactory = await ProxyFactory.new();
     gnosisSafeMasterCopy = await GnosisSafe.new();
@@ -179,7 +181,7 @@ contract("PrepaidCardManager", (accounts) => {
         cardcpxdToken.address,
         MINIMUM_AMOUNT,
         MAXIMUM_AMOUNT,
-        []
+        [contractSigner]
       );
       await prepaidCardManager.addGasPolicy("transfer", false, true);
       await prepaidCardManager.addGasPolicy("split", true, true);
@@ -198,7 +200,7 @@ contract("PrepaidCardManager", (accounts) => {
       expect(await prepaidCardManager.gnosisProxyFactory()).to.equal(
         proxyFactory.address
       );
-      expect(await prepaidCardManager.actionDispatcher()).to.deep.equal(
+      expect(await prepaidCardManager.actionDispatcher()).to.equal(
         actionDispatcher.address
       );
       expect(await prepaidCardManager.minimumFaceValue()).to.a.bignumber.equal(
@@ -210,6 +212,20 @@ contract("PrepaidCardManager", (accounts) => {
       expect(await prepaidCardManager.gasToken()).to.equal(
         cardcpxdToken.address
       );
+      expect(await prepaidCardManager.getContractSigners()).to.deep.equal([
+        contractSigner,
+      ]);
+    });
+
+    it("rejects when non-owner removes a contract signer", async () => {
+      await prepaidCardManager
+        .removeContractSigner(contractSigner, { from: customer })
+        .should.be.rejectedWith(Error, "Ownable: caller is not the owner");
+    });
+
+    it("can remove a contract signer", async () => {
+      await prepaidCardManager.removeContractSigner(contractSigner);
+      expect(await prepaidCardManager.getContractSigners()).to.deep.equal([]);
     });
   });
 
