@@ -80,7 +80,7 @@ The `AddRewardRuleHandler` is a contract that handles the `addRewardRule` action
 ### RemoveRewardRuleHandler 
 The `RemoveRewardRuleHandler` is a contract that handles the `removeRewardRule` action. This contract will call the `RewardManager` to remove a rule from a reward program. 
 
-### PayRewardTokens
+### PayRewardTokensHandler
 The `PayRewardTokensHandler` is a contract that handles the `payRewardTokens` action. This contract will send token transfers to fill up pool for a particular reward program. 
 
 ### Exchange
