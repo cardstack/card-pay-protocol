@@ -539,6 +539,12 @@ Configuring PrepaidCardManager ${prepaidCardManagerAddress}
   await sendTx(async () =>
     (await prepaidCardManager()).addGasPolicy("removeRewardRule", true, true)
   );
+  console.log(
+    `  setting gas policy for "payRewardTokens" to use issuing token for gas and to pay gas recipient`
+  );
+  await sendTx(async () =>
+    (await prepaidCardManager()).addGasPolicy("payRewardTokens", true, true)
+  );
 
   // RewardPool configuration
   let rewardPool = await RewardPool.attach(rewardPoolAddress);
