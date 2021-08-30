@@ -123,7 +123,7 @@ const setupProtocol = async (accounts) => {
     REWARDEE_REGISTRATION_FEE_IN_SPEND,
     REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND
   );
-  await rewardPool.setup(rewardManager.address, tally, tokenManager.address);
+  await rewardPool.setup(tally, rewardManager.address, tokenManager.address);
 
   await prepaidCardManager.addGasPolicy("transfer", false, true);
   await prepaidCardManager.addGasPolicy("split", true, true);
