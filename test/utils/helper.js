@@ -1392,7 +1392,7 @@ exports.payRewardTokens = async function (
   );
 };
 
-exports.getBalanceByRewardProgram = async function (
+exports.getPoolBalanceByRewardProgram = async function (
   rewardProgramID,
   rewardPool,
   token

@@ -14,7 +14,7 @@ const {
   advanceBlock,
   toTokenUnit,
   getBalance,
-  getBalanceByRewardProgram,
+  getPoolBalanceByRewardProgram,
   createPrepaidCardAndTransfer,
   registerRewardProgram,
   registerRewardee,
@@ -1532,7 +1532,7 @@ contract("RewardPool", function (accounts) {
           rewardPool.address
         );
 
-        const rewardPoolBalanceCardByRewardProgram = await getBalanceByRewardProgram(
+        const rewardPoolBalanceCardByRewardProgram = await getPoolBalanceByRewardProgram(
           rewardProgramID,
           rewardPool,
           daicpxdToken
