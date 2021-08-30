@@ -1496,6 +1496,14 @@ contract("RewardPool", function (accounts) {
           prepaidCardOwner,
           cardcpxdToken
         );
+        const prepaidCardPreviousBalanceCard = await getBalance(
+          daicpxdToken,
+          prepaidCard.address
+        );
+        const prepaidCardPreviousFaceValue = await prepaidCardManager.faceValue(
+          prepaidCard.address
+        );
+
         await registerRewardProgram(
           prepaidCardManager,
           prepaidCard,
@@ -1529,6 +1537,13 @@ contract("RewardPool", function (accounts) {
           rewardPool,
           daicpxdToken
         );
+        const prepaidCardBalanceCard = await getBalance(
+          daicpxdToken,
+          prepaidCard.address
+        );
+        const prepaidCardFaceValue = await prepaidCardManager.faceValue(
+          prepaidCard.address
+        );
         assert(
           rewardPoolPreviousBalanceCard
             .add(rewardPoolBalanceCard)
@@ -1540,6 +1555,20 @@ contract("RewardPool", function (accounts) {
             new BN("5000000000000000000")
           ),
           "the reward pool balance is correct"
+        );
+        assert(
+          prepaidCardPreviousBalanceCard
+            .sub(new BN("5000000000000000000"))
+            .sub(new BN("5000000000000000000"))
+            .eq(prepaidCardBalanceCard),
+          "the prepaid card token balance is correct"
+        );
+        assert.equal(
+          prepaidCardPreviousFaceValue -
+            REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND -
+            500,
+          prepaidCardFaceValue,
+          "the prepaid card face value is correct"
         );
       });
     });
