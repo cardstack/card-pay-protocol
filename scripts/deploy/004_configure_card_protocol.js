@@ -2,6 +2,7 @@ const { readJSONSync, existsSync } = require("node-fs-extra");
 const { resolve } = require("path");
 const Web3 = require("web3");
 const { fromWei } = Web3.utils;
+const dotenv = require("dotenv");
 
 const hre = require("hardhat");
 const {
@@ -12,13 +13,21 @@ const {
 } = require("./util");
 patchNetworks();
 
+const {
+  network: { name: network },
+} = hre;
+dotenv.config({ path: resolve(process.cwd(), `.env.${network}`) });
+
 const retry = require("async-retry");
 const sendTx = async function (cb) {
   return await retry(cb, { retries: 3 });
 };
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
-const GAS_FEE_RECEIVER = process.env.GAS_FEE_RECEIVER ?? ZERO_ADDRESS;
+const RELAY_SERVER_TX_SENDER =
+  process.env.RELAY_SERVER_TX_SENDER ?? ZERO_ADDRESS;
+const PREPAID_CARD_PROVISIONER = RELAY_SERVER_TX_SENDER;
+const GAS_FEE_RECEIVER = RELAY_SERVER_TX_SENDER;
 const GAS_FEE_CARD_WEI = String(
   process.env.GAS_FEE_CARD_WEI ?? 1000000000000000000
 );
@@ -50,6 +59,7 @@ const REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND =
 async function main() {
   const RevenuePool = await makeFactory("RevenuePool");
   const PrepaidCardManager = await makeFactory("PrepaidCardManager");
+  const PrepaidCardMarket = await makeFactory("PrepaidCardMarket");
   const BridgeUtils = await makeFactory("BridgeUtils");
   const SPEND = await makeFactory("SPEND");
   const RewardPool = await makeFactory("RewardPool");
@@ -88,10 +98,6 @@ async function main() {
   const RemoveRewardRuleHandler = await makeFactory("RemoveRewardRuleHandler");
   const PayRewardTokensHandler = await makeFactory("PayRewardTokensHandler");
 
-  const {
-    network: { name: network },
-  } = hre;
-
   let deployer = await getDeployAddress();
 
   const MERCHANT_FEE_RECEIVER = process.env.MERCHANT_FEE_RECEIVER ?? deployer;
@@ -121,6 +127,10 @@ async function main() {
     "PrepaidCardManager",
     proxyAddresses
   );
+  let prepaidCardMarketAddress = getAddress(
+    "PrepaidCardMarket",
+    proxyAddresses
+  );
   let exchangeAddress = getAddress("Exchange", proxyAddresses);
   let tokenManagerAddress = getAddress("TokenManager", proxyAddresses);
   let merchantManagerAddress = getAddress("MerchantManager", proxyAddresses);
@@ -140,6 +150,18 @@ async function main() {
   );
   let transferPrepaidCardHandlerAddress = getAddress(
     "TransferPrepaidCardHandler",
+    proxyAddresses
+  );
+  let setPrepaidCardInventoryHandlerAddress = getAddress(
+    "SetPrepaidCardInventoryHandler",
+    proxyAddresses
+  );
+  let removePrepaidCardInventoryHandlerAddress = getAddress(
+    "RemovePrepaidCardInventoryHandler",
+    proxyAddresses
+  );
+  let setPrepaidCardAskHandlerAddress = getAddress(
+    "SetPrepaidCardAskHandler",
     proxyAddresses
   );
   let spendTokenAddress = getAddress("SPEND", proxyAddresses);
@@ -308,11 +330,33 @@ Configuring ActionDispatcher ${actionDispatcherAddress}
       "split"
     )
   );
-
-  // TODO action handler for setPrepaidCardInventory
-  // TODO action handler for removePrepaidCardInventory
-  // TODO action handler for setPrepaidCardAsk
-
+  console.log(
+    `  adding action handler for "setPrepaidCardInventory": ${setPrepaidCardInventoryHandlerAddress}`
+  );
+  await sendTx(async () =>
+    (await actionDispatcher()).addHandler(
+      setPrepaidCardInventoryHandlerAddress,
+      "setPrepaidCardInventory"
+    )
+  );
+  console.log(
+    `  adding action handler for "removePrepaidCardInventory": ${removePrepaidCardInventoryHandlerAddress}`
+  );
+  await sendTx(async () =>
+    (await actionDispatcher()).addHandler(
+      removePrepaidCardInventoryHandlerAddress,
+      "removePrepaidCardInventory"
+    )
+  );
+  console.log(
+    `  adding action handler for "setPrepaidCardAsk": ${setPrepaidCardAskHandlerAddress}`
+  );
+  await sendTx(async () =>
+    (await actionDispatcher()).addHandler(
+      setPrepaidCardAskHandlerAddress,
+      "setPrepaidCardAsk"
+    )
+  );
   console.log(
     `  adding action handler for "transfer": ${transferPrepaidCardHandlerAddress}`
   );
@@ -449,12 +493,14 @@ Configuring RegisterMerchantHandler ${registerMerchantHandlerAddress}
 Configuring SplitPrepaidCardHandler ${splitPrepaidCardHandlerAddress}
   ActionDispatcher address: ${actionDispatcherAddress}
   PrepaidCardManager address: ${prepaidCardManagerAddress}
-  TokenManager address: ${tokenManagerAddress}`);
+  TokenManager address: ${tokenManagerAddress}
+  default market address: ${prepaidCardMarketAddress} (PrepaidCardMarket)`);
   await sendTx(() =>
     splitPrepaidCardHandler.setup(
       actionDispatcherAddress,
       prepaidCardManagerAddress,
-      tokenManagerAddress
+      tokenManagerAddress,
+      prepaidCardMarketAddress
     )
   );
 
@@ -476,6 +522,79 @@ Configuring TransferPrepaidCardHandler ${transferPrepaidCardHandlerAddress}
     )
   );
 
+  // SetPrepaidCardInventoryHandler configuration
+  let setPrepaidCardInventoryHandler = await SetPrepaidCardInventoryHandler.attach(
+    setPrepaidCardInventoryHandlerAddress
+  );
+  console.log(`
+==================================================
+Configuring SetPrepaidCardInventoryHandler ${setPrepaidCardInventoryHandlerAddress}
+  ActionDispatcher address: ${actionDispatcherAddress}
+  PrepaidCardManager address: ${prepaidCardManagerAddress}
+  TokenManager address: ${tokenManagerAddress}`);
+  await sendTx(() =>
+    setPrepaidCardInventoryHandler.setup(
+      actionDispatcherAddress,
+      prepaidCardManagerAddress,
+      tokenManagerAddress
+    )
+  );
+
+  // RemovePrepaidCardInventoryHandler configuration
+  let removePrepaidCardInventoryHandler = await RemovePrepaidCardInventoryHandler.attach(
+    removePrepaidCardInventoryHandlerAddress
+  );
+  console.log(`
+==================================================
+Configuring RemovePrepaidCardInventoryHandler ${removePrepaidCardInventoryHandlerAddress}
+  ActionDispatcher address: ${actionDispatcherAddress}
+  PrepaidCardManager address: ${prepaidCardManagerAddress}
+  TokenManager address: ${tokenManagerAddress}`);
+  await sendTx(() =>
+    removePrepaidCardInventoryHandler.setup(
+      actionDispatcherAddress,
+      prepaidCardManagerAddress,
+      tokenManagerAddress
+    )
+  );
+
+  // SetPrepaidCardAskHandler configuration
+  let setPrepaidCardAskHandler = await SetPrepaidCardAskHandler.attach(
+    setPrepaidCardAskHandlerAddress
+  );
+  console.log(`
+==================================================
+Configuring SetPrepaidCardAskHandler ${setPrepaidCardAskHandlerAddress}
+  ActionDispatcher address: ${actionDispatcherAddress}
+  PrepaidCardManager address: ${prepaidCardManagerAddress}
+  TokenManager address: ${tokenManagerAddress}`);
+  await sendTx(() =>
+    setPrepaidCardAskHandler.setup(
+      actionDispatcherAddress,
+      prepaidCardManagerAddress,
+      tokenManagerAddress
+    )
+  );
+
+  // PrepaidCardMarket configuration
+  let prepaidCardMarket = await PrepaidCardMarket.attach(
+    prepaidCardMarketAddress
+  );
+  console.log(`
+==================================================
+Configuring PrepaidCardMarket ${prepaidCardMarketAddress}
+  PrepaidCardManager address: ${prepaidCardManagerAddress}
+  ActionDispatcher address: ${actionDispatcherAddress}
+  provisioner address:  ${PREPAID_CARD_PROVISIONER}
+  `);
+  await sendTx(() =>
+    prepaidCardMarket.setup(
+      prepaidCardManagerAddress,
+      actionDispatcherAddress,
+      PREPAID_CARD_PROVISIONER
+    )
+  );
+
   // PrepaidCardManager configuration
   async function prepaidCardManager() {
     return await PrepaidCardManager.attach(prepaidCardManagerAddress);
@@ -493,8 +612,8 @@ Configuring PrepaidCardManager ${prepaidCardManagerAddress}
   gas fee: ${fromWei(GAS_FEE_CARD_WEI)} CARD
   gas token: ${GAS_TOKEN}
   minimum face value: ${MINIMUM_AMOUNT}
-  maximum face value: ${MAXIMUM_AMOUNT}`);
-  // TODO add contract signers
+  maximum face value: ${MAXIMUM_AMOUNT}
+  contract signers: [${prepaidCardMarketAddress}]`);
   await sendTx(async () =>
     (await prepaidCardManager()).setup(
       tokenManagerAddress,
@@ -507,7 +626,8 @@ Configuring PrepaidCardManager ${prepaidCardManagerAddress}
       GAS_FEE_CARD_WEI,
       GAS_TOKEN,
       MINIMUM_AMOUNT,
-      MAXIMUM_AMOUNT
+      MAXIMUM_AMOUNT,
+      [prepaidCardMarketAddress]
     )
   );
   console.log(
@@ -761,7 +881,6 @@ Configuring RemoveRewardRule ${removeRewardRuleHandlerAddress}
       rewardManagerAddress
     )
   );
-
 
   let payRewardTokensHandler = await PayRewardTokensHandler.attach(
     payRewardTokensHandlerAddress
