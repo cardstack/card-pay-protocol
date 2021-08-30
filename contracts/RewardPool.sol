@@ -12,8 +12,6 @@ import "./core/Versionable.sol";
 import "./RewardManager.sol";
 import "./TokenManager.sol";
 
-import "hardhat/console.sol";
-
 contract RewardPool is Initializable, Versionable, Ownable {
   using SafeMath for uint256;
   using MerkleProof for bytes32[];
