@@ -30,7 +30,7 @@ const REWARDEE_REGISTRATION_FEE_IN_SPEND = 500;
 contract("RewardPool", function (accounts) {
   let daicpxdToken, cardcpxdToken;
 
-  let rewardManager, supplierManager, prepaidCardManager, tokenManager;
+  let rewardManager, prepaidCardManager, tokenManager;
 
   let owner, issuer, prepaidCardOwner, relayer;
 
@@ -51,7 +51,6 @@ contract("RewardPool", function (accounts) {
       ({
         prepaidCardManager,
         rewardManager,
-        supplierManager,
         depot,
         daicpxdToken,
         cardcpxdToken,
@@ -1352,65 +1351,9 @@ contract("RewardPool", function (accounts) {
     });
 
     describe("addRewardTokens", function () {
-      let rewardPoolBalance;
-      let paymentCycle;
-      let proof;
-      let payeeIndex = 0;
-      let payee;
-      let paymentAmount;
-      let merkleTree;
-      let root;
-      let rewardeePrepaidCard;
-      let rewardSafePreviousBalance,
-        rewardPoolPreviousBalance,
-        rewardProgramAdminPreviousBalance;
-      let fakeToken;
+      let rewardPoolPreviousBalance, rewardProgramAdminPreviousBalance;
 
       beforeEach(async function () {
-        fakeToken = await ERC677Token.new();
-        await fakeToken.initialize(...TOKEN_DETAIL_DATA, owner);
-        payee = payments[payeeIndex].payee;
-        paymentAmount = payments[payeeIndex].amount;
-        merkleTree = new CumulativePaymentTree(payments);
-        root = merkleTree.getHexRoot();
-        rewardPoolBalance = toTokenUnit(100);
-        paymentCycle = await rewardPool.numPaymentCycles();
-        paymentCycle = paymentCycle.toNumber();
-        proof = merkleTree.hexProofForPayee(
-          rewardProgramID,
-          payee,
-          cardcpxdToken.address,
-          paymentCycle
-        );
-        await rewardPool.submitPayeeMerkleRoot(root, { from: tally });
-        rewardeePrepaidCard = await createPrepaidCardAndTransfer(
-          prepaidCardManager,
-          relayer,
-          depot,
-          issuer,
-          daicpxdToken,
-          toTokenUnit(10 + 1),
-          daicpxdToken,
-          payee,
-          cardcpxdToken
-        );
-        const tx = await registerRewardee(
-          prepaidCardManager,
-          rewardeePrepaidCard,
-          daicpxdToken,
-          daicpxdToken,
-          relayer,
-          payee,
-          REWARDEE_REGISTRATION_FEE_IN_SPEND,
-          undefined,
-          rewardProgramID
-        );
-        rewardSafe = await getRewardSafeFromEventLog(tx, rewardManager.address);
-
-        rewardSafePreviousBalance = await getBalance(
-          cardcpxdToken,
-          rewardSafe.address
-        );
         rewardPoolPreviousBalance = await getBalance(
           cardcpxdToken,
           rewardPool.address
@@ -1460,6 +1403,8 @@ contract("RewardPool", function (accounts) {
           .should.be.rejectedWith(Error, "reward program is not found");
       });
       it("reward pool cannot be refilled with token not federated by token manager", async function () {
+        const fakeToken = await ERC677Token.new();
+        await fakeToken.initialize(...TOKEN_DETAIL_DATA, owner);
         await fakeToken.mint(prepaidCardOwner, toTokenUnit(100));
         await fakeToken
           .transferAndCall(
