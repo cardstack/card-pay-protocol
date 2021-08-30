@@ -77,6 +77,7 @@ async function main() {
   );
   const AddRewardRuleHandler = await makeFactory("AddRewardRuleHandler");
   const RemoveRewardRuleHandler = await makeFactory("RemoveRewardRuleHandler");
+  const PayRewardTokensHandler = await makeFactory("PayRewardTokensHandler");
 
   const {
     network: { name: network }
@@ -161,6 +162,10 @@ async function main() {
   );
   let removeRewardRuleHandlerAddress = getAddress(
     "RemoveRewardRuleHandler",
+    proxyAddresses
+  );
+  let payRewardTokensHandlerAddress = getAddress(
+    "PayRewardTokensHandler",
     proxyAddresses
   );
 
@@ -360,6 +365,16 @@ Configuring ActionDispatcher ${actionDispatcherAddress}
     (await actionDispatcher()).addHandler(
       updateRewardProgramAdminHandlerAddress,
       "updateRewardProgramAdmin"
+    )
+  );
+
+  console.log(
+    `  adding action handler for "payRewardTokens": ${payRewardTokensHandlerAddress}`
+  );
+  await sendTx(async () =>
+    (await actionDispatcher()).addHandler(
+      payRewardTokensHandlerAddress,
+      "payRewardTokens"
     )
   );
 
@@ -706,6 +721,25 @@ Configuring RemoveRewardRule ${removeRewardRuleHandlerAddress}
       exchangeAddress,
       tokenManagerAddress,
       rewardManagerAddress
+    )
+  );
+
+
+  let payRewardTokensHandler = await PayRewardTokensHandler.attach(
+    payRewardTokensHandlerAddress
+  );
+  console.log(`
+==================================================
+Configuring PayRewardTokens ${payRewardTokensHandlerAddress}
+  ActionDispatcher address: ${actionDispatcherAddress}
+  TokenManager address: ${tokenManagerAddress}
+  RewardPool address: ${rewardPoolAddress}
+  `);
+  await sendTx(() =>
+    payRewardTokensHandler.setup(
+      actionDispatcherAddress,
+      tokenManagerAddress,
+      rewardPoolAddress
     )
   );
 }

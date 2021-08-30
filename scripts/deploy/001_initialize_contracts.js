@@ -98,6 +98,10 @@ async function main() {
     UpdateRewardProgramAdminHandler: {
       contractName: "UpdateRewardProgramAdminHandler",
       init: [owner]
+    },
+    PayRewardTokensHandler: {
+      contractName: "PayRewardTokensHandler",
+      init: [owner]
     }
   };
 
