@@ -9,7 +9,7 @@ const RewardPool = artifacts.require("RewardPool.sol");
 
 const { ZERO_ADDRESS, getRewardSafeFromEventLog } = require("./utils/general");
 const { setupProtocol, setupRoles } = require("./utils/setup");
-const { randomHex } = require("web3-utils");
+const { randomHex, BN } = require("web3-utils");
 const {
   advanceBlock,
   toTokenUnit,
@@ -175,13 +175,17 @@ contract("RewardPool", function (accounts) {
     });
 
     describe("submitPayeeMerkleRoot", function () {
+      let previousPaymentCycleNumber;
+      beforeEach(async function () {
+        previousPaymentCycleNumber = await rewardPool.numPaymentCycles();
+      });
       it("starts a new payment cycle after the payee merkle root is submitted", async function () {
         let merkleTree = new CumulativePaymentTree(payments);
         let root = merkleTree.getHexRoot();
         let paymentCycleNumber = await rewardPool.numPaymentCycles();
         assert.equal(
           paymentCycleNumber.toNumber(),
-          1,
+          previousPaymentCycleNumber.toNumber(),
           "the payment cycle number is correct"
         );
 
@@ -190,10 +194,9 @@ contract("RewardPool", function (accounts) {
         });
         let currentBlockNumber = await web3.eth.getBlockNumber();
         paymentCycleNumber = await rewardPool.numPaymentCycles();
-
         assert.equal(
           paymentCycleNumber.toNumber(),
-          2,
+          previousPaymentCycleNumber.add(new BN(1)).toNumber(),
           "the payment cycle number is correct"
         );
         assert.equal(
@@ -214,8 +217,8 @@ contract("RewardPool", function (accounts) {
           )
         );
         assert.equal(
-          paymentCycleEvent.args.paymentCycle,
-          1,
+          paymentCycleEvent.args.paymentCycle.toNumber(),
+          previousPaymentCycleNumber.toNumber(),
           "the payment cycle number is correct"
         );
 
@@ -253,7 +256,7 @@ contract("RewardPool", function (accounts) {
 
         assert.equal(
           paymentCycleNumber.toNumber(),
-          3,
+          previousPaymentCycleNumber.add(new BN(2)).toNumber(),
           "the payment cycle number is correct"
         );
       });
@@ -280,7 +283,7 @@ contract("RewardPool", function (accounts) {
 
         assert.equal(
           paymentCycleNumber.toNumber(),
-          2,
+          previousPaymentCycleNumber.add(new BN(1)).toNumber(),
           "the payment cycle number is correct"
         );
       });
@@ -301,7 +304,7 @@ contract("RewardPool", function (accounts) {
 
         assert.equal(
           paymentCycleNumber.toNumber(),
-          1,
+          previousPaymentCycleNumber.toNumber(),
           "the payment cycle number is correct"
         );
       });
