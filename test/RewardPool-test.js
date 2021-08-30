@@ -1,27 +1,28 @@
 const CumulativePaymentTree = require("./utils/cumulative-payment-tree");
 
-const { assert, expect } = require("./setup");
+const { assert, expect, TOKEN_DETAIL_DATA } = require("./setup");
 const _ = require("lodash");
 
-const ERC20Token = artifacts.require(
-  "@openzeppelin/contract-upgradeable/contracts/token/ERC20/ERC20Mintable.sol"
-);
+const ERC677Token = artifacts.require("ERC677Token.sol");
 
 const RewardPool = artifacts.require("RewardPool.sol");
 
 const { ZERO_ADDRESS, getRewardSafeFromEventLog } = require("./utils/general");
 const { setupProtocol, setupRoles } = require("./utils/setup");
-const { randomHex } = require("web3-utils");
+const { randomHex, BN } = require("web3-utils");
 const {
   advanceBlock,
   toTokenUnit,
   getBalance,
-  createDepotFromSupplierMgr,
+  getPoolBalanceByRewardProgram,
   createPrepaidCardAndTransfer,
   registerRewardProgram,
   registerRewardee,
   claimReward,
+  mintWalletAndRefillPool,
+  payRewardTokens,
 } = require("./utils/helper");
+const AbiCoder = require("web3-eth-abi");
 
 const REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND = 500;
 const REWARDEE_REGISTRATION_FEE_IN_SPEND = 500;
@@ -29,7 +30,7 @@ const REWARDEE_REGISTRATION_FEE_IN_SPEND = 500;
 contract("RewardPool", function (accounts) {
   let daicpxdToken, cardcpxdToken;
 
-  let rewardManager, supplierManager, prepaidCardManager;
+  let rewardManager, prepaidCardManager, tokenManager;
 
   let owner, issuer, prepaidCardOwner, relayer;
 
@@ -50,18 +51,20 @@ contract("RewardPool", function (accounts) {
       ({
         prepaidCardManager,
         rewardManager,
-        supplierManager,
         depot,
         daicpxdToken,
         cardcpxdToken,
+        tokenManager,
       } = await setupProtocol(accounts));
     });
     beforeEach(async function () {
       rewardPool = await RewardPool.new();
       await rewardPool.initialize(owner);
-      await rewardPool.setup(tally, rewardManager.address);
-      depot = await createDepotFromSupplierMgr(supplierManager, issuer);
-      await daicpxdToken.mint(depot.address, toTokenUnit(1000));
+      await rewardPool.setup(
+        tally,
+        rewardManager.address,
+        tokenManager.address
+      );
       rewardProgramID = randomHex(20);
       otherRewardProgramID = randomHex(20);
       prepaidCard = await createPrepaidCardAndTransfer(
@@ -149,13 +152,13 @@ contract("RewardPool", function (accounts) {
     describe("initial reward pool contract", () => {
       it("reverts when tally is set to zero address", async () => {
         await rewardPool
-          .setup(ZERO_ADDRESS, rewardManager.address)
+          .setup(ZERO_ADDRESS, rewardManager.address, tokenManager.address)
           .should.be.rejectedWith(Error, "Tally should not be zero address");
       });
 
       it("reverts when reward manager is set to zero address", async () => {
         await rewardPool
-          .setup(tally, ZERO_ADDRESS)
+          .setup(tally, ZERO_ADDRESS, tokenManager.address)
           .should.be.rejectedWith(
             Error,
             "Reward Manager should not be zero address"
@@ -170,13 +173,17 @@ contract("RewardPool", function (accounts) {
     });
 
     describe("submitPayeeMerkleRoot", function () {
+      let previousPaymentCycleNumber;
+      beforeEach(async function () {
+        previousPaymentCycleNumber = await rewardPool.numPaymentCycles();
+      });
       it("starts a new payment cycle after the payee merkle root is submitted", async function () {
         let merkleTree = new CumulativePaymentTree(payments);
         let root = merkleTree.getHexRoot();
         let paymentCycleNumber = await rewardPool.numPaymentCycles();
         assert.equal(
           paymentCycleNumber.toNumber(),
-          1,
+          previousPaymentCycleNumber.toNumber(),
           "the payment cycle number is correct"
         );
 
@@ -185,10 +192,9 @@ contract("RewardPool", function (accounts) {
         });
         let currentBlockNumber = await web3.eth.getBlockNumber();
         paymentCycleNumber = await rewardPool.numPaymentCycles();
-
         assert.equal(
           paymentCycleNumber.toNumber(),
-          2,
+          previousPaymentCycleNumber.add(new BN(1)).toNumber(),
           "the payment cycle number is correct"
         );
         assert.equal(
@@ -209,8 +215,8 @@ contract("RewardPool", function (accounts) {
           )
         );
         assert.equal(
-          paymentCycleEvent.args.paymentCycle,
-          1,
+          paymentCycleEvent.args.paymentCycle.toNumber(),
+          previousPaymentCycleNumber.toNumber(),
           "the payment cycle number is correct"
         );
 
@@ -248,7 +254,7 @@ contract("RewardPool", function (accounts) {
 
         assert.equal(
           paymentCycleNumber.toNumber(),
-          3,
+          previousPaymentCycleNumber.add(new BN(2)).toNumber(),
           "the payment cycle number is correct"
         );
       });
@@ -275,7 +281,7 @@ contract("RewardPool", function (accounts) {
 
         assert.equal(
           paymentCycleNumber.toNumber(),
-          2,
+          previousPaymentCycleNumber.add(new BN(1)).toNumber(),
           "the payment cycle number is correct"
         );
       });
@@ -296,7 +302,7 @@ contract("RewardPool", function (accounts) {
 
         assert.equal(
           paymentCycleNumber.toNumber(),
-          1,
+          previousPaymentCycleNumber.toNumber(),
           "the payment cycle number is correct"
         );
       });
@@ -316,7 +322,13 @@ contract("RewardPool", function (accounts) {
         payee = payments[payeeIndex].payee;
         rewardPoolBalance = toTokenUnit(100);
         paymentAmount = payments[payeeIndex].amount;
-        await cardcpxdToken.mint(rewardPool.address, rewardPoolBalance);
+        await mintWalletAndRefillPool(
+          cardcpxdToken,
+          rewardPool,
+          prepaidCardOwner,
+          rewardPoolBalance,
+          rewardProgramID
+        );
         paymentCycle = await rewardPool.numPaymentCycles();
         paymentCycle = paymentCycle.toNumber();
         merkleTree = new CumulativePaymentTree(payments);
@@ -544,7 +556,13 @@ contract("RewardPool", function (accounts) {
         merkleTree = new CumulativePaymentTree(payments);
         root = merkleTree.getHexRoot();
         rewardPoolBalance = toTokenUnit(100);
-        await cardcpxdToken.mint(rewardPool.address, rewardPoolBalance);
+        await mintWalletAndRefillPool(
+          cardcpxdToken,
+          rewardPool,
+          prepaidCardOwner,
+          rewardPoolBalance,
+          rewardProgramID
+        );
         paymentCycle = await rewardPool.numPaymentCycles();
         paymentCycle = paymentCycle.toNumber();
         proof = merkleTree.hexProofForPayee(
@@ -1008,6 +1026,77 @@ contract("RewardPool", function (accounts) {
         ).should.be.rejectedWith(Error, "Reward pool has insufficient balance");
       });
 
+      it("payee cannot claim their allotted tokens from the pool when the reward program does not have enough tokens in the pool", async function () {
+        await registerRewardProgram(
+          prepaidCardManager,
+          prepaidCard,
+          daicpxdToken,
+          daicpxdToken,
+          relayer,
+          prepaidCardOwner,
+          REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
+          undefined,
+          prepaidCardOwner,
+          otherRewardProgramID
+        );
+        let payeeIndex = 6;
+        let rewardee = payments[payeeIndex].payee;
+        let paymentAmount = payments[payeeIndex].amount;
+        let proof = merkleTree.hexProofForPayee(
+          otherRewardProgramID,
+          rewardee,
+          cardcpxdToken.address,
+          paymentCycle
+        );
+
+        let somePrepaidCard = await createPrepaidCardAndTransfer(
+          prepaidCardManager,
+          relayer,
+          depot,
+          issuer,
+          daicpxdToken,
+          toTokenUnit(10 + 1),
+          daicpxdToken,
+          rewardee,
+          cardcpxdToken
+        );
+        await mintWalletAndRefillPool(
+          cardcpxdToken,
+          rewardPool,
+          prepaidCardOwner,
+          toTokenUnit(5),
+          otherRewardProgramID
+        );
+        const tx = await registerRewardee(
+          prepaidCardManager,
+          somePrepaidCard,
+          daicpxdToken,
+          daicpxdToken,
+          relayer,
+          rewardee,
+          REWARDEE_REGISTRATION_FEE_IN_SPEND,
+          undefined,
+          otherRewardProgramID
+        );
+        let someRewardSafe = await getRewardSafeFromEventLog(
+          tx,
+          rewardManager.address
+        );
+        await claimReward(
+          rewardManager,
+          rewardPool,
+          relayer,
+          someRewardSafe,
+          rewardee,
+          otherRewardProgramID,
+          cardcpxdToken,
+          paymentAmount,
+          proof
+        ).should.be.rejectedWith(
+          Error,
+          "Reward program has insufficient balance inside reward pool"
+        );
+      });
       it("payee claim their allotted amount from an older proof", async function () {
         let updatedPayments = payments.slice();
         let updatedPaymentAmount = updatedPayments[payeeIndex].amount;
@@ -1261,26 +1350,189 @@ contract("RewardPool", function (accounts) {
       });
     });
 
+    describe("addRewardTokens", function () {
+      let rewardPoolPreviousBalance, rewardProgramAdminPreviousBalance;
+
+      beforeEach(async function () {
+        rewardPoolPreviousBalance = await getBalance(
+          cardcpxdToken,
+          rewardPool.address
+        );
+        await cardcpxdToken.mint(prepaidCardOwner, toTokenUnit(100));
+        rewardProgramAdminPreviousBalance = await getBalance(
+          cardcpxdToken,
+          prepaidCardOwner
+        );
+      });
+
+      it("reward pool can be refilled using an eoa", async function () {
+        await cardcpxdToken.transferAndCall(
+          rewardPool.address,
+          toTokenUnit(50),
+          AbiCoder.encodeParameters(["address"], [rewardProgramID]),
+          { from: prepaidCardOwner }
+        );
+        let rewardPoolBalance = await getBalance(
+          cardcpxdToken,
+          rewardPool.address
+        );
+        let rewardProgramAdminBalance = await getBalance(
+          cardcpxdToken,
+          prepaidCardOwner
+        );
+        assert(
+          rewardPoolBalance.eq(rewardPoolPreviousBalance.add(toTokenUnit(50))),
+          "the pool balance is correct"
+        );
+        assert(
+          rewardProgramAdminBalance.eq(
+            rewardProgramAdminPreviousBalance.sub(toTokenUnit(50))
+          ),
+          "the reward program admin balance is correct"
+        );
+      });
+      it("reward pool cannot be refilled if reward program is unknown", async function () {
+        await cardcpxdToken.mint(prepaidCardOwner, toTokenUnit(100));
+        await cardcpxdToken
+          .transferAndCall(
+            rewardPool.address,
+            toTokenUnit(50),
+            AbiCoder.encodeParameters(["address"], [randomHex(20)]),
+            { from: prepaidCardOwner }
+          )
+          .should.be.rejectedWith(Error, "reward program is not found");
+      });
+      it("reward pool cannot be refilled with token not federated by token manager", async function () {
+        const fakeToken = await ERC677Token.new();
+        await fakeToken.initialize(...TOKEN_DETAIL_DATA, owner);
+        await fakeToken.mint(prepaidCardOwner, toTokenUnit(100));
+        await fakeToken
+          .transferAndCall(
+            rewardPool.address,
+            toTokenUnit(50),
+            AbiCoder.encodeParameters(["address"], [rewardProgramID]),
+            { from: prepaidCardOwner }
+          )
+          .should.be.rejectedWith(Error, "calling token is unaccepted");
+      });
+      it("reward pool can be refilled using a prepaid card", async function () {
+        ({
+          prepaidCardManager,
+          rewardManager,
+          depot,
+          daicpxdToken,
+          cardcpxdToken,
+          tokenManager,
+          rewardPool,
+        } = await setupProtocol(accounts));
+        rewardProgramID = randomHex(20);
+        const rewardPoolPreviousBalanceCard = await getBalance(
+          daicpxdToken,
+          rewardPool.address
+        );
+        prepaidCard = await createPrepaidCardAndTransfer(
+          prepaidCardManager,
+          relayer,
+          depot,
+          issuer,
+          daicpxdToken,
+          toTokenUnit(10 + 1),
+          daicpxdToken,
+          prepaidCardOwner,
+          cardcpxdToken
+        );
+        const prepaidCardPreviousBalanceCard = await getBalance(
+          daicpxdToken,
+          prepaidCard.address
+        );
+        const prepaidCardPreviousFaceValue = await prepaidCardManager.faceValue(
+          prepaidCard.address
+        );
+
+        await registerRewardProgram(
+          prepaidCardManager,
+          prepaidCard,
+          daicpxdToken,
+          daicpxdToken,
+          relayer,
+          prepaidCardOwner,
+          REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
+          undefined,
+          prepaidCardOwner,
+          rewardProgramID
+        );
+        await payRewardTokens(
+          prepaidCardManager,
+          prepaidCard,
+          daicpxdToken,
+          daicpxdToken,
+          relayer,
+          prepaidCardOwner,
+          500,
+          undefined,
+          rewardProgramID
+        );
+        const rewardPoolBalanceCard = await getBalance(
+          daicpxdToken,
+          rewardPool.address
+        );
+
+        const rewardPoolBalanceCardByRewardProgram = await getPoolBalanceByRewardProgram(
+          rewardProgramID,
+          rewardPool,
+          daicpxdToken
+        );
+        const prepaidCardBalanceCard = await getBalance(
+          daicpxdToken,
+          prepaidCard.address
+        );
+        const prepaidCardFaceValue = await prepaidCardManager.faceValue(
+          prepaidCard.address
+        );
+        assert(
+          rewardPoolPreviousBalanceCard
+            .add(rewardPoolBalanceCard)
+            .eq(new BN("5000000000000000000")),
+          "the reward pool balance is correct"
+        );
+        assert(
+          rewardPoolBalanceCardByRewardProgram.eq(
+            new BN("5000000000000000000")
+          ),
+          "the reward pool balance is correct"
+        );
+        assert(
+          prepaidCardPreviousBalanceCard
+            .sub(new BN("5000000000000000000"))
+            .sub(new BN("5000000000000000000"))
+            .eq(prepaidCardBalanceCard),
+          "the prepaid card token balance is correct"
+        );
+        assert.equal(
+          prepaidCardPreviousFaceValue -
+            REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND -
+            500,
+          prepaidCardFaceValue,
+          "the prepaid card face value is correct"
+        );
+      });
+    });
+
     describe("multi-token support", () => {
       let rewardPoolBalance;
       let paymentCycle;
       let payee;
       let merkleTree;
       let root;
-      let erc20Token;
       let rewardSafe, rewardeePrepaidCard;
 
       let rewardPoolPreviousBalanceCard,
         rewardPoolPreviousBalanceDai,
-        rewardPoolPreviousBalanceErc20,
         rewardSafePreviousBalanceCard,
-        rewardSafePreviousBalanceDai,
-        rewardSafePreviousBalanceErc20;
+        rewardSafePreviousBalanceDai;
 
       beforeEach(async function () {
         payee = accounts[11];
-        erc20Token = await ERC20Token.new();
-        await erc20Token.initialize(owner);
         payments = [
           {
             rewardProgramID,
@@ -1300,18 +1552,24 @@ contract("RewardPool", function (accounts) {
             token: cardcpxdToken.address,
             amount: toTokenUnit(100),
           },
-          {
-            rewardProgramID,
-            payee,
-            token: erc20Token.address,
-            amount: toTokenUnit(10),
-          },
         ];
 
         rewardPoolBalance = toTokenUnit(500);
-        await cardcpxdToken.mint(rewardPool.address, rewardPoolBalance);
+        await mintWalletAndRefillPool(
+          cardcpxdToken,
+          rewardPool,
+          prepaidCardOwner,
+          rewardPoolBalance,
+          rewardProgramID
+        );
+        await mintWalletAndRefillPool(
+          daicpxdToken,
+          rewardPool,
+          prepaidCardOwner,
+          rewardPoolBalance,
+          rewardProgramID
+        );
         await daicpxdToken.mint(rewardPool.address, rewardPoolBalance);
-        await erc20Token.mint(rewardPool.address, rewardPoolBalance);
 
         merkleTree = new CumulativePaymentTree(payments);
         root = merkleTree.getHexRoot();
@@ -1352,10 +1610,6 @@ contract("RewardPool", function (accounts) {
           daicpxdToken,
           rewardPool.address
         );
-        rewardPoolPreviousBalanceErc20 = await getBalance(
-          erc20Token,
-          rewardPool.address
-        );
         rewardSafePreviousBalanceCard = await getBalance(
           cardcpxdToken,
           rewardSafe.address
@@ -1363,59 +1617,6 @@ contract("RewardPool", function (accounts) {
         rewardSafePreviousBalanceDai = await getBalance(
           daicpxdToken,
           rewardSafe.address
-        );
-        rewardSafePreviousBalanceErc20 = await getBalance(
-          erc20Token,
-          rewardSafe.address
-        );
-      });
-
-      it("can claim erc20 tokens", async () => {
-        const erc20Amount = toTokenUnit(5);
-        const erc20Proof = merkleTree.hexProofForPayee(
-          rewardProgramID,
-          payee,
-          erc20Token.address,
-          paymentCycle
-        );
-        await claimReward(
-          rewardManager,
-          rewardPool,
-          relayer,
-          rewardSafe,
-          payee,
-          rewardProgramID,
-          erc20Token,
-          erc20Amount,
-          erc20Proof
-        );
-        const proofBalance = await rewardPool.balanceForProofWithAddress(
-          rewardProgramID,
-          erc20Token.address,
-          payee,
-          erc20Proof
-        );
-        const rewardSafeBalance = await getBalance(
-          erc20Token,
-          rewardSafe.address
-        );
-        let rewardPoolBalance = await getBalance(
-          erc20Token,
-          rewardPool.address
-        );
-
-        assert(
-          rewardSafeBalance.eq(rewardSafePreviousBalanceErc20.add(erc20Amount)),
-          "the reward safe balance is correct"
-        );
-        assert(
-          rewardPoolBalance.eq(rewardPoolPreviousBalanceErc20.sub(erc20Amount)),
-          "the pool balance is correct"
-        );
-
-        assert(
-          proofBalance.eq(toTokenUnit(10).sub(erc20Amount)),
-          "the proof balance is correct"
         );
       });
 

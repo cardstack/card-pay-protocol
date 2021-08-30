@@ -77,6 +77,7 @@ async function main() {
   );
   const AddRewardRuleHandler = await makeFactory("AddRewardRuleHandler");
   const RemoveRewardRuleHandler = await makeFactory("RemoveRewardRuleHandler");
+  const PayRewardTokensHandler = await makeFactory("PayRewardTokensHandler");
 
   const {
     network: { name: network }
@@ -161,6 +162,10 @@ async function main() {
   );
   let removeRewardRuleHandlerAddress = getAddress(
     "RemoveRewardRuleHandler",
+    proxyAddresses
+  );
+  let payRewardTokensHandlerAddress = getAddress(
+    "PayRewardTokensHandler",
     proxyAddresses
   );
 
@@ -363,6 +368,16 @@ Configuring ActionDispatcher ${actionDispatcherAddress}
     )
   );
 
+  console.log(
+    `  adding action handler for "payRewardTokens": ${payRewardTokensHandlerAddress}`
+  );
+  await sendTx(async () =>
+    (await actionDispatcher()).addHandler(
+      payRewardTokensHandlerAddress,
+      "payRewardTokens"
+    )
+  );
+
   // PayMerchantHandler configuration
   let payMerchantHandler = await PayMerchantHandler.attach(
     payMerchantHandlerAddress
@@ -523,6 +538,12 @@ Configuring PrepaidCardManager ${prepaidCardManagerAddress}
   );
   await sendTx(async () =>
     (await prepaidCardManager()).addGasPolicy("removeRewardRule", true, true)
+  );
+  console.log(
+    `  setting gas policy for "payRewardTokens" to use issuing token for gas and to pay gas recipient`
+  );
+  await sendTx(async () =>
+    (await prepaidCardManager()).addGasPolicy("payRewardTokens", true, true)
   );
 
   // RewardPool configuration
@@ -706,6 +727,25 @@ Configuring RemoveRewardRule ${removeRewardRuleHandlerAddress}
       exchangeAddress,
       tokenManagerAddress,
       rewardManagerAddress
+    )
+  );
+
+
+  let payRewardTokensHandler = await PayRewardTokensHandler.attach(
+    payRewardTokensHandlerAddress
+  );
+  console.log(`
+==================================================
+Configuring PayRewardTokens ${payRewardTokensHandlerAddress}
+  ActionDispatcher address: ${actionDispatcherAddress}
+  TokenManager address: ${tokenManagerAddress}
+  RewardPool address: ${rewardPoolAddress}
+  `);
+  await sendTx(() =>
+    payRewardTokensHandler.setup(
+      actionDispatcherAddress,
+      tokenManagerAddress,
+      rewardPoolAddress
     )
   );
 }

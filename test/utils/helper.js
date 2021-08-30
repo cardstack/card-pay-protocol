@@ -23,6 +23,7 @@ const RemoveRewardRuleHandler = artifacts.require("RemoveRewardRuleHandler");
 const UpdateRewardProgramAdminHandler = artifacts.require(
   "UpdateRewardProgramAdminHandler"
 );
+const PayRewardTokensHandler = artifacts.require("PayRewardTokensHandler");
 
 const { toBN } = require("web3-utils");
 const { TOKEN_DETAIL_DATA } = require("../setup");
@@ -215,6 +216,7 @@ exports.addActionHandlers = async function ({
   owner,
   exchangeAddress,
   spendAddress,
+  rewardPool,
 }) {
   let payMerchantHandler,
     registerMerchantHandler,
@@ -225,7 +227,8 @@ exports.addActionHandlers = async function ({
     lockRewardProgramHandler,
     addRewardRuleHandler,
     removeRewardRuleHandler,
-    updateRewardProgramAdminHandler;
+    updateRewardProgramAdminHandler,
+    payRewardTokensHandler;
   if (
     owner &&
     actionDispatcher &&
@@ -400,6 +403,16 @@ exports.addActionHandlers = async function ({
     );
   }
 
+  if (owner && actionDispatcher && tokenManager && rewardPool) {
+    payRewardTokensHandler = await PayRewardTokensHandler.new();
+    await payRewardTokensHandler.initialize(owner);
+    await payRewardTokensHandler.setup(
+      actionDispatcher.address,
+      tokenManager.address,
+      rewardPool.address
+    );
+  }
+
   if (payMerchantHandler) {
     await actionDispatcher.addHandler(
       payMerchantHandler.address,
@@ -466,6 +479,13 @@ exports.addActionHandlers = async function ({
       "updateRewardProgramAdmin"
     );
   }
+
+  if (payRewardTokensHandler) {
+    await actionDispatcher.addHandler(
+      payRewardTokensHandler.address,
+      "payRewardTokens"
+    );
+  }
   return {
     payMerchantHandler,
     registerMerchantHandler,
@@ -477,6 +497,7 @@ exports.addActionHandlers = async function ({
     addRewardRuleHandler,
     removeRewardRuleHandler,
     updateRewardProgramAdminHandler,
+    payRewardTokensHandler,
   };
 };
 
@@ -1295,6 +1316,79 @@ exports.claimReward = async function (
     relayer
   );
   return safeTx;
+};
+
+exports.mintWalletAndRefillPool = async function (
+  rewardToken,
+  rewardPool,
+  rewardProgramAdmin,
+  amount,
+  rewardProgramID
+) {
+  await rewardToken.mint(rewardProgramAdmin, amount);
+  await rewardToken.transferAndCall(
+    rewardPool.address,
+    amount,
+    AbiCoder.encodeParameters(["address"], [rewardProgramID]),
+    { from: rewardProgramAdmin }
+  );
+};
+
+exports.payRewardTokens = async function (
+  prepaidCardManager,
+  prepaidCard,
+  issuingToken,
+  gasToken,
+  relayer,
+  prepaidCardOwner,
+  spendAmount,
+  usdRate,
+  rewardProgramID
+) {
+  if (usdRate == null) {
+    usdRate = 100000000;
+  }
+  const actionName = "payRewardTokens";
+  const actionData = AbiCoder.encodeParameters(["address"], [rewardProgramID]);
+  let data = await prepaidCardManager.getSendData(
+    prepaidCard.address,
+    spendAmount,
+    usdRate,
+    actionName,
+    actionData
+  );
+  let signature = await signSafeTransaction(
+    issuingToken.address,
+    0,
+    data,
+    0,
+    0,
+    0,
+    0,
+    gasToken.address,
+    ZERO_ADDRESS,
+    await prepaidCard.nonce(),
+    prepaidCardOwner,
+    prepaidCard
+  );
+
+  return await prepaidCardManager.send(
+    prepaidCard.address,
+    spendAmount,
+    usdRate,
+    actionName,
+    actionData,
+    signature,
+    { from: relayer }
+  );
+};
+
+exports.getPoolBalanceByRewardProgram = async function (
+  rewardProgramID,
+  rewardPool,
+  token
+) {
+  return rewardPool.rewardBalance(rewardProgramID, token.address);
 };
 
 exports.toTokenUnit = toTokenUnit;

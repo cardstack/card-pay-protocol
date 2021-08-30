@@ -29,16 +29,24 @@ contract RewardPool is Initializable, Versionable, Ownable {
     uint256 startBlock,
     uint256 endBlock
   );
+  event RewardTokensAdded(
+    address rewardProgramID,
+    address sender,
+    address tokenAddress,
+    uint256 amount
+  );
 
   address internal constant ZERO_ADDRESS = address(0);
   address public tally;
   uint256 public numPaymentCycles;
   uint256 public currentPaymentCycleStartBlock;
   address public rewardManager;
+  address public tokenManager;
 
   mapping(uint256 => mapping(address => mapping(address => mapping(address => uint256))))
     public claims; //payment cycle <> rewardProgramID <> token <> rewardee
   mapping(uint256 => bytes32) payeeRoots;
+  mapping(address => mapping(address => uint256)) public rewardBalance;
 
   modifier onlyTally() {
     require(tally == msg.sender, "Caller is not tally");
@@ -50,9 +58,14 @@ contract RewardPool is Initializable, Versionable, Ownable {
     Ownable.initialize(owner);
   }
 
-  function setup(address _tally, address _rewardManager) external onlyOwner {
+  function setup(
+    address _tally,
+    address _rewardManager,
+    address _tokenManager
+  ) external onlyOwner {
     tally = _tally;
     rewardManager = _rewardManager;
+    tokenManager = _tokenManager;
     require(tally != ZERO_ADDRESS, "Tally should not be zero address");
     require(
       rewardManager != ZERO_ADDRESS,
@@ -74,7 +87,6 @@ contract RewardPool is Initializable, Versionable, Ownable {
     return true;
   }
 
-  //msg.sender is safe
   function claim(
     address rewardProgramID,
     address payableToken,
@@ -94,7 +106,6 @@ contract RewardPool is Initializable, Versionable, Ownable {
     bytes32[] memory meta;
     bytes32[] memory _proof;
 
-    // only need payment cycle
     (meta, _proof) = splitIntoBytes32(proof, 2);
     uint256 paymentCycleNumber = uint256(meta[0]);
 
@@ -111,15 +122,48 @@ contract RewardPool is Initializable, Versionable, Ownable {
       IERC677(payableToken).balanceOf(address(this)) >= amount,
       "Reward pool has insufficient balance"
     );
+    require(
+      rewardBalance[rewardProgramID][payableToken] >= amount,
+      "Reward program has insufficient balance inside reward pool"
+    );
 
-    claims[paymentCycleNumber][rewardProgramID][payableToken][rewardSafeOwner] = claims[paymentCycleNumber][
-      rewardProgramID
-    ][payableToken][rewardSafeOwner]
+    claims[paymentCycleNumber][rewardProgramID][payableToken][
+      rewardSafeOwner
+    ] = claims[paymentCycleNumber][rewardProgramID][payableToken][
+      rewardSafeOwner
+    ]
       .add(amount);
+
+    rewardBalance[rewardProgramID][payableToken] = rewardBalance[
+      rewardProgramID
+    ][payableToken]
+      .sub(amount);
     IERC677(payableToken).transfer(msg.sender, amount);
 
     emit RewardeeClaim(rewardProgramID, rewardSafeOwner, msg.sender, amount);
     return true;
+  }
+
+  function onTokenTransfer(
+    address from,
+    uint256 amount,
+    bytes calldata data
+  ) external returns (bool) {
+    require(
+      TokenManager(tokenManager).isValidToken(msg.sender),
+      "calling token is unaccepted"
+    );
+    RewardManager rewardManager = RewardManager(rewardManager);
+    address rewardProgramID = abi.decode(data, (address));
+    require(
+      rewardManager.isRewardProgram(rewardProgramID),
+      "reward program is not found"
+    );
+    rewardBalance[rewardProgramID][msg.sender] = rewardBalance[rewardProgramID][
+      msg.sender
+    ]
+      .add(amount);
+    emit RewardTokensAdded(rewardProgramID, from, msg.sender, amount);
   }
 
   function balanceForProofWithAddress(
@@ -196,11 +240,14 @@ contract RewardPool is Initializable, Versionable, Ownable {
         )
       );
     if (
-      claims[paymentCycleNumber][rewardProgramID][payableToken][_address] < cumulativeAmount &&
+      claims[paymentCycleNumber][rewardProgramID][payableToken][_address] <
+      cumulativeAmount &&
       _proof.verify(payeeRoots[paymentCycleNumber], leaf)
     ) {
       return
-        cumulativeAmount.sub(claims[paymentCycleNumber][rewardProgramID][payableToken][_address]);
+        cumulativeAmount.sub(
+          claims[paymentCycleNumber][rewardProgramID][payableToken][_address]
+        );
     } else {
       return 0;
     }
