@@ -18,20 +18,17 @@ contract PayRewardTokensHandler is Ownable, Versionable {
   address public actionDispatcher;
   address public exchangeAddress;
   address public tokenManagerAddress;
-  address public rewardManagerAddress;
   address public rewardPoolAddress;
 
   function setup(
     address _actionDispatcher,
     address _exchangeAddress,
     address _tokenManagerAddress,
-    address _rewardManagerAddress,
     address _rewardPoolAddress
   ) external onlyOwner returns (bool) {
     actionDispatcher = _actionDispatcher;
     exchangeAddress = _exchangeAddress;
     tokenManagerAddress = _tokenManagerAddress;
-    rewardManagerAddress = _rewardManagerAddress;
     rewardPoolAddress = _rewardPoolAddress;
     emit Setup();
     return true;
@@ -50,8 +47,6 @@ contract PayRewardTokensHandler is Ownable, Versionable {
       from == actionDispatcher,
       "can only accept tokens from action dispatcher"
     );
-    RewardManager rewardManager = RewardManager(rewardManagerAddress);
-
     (address payable prepaidCard, , bytes memory actionData) =
       abi.decode(data, (address, uint256, bytes));
 

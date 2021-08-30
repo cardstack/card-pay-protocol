@@ -408,7 +408,6 @@ exports.addActionHandlers = async function ({
     actionDispatcher &&
     exchangeAddress &&
     tokenManager &&
-    rewardManager &&
     rewardPool
   ) {
     payRewardTokensHandler = await PayRewardTokensHandler.new();
@@ -417,7 +416,6 @@ exports.addActionHandlers = async function ({
       actionDispatcher.address,
       exchangeAddress,
       tokenManager.address,
-      rewardManager.address,
       rewardPool.address
     );
   }
