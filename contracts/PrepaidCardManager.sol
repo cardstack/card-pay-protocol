@@ -26,13 +26,26 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     bool reloadable;
     bool canPayNonMerchants;
   }
+  // this is deprecated remove this when it becomes possible
   struct GasPolicy {
     bool useIssuingTokenForGas;
     bool payGasRecipient;
   }
+  struct GasPolicyV2 {
+    bool useIssuingTokenForGas;
+    bool payGasRecipient;
+    bool useGasPrice;
+  }
   struct MaterializedGasPolicy {
     address gasToken;
     address gasReceiver;
+    uint256 gasPrice;
+  }
+  struct ExecTransactionData {
+    string action;
+    address payable prepaidCard;
+    address to;
+    bytes data;
   }
 
   event Setup();
@@ -54,7 +67,8 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
   event GasPolicyAdded(
     string action,
     bool useIssuingTokenForGas,
-    bool payGasRecipient
+    bool payGasRecipient,
+    bool useGasPrice
   );
   event ContractSignerRemoved(address signer);
 
@@ -72,10 +86,11 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
   address public exchangeAddress;
   address public tokenManager;
   address public supplierManager;
-  mapping(string => GasPolicy) public gasPolicies;
-  mapping(address => bool) public hasBeenSplit; // this is deprecated, remove it if possible
+  mapping(string => GasPolicy) public gasPolicies; // this is deprecated, remove it when possible
+  mapping(address => bool) public hasBeenSplit; // this is deprecated, remove it when possible
   mapping(address => bool) public hasBeenUsed;
   EnumerableSet.AddressSet internal contractSigners;
+  mapping(string => GasPolicyV2) public gasPoliciesV2;
 
   modifier onlyHandlers() {
     require(
@@ -147,15 +162,25 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
    * txn funder) to recieve the gas payment. If false, then the prepaid card will
    * pay itself for gas and we'll recoup the gas via some other means (e.g.
    * merchant fees)
+   * @param useGasPrice true if we want to use the gas price as provided from the
+   * relay server instead of relying on a fee to cover the gas cost
    */
   function addGasPolicy(
     string calldata action,
     bool useIssuingTokenForGas,
-    bool payGasRecipient
+    bool payGasRecipient,
+    bool useGasPrice
   ) external onlyOwner returns (bool) {
-    gasPolicies[action].useIssuingTokenForGas = useIssuingTokenForGas;
-    gasPolicies[action].payGasRecipient = payGasRecipient;
-    emit GasPolicyAdded(action, useIssuingTokenForGas, payGasRecipient);
+    gasPoliciesV2[action].useIssuingTokenForGas = useIssuingTokenForGas;
+    gasPoliciesV2[action].payGasRecipient = payGasRecipient;
+    gasPoliciesV2[action].useGasPrice = useGasPrice;
+
+    emit GasPolicyAdded(
+      action,
+      useIssuingTokenForGas,
+      payGasRecipient,
+      useGasPrice
+    );
     return true;
   }
 
@@ -274,6 +299,9 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
    * @param prepaidCard Prepaid Card's address
    * @param spendAmount The amount of SPEND to send
    * @param rateLock the price of the issuing token in USD
+   * @param gasPrice the price of the gas in terms of the gas token
+   * @param safeTxGas the gas to use for the safeTx, this comes from the relay server (when gasPrice is 0 this is assumed to use nearly all the available gas)
+   * @param baseGas this is the amount of gas that is independent of the specific Safe transactions, but used for general things such as signature checks and the base transaction fee. this comes from the relay server
    * @param action the name of the prepaid card action to perform, e.g. "payMerchant", "registerMerchant", "claimRevenue", etc.
    * @param data encoded data that is specific to the action being performed, e.g. the merchant safe address for the "payMerchant" action, the info DID for the "registerMerchant", etc.
    * @param ownerSignature Packed signature data ({bytes32 r}{bytes32 s}{uint8 v})
@@ -282,35 +310,17 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     address payable prepaidCard,
     uint256 spendAmount,
     uint256 rateLock,
+    uint256 gasPrice,
+    uint256 safeTxGas,
+    uint256 baseGas,
     string calldata action,
     bytes calldata data,
     bytes calldata ownerSignature
   ) external returns (bool) {
-    require(gasToken != address(0), "gasToken not configured");
-    require(
-      cardDetails[prepaidCard].blockNumber < block.number,
-      "prepaid card used too soon"
-    );
-    require(
-      Exchange(exchangeAddress).isAllowableRate(
-        cardDetails[prepaidCard].issueToken,
-        rateLock
-      ),
-      "requested rate is beyond the allowable bounds"
-    );
-    MaterializedGasPolicy memory gasPolicy =
-      getMaterializedGasPolicy(action, prepaidCard);
+    ExecTransactionData memory exTxData =
+      validatedSendFields(prepaidCard, spendAmount, action, rateLock, data);
     return
-      execTransaction(
-        prepaidCard,
-        cardDetails[prepaidCard].issueToken,
-        getSendData(prepaidCard, spendAmount, rateLock, action, data),
-        isEIP1271Signer(prepaidCard)
-          ? appendToEIP1271Signature(prepaidCard, ownerSignature)
-          : addOwnSignature(prepaidCard, ownerSignature),
-        gasPolicy.gasToken,
-        address(uint160(gasPolicy.gasReceiver))
-      );
+      execTransaction(exTxData, ownerSignature, gasPrice, safeTxGas, baseGas);
   }
 
   /**
@@ -364,17 +374,18 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
       !hasBeenUsed[prepaidCard],
       "Cannot transfer prepaid card that has already been used"
     );
-    MaterializedGasPolicy memory gasPolicy =
-      getMaterializedGasPolicy("transfer", prepaidCard);
     execTransaction(
-      prepaidCard,
-      prepaidCard,
-      getTransferCardData(prepaidCard, newOwner),
-      isEIP1271Signer(prepaidCard)
-        ? appendToEIP1271Signature(prepaidCard, previousOwnerSignature)
-        : addOwnSignature(prepaidCard, previousOwnerSignature),
-      gasPolicy.gasToken,
-      address(uint160(gasPolicy.gasReceiver))
+      ExecTransactionData(
+        "transfer",
+        prepaidCard,
+        prepaidCard,
+        getTransferCardData(prepaidCard, newOwner)
+      ),
+      previousOwnerSignature,
+      // use a 0 gas price because the outer safe tx will be paying for the gas
+      0,
+      0,
+      0
     );
     emit TransferredPrepaidCard(prepaidCard, previousOwner, newOwner);
 
@@ -436,6 +447,40 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     returns (address)
   {
     return cardDetails[prepaidCard].issuer;
+  }
+
+  function validatedSendFields(
+    address prepaidCard,
+    uint256 spendAmount,
+    string memory action,
+    uint256 rateLock,
+    bytes memory data
+  ) private view returns (ExecTransactionData memory) {
+    require(gasToken != address(0), "gasToken not configured");
+    require(
+      cardDetails[prepaidCard].blockNumber < block.number,
+      "prepaid card used too soon"
+    );
+    require(
+      Exchange(exchangeAddress).isAllowableRate(
+        cardDetails[prepaidCard].issueToken,
+        rateLock
+      ),
+      "requested rate is beyond the allowable bounds"
+    );
+    return
+      ExecTransactionData(
+        action,
+        address(uint160(prepaidCard)),
+        cardDetails[prepaidCard].issueToken,
+        getSendData(
+          address(uint160(prepaidCard)),
+          spendAmount,
+          rateLock,
+          action,
+          data
+        )
+      );
   }
 
   /**
@@ -563,33 +608,35 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
 
   /**
    * @dev adapter execTransaction for prepaid card(gnosis safe)
-   * @param prepaidCard Prepaid Card's address
-   * @param to Destination address of Safe transaction
-   * @param data Data payload of Safe transaction
-   * @param signatures Packed signature data ({bytes32 r}{bytes32 s}{uint8 v})
-   * @param _gasToken The token to use to pay for gas
-   * @param _gasRecipient the address that should receive the gas payment
-   * (address(0) is used to specify the relay txn funder)
+   * @param exData an ExecTransactionData struct populated with the data to be executed
+   * @param signature Packed signature data ({bytes32 r}{bytes32 s}{uint8 v})
+   * @param gasPrice the price for gas in terms of the gas token
+   * @param safeTxGas the estimated gas for the safe tx (when the gasPrice is 0, then this is not used)
    */
   function execTransaction(
-    address payable prepaidCard,
-    address to,
-    bytes memory data,
-    bytes memory signatures,
-    address _gasToken,
-    address payable _gasRecipient
+    ExecTransactionData memory exData,
+    bytes memory signature,
+    uint256 gasPrice,
+    uint256 safeTxGas,
+    uint256 baseGas
   ) private returns (bool) {
+    MaterializedGasPolicy memory gasPolicy =
+      getMaterializedGasPolicy(exData.action, exData.prepaidCard, gasPrice);
+    bytes memory signatures =
+      isEIP1271Signer(exData.prepaidCard)
+        ? appendToEIP1271Signature(exData.prepaidCard, signature)
+        : addOwnSignature(exData.prepaidCard, signature);
     require(
-      GnosisSafe(prepaidCard).execTransaction(
-        to,
+      GnosisSafe(exData.prepaidCard).execTransaction(
+        exData.to,
         0,
-        data,
+        exData.data,
         Enum.Operation.Call,
-        0,
-        0,
-        0, //If there is no gas price, there will be no transfer to _gasRecipient
-        _gasToken,
-        _gasRecipient,
+        safeTxGas,
+        baseGas,
+        gasPolicy.gasPrice,
+        gasPolicy.gasToken,
+        address(uint160(gasPolicy.gasReceiver)),
         signatures
       ),
       "safe transaction was reverted"
@@ -598,17 +645,18 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     return true;
   }
 
-  function getMaterializedGasPolicy(string memory action, address prepaidCard)
-    internal
-    view
-    returns (MaterializedGasPolicy memory)
-  {
+  function getMaterializedGasPolicy(
+    string memory action,
+    address prepaidCard,
+    uint256 gasPrice
+  ) internal view returns (MaterializedGasPolicy memory) {
     return
       MaterializedGasPolicy(
-        gasPolicies[action].useIssuingTokenForGas
+        gasPoliciesV2[action].useIssuingTokenForGas
           ? cardDetails[prepaidCard].issueToken
           : gasToken,
-        gasPolicies[action].payGasRecipient ? address(0) : prepaidCard
+        gasPoliciesV2[action].payGasRecipient ? address(0) : prepaidCard,
+        gasPoliciesV2[action].useGasPrice ? gasPrice : 0
       );
   }
 

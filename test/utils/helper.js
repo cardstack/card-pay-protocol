@@ -43,6 +43,11 @@ const {
   getGnosisSafeFromEventLog,
 } = require("./general");
 
+// we'll just use the block gas limit as a safe tx gas estimate because its
+// easy and the relay server is really responsible for this (and not part of
+// these tests)
+const BLOCK_GAS_LIMIT = 6000000;
+
 function toTokenUnit(_numberToken, _decimals = 18) {
   let dec = toBN("10").pow(toBN(_decimals));
   let number = toBN(_numberToken);
@@ -775,6 +780,9 @@ const transferOwner = async function (
     prepaidCard.address,
     0,
     usdRate,
+    0,
+    0,
+    0,
     "transfer",
     AbiCoder.encodeParameters(
       ["address", "bytes"],
@@ -826,6 +834,9 @@ exports.registerMerchant = async function (
     prepaidCard.address,
     spendAmount,
     usdRate,
+    0,
+    0,
+    0,
     "registerMerchant",
     AbiCoder.encodeParameters(["string"], [infoDID]),
     signature,
@@ -842,10 +853,14 @@ exports.setPrepaidCardInventory = async function (
   gasToken,
   issuer,
   relayer,
+  gasPrice,
   usdRate
 ) {
   if (usdRate == null) {
     usdRate = 100000000;
+  }
+  if (gasPrice == null) {
+    gasPrice = "1000000000"; // 1 gwei
   }
   let marketAddress =
     typeof prepaidCardMarket === "string"
@@ -875,9 +890,9 @@ exports.setPrepaidCardInventory = async function (
     0,
     data,
     0,
+    BLOCK_GAS_LIMIT,
     0,
-    0,
-    0,
+    gasPrice,
     issuingToken.address,
     ZERO_ADDRESS,
     await fundingPrepaidCard.nonce(),
@@ -889,6 +904,9 @@ exports.setPrepaidCardInventory = async function (
     fundingPrepaidCard.address,
     0,
     usdRate,
+    gasPrice,
+    BLOCK_GAS_LIMIT,
+    0,
     "setPrepaidCardInventory",
     payload,
     signature,
@@ -904,10 +922,14 @@ exports.removePrepaidCardInventory = async function (
   issuingToken,
   issuer,
   relayer,
+  gasPrice,
   usdRate
 ) {
   if (usdRate == null) {
     usdRate = 100000000;
+  }
+  if (gasPrice == null) {
+    gasPrice = 1000000000; // 1 gwei
   }
   let marketAddress =
     typeof prepaidCardMarket === "string"
@@ -929,9 +951,9 @@ exports.removePrepaidCardInventory = async function (
     0,
     data,
     0,
+    BLOCK_GAS_LIMIT,
     0,
-    0,
-    0,
+    gasPrice,
     issuingToken.address,
     ZERO_ADDRESS,
     await fundingPrepaidCard.nonce(),
@@ -943,6 +965,9 @@ exports.removePrepaidCardInventory = async function (
     fundingPrepaidCard.address,
     0,
     usdRate,
+    gasPrice,
+    BLOCK_GAS_LIMIT,
+    0,
     "removePrepaidCardInventory",
     payload,
     signature,
@@ -958,10 +983,14 @@ exports.setPrepaidCardAsk = async function (
   issuingToken,
   issuer,
   relayer,
+  gasPrice,
   usdRate
 ) {
   if (usdRate == null) {
     usdRate = 100000000;
+  }
+  if (gasPrice == null) {
+    gasPrice = 1000000000; // 1 gwei
   }
   let marketAddress =
     typeof prepaidCardMarket === "string"
@@ -983,9 +1012,9 @@ exports.setPrepaidCardAsk = async function (
     0,
     data,
     0,
+    BLOCK_GAS_LIMIT,
     0,
-    0,
-    0,
+    gasPrice,
     issuingToken.address,
     ZERO_ADDRESS,
     await fundingPrepaidCard.nonce(),
@@ -997,6 +1026,9 @@ exports.setPrepaidCardAsk = async function (
     fundingPrepaidCard.address,
     0,
     usdRate,
+    gasPrice,
+    BLOCK_GAS_LIMIT,
+    0,
     "setPrepaidCardAsk",
     payload,
     signature,
@@ -1014,6 +1046,7 @@ exports.splitPrepaidCard = async function (
   issuingTokenAmounts,
   customizationDID,
   marketAddress,
+  gasPrice,
   usdRate
 ) {
   if (marketAddress == null) {
@@ -1021,6 +1054,9 @@ exports.splitPrepaidCard = async function (
   }
   if (usdRate == null) {
     usdRate = 100000000;
+  }
+  if (gasPrice == null) {
+    gasPrice = 1000000000; // 1 gwei
   }
   let payload = AbiCoder.encodeParameters(
     ["uint256[]", "uint256[]", "string", "address"],
@@ -1039,9 +1075,9 @@ exports.splitPrepaidCard = async function (
     0,
     data,
     0,
+    BLOCK_GAS_LIMIT,
     0,
-    0,
-    0,
+    gasPrice,
     issuingToken.address,
     ZERO_ADDRESS,
     await prepaidCard.nonce(),
@@ -1053,6 +1089,9 @@ exports.splitPrepaidCard = async function (
     prepaidCard.address,
     spendAmount,
     usdRate,
+    gasPrice,
+    BLOCK_GAS_LIMIT,
+    0,
     "split",
     payload,
     signature,
@@ -1101,6 +1140,9 @@ exports.payMerchant = async function (
     prepaidCard.address,
     spendAmount,
     usdRate,
+    0,
+    0,
+    0,
     "payMerchant",
     AbiCoder.encodeParameters(["address"], [merchantSafe]),
     signature,
@@ -1170,6 +1212,9 @@ exports.registerRewardee = async function (
     prepaidCard.address,
     spendAmount,
     usdRate,
+    0, // justin: consider using a mock gas price here
+    0,
+    0,
     actionName,
     actionData,
     signature,
@@ -1279,6 +1324,9 @@ exports.registerRewardProgram = async function (
     prepaidCard.address,
     spendAmount,
     usdRate,
+    0, // justin: consider using a mock gas price here
+    0,
+    0,
     actionName,
     actionData,
     signature,
@@ -1328,6 +1376,9 @@ exports.lockRewardProgram = async function (
     prepaidCard.address,
     spendAmount,
     usdRate,
+    0, // justin: consider using a mock gas price here
+    0,
+    0,
     actionName,
     actionData,
     signature,
@@ -1383,6 +1434,9 @@ exports.addRewardRule = async function (
     prepaidCard.address,
     spendAmount,
     usdRate,
+    0, // justin: consider using a mock gas price here
+    0,
+    0,
     actionName,
     actionData,
     signature,
@@ -1436,6 +1490,9 @@ exports.removeRewardRule = async function (
     prepaidCard.address,
     spendAmount,
     usdRate,
+    0, // justin: consider using a mock gas price here
+    0,
+    0,
     actionName,
     actionData,
     signature,
@@ -1488,6 +1545,9 @@ exports.updateRewardProgramAdmin = async function (
     prepaidCard.address,
     spendAmount,
     usdRate,
+    0, // justin: consider using a mock gas price here
+    0,
+    0,
     actionName,
     actionData,
     signature,
@@ -1640,6 +1700,9 @@ exports.payRewardTokens = async function (
     prepaidCard.address,
     spendAmount,
     usdRate,
+    0, // justin: consider using a mock gas price here
+    0,
+    0,
     actionName,
     actionData,
     signature,

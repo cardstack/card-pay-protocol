@@ -115,21 +115,26 @@ contract("PrepaidCardMarket", (accounts) => {
       500000,
       [prepaidCardMarket.address]
     );
-    await prepaidCardManager.addGasPolicy("transfer", false, true);
-    await prepaidCardManager.addGasPolicy("split", true, true);
-
-    // TODO this is a temporary gas policy until CS-1472 is done
+    await prepaidCardManager.addGasPolicy("transfer", false, true, false);
+    await prepaidCardManager.addGasPolicy("split", true, true, true);
     await prepaidCardManager.addGasPolicy(
       "setPrepaidCardInventory",
+      true,
       true,
       true
     );
     await prepaidCardManager.addGasPolicy(
       "removePrepaidCardInventory",
       true,
+      true,
       true
     );
-    await prepaidCardManager.addGasPolicy("setPrepaidCardAsk", true, true);
+    await prepaidCardManager.addGasPolicy(
+      "setPrepaidCardAsk",
+      true,
+      true,
+      true
+    );
 
     await prepaidCardMarket.setup(
       prepaidCardManager.address,
@@ -168,6 +173,9 @@ contract("PrepaidCardMarket", (accounts) => {
         let [testCard] = await makePrepaidCards([toTokenUnit(10)]);
         let sku = await prepaidCardMarket.skuForPrepaidCard(testCard.address)
           .should.be.fulfilled;
+        let startingFundingCardBalance = await daicpxdToken.balanceOf(
+          fundingCard.address
+        );
         expect(await prepaidCardMarket.getInventory(sku)).to.deep.equal([]);
 
         let safeTx = await setPrepaidCardInventory(
@@ -181,6 +189,11 @@ contract("PrepaidCardMarket", (accounts) => {
           relayer
         );
 
+        let [safeEvent] = getParamsFromEvent(
+          safeTx,
+          eventABIs.EXECUTION_SUCCESS,
+          fundingCard.address
+        );
         let [event] = getParamsFromEvent(
           safeTx,
           eventABIs.SET_PREPAID_CARD_INVENTORY,
@@ -206,7 +219,13 @@ contract("PrepaidCardMarket", (accounts) => {
         expect(skuInfo.faceValue.toString()).to.equal("1000");
         expect(skuInfo.customizationDID).to.equal("did:cardstack:test");
 
-        // TODO assert gas policy once CS-1472 is done
+        let endingFundingCardBalance = await daicpxdToken.balanceOf(
+          fundingCard.address
+        );
+        expect(parseInt(safeEvent.payment)).to.be.greaterThan(0);
+        expect(
+          startingFundingCardBalance.sub(endingFundingCardBalance).toString()
+        ).to.equal(safeEvent.payment, "prepaid card paid actual cost of gas");
       });
 
       it(`can set an item in inventory via splitting a prepaid card`, async function () {
@@ -421,6 +440,9 @@ contract("PrepaidCardMarket", (accounts) => {
 
       it(`can remove items from the inventory`, async function () {
         let inventory = await prepaidCardMarket.getInventory(sku);
+        let startingFundingCardBalance = await daicpxdToken.balanceOf(
+          fundingCard.address
+        );
         expect(inventory.length).to.be.greaterThanOrEqual(2);
         let testCards = await Promise.all(
           inventory.slice(0, 2).map((a) => GnosisSafe.at(a))
@@ -449,6 +471,11 @@ contract("PrepaidCardMarket", (accounts) => {
           eventABIs.REMOVE_PREPAID_CARD_INVENTORY,
           prepaidCardMarket.address
         );
+        let [safeEvent] = getParamsFromEvent(
+          safeTx,
+          eventABIs.EXECUTION_SUCCESS,
+          fundingCard.address
+        );
         expect(events.length).to.equal(2);
         for (let event of events) {
           expect(
@@ -470,6 +497,14 @@ contract("PrepaidCardMarket", (accounts) => {
             await prepaidCardManager.getPrepaidCardOwner(testCard.address)
           ).to.equal(issuer);
         }
+
+        let endingFundingCardBalance = await daicpxdToken.balanceOf(
+          fundingCard.address
+        );
+        expect(parseInt(safeEvent.payment)).to.be.greaterThan(0);
+        expect(
+          startingFundingCardBalance.sub(endingFundingCardBalance).toString()
+        ).to.equal(safeEvent.payment, "prepaid card paid actual cost of gas");
       });
 
       it(`rejects when there are no prepaid cards specified`, async function () {
@@ -595,6 +630,9 @@ contract("PrepaidCardMarket", (accounts) => {
       });
 
       it(`can set the asking price for a sku`, async function () {
+        let startingFundingCardBalance = await daicpxdToken.balanceOf(
+          fundingCard.address
+        );
         let safeTx = await setPrepaidCardAsk(
           prepaidCardManager,
           fundingCard,
@@ -610,6 +648,11 @@ contract("PrepaidCardMarket", (accounts) => {
           eventABIs.SET_PREPAID_CARD_ASK,
           prepaidCardMarket.address
         );
+        let [safeEvent] = getParamsFromEvent(
+          safeTx,
+          eventABIs.EXECUTION_SUCCESS,
+          fundingCard.address
+        );
         expect(event.issuer).to.equal(issuer);
         expect(event.issuingToken).to.equal(daicpxdToken.address);
         expect(event.sku).to.equal(sku);
@@ -618,6 +661,14 @@ contract("PrepaidCardMarket", (accounts) => {
         expect((await prepaidCardMarket.asks(sku)).toString()).to.equal(
           askPrice.toString()
         );
+
+        let endingFundingCardBalance = await daicpxdToken.balanceOf(
+          fundingCard.address
+        );
+        expect(parseInt(safeEvent.payment)).to.be.greaterThan(0);
+        expect(
+          startingFundingCardBalance.sub(endingFundingCardBalance).toString()
+        ).to.equal(safeEvent.payment, "prepaid card paid actual cost of gas");
       });
 
       it(`rejects when the sku does not exist`, async function () {
@@ -723,6 +774,7 @@ contract("PrepaidCardMarket", (accounts) => {
     it(`can allow the provisioner to provision a prepaid card from the inventory`, async function () {
       let startingInventory = await prepaidCardMarket.getInventory(sku);
       expect(startingInventory.length).to.be.greaterThanOrEqual(1);
+      let startingBalance = await daicpxdToken.balanceOf(startingInventory[0]);
       let tx = await prepaidCardMarket.provisionPrepaidCard(customer, sku, {
         from: provisioner,
       });
@@ -752,6 +804,9 @@ contract("PrepaidCardMarket", (accounts) => {
       expect(
         await prepaidCardMarket.provisionedCards(event.prepaidCard)
       ).to.equal(customer);
+      expect(
+        (await daicpxdToken.balanceOf(event.prepaidCard)).toString()
+      ).to.equal(startingBalance.toString());
     });
 
     it(`can allow the owner to provision a prepaid card from the inventory`, async function () {

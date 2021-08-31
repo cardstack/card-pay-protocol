@@ -124,8 +124,8 @@ contract("RevenuePool", (accounts) => {
       500000,
       []
     );
-    await prepaidCardManager.addGasPolicy("transfer", false, true);
-    await prepaidCardManager.addGasPolicy("split", true, true);
+    await prepaidCardManager.addGasPolicy("transfer", false, true, false);
+    await prepaidCardManager.addGasPolicy("split", true, true, false);
 
     await actionDispatcher.setup(
       tokenManager.address,
@@ -1120,6 +1120,9 @@ contract("RevenuePool", (accounts) => {
           prepaidCard.address,
           spendAmount,
           requestedRate,
+          0,
+          0,
+          0,
           "payMerchant",
           data,
           signature,
@@ -1184,6 +1187,9 @@ contract("RevenuePool", (accounts) => {
           prepaidCard.address,
           100,
           100000000, // 1 DAI = 1 USD
+          0,
+          0,
+          0,
           "unknown action",
           AbiCoder.encodeParameters(["string"], ["do things"]),
           signature,
