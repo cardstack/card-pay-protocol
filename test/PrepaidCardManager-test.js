@@ -183,8 +183,8 @@ contract("PrepaidCardManager", (accounts) => {
         MAXIMUM_AMOUNT,
         [contractSigner]
       );
-      await prepaidCardManager.addGasPolicy("transfer", false, true);
-      await prepaidCardManager.addGasPolicy("split", true, true);
+      await prepaidCardManager.addGasPolicy("transfer", false, true, false);
+      await prepaidCardManager.addGasPolicy("split", true, true, false);
     });
 
     it("should initialize parameters", async () => {
@@ -913,7 +913,9 @@ contract("PrepaidCardManager", (accounts) => {
         issuer,
         200,
         amounts,
-        "did:cardstack:56d6fc54-d399-443b-8778-d7e4512d3a49"
+        "did:cardstack:56d6fc54-d399-443b-8778-d7e4512d3a49",
+        null,
+        0
       );
 
       let cards = await getGnosisSafeFromEventLog(
@@ -974,7 +976,9 @@ contract("PrepaidCardManager", (accounts) => {
         customer,
         200,
         amounts,
-        ""
+        "",
+        null,
+        0
       ).should.be.rejectedWith(
         Error,
         // the real revert reason is behind the gnosis safe execTransaction
@@ -1005,7 +1009,9 @@ contract("PrepaidCardManager", (accounts) => {
         issuer,
         200,
         amounts,
-        ""
+        "",
+        null,
+        0
       );
       await transferOwner(
         prepaidCardManager,

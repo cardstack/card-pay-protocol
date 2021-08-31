@@ -124,8 +124,8 @@ contract(
         500000,
         []
       );
-      await prepaidCardManager.addGasPolicy("transfer", false, true);
-      await prepaidCardManager.addGasPolicy("split", true, true);
+      await prepaidCardManager.addGasPolicy("transfer", false, true, false);
+      await prepaidCardManager.addGasPolicy("split", true, true, true);
 
       await actionDispatcher.setup(
         tokenManager.address,
