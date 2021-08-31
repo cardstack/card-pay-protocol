@@ -63,6 +63,7 @@ contract("PrepaidCardManager", (accounts) => {
     gasFeeReceiver,
     merchantFeeReceiver,
     merchantSafe,
+    contractSigner,
     relayer,
     depot,
     prepaidCards = [];
@@ -75,6 +76,7 @@ contract("PrepaidCardManager", (accounts) => {
     relayer = accounts[4];
     gasFeeReceiver = accounts[5];
     merchantFeeReceiver = accounts[6];
+    contractSigner = accounts[7];
 
     proxyFactory = await ProxyFactory.new();
     gnosisSafeMasterCopy = await GnosisSafe.new();
@@ -133,6 +135,7 @@ contract("PrepaidCardManager", (accounts) => {
       merchantManager,
       tokenManager,
       owner,
+      prepaidCardMarket: ZERO_ADDRESS,
       exchangeAddress: exchange.address,
       spendAddress: spendToken.address,
     }));
@@ -177,7 +180,8 @@ contract("PrepaidCardManager", (accounts) => {
         0,
         cardcpxdToken.address,
         MINIMUM_AMOUNT,
-        MAXIMUM_AMOUNT
+        MAXIMUM_AMOUNT,
+        [contractSigner]
       );
       await prepaidCardManager.addGasPolicy("transfer", false, true);
       await prepaidCardManager.addGasPolicy("split", true, true);
@@ -196,7 +200,7 @@ contract("PrepaidCardManager", (accounts) => {
       expect(await prepaidCardManager.gnosisProxyFactory()).to.equal(
         proxyFactory.address
       );
-      expect(await prepaidCardManager.actionDispatcher()).to.deep.equal(
+      expect(await prepaidCardManager.actionDispatcher()).to.equal(
         actionDispatcher.address
       );
       expect(await prepaidCardManager.minimumFaceValue()).to.a.bignumber.equal(
@@ -208,6 +212,20 @@ contract("PrepaidCardManager", (accounts) => {
       expect(await prepaidCardManager.gasToken()).to.equal(
         cardcpxdToken.address
       );
+      expect(await prepaidCardManager.getContractSigners()).to.deep.equal([
+        contractSigner,
+      ]);
+    });
+
+    it("rejects when non-owner removes a contract signer", async () => {
+      await prepaidCardManager
+        .removeContractSigner(contractSigner, { from: customer })
+        .should.be.rejectedWith(Error, "Ownable: caller is not the owner");
+    });
+
+    it("can remove a contract signer", async () => {
+      await prepaidCardManager.removeContractSigner(contractSigner);
+      expect(await prepaidCardManager.getContractSigners()).to.deep.equal([]);
     });
   });
 
@@ -397,8 +415,8 @@ contract("PrepaidCardManager", (accounts) => {
       });
     });
 
-    it("should create a large number of cards without exceeding the block gas limit (truffle limits tests to 6.7M block gas limit--the true block gas limit is closer to 12.5M)", async function() {
-      this.timeout(40000);
+    it("should create a large number of cards without exceeding the block gas limit (truffle limits tests to 6.7M block gas limit--the true block gas limit is closer to 12.5M)", async function () {
+      this.timeout(60000);
       let numCards = 12;
       let amounts = [];
       for (let i = 0; i < numCards; i++) {
@@ -537,7 +555,8 @@ contract("PrepaidCardManager", (accounts) => {
         toTokenUnit(100),
         cardcpxdToken.address,
         MINIMUM_AMOUNT,
-        MAXIMUM_AMOUNT
+        MAXIMUM_AMOUNT,
+        []
       );
     });
 
@@ -559,7 +578,8 @@ contract("PrepaidCardManager", (accounts) => {
         0, // We are setting this value specifically
         cardcpxdToken.address,
         MINIMUM_AMOUNT,
-        MAXIMUM_AMOUNT
+        MAXIMUM_AMOUNT,
+        []
       );
     });
 
@@ -738,7 +758,8 @@ contract("PrepaidCardManager", (accounts) => {
         toTokenUnit(100),
         cardcpxdToken.address,
         MINIMUM_AMOUNT,
-        MAXIMUM_AMOUNT
+        MAXIMUM_AMOUNT,
+        []
       );
 
       let amount = toTokenUnit(5);
@@ -819,7 +840,8 @@ contract("PrepaidCardManager", (accounts) => {
         toTokenUnit(100),
         cardcpxdToken.address,
         MINIMUM_AMOUNT,
-        MAXIMUM_AMOUNT
+        MAXIMUM_AMOUNT,
+        []
       );
     });
 
@@ -1358,14 +1380,9 @@ contract("PrepaidCardManager", (accounts) => {
         startingRevenuePoolCardcpxdBalance
       );
 
-      // The face value reflects the most conservative rate allowable for the
-      // prepaid card after it has been used based on the configured rate drift.
-      // this means that the face value is always slightly less than the face
-      // value calculated using the current USD rate from the oracle
-      let result = await prepaidCardManager.faceValue(prepaidCard.address);
-      // the rate drift is 1%, and for a 400 SPEND prepaid card that is 4 SPEND
-      // difference from the optimal rate
-      expect(result.toString()).to.equal("396");
+      expect(
+        (await prepaidCardManager.faceValue(prepaidCard.address)).toString()
+      ).to.equal("400");
     });
 
     it("can sign with address lexigraphically before prepaid card manager contract address", async () => {

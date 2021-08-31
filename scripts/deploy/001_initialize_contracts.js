@@ -10,7 +10,7 @@ const {
   getDeployAddress,
   makeFactory,
   patchNetworks,
-  asyncMain
+  asyncMain,
 } = require("./util");
 
 patchNetworks();
@@ -18,7 +18,7 @@ patchNetworks();
 async function main() {
   const {
     upgrades: { deployProxy, upgradeProxy },
-    network: { name: network }
+    network: { name: network },
   } = hre;
 
   console.log(`Deploying to ${network}`);
@@ -35,40 +35,52 @@ async function main() {
   let contracts = {
     PrepaidCardManager: {
       contractName: "PrepaidCardManager",
-      init: [owner]
+      init: [owner],
     },
     RevenuePool: { contractName: "RevenuePool", init: [owner] },
     RewardPool: { contractName: "RewardPool", init: [owner] },
     Exchange: { contractName: "Exchange", init: [owner] },
     ActionDispatcher: {
       contractName: "ActionDispatcher",
-      init: [owner]
+      init: [owner],
     },
     PayMerchantHandler: {
       contractName: "PayMerchantHandler",
-      init: [owner]
+      init: [owner],
     },
     RegisterMerchantHandler: {
       contractName: "RegisterMerchantHandler",
-      init: [owner]
+      init: [owner],
     },
     SplitPrepaidCardHandler: {
       contractName: "SplitPrepaidCardHandler",
-      init: [owner]
+      init: [owner],
     },
     TransferPrepaidCardHandler: {
       contractName: "TransferPrepaidCardHandler",
-      init: [owner]
+      init: [owner],
+    },
+    SetPrepaidCardInventoryHandler: {
+      contractName: "SetPrepaidCardInventoryHandler",
+      init: [owner],
+    },
+    RemovePrepaidCardInventoryHandler: {
+      contractName: "RemovePrepaidCardInventoryHandler",
+      init: [owner],
+    },
+    SetPrepaidCardAskHandler: {
+      contractName: "SetPrepaidCardAskHandler",
+      init: [owner],
     },
     BridgeUtils: { contractName: "BridgeUtils", init: [owner] },
     TokenManager: { contractName: "TokenManager", init: [owner] },
     MerchantManager: {
       contractName: "MerchantManager",
-      init: [owner]
+      init: [owner],
     },
     SupplierManager: {
       contractName: "SupplierManager",
-      init: [owner]
+      init: [owner],
     },
     SPEND: { contractName: "SPEND", init: [owner] },
     DAIOracle: { contractName: "ChainlinkFeedAdapter", init: [owner] },
@@ -77,43 +89,43 @@ async function main() {
     RewardManager: { contractName: "RewardManager", init: [owner] },
     AddRewardRuleHandler: {
       contractName: "AddRewardRuleHandler",
-      init: [owner]
+      init: [owner],
     },
     LockRewardProgramHandler: {
       contractName: "LockRewardProgramHandler",
-      init: [owner]
+      init: [owner],
     },
     RegisterRewardProgramHandler: {
       contractName: "RegisterRewardProgramHandler",
-      init: [owner]
+      init: [owner],
     },
     RegisterRewardeeHandler: {
       contractName: "RegisterRewardeeHandler",
-      init: [owner]
+      init: [owner],
     },
     RemoveRewardRuleHandler: {
       contractName: "RemoveRewardRuleHandler",
-      init: [owner]
+      init: [owner],
     },
     UpdateRewardProgramAdminHandler: {
       contractName: "UpdateRewardProgramAdminHandler",
-      init: [owner]
+      init: [owner],
     },
     PayRewardTokensHandler: {
       contractName: "PayRewardTokensHandler",
-      init: [owner]
-    }
+      init: [owner],
+    },
   };
 
   // Use manual feeds in sokol
   if (network === "sokol" || network == "hardhat") {
     contracts["DAIUSDFeed"] = {
       contractName: "ManualFeed",
-      init: [owner]
+      init: [owner],
     };
     contracts["ETHUSDFeed"] = {
       contractName: "ManualFeed",
-      init: [owner]
+      init: [owner],
     };
   }
 
@@ -139,7 +151,7 @@ async function main() {
       });
     } else {
       console.log(`Deploying new contract ${contractId}...`);
-      init = init.map(i => {
+      init = init.map((i) => {
         if (typeof i !== "string") {
           return i;
         }
@@ -183,12 +195,12 @@ async function main() {
       ({ address: proxyAddress } = instance);
       proxyAddresses[contractId] = {
         proxy: proxyAddress,
-        contractName
+        contractName,
       };
     }
     let unverifiedImpls = difference(implAddresses(network), [
       ...previousImpls,
-      ...newImpls
+      ...newImpls,
     ]);
     for (let impl of unverifiedImpls) {
       if (!skipVerify) {
@@ -236,7 +248,7 @@ function implAddresses(network) {
     return [];
   }
   let json = readJSONSync(file);
-  return Object.values(json.impls).map(i => i.address);
+  return Object.values(json.impls).map((i) => i.address);
 }
 
 asyncMain(main);

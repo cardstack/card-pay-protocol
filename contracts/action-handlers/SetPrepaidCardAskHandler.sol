@@ -5,48 +5,38 @@ import "../core/Versionable.sol";
 import "../token/IERC677.sol";
 import "../PrepaidCardManager.sol";
 import "../TokenManager.sol";
+import "../IPrepaidCardMarket.sol";
 
-contract SplitPrepaidCardHandler is Ownable, Versionable {
+contract SetPrepaidCardAskHandler is Ownable, Versionable {
   address public actionDispatcher;
   address public prepaidCardManagerAddress;
   address public tokenManagerAddress;
-  address public defaultMarketAddress;
 
   event Setup();
-  event SplitPrepaidCard(
-    address prepaidCard,
-    uint256[] issuingTokenAmounts,
-    uint256[] spendAmounts,
-    address issuingToken,
-    address issuer,
-    string customizationDID
-  );
 
   function setup(
     address _actionDispatcher,
     address _prepaidCardManager,
-    address _tokenManagerAddress,
-    address _defaultMarketAddress
+    address _tokenManagerAddress
   ) external onlyOwner returns (bool) {
     actionDispatcher = _actionDispatcher;
     prepaidCardManagerAddress = _prepaidCardManager;
     tokenManagerAddress = _tokenManagerAddress;
-    defaultMarketAddress = _defaultMarketAddress;
     emit Setup();
     return true;
   }
 
   /**
    * @dev onTokenTransfer(ERC677) - this is the ERC677 token transfer callback.
-   * handle using a prepaid card to create more prepaid cards
+   * handle setting prepaid cards in market inventory
    * @param from the token sender (should be the revenue pool)
    * @param amount the amount of tokens being transferred
    * @param data the data encoded as (address prepaidCard, uint256 spendAmount, bytes actionData)
-   * where actionData is encoded as (uint256[] issuingTokenAmounts, uint256[] spendAmounts, string customizatoinDID)
+   * where actionData is encoded as (bytes32 sku, uint256 askPrice, address marketAddress)
    */
   function onTokenTransfer(
     address payable from,
-    uint256 amount,
+    uint256 amount, // solhint-disable-line no-unused-vars
     bytes calldata data
   ) external returns (bool) {
     require(
@@ -57,44 +47,21 @@ contract SplitPrepaidCardHandler is Ownable, Versionable {
       from == actionDispatcher,
       "can only accept tokens from action dispatcher"
     );
+
     (address payable prepaidCard, , bytes memory actionData) =
       abi.decode(data, (address, uint256, bytes));
-    (
-      uint256[] memory issuingTokenAmounts,
-      uint256[] memory spendAmounts,
-      string memory customizationDID,
-      address marketAddress
-    ) = abi.decode(actionData, (uint256[], uint256[], string, address));
+    (bytes32 sku, uint256 askPrice, address marketAddress) =
+      abi.decode(actionData, (bytes32, uint256, address));
+    require(marketAddress != address(0), "market address is required");
+
     PrepaidCardManager prepaidCardMgr =
       PrepaidCardManager(prepaidCardManagerAddress);
+    IPrepaidCardMarket prepaidCardMarket = IPrepaidCardMarket(marketAddress);
     address owner = prepaidCardMgr.getPrepaidCardOwner(prepaidCard);
-    address issuer = prepaidCardMgr.getPrepaidCardIssuer(prepaidCard);
-    require(issuer == owner, "only issuer can split card");
-    require(
-      issuingTokenAmounts.length == spendAmounts.length,
-      "the amount arrays have differing lengths"
-    );
+    (address issuer, , , ) = prepaidCardMarket.getSkuInfo(sku);
+    require(issuer == owner, "only issuer can set market inventory");
+
     prepaidCardMgr.setPrepaidCardUsed(prepaidCard);
-
-    emit SplitPrepaidCard(
-      prepaidCard,
-      issuingTokenAmounts,
-      spendAmounts,
-      msg.sender,
-      issuer,
-      customizationDID
-    );
-
-    IERC677(msg.sender).transferAndCall(
-      prepaidCardManagerAddress,
-      amount,
-      abi.encode(
-        owner,
-        issuingTokenAmounts,
-        spendAmounts,
-        customizationDID,
-        marketAddress == address(0) ? defaultMarketAddress : marketAddress
-      )
-    );
+    prepaidCardMarket.setAsk(issuer, sku, askPrice);
   }
 }

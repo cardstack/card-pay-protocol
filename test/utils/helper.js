@@ -10,6 +10,13 @@ const Exchange = artifacts.require("Exchange");
 const PayMerchantHandler = artifacts.require("PayMerchantHandler");
 const RegisterMerchantHandler = artifacts.require("RegisterMerchantHandler");
 const SplitPrepaidCardHandler = artifacts.require("SplitPrepaidCardHandler");
+const SetPrepaidCardInventoryHandler = artifacts.require(
+  "SetPrepaidCardInventoryHandler"
+);
+const RemovePrepaidCardInventoryHandler = artifacts.require(
+  "RemovePrepaidCardInventoryHandler"
+);
+const SetPrepaidCardAskHandler = artifacts.require("SetPrepaidCardAskHandler");
 const TransferPrepaidCardHandler = artifacts.require(
   "TransferPrepaidCardHandler"
 );
@@ -46,11 +53,18 @@ function encodeCreateCardsData(
   account,
   issuingTokenAmounts = [],
   spendAmounts = [],
-  customizationDID = ""
+  customizationDID = "",
+  marketAddress = ZERO_ADDRESS
 ) {
   return AbiCoder.encodeParameters(
-    ["address", "uint256[]", "uint256[]", "string"],
-    [account, issuingTokenAmounts, spendAmounts, customizationDID]
+    ["address", "uint256[]", "uint256[]", "string", "address"],
+    [
+      account,
+      issuingTokenAmounts,
+      spendAmounts,
+      customizationDID,
+      marketAddress,
+    ]
   );
 }
 
@@ -76,6 +90,35 @@ function packExecutionData({
     txGasToken,
     refundReceive,
   };
+}
+
+async function getTransferPrepaidCardOwnerSignature(
+  prepaidCardManager,
+  prepaidCard,
+  oldOwner,
+  newOwner,
+  gasToken,
+  advanceNonce = true
+) {
+  let packData = packExecutionData({
+    to: prepaidCard.address,
+    txGasToken: gasToken.address,
+    data: await prepaidCardManager.getTransferCardData(
+      prepaidCard.address,
+      newOwner
+    ),
+  });
+  let safeTxArr = Object.keys(packData).map((key) => packData[key]);
+  let nonce = await prepaidCard.nonce();
+  return await signSafeTransaction(
+    ...safeTxArr,
+    // the quirk here is that we are signing this txn in advance so we need to
+    // optimistically advance the nonce by 1 to account for the fact that we are
+    // executing the "send" action before this one.
+    advanceNonce ? nonce.add(toBN("1")) : nonce,
+    oldOwner,
+    prepaidCard
+  );
 }
 
 async function signAndSendSafeTransaction(
@@ -217,10 +260,14 @@ exports.addActionHandlers = async function ({
   exchangeAddress,
   spendAddress,
   rewardPool,
+  prepaidCardMarket,
 }) {
   let payMerchantHandler,
     registerMerchantHandler,
     splitPrepaidCardHandler,
+    setPrepaidCardInventoryHandler,
+    removePrepaidCardInventoryHandler,
+    setPrepaidCardAskHandler,
     transferPrepaidCardHandler,
     registerRewardeeHandler,
     registerRewardProgramHandler,
@@ -275,6 +322,31 @@ exports.addActionHandlers = async function ({
     splitPrepaidCardHandler = await SplitPrepaidCardHandler.new();
     await splitPrepaidCardHandler.initialize(owner);
     await splitPrepaidCardHandler.setup(
+      actionDispatcher.address,
+      prepaidCardManager.address,
+      tokenManager.address,
+      prepaidCardMarket?.address ?? ZERO_ADDRESS
+    );
+  }
+
+  if (owner && actionDispatcher && prepaidCardManager && tokenManager) {
+    setPrepaidCardInventoryHandler = await SetPrepaidCardInventoryHandler.new();
+    await setPrepaidCardInventoryHandler.initialize(owner);
+    await setPrepaidCardInventoryHandler.setup(
+      actionDispatcher.address,
+      prepaidCardManager.address,
+      tokenManager.address
+    );
+    removePrepaidCardInventoryHandler = await RemovePrepaidCardInventoryHandler.new();
+    await removePrepaidCardInventoryHandler.initialize(owner);
+    await removePrepaidCardInventoryHandler.setup(
+      actionDispatcher.address,
+      prepaidCardManager.address,
+      tokenManager.address
+    );
+    setPrepaidCardAskHandler = await SetPrepaidCardAskHandler.new();
+    await setPrepaidCardAskHandler.initialize(owner);
+    await setPrepaidCardAskHandler.setup(
       actionDispatcher.address,
       prepaidCardManager.address,
       tokenManager.address
@@ -424,6 +496,27 @@ exports.addActionHandlers = async function ({
     await actionDispatcher.addHandler(splitPrepaidCardHandler.address, "split");
   }
 
+  if (setPrepaidCardInventoryHandler) {
+    await actionDispatcher.addHandler(
+      setPrepaidCardInventoryHandler.address,
+      "setPrepaidCardInventory"
+    );
+  }
+
+  if (removePrepaidCardInventoryHandler) {
+    await actionDispatcher.addHandler(
+      removePrepaidCardInventoryHandler.address,
+      "removePrepaidCardInventory"
+    );
+  }
+
+  if (setPrepaidCardAskHandler) {
+    await actionDispatcher.addHandler(
+      setPrepaidCardAskHandler.address,
+      "setPrepaidCardAsk"
+    );
+  }
+
   if (transferPrepaidCardHandler) {
     await actionDispatcher.addHandler(
       transferPrepaidCardHandler.address,
@@ -490,6 +583,9 @@ exports.addActionHandlers = async function ({
     payMerchantHandler,
     registerMerchantHandler,
     splitPrepaidCardHandler,
+    setPrepaidCardInventoryHandler,
+    removePrepaidCardInventoryHandler,
+    setPrepaidCardAskHandler,
     transferPrepaidCardHandler,
     registerRewardeeHandler,
     registerRewardProgramHandler,
@@ -551,7 +647,8 @@ const createPrepaidCards = async function (
   relayer,
   issuingTokenAmounts,
   amountToSend,
-  customizationDID
+  customizationDID,
+  marketAddress
 ) {
   let createCardData = encodeCreateCardsData(
     issuer,
@@ -561,7 +658,8 @@ const createPrepaidCards = async function (
     issuingTokenAmounts.map((amount) =>
       typeof amount === "string" ? amount : amount.toString()
     ),
-    customizationDID
+    customizationDID,
+    marketAddress
   );
 
   if (amountToSend == null) {
@@ -632,28 +730,19 @@ const transferOwner = async function (
   newOwner,
   gasToken,
   relayer,
-  issuingToken
+  issuingToken,
+  eip1271Signature
 ) {
   let usdRate = 100000000; // 1 DAI = 1 USD
-  let packData = packExecutionData({
-    to: prepaidCard.address,
-    txGasToken: gasToken.address,
-    data: await prepaidCardManager.getTransferCardData(
-      prepaidCard.address,
-      newOwner
-    ),
-  });
-  let safeTxArr = Object.keys(packData).map((key) => packData[key]);
-  let nonce = await prepaidCard.nonce();
-  let previousOwnerSignature = await signSafeTransaction(
-    ...safeTxArr,
-    // the quirk here is that we are signing this txn in advance so we need to
-    // optimistically advance the nonce by 1 to account for the fact that we are
-    // executing the "send" action before this one.
-    nonce.add(toBN("1")),
-    oldOwner,
-    prepaidCard
-  );
+  let previousOwnerSignature =
+    eip1271Signature ??
+    (await getTransferPrepaidCardOwnerSignature(
+      prepaidCardManager,
+      prepaidCard,
+      oldOwner,
+      newOwner,
+      gasToken
+    ));
   let data = await prepaidCardManager.getSendData(
     prepaidCard.address,
     0,
@@ -665,20 +754,22 @@ const transferOwner = async function (
     )
   );
 
-  let signature = await signSafeTransaction(
-    issuingToken.address,
-    0,
-    data,
-    0,
-    0,
-    0,
-    0,
-    gasToken.address,
-    ZERO_ADDRESS,
-    nonce,
-    oldOwner,
-    prepaidCard
-  );
+  let signature =
+    eip1271Signature ??
+    (await signSafeTransaction(
+      issuingToken.address,
+      0,
+      data,
+      0,
+      0,
+      0,
+      0,
+      gasToken.address,
+      ZERO_ADDRESS,
+      await prepaidCard.nonce(),
+      oldOwner,
+      prepaidCard
+    ));
 
   return await prepaidCardManager.send(
     prepaidCard.address,
@@ -742,6 +833,177 @@ exports.registerMerchant = async function (
   );
 };
 
+exports.setPrepaidCardInventory = async function (
+  prepaidCardManager,
+  fundingPrepaidCard,
+  prepaidCardForInventory,
+  prepaidCardMarket,
+  issuingToken,
+  gasToken,
+  issuer,
+  relayer,
+  usdRate
+) {
+  if (usdRate == null) {
+    usdRate = 100000000;
+  }
+  let marketAddress =
+    typeof prepaidCardMarket === "string"
+      ? prepaidCardMarket
+      : prepaidCardMarket.address;
+  let previousOwnerSignature = await getTransferPrepaidCardOwnerSignature(
+    prepaidCardManager,
+    prepaidCardForInventory,
+    issuer,
+    marketAddress,
+    gasToken,
+    false
+  );
+  let payload = AbiCoder.encodeParameters(
+    ["address", "address", "bytes"],
+    [prepaidCardForInventory.address, marketAddress, previousOwnerSignature]
+  );
+  let data = await prepaidCardManager.getSendData(
+    fundingPrepaidCard.address,
+    0,
+    usdRate,
+    "setPrepaidCardInventory",
+    payload
+  );
+  let signature = await signSafeTransaction(
+    issuingToken.address,
+    0,
+    data,
+    0,
+    0,
+    0,
+    0,
+    issuingToken.address,
+    ZERO_ADDRESS,
+    await fundingPrepaidCard.nonce(),
+    issuer,
+    fundingPrepaidCard
+  );
+
+  return await prepaidCardManager.send(
+    fundingPrepaidCard.address,
+    0,
+    usdRate,
+    "setPrepaidCardInventory",
+    payload,
+    signature,
+    { from: relayer }
+  );
+};
+
+exports.removePrepaidCardInventory = async function (
+  prepaidCardManager,
+  fundingPrepaidCard,
+  prepaidCardsToRemove,
+  prepaidCardMarket,
+  issuingToken,
+  issuer,
+  relayer,
+  usdRate
+) {
+  if (usdRate == null) {
+    usdRate = 100000000;
+  }
+  let marketAddress =
+    typeof prepaidCardMarket === "string"
+      ? prepaidCardMarket
+      : prepaidCardMarket.address;
+  let payload = AbiCoder.encodeParameters(
+    ["address[]", "address"],
+    [prepaidCardsToRemove.map((p) => p.address), marketAddress]
+  );
+  let data = await prepaidCardManager.getSendData(
+    fundingPrepaidCard.address,
+    0,
+    usdRate,
+    "removePrepaidCardInventory",
+    payload
+  );
+  let signature = await signSafeTransaction(
+    issuingToken.address,
+    0,
+    data,
+    0,
+    0,
+    0,
+    0,
+    issuingToken.address,
+    ZERO_ADDRESS,
+    await fundingPrepaidCard.nonce(),
+    issuer,
+    fundingPrepaidCard
+  );
+
+  return await prepaidCardManager.send(
+    fundingPrepaidCard.address,
+    0,
+    usdRate,
+    "removePrepaidCardInventory",
+    payload,
+    signature,
+    { from: relayer }
+  );
+};
+exports.setPrepaidCardAsk = async function (
+  prepaidCardManager,
+  fundingPrepaidCard,
+  askPrice,
+  sku,
+  prepaidCardMarket,
+  issuingToken,
+  issuer,
+  relayer,
+  usdRate
+) {
+  if (usdRate == null) {
+    usdRate = 100000000;
+  }
+  let marketAddress =
+    typeof prepaidCardMarket === "string"
+      ? prepaidCardMarket
+      : prepaidCardMarket.address;
+  let payload = AbiCoder.encodeParameters(
+    ["bytes32", "uint256", "address"],
+    [sku, askPrice, marketAddress]
+  );
+  let data = await prepaidCardManager.getSendData(
+    fundingPrepaidCard.address,
+    0,
+    usdRate,
+    "setPrepaidCardAsk",
+    payload
+  );
+  let signature = await signSafeTransaction(
+    issuingToken.address,
+    0,
+    data,
+    0,
+    0,
+    0,
+    0,
+    issuingToken.address,
+    ZERO_ADDRESS,
+    await fundingPrepaidCard.nonce(),
+    issuer,
+    fundingPrepaidCard
+  );
+
+  return await prepaidCardManager.send(
+    fundingPrepaidCard.address,
+    0,
+    usdRate,
+    "setPrepaidCardAsk",
+    payload,
+    signature,
+    { from: relayer }
+  );
+};
+
 exports.splitPrepaidCard = async function (
   prepaidCardManager,
   prepaidCard,
@@ -751,20 +1013,25 @@ exports.splitPrepaidCard = async function (
   spendAmount,
   issuingTokenAmounts,
   customizationDID,
+  marketAddress,
   usdRate
 ) {
+  if (marketAddress == null) {
+    marketAddress = ZERO_ADDRESS;
+  }
   if (usdRate == null) {
     usdRate = 100000000;
   }
+  let payload = AbiCoder.encodeParameters(
+    ["uint256[]", "uint256[]", "string", "address"],
+    [issuingTokenAmounts, issuingTokenAmounts, customizationDID, marketAddress]
+  );
   let data = await prepaidCardManager.getSendData(
     prepaidCard.address,
     spendAmount,
     usdRate,
     "split",
-    AbiCoder.encodeParameters(
-      ["uint256[]", "uint256[]", "string"],
-      [issuingTokenAmounts, issuingTokenAmounts, customizationDID]
-    )
+    payload
   );
 
   let signature = await signSafeTransaction(
@@ -787,10 +1054,7 @@ exports.splitPrepaidCard = async function (
     spendAmount,
     usdRate,
     "split",
-    AbiCoder.encodeParameters(
-      ["uint256[]", "uint256[]", "string"],
-      [issuingTokenAmounts, issuingTokenAmounts, customizationDID]
-    ),
+    payload,
     signature,
     { from: relayer }
   );

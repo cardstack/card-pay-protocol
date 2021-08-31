@@ -100,6 +100,102 @@ const eventABIs = {
       },
     ],
   },
+  SET_PREPAID_CARD_INVENTORY: {
+    topic: web3EthAbi.encodeEventSignature(
+      "ItemSet(address,address,address,uint256,string,bytes32)"
+    ),
+    abis: [
+      {
+        type: "address",
+        name: "prepaidCard",
+      },
+      {
+        type: "address",
+        name: "issuer",
+      },
+      {
+        type: "address",
+        name: "issuingToken",
+      },
+      {
+        type: "uint256",
+        name: "faceValue",
+      },
+      {
+        type: "string",
+        name: "customizationDID",
+      },
+      {
+        type: "bytes32",
+        name: "sku",
+      },
+    ],
+  },
+  REMOVE_PREPAID_CARD_INVENTORY: {
+    topic: web3EthAbi.encodeEventSignature(
+      "ItemRemoved(address,address,bytes32)"
+    ),
+    abis: [
+      {
+        type: "address",
+        name: "prepaidCard",
+      },
+      {
+        type: "address",
+        name: "issuer",
+      },
+      {
+        type: "bytes32",
+        name: "sku",
+      },
+    ],
+  },
+  SET_PREPAID_CARD_ASK: {
+    topic: web3EthAbi.encodeEventSignature(
+      "AskSet(address,address,bytes32,uint256)"
+    ),
+    abis: [
+      {
+        type: "address",
+        name: "issuer",
+      },
+      {
+        type: "address",
+        name: "issuingToken",
+      },
+      {
+        type: "bytes32",
+        name: "sku",
+      },
+      {
+        type: "uint256",
+        name: "askPrice",
+      },
+    ],
+  },
+  PROVISION_PREPAID_CARD: {
+    topic: web3EthAbi.encodeEventSignature(
+      "ProvisionedPrepaidCard(address,address,bytes32,uint256)"
+    ),
+    abis: [
+      {
+        type: "address",
+        name: "prepaidCard",
+      },
+      {
+        type: "address",
+        name: "customer",
+      },
+      {
+        type: "bytes32",
+        name: "sku",
+      },
+      {
+        type: "uint256",
+        name: "askPrice",
+      },
+    ],
+  },
   REWARDEE_REGISTERED: {
     topic: web3EthAbi.encodeEventSignature(
       "RewardeeRegistered(address,address,address)"

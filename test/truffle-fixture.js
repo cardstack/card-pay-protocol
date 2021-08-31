@@ -1,4 +1,5 @@
 const PrepaidCardManager = artifacts.require("PrepaidCardManager");
+const PrepaidCardMarket = artifacts.require("PrepaidCardMarket");
 const RevenuePool = artifacts.require("RevenuePool");
 const BridgeUtils = artifacts.require("BridgeUtils");
 const SPEND = artifacts.require("SPEND");
@@ -17,6 +18,13 @@ const SplitPrepaidCardHandler = artifacts.require("SplitPrepaidCardHandler");
 const TransferPrepaidCardHandler = artifacts.require(
   "TransferPrepaidCardHandler"
 );
+const SetPrepaidCardInventoryHandler = artifacts.require(
+  "SetPrepaidCardInventoryHandler"
+);
+const RemovePrepaidCardInventoryHandler = artifacts.require(
+  "RemovePrepaidCardInventoryHandler"
+);
+const SetPrepaidCardAskHandler = artifacts.require("SetPrepaidCardAskHandler");
 const RewardManager = artifacts.require("RewardManager");
 const RegisterRewardProgramHandler = artifacts.require(
   "RegisterRewardProgramHandler"
@@ -34,6 +42,7 @@ module.exports = async () => {
     // We use this to measure gas for all our contract creation. Please add
     // any new contracts here:
     await PrepaidCardManager.new(),
+    await PrepaidCardMarket.new(),
     await RevenuePool.new(),
     await BridgeUtils.new(),
     await SPEND.new(),
@@ -50,12 +59,15 @@ module.exports = async () => {
     await MerchantManager.new(),
     await SplitPrepaidCardHandler.new(),
     await TransferPrepaidCardHandler.new(),
+    await SetPrepaidCardInventoryHandler.new(),
+    await RemovePrepaidCardInventoryHandler.new(),
+    await SetPrepaidCardAskHandler.new(),
     await RewardManager.new(),
     await RegisterRewardProgramHandler.new(),
     await RegisterRewardeeHandler.new(),
     await LockRewardProgramHandler.new(),
     await UpdateRewardProgramAdminHandler.new(),
     await AddRewardRuleHandler.new(),
-    await RemoveRewardRuleHandler.new()
+    await RemoveRewardRuleHandler.new(),
   ]);
 };

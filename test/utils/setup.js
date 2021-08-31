@@ -104,7 +104,8 @@ const setupProtocol = async (accounts) => {
     0,
     cardcpxdToken.address,
     100,
-    500000
+    500000,
+    []
   );
   await revenuePool.setup(
     exchange.address,
