@@ -119,13 +119,12 @@ contract(
         actionDispatcher.address,
         ZERO_ADDRESS,
         0,
-        cardcpxdToken.address,
         100,
         500000,
         []
       );
-      await prepaidCardManager.addGasPolicy("transfer", false, true, false);
-      await prepaidCardManager.addGasPolicy("split", true, true, true);
+      await prepaidCardManager.addGasPolicy("transfer", false);
+      await prepaidCardManager.addGasPolicy("split", true);
 
       await actionDispatcher.setup(
         tokenManager.address,
@@ -169,7 +168,6 @@ contract(
           depot,
           prepaidCardManager,
           daicpxdToken,
-          daicpxdToken,
           issuer,
           relayer,
           [toTokenUnit(10)]
@@ -180,15 +178,11 @@ contract(
           merchantPrepaidCard,
           issuer,
           merchant,
-          cardcpxdToken,
-          relayer,
-          daicpxdToken
+          relayer
         );
         let merchantTx = await registerMerchant(
           prepaidCardManager,
           merchantPrepaidCard,
-          daicpxdToken,
-          cardcpxdToken,
           relayer,
           merchant,
           1000,

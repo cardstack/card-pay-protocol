@@ -40,7 +40,6 @@ const BRIDGE_MEDIATOR = process.env.BRIDGE_MEDIATOR ?? ZERO_ADDRESS;
 const PAYABLE_TOKENS = process.env.PAYABLE_TOKENS
   ? process.env.PAYABLE_TOKENS.split(",").map((t) => t.trim())
   : [];
-const GAS_TOKEN = process.env.GAS_TOKEN ?? ZERO_ADDRESS;
 const GNOSIS_SAFE_MASTER_COPY =
   process.env.GNOSIS_SAFE_MASTER_COPY ??
   "0x6851D6fDFAfD08c0295C392436245E5bc78B0185";
@@ -610,7 +609,6 @@ Configuring PrepaidCardManager ${prepaidCardManagerAddress}
   Exchange address: ${exchangeAddress}
   gas fee receiver: ${GAS_FEE_RECEIVER}
   gas fee: ${fromWei(GAS_FEE_CARD_WEI)} CARD
-  gas token: ${GAS_TOKEN}
   minimum face value: ${MINIMUM_AMOUNT}
   maximum face value: ${MAXIMUM_AMOUNT}
   contract signers: [${prepaidCardMarketAddress}]`);
@@ -624,128 +622,85 @@ Configuring PrepaidCardManager ${prepaidCardManagerAddress}
       actionDispatcherAddress,
       GAS_FEE_RECEIVER,
       GAS_FEE_CARD_WEI,
-      GAS_TOKEN,
       MINIMUM_AMOUNT,
       MAXIMUM_AMOUNT,
       [prepaidCardMarketAddress]
     )
   );
   console.log(
-    `  setting gas policy for "transfer" to *not* use issuing token for gas and to charge a fee in lieu of paying gas recipient (fee is collected in advance when prepaid card is created)`
+    `  setting gas policy for "transfer" to charge a fee in lieu of paying gas recipient`
   );
   await sendTx(async () =>
-    (await prepaidCardManager()).addGasPolicy("transfer", false, true, false)
+    (await prepaidCardManager()).addGasPolicy("transfer", false)
   );
   console.log(
-    `  setting gas policy for "split" to use issuing token for gas and to pay gas recipient the actual cost of gas`
+    `  setting gas policy for "split" to pay gas recipient the actual cost of gas`
   );
   await sendTx(async () =>
-    (await prepaidCardManager()).addGasPolicy("split", true, true, true)
+    (await prepaidCardManager()).addGasPolicy("split", true)
   );
   console.log(
-    `  setting gas policy for "setPrepaidCardInventory" to use issuing token for gas and to pay gas recipient the actual cost of gas`
+    `  setting gas policy for "setPrepaidCardInventory" to pay gas recipient the actual cost of gas`
   );
   await sendTx(async () =>
-    (await prepaidCardManager()).addGasPolicy(
-      "setPrepaidCardInventory",
-      true,
-      true,
-      true
-    )
+    (await prepaidCardManager()).addGasPolicy("setPrepaidCardInventory", true)
   );
   console.log(
-    `  setting gas policy for "removePrepaidCardInventory" to use issuing token for gas and to pay gas recipient the actual cost of gas`
+    `  setting gas policy for "removePrepaidCardInventory" to pay gas recipient the actual cost of gas`
   );
   await sendTx(async () =>
     (await prepaidCardManager()).addGasPolicy(
       "removePrepaidCardInventory",
-      true,
-      true,
       true
     )
   );
   console.log(
-    `  setting gas policy for "setPrepaidCardAsk" to use issuing token for gas and to pay gas recipient the actual cost of gas`
+    `  setting gas policy for "setPrepaidCardAsk" to pay gas recipient the actual cost of gas`
   );
   await sendTx(async () =>
-    (await prepaidCardManager()).addGasPolicy(
-      "setPrepaidCardAsk",
-      true,
-      true,
-      true
-    )
+    (await prepaidCardManager()).addGasPolicy("setPrepaidCardAsk", true)
   );
   console.log(
-    `  setting gas policy for "registerRewardProgram" to use issuing token for gas and to pay gas recipient a fee in lieu of gas`
+    `  setting gas policy for "registerRewardProgram" to charge a fee in lieu of paying gas recipient`
   );
   await sendTx(async () =>
-    (await prepaidCardManager()).addGasPolicy(
-      "registerRewardProgram",
-      true,
-      true,
-      false
-    )
+    (await prepaidCardManager()).addGasPolicy("registerRewardProgram", false)
   );
   console.log(
-    `  setting gas policy for "registerRewardee" to use issuing token for gas and to pay gas recipient a fee in lieu of gas`
+    `  setting gas policy for "registerRewardee" to use charge a fee in lieu of paying gas recipient`
   );
   await sendTx(async () =>
-    (await prepaidCardManager()).addGasPolicy(
-      "registerRewardee",
-      true,
-      true,
-      false
-    )
+    (await prepaidCardManager()).addGasPolicy("registerRewardee", false)
   );
   console.log(
-    `  setting gas policy for "lockRewardProgram" to use issuing token for gas and to pay gas recipient the actual cost of gas`
+    `  setting gas policy for "lockRewardProgram" to pay gas recipient the actual cost of gas`
   );
   await sendTx(async () =>
-    (await prepaidCardManager()).addGasPolicy(
-      "lockRewardProgram",
-      true,
-      true,
-      true
-    )
+    (await prepaidCardManager()).addGasPolicy("lockRewardProgram", true)
   );
   console.log(
-    `  setting gas policy for "updateRewardProgramAdmin" to use issuing token for gas and to pay gas recipient the actual cost of gas`
+    `  setting gas policy for "updateRewardProgramAdmin" to pay gas recipient the actual cost of gas`
   );
   await sendTx(async () =>
-    (await prepaidCardManager()).addGasPolicy(
-      "updateRewardProgramAdmin",
-      true,
-      true,
-      true
-    )
+    (await prepaidCardManager()).addGasPolicy("updateRewardProgramAdmin", true)
   );
   console.log(
-    `  setting gas policy for "addRewardRule" to use issuing token for gas and to pay gas recipient the actual cost of gas`
+    `  setting gas policy for "addRewardRule" to pay gas recipient the actual cost of gas`
   );
   await sendTx(async () =>
-    (await prepaidCardManager()).addGasPolicy("addRewardRule", true, true, true)
+    (await prepaidCardManager()).addGasPolicy("addRewardRule", true)
   );
   console.log(
-    `  setting gas policy for "removeRewardRule" to use issuing token for gas and to pay gas recipient the actual cost of gas`
+    `  setting gas policy for "removeRewardRule" to pay gas recipient the actual cost of gas`
   );
   await sendTx(async () =>
-    (await prepaidCardManager()).addGasPolicy(
-      "removeRewardRule",
-      true,
-      true,
-      true
-    )
+    (await prepaidCardManager()).addGasPolicy("removeRewardRule", true)
   );
   console.log(
-    `  setting gas policy for "payRewardTokens" to use issuing token for gas and to pay gas recipient the actual cost of gas`
+    `  setting gas policy for "payRewardTokens" to pay gas recipient the actual cost of gas`
   );
   await sendTx(async () =>
-    (await prepaidCardManager()).addGasPolicy(
-      "payRewardTokens",
-      true,
-      true,
-      true
-    )
+    (await prepaidCardManager()).addGasPolicy("payRewardTokens", true)
   );
 
   // RewardPool configuration

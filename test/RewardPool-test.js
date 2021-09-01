@@ -74,16 +74,12 @@ contract("RewardPool", function (accounts) {
         issuer,
         daicpxdToken,
         toTokenUnit(10 + 1),
-        daicpxdToken,
-        prepaidCardOwner,
-        cardcpxdToken
+        prepaidCardOwner
       );
 
       await registerRewardProgram(
         prepaidCardManager,
         prepaidCard,
-        daicpxdToken,
-        daicpxdToken,
         relayer,
         prepaidCardOwner,
         REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
@@ -579,15 +575,11 @@ contract("RewardPool", function (accounts) {
           issuer,
           daicpxdToken,
           toTokenUnit(10 + 1),
-          daicpxdToken,
-          payee,
-          cardcpxdToken
+          payee
         );
         const tx = await registerRewardee(
           prepaidCardManager,
           rewardeePrepaidCard,
-          daicpxdToken,
-          daicpxdToken,
           relayer,
           payee,
           REWARDEE_REGISTRATION_FEE_IN_SPEND,
@@ -608,7 +600,6 @@ contract("RewardPool", function (accounts) {
 
       it("payee can claim up to their allotted amount from pool", async function () {
         await claimReward(
-          rewardManager,
           rewardPool,
           relayer,
           rewardSafe,
@@ -667,8 +658,6 @@ contract("RewardPool", function (accounts) {
         await registerRewardProgram(
           prepaidCardManager,
           prepaidCard,
-          daicpxdToken,
-          daicpxdToken,
           relayer,
           prepaidCardOwner,
           REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
@@ -684,15 +673,11 @@ contract("RewardPool", function (accounts) {
           issuer,
           daicpxdToken,
           toTokenUnit(10 + 1),
-          daicpxdToken,
-          aPayee,
-          cardcpxdToken
+          aPayee
         );
         const tx = await registerRewardee(
           prepaidCardManager,
           rewardeePrepaidCard,
-          daicpxdToken,
-          daicpxdToken,
           relayer,
           aPayee,
           REWARDEE_REGISTRATION_FEE_IN_SPEND,
@@ -704,7 +689,6 @@ contract("RewardPool", function (accounts) {
           rewardManager.address
         );
         await claimReward(
-          rewardManager,
           rewardPool,
           relayer,
           otherRewardSafe,
@@ -725,7 +709,6 @@ contract("RewardPool", function (accounts) {
           "claim amoount is less than payment"
         );
         await claimReward(
-          rewardManager,
           rewardPool,
           relayer,
           rewardSafe,
@@ -776,7 +759,6 @@ contract("RewardPool", function (accounts) {
         let claimAmount = toTokenUnit(4).add(toTokenUnit(6));
 
         await claimReward(
-          rewardManager,
           rewardPool,
           relayer,
           rewardSafe,
@@ -788,7 +770,6 @@ contract("RewardPool", function (accounts) {
         );
 
         await claimReward(
-          rewardManager,
           rewardPool,
           relayer,
           rewardSafe,
@@ -839,7 +820,6 @@ contract("RewardPool", function (accounts) {
       it("payee cannot claim more than their allotted amount from the pool", async function () {
         let claimAmount = toTokenUnit(11);
         await claimReward(
-          rewardManager,
           rewardPool,
           relayer,
           rewardSafe,
@@ -858,7 +838,6 @@ contract("RewardPool", function (accounts) {
           "0x0000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000c2e46ed0464b1e11097030a04086c9f068606b4c9808ccdac0343863c5e4f8244749e106fa8d91408f2578e5d93447f727f59279be85ce491faf212a7201d3b836b94214bff74426647e9cf0b5c5c3cbc9cef25b7e08759ca2b85357ec22c9b40";
 
         await claimReward(
-          rewardManager,
           rewardPool,
           relayer,
           rewardSafe,
@@ -890,7 +869,6 @@ contract("RewardPool", function (accounts) {
           "total claim amoount exceeds paymentAmount"
         );
         await claimReward(
-          rewardManager,
           rewardPool,
           relayer,
           rewardSafe,
@@ -902,7 +880,6 @@ contract("RewardPool", function (accounts) {
         );
 
         await claimReward(
-          rewardManager,
           rewardPool,
           relayer,
           rewardSafe,
@@ -917,7 +894,6 @@ contract("RewardPool", function (accounts) {
       it("payee cannot claim 0 tokens from payment pool", async function () {
         let claimAmount = toTokenUnit(0);
         await claimReward(
-          rewardManager,
           rewardPool,
           relayer,
           rewardSafe,
@@ -939,15 +915,11 @@ contract("RewardPool", function (accounts) {
           issuer,
           daicpxdToken,
           toTokenUnit(10 + 1),
-          daicpxdToken,
-          aPayee,
-          cardcpxdToken
+          aPayee
         );
         const tx = await registerRewardee(
           prepaidCardManager,
           somePrepaidCard,
-          daicpxdToken,
-          daicpxdToken,
           relayer,
           aPayee,
           REWARDEE_REGISTRATION_FEE_IN_SPEND,
@@ -960,7 +932,6 @@ contract("RewardPool", function (accounts) {
           rewardManager.address
         );
         await claimReward(
-          rewardManager,
           rewardPool,
           relayer,
           someRewardSafe,
@@ -994,15 +965,11 @@ contract("RewardPool", function (accounts) {
           issuer,
           daicpxdToken,
           toTokenUnit(10 + 1),
-          daicpxdToken,
-          rewardee,
-          cardcpxdToken
+          rewardee
         );
         const tx = await registerRewardee(
           prepaidCardManager,
           somePrepaidCard,
-          daicpxdToken,
-          daicpxdToken,
           relayer,
           rewardee,
           REWARDEE_REGISTRATION_FEE_IN_SPEND,
@@ -1014,7 +981,6 @@ contract("RewardPool", function (accounts) {
           rewardManager.address
         );
         await claimReward(
-          rewardManager,
           rewardPool,
           relayer,
           someRewardSafe,
@@ -1030,8 +996,6 @@ contract("RewardPool", function (accounts) {
         await registerRewardProgram(
           prepaidCardManager,
           prepaidCard,
-          daicpxdToken,
-          daicpxdToken,
           relayer,
           prepaidCardOwner,
           REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
@@ -1056,9 +1020,7 @@ contract("RewardPool", function (accounts) {
           issuer,
           daicpxdToken,
           toTokenUnit(10 + 1),
-          daicpxdToken,
-          rewardee,
-          cardcpxdToken
+          rewardee
         );
         await mintWalletAndRefillPool(
           cardcpxdToken,
@@ -1070,8 +1032,6 @@ contract("RewardPool", function (accounts) {
         const tx = await registerRewardee(
           prepaidCardManager,
           somePrepaidCard,
-          daicpxdToken,
-          daicpxdToken,
           relayer,
           rewardee,
           REWARDEE_REGISTRATION_FEE_IN_SPEND,
@@ -1083,7 +1043,6 @@ contract("RewardPool", function (accounts) {
           rewardManager.address
         );
         await claimReward(
-          rewardManager,
           rewardPool,
           relayer,
           someRewardSafe,
@@ -1118,7 +1077,6 @@ contract("RewardPool", function (accounts) {
         let claimAmount = toTokenUnit(8);
 
         await claimReward(
-          rewardManager,
           rewardPool,
           relayer,
           rewardSafe,
@@ -1195,7 +1153,6 @@ contract("RewardPool", function (accounts) {
         let claimAmount = toTokenUnit(8);
 
         await claimReward(
-          rewardManager,
           rewardPool,
           relayer,
           rewardSafe,
@@ -1263,7 +1220,6 @@ contract("RewardPool", function (accounts) {
         let claimAmount = toTokenUnit(8);
 
         await claimReward(
-          rewardManager,
           rewardPool,
           relayer,
           rewardSafe,
@@ -1313,7 +1269,6 @@ contract("RewardPool", function (accounts) {
 
         //claim from newer proof
         await claimReward(
-          rewardManager,
           rewardPool,
           relayer,
           rewardSafe,
@@ -1437,9 +1392,7 @@ contract("RewardPool", function (accounts) {
           issuer,
           daicpxdToken,
           toTokenUnit(10 + 1),
-          daicpxdToken,
-          prepaidCardOwner,
-          cardcpxdToken
+          prepaidCardOwner
         );
         const prepaidCardPreviousBalanceCard = await getBalance(
           daicpxdToken,
@@ -1452,8 +1405,6 @@ contract("RewardPool", function (accounts) {
         await registerRewardProgram(
           prepaidCardManager,
           prepaidCard,
-          daicpxdToken,
-          daicpxdToken,
           relayer,
           prepaidCardOwner,
           REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
@@ -1464,8 +1415,6 @@ contract("RewardPool", function (accounts) {
         await payRewardTokens(
           prepaidCardManager,
           prepaidCard,
-          daicpxdToken,
-          daicpxdToken,
           relayer,
           prepaidCardOwner,
           500,
@@ -1585,15 +1534,11 @@ contract("RewardPool", function (accounts) {
           issuer,
           daicpxdToken,
           toTokenUnit(10 + 1),
-          daicpxdToken,
-          payee,
-          cardcpxdToken
+          payee
         );
         const tx = await registerRewardee(
           prepaidCardManager,
           rewardeePrepaidCard,
-          daicpxdToken,
-          daicpxdToken,
           relayer,
           payee,
           REWARDEE_REGISTRATION_FEE_IN_SPEND,
@@ -1637,7 +1582,6 @@ contract("RewardPool", function (accounts) {
         );
 
         await claimReward(
-          rewardManager,
           rewardPool,
           relayer,
           rewardSafe,
@@ -1649,7 +1593,6 @@ contract("RewardPool", function (accounts) {
         );
 
         await claimReward(
-          rewardManager,
           rewardPool,
           relayer,
           rewardSafe,

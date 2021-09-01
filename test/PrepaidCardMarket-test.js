@@ -29,7 +29,6 @@ const AbiCoder = require("web3-eth-abi");
 
 contract("PrepaidCardMarket", (accounts) => {
   let daicpxdToken,
-    cardcpxdToken,
     issuer,
     owner,
     relayer,
@@ -50,7 +49,6 @@ contract("PrepaidCardMarket", (accounts) => {
     let { prepaidCards } = await createPrepaidCards(
       depot,
       prepaidCardManager,
-      daicpxdToken,
       daicpxdToken,
       issuer,
       relayer,
@@ -86,7 +84,7 @@ contract("PrepaidCardMarket", (accounts) => {
     let tokenManager = await TokenManager.new();
     await tokenManager.initialize(owner);
 
-    let exchange;
+    let exchange, cardcpxdToken;
     ({ daicpxdToken, cardcpxdToken, exchange } = await setupExchanges(owner));
 
     await daicpxdToken.mint(owner, toTokenUnit(100));
@@ -110,31 +108,15 @@ contract("PrepaidCardMarket", (accounts) => {
       actionDispatcher.address,
       ZERO_ADDRESS,
       0,
-      cardcpxdToken.address,
       100,
       500000,
       [prepaidCardMarket.address]
     );
-    await prepaidCardManager.addGasPolicy("transfer", false, true, false);
-    await prepaidCardManager.addGasPolicy("split", true, true, true);
-    await prepaidCardManager.addGasPolicy(
-      "setPrepaidCardInventory",
-      true,
-      true,
-      true
-    );
-    await prepaidCardManager.addGasPolicy(
-      "removePrepaidCardInventory",
-      true,
-      true,
-      true
-    );
-    await prepaidCardManager.addGasPolicy(
-      "setPrepaidCardAsk",
-      true,
-      true,
-      true
-    );
+    await prepaidCardManager.addGasPolicy("transfer", false);
+    await prepaidCardManager.addGasPolicy("split", true);
+    await prepaidCardManager.addGasPolicy("setPrepaidCardInventory", true);
+    await prepaidCardManager.addGasPolicy("removePrepaidCardInventory", true);
+    await prepaidCardManager.addGasPolicy("setPrepaidCardAsk", true);
 
     await prepaidCardMarket.setup(
       prepaidCardManager.address,
@@ -183,8 +165,6 @@ contract("PrepaidCardMarket", (accounts) => {
           fundingCard,
           testCard,
           prepaidCardMarket,
-          daicpxdToken,
-          cardcpxdToken,
           issuer,
           relayer
         );
@@ -232,7 +212,6 @@ contract("PrepaidCardMarket", (accounts) => {
         let safeTx = await splitPrepaidCard(
           prepaidCardManager,
           fundingCard,
-          daicpxdToken,
           relayer,
           issuer,
           200,
@@ -277,9 +256,7 @@ contract("PrepaidCardMarket", (accounts) => {
           testCard,
           issuer,
           customer,
-          cardcpxdToken,
-          relayer,
-          daicpxdToken
+          relayer
         );
         expect(
           await prepaidCardManager.getPrepaidCardOwner(testCard.address)
@@ -290,8 +267,6 @@ contract("PrepaidCardMarket", (accounts) => {
           fundingCard,
           testCard,
           prepaidCardMarket,
-          daicpxdToken,
-          cardcpxdToken,
           issuer,
           relayer
         ).should.be.rejectedWith(
@@ -309,8 +284,6 @@ contract("PrepaidCardMarket", (accounts) => {
           fundingCard,
           testCard,
           prepaidCardMarket,
-          daicpxdToken,
-          cardcpxdToken,
           customer,
           relayer
         ).should.be.rejectedWith(Error, "Invalid owner provided");
@@ -323,8 +296,6 @@ contract("PrepaidCardMarket", (accounts) => {
           fundingCard,
           testCard,
           ZERO_ADDRESS,
-          daicpxdToken,
-          cardcpxdToken,
           issuer,
           relayer
         ).should.be.rejectedWith(
@@ -341,7 +312,6 @@ contract("PrepaidCardMarket", (accounts) => {
         await splitPrepaidCard(
           prepaidCardManager,
           testCard,
-          daicpxdToken,
           relayer,
           issuer,
           100,
@@ -353,8 +323,6 @@ contract("PrepaidCardMarket", (accounts) => {
           fundingCard,
           testCard,
           prepaidCardMarket,
-          daicpxdToken,
-          cardcpxdToken,
           issuer,
           relayer
         ).should.be.rejectedWith(
@@ -372,8 +340,6 @@ contract("PrepaidCardMarket", (accounts) => {
           fundingCard,
           testCard,
           prepaidCardMarket,
-          daicpxdToken,
-          cardcpxdToken,
           issuer,
           relayer
         );
@@ -383,8 +349,6 @@ contract("PrepaidCardMarket", (accounts) => {
           fundingCard,
           testCard,
           prepaidCardMarket,
-          daicpxdToken,
-          cardcpxdToken,
           issuer,
           relayer
         ).should.be.rejectedWith(
@@ -427,7 +391,6 @@ contract("PrepaidCardMarket", (accounts) => {
           askPrice,
           sku,
           prepaidCardMarket,
-          daicpxdToken,
           issuer,
           relayer
         );
@@ -462,7 +425,6 @@ contract("PrepaidCardMarket", (accounts) => {
           fundingCard,
           testCards,
           prepaidCardMarket,
-          daicpxdToken,
           issuer,
           relayer
         );
@@ -513,7 +475,6 @@ contract("PrepaidCardMarket", (accounts) => {
           fundingCard,
           [],
           prepaidCardMarket,
-          daicpxdToken,
           issuer,
           relayer
         ).should.be.rejectedWith(
@@ -535,7 +496,6 @@ contract("PrepaidCardMarket", (accounts) => {
           fundingCard,
           testCards,
           prepaidCardMarket,
-          daicpxdToken,
           customer,
           relayer
         ).should.be.rejectedWith(Error, "Invalid owner provided");
@@ -552,7 +512,6 @@ contract("PrepaidCardMarket", (accounts) => {
           fundingCard,
           testCards,
           ZERO_ADDRESS,
-          daicpxdToken,
           issuer,
           relayer
         ).should.be.rejectedWith(
@@ -582,7 +541,6 @@ contract("PrepaidCardMarket", (accounts) => {
           fundingCard,
           testCards,
           prepaidCardMarket,
-          daicpxdToken,
           issuer,
           relayer
         ).should.be.rejectedWith(
@@ -618,7 +576,6 @@ contract("PrepaidCardMarket", (accounts) => {
           depot,
           prepaidCardManager,
           daicpxdToken,
-          daicpxdToken,
           issuer,
           relayer,
           [askPrice],
@@ -639,7 +596,6 @@ contract("PrepaidCardMarket", (accounts) => {
           askPrice,
           sku,
           prepaidCardMarket,
-          daicpxdToken,
           issuer,
           relayer
         );
@@ -678,7 +634,6 @@ contract("PrepaidCardMarket", (accounts) => {
           askPrice,
           "0xdeadbeefe23942d80a4259cdea3614ce660c20ad7d1b61d9a70598ed26ddbf09",
           prepaidCardMarket,
-          daicpxdToken,
           issuer,
           relayer
         ).should.be.rejectedWith(
@@ -692,15 +647,12 @@ contract("PrepaidCardMarket", (accounts) => {
       it(`rejects when the sku is not owned by issuer`, async function () {
         // create a funding card that a non-issuer owns
         let [customerCard] = await makePrepaidCards([toTokenUnit(10)]);
-        await cardcpxdToken.mint(customerCard.address, toTokenUnit(1));
         await transferOwner(
           prepaidCardManager,
           customerCard,
           issuer,
           customer,
-          cardcpxdToken,
-          relayer,
-          daicpxdToken
+          relayer
         );
 
         await setPrepaidCardAsk(
@@ -709,7 +661,6 @@ contract("PrepaidCardMarket", (accounts) => {
           askPrice,
           sku,
           prepaidCardMarket,
-          daicpxdToken,
           customer,
           relayer
         ).should.be.rejectedWith(
@@ -741,7 +692,6 @@ contract("PrepaidCardMarket", (accounts) => {
         depot,
         prepaidCardManager,
         daicpxdToken,
-        daicpxdToken,
         issuer,
         relayer,
         [askPrice, askPrice, askPrice],
@@ -756,7 +706,6 @@ contract("PrepaidCardMarket", (accounts) => {
         askPrice,
         sku,
         prepaidCardMarket,
-        daicpxdToken,
         issuer,
         relayer
       );
@@ -860,7 +809,6 @@ contract("PrepaidCardMarket", (accounts) => {
         "0",
         sku,
         prepaidCardMarket,
-        daicpxdToken,
         issuer,
         relayer
       );
@@ -876,7 +824,6 @@ contract("PrepaidCardMarket", (accounts) => {
         askPrice,
         sku,
         prepaidCardMarket,
-        daicpxdToken,
         issuer,
         relayer
       );
@@ -915,7 +862,6 @@ contract("PrepaidCardMarket", (accounts) => {
         toTokenUnit(10),
         sku,
         prepaidCardMarket,
-        daicpxdToken,
         issuer,
         relayer
       );

@@ -27,7 +27,6 @@ const {
 
 contract("Action Dispatcher", (accounts) => {
   let daicpxdToken,
-    cardcpxdToken,
     revenuePool,
     spendToken,
     fakeToken,
@@ -76,7 +75,7 @@ contract("Action Dispatcher", (accounts) => {
     await tokenManager.initialize(owner);
     merchantManager = await MerchantManager.new();
     await merchantManager.initialize(owner);
-
+    let cardcpxdToken;
     ({ daicpxdToken, cardcpxdToken, exchange } = await setupExchanges(owner));
 
     await daicpxdToken.mint(owner, toTokenUnit(100));
@@ -93,13 +92,12 @@ contract("Action Dispatcher", (accounts) => {
       actionDispatcher.address,
       ZERO_ADDRESS,
       0,
-      cardcpxdToken.address,
       100,
       500000,
       []
     );
-    await prepaidCardManager.addGasPolicy("transfer", false, true, false);
-    await prepaidCardManager.addGasPolicy("split", true, true, true);
+    await prepaidCardManager.addGasPolicy("transfer", false);
+    await prepaidCardManager.addGasPolicy("split", true);
 
     await tokenManager.setup(ZERO_ADDRESS, [
       daicpxdToken.address,
@@ -222,7 +220,6 @@ contract("Action Dispatcher", (accounts) => {
         depot,
         prepaidCardManager,
         daicpxdToken,
-        daicpxdToken,
         issuer,
         relayer,
         [toTokenUnit(1)]
@@ -232,9 +229,7 @@ contract("Action Dispatcher", (accounts) => {
         prepaidCard,
         issuer,
         customer,
-        cardcpxdToken,
-        relayer,
-        daicpxdToken
+        relayer
       );
       daicpxdToken.mint(merchant, toTokenUnit(1));
 
@@ -268,7 +263,6 @@ contract("Action Dispatcher", (accounts) => {
         depot,
         prepaidCardManager,
         daicpxdToken,
-        daicpxdToken,
         issuer,
         relayer,
         [toTokenUnit(1)]
@@ -278,9 +272,7 @@ contract("Action Dispatcher", (accounts) => {
         prepaidCard,
         issuer,
         customer,
-        cardcpxdToken,
-        relayer,
-        daicpxdToken
+        relayer
       );
       fakeToken.mint(merchant, toTokenUnit(1));
 
@@ -311,7 +303,6 @@ contract("Action Dispatcher", (accounts) => {
         depot,
         prepaidCardManager,
         daicpxdToken,
-        daicpxdToken,
         issuer,
         relayer,
         [toTokenUnit(10)]
@@ -321,9 +312,7 @@ contract("Action Dispatcher", (accounts) => {
         prepaidCard,
         issuer,
         customer,
-        cardcpxdToken,
-        relayer,
-        daicpxdToken
+        relayer
       );
       daicpxdToken.mint(customer, toTokenUnit(10));
 
@@ -357,7 +346,6 @@ contract("Action Dispatcher", (accounts) => {
         depot,
         prepaidCardManager,
         daicpxdToken,
-        daicpxdToken,
         issuer,
         relayer,
         [toTokenUnit(10)]
@@ -367,9 +355,7 @@ contract("Action Dispatcher", (accounts) => {
         prepaidCard,
         issuer,
         customer,
-        cardcpxdToken,
-        relayer,
-        daicpxdToken
+        relayer
       );
       fakeToken.mint(customer, toTokenUnit(10));
 
