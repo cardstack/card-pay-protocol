@@ -32,13 +32,10 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     bool payGasRecipient;
   }
   struct GasPolicyV2 {
-    bool useIssuingTokenForGas;
-    bool payGasRecipient;
     bool useGasPrice;
   }
   struct MaterializedGasPolicy {
     address gasToken;
-    address gasReceiver;
     uint256 gasPrice;
   }
   struct ExecTransactionData {
@@ -64,12 +61,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     address previousOwner,
     address newOwner
   );
-  event GasPolicyAdded(
-    string action,
-    bool useIssuingTokenForGas,
-    bool payGasRecipient,
-    bool useGasPrice
-  );
+  event GasPolicyAdded(string action, bool useGasPrice);
   event ContractSignerRemoved(address signer);
 
   bytes4 public constant SWAP_OWNER = 0xe318b52b; //swapOwner(address,address,address)
@@ -130,7 +122,6 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     address payable _actionDispatcher,
     address payable _gasFeeReceiver,
     uint256 _gasFeeInCARD,
-    address _gasToken,
     uint256 _minAmount,
     uint256 _maxAmount,
     address[] calldata _contractSigners
@@ -141,7 +132,6 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     exchangeAddress = _exchangeAddress;
     gasFeeReceiver = _gasFeeReceiver;
     gasFeeInCARD = _gasFeeInCARD;
-    gasToken = _gasToken;
     minimumFaceValue = _minAmount;
     maximumFaceValue = _maxAmount;
     Safe.setup(_gsMasterCopy, _gsProxyFactory);
@@ -154,33 +144,17 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
   /**
    * @dev Adds a new gas policy for a send action
    * @param action the send action the policy is for
-   * @param useIssuingTokenForGas true if we want to use the issuing token for
-   * the prepaid card to pay for gas. This has the effect of deducting from the
-   * face value of the card. If false, then we use the gas token (CARD.CPXD) to
-   * pay for gas.
-   * @param payGasRecipient true if we want the gas recipient (the relay server
-   * txn funder) to recieve the gas payment. If false, then the prepaid card will
-   * pay itself for gas and we'll recoup the gas via some other means (e.g.
-   * merchant fees)
    * @param useGasPrice true if we want to use the gas price as provided from the
    * relay server instead of relying on a fee to cover the gas cost
    */
-  function addGasPolicy(
-    string calldata action,
-    bool useIssuingTokenForGas,
-    bool payGasRecipient,
-    bool useGasPrice
-  ) external onlyOwner returns (bool) {
-    gasPoliciesV2[action].useIssuingTokenForGas = useIssuingTokenForGas;
-    gasPoliciesV2[action].payGasRecipient = payGasRecipient;
+  function addGasPolicy(string calldata action, bool useGasPrice)
+    external
+    onlyOwner
+    returns (bool)
+  {
     gasPoliciesV2[action].useGasPrice = useGasPrice;
 
-    emit GasPolicyAdded(
-      action,
-      useIssuingTokenForGas,
-      payGasRecipient,
-      useGasPrice
-    );
+    emit GasPolicyAdded(action, useGasPrice);
     return true;
   }
 
@@ -456,7 +430,6 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     uint256 rateLock,
     bytes memory data
   ) private view returns (ExecTransactionData memory) {
-    require(gasToken != address(0), "gasToken not configured");
     require(
       cardDetails[prepaidCard].blockNumber < block.number,
       "prepaid card used too soon"
@@ -636,7 +609,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
         baseGas,
         gasPolicy.gasPrice,
         gasPolicy.gasToken,
-        address(uint160(gasPolicy.gasReceiver)),
+        address(0),
         signatures
       ),
       "safe transaction was reverted"
@@ -652,10 +625,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
   ) internal view returns (MaterializedGasPolicy memory) {
     return
       MaterializedGasPolicy(
-        gasPoliciesV2[action].useIssuingTokenForGas
-          ? cardDetails[prepaidCard].issueToken
-          : gasToken,
-        gasPoliciesV2[action].payGasRecipient ? address(0) : prepaidCard,
+        cardDetails[prepaidCard].issueToken,
         gasPoliciesV2[action].useGasPrice ? gasPrice : 0
       );
   }

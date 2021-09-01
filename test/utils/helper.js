@@ -126,6 +126,11 @@ async function getTransferPrepaidCardOwnerSignature(
   );
 }
 
+async function getIssuingToken(prepaidCardManager, prepaidCard) {
+  let details = await prepaidCardManager.cardDetails(prepaidCard.address);
+  return await ERC677Token.at(details.issueToken);
+}
+
 async function signAndSendSafeTransaction(
   safeTxData,
   owner,
@@ -647,7 +652,6 @@ const createPrepaidCards = async function (
   depot,
   prepaidCardManager,
   issuingToken,
-  gasToken,
   issuer,
   relayer,
   issuingTokenAmounts,
@@ -693,7 +697,7 @@ const createPrepaidCards = async function (
     data: payloads,
     txGasEstimate: gasEstimate,
     gasPrice: 1000000000,
-    txGasToken: gasToken.address,
+    txGasToken: issuingToken.address,
     refundReceive: relayer,
   };
 
@@ -733,11 +737,10 @@ const transferOwner = async function (
   prepaidCard,
   oldOwner,
   newOwner,
-  gasToken,
   relayer,
-  issuingToken,
   eip1271Signature
 ) {
+  let issuingToken = await getIssuingToken(prepaidCardManager, prepaidCard);
   let usdRate = 100000000; // 1 DAI = 1 USD
   let previousOwnerSignature =
     eip1271Signature ??
@@ -746,7 +749,7 @@ const transferOwner = async function (
       prepaidCard,
       oldOwner,
       newOwner,
-      gasToken
+      issuingToken
     ));
   let data = await prepaidCardManager.getSendData(
     prepaidCard.address,
@@ -769,7 +772,7 @@ const transferOwner = async function (
       0,
       0,
       0,
-      gasToken.address,
+      issuingToken.address,
       ZERO_ADDRESS,
       await prepaidCard.nonce(),
       oldOwner,
@@ -796,8 +799,6 @@ const transferOwner = async function (
 exports.registerMerchant = async function (
   prepaidCardManager,
   prepaidCard,
-  issuingToken,
-  gasToken,
   relayer,
   merchant,
   spendAmount,
@@ -807,6 +808,7 @@ exports.registerMerchant = async function (
   if (usdRate == null) {
     usdRate = 100000000;
   }
+  let issuingToken = await getIssuingToken(prepaidCardManager, prepaidCard);
   let data = await prepaidCardManager.getSendData(
     prepaidCard.address,
     spendAmount,
@@ -823,8 +825,8 @@ exports.registerMerchant = async function (
     0,
     0,
     0,
-    gasToken.address,
-    prepaidCard.address,
+    issuingToken.address,
+    ZERO_ADDRESS,
     await prepaidCard.nonce(),
     merchant,
     prepaidCard
@@ -849,8 +851,6 @@ exports.setPrepaidCardInventory = async function (
   fundingPrepaidCard,
   prepaidCardForInventory,
   prepaidCardMarket,
-  issuingToken,
-  gasToken,
   issuer,
   relayer,
   gasPrice,
@@ -862,6 +862,10 @@ exports.setPrepaidCardInventory = async function (
   if (gasPrice == null) {
     gasPrice = "1000000000"; // 1 gwei
   }
+  let issuingToken = await getIssuingToken(
+    prepaidCardManager,
+    fundingPrepaidCard
+  );
   let marketAddress =
     typeof prepaidCardMarket === "string"
       ? prepaidCardMarket
@@ -871,7 +875,7 @@ exports.setPrepaidCardInventory = async function (
     prepaidCardForInventory,
     issuer,
     marketAddress,
-    gasToken,
+    issuingToken,
     false
   );
   let payload = AbiCoder.encodeParameters(
@@ -919,7 +923,6 @@ exports.removePrepaidCardInventory = async function (
   fundingPrepaidCard,
   prepaidCardsToRemove,
   prepaidCardMarket,
-  issuingToken,
   issuer,
   relayer,
   gasPrice,
@@ -931,6 +934,10 @@ exports.removePrepaidCardInventory = async function (
   if (gasPrice == null) {
     gasPrice = 1000000000; // 1 gwei
   }
+  let issuingToken = await getIssuingToken(
+    prepaidCardManager,
+    fundingPrepaidCard
+  );
   let marketAddress =
     typeof prepaidCardMarket === "string"
       ? prepaidCardMarket
@@ -980,7 +987,6 @@ exports.setPrepaidCardAsk = async function (
   askPrice,
   sku,
   prepaidCardMarket,
-  issuingToken,
   issuer,
   relayer,
   gasPrice,
@@ -992,6 +998,10 @@ exports.setPrepaidCardAsk = async function (
   if (gasPrice == null) {
     gasPrice = 1000000000; // 1 gwei
   }
+  let issuingToken = await getIssuingToken(
+    prepaidCardManager,
+    fundingPrepaidCard
+  );
   let marketAddress =
     typeof prepaidCardMarket === "string"
       ? prepaidCardMarket
@@ -1039,7 +1049,6 @@ exports.setPrepaidCardAsk = async function (
 exports.splitPrepaidCard = async function (
   prepaidCardManager,
   prepaidCard,
-  issuingToken,
   relayer,
   issuer,
   spendAmount,
@@ -1058,6 +1067,7 @@ exports.splitPrepaidCard = async function (
   if (gasPrice == null) {
     gasPrice = 1000000000; // 1 gwei
   }
+  let issuingToken = await getIssuingToken(prepaidCardManager, prepaidCard);
   let payload = AbiCoder.encodeParameters(
     ["uint256[]", "uint256[]", "string", "address"],
     [issuingTokenAmounts, issuingTokenAmounts, customizationDID, marketAddress]
@@ -1102,8 +1112,6 @@ exports.splitPrepaidCard = async function (
 exports.payMerchant = async function (
   prepaidCardManager,
   prepaidCard,
-  issuingToken,
-  gasToken,
   relayer,
   customerAddress,
   merchantSafe,
@@ -1113,6 +1121,7 @@ exports.payMerchant = async function (
   if (usdRate == null) {
     usdRate = 100000000;
   }
+  let issuingToken = await getIssuingToken(prepaidCardManager, prepaidCard);
   let data = await prepaidCardManager.getSendData(
     prepaidCard.address,
     spendAmount,
@@ -1129,8 +1138,8 @@ exports.payMerchant = async function (
     0,
     0,
     0,
-    gasToken.address,
-    prepaidCard.address,
+    issuingToken.address,
+    ZERO_ADDRESS,
     await prepaidCard.nonce(),
     customerAddress,
     prepaidCard
@@ -1173,8 +1182,6 @@ exports.advanceBlock = async function (web3) {
 exports.registerRewardee = async function (
   prepaidCardManager,
   prepaidCard,
-  issuingToken,
-  gasToken,
   relayer,
   prepaidCardOwner,
   spendAmount,
@@ -1184,6 +1191,7 @@ exports.registerRewardee = async function (
   if (usdRate == null) {
     usdRate = 100000000;
   }
+  let issuingToken = await getIssuingToken(prepaidCardManager, prepaidCard);
   const actionName = "registerRewardee";
   const actionData = AbiCoder.encodeParameters(["address"], [rewardProgramID]);
   let data = await prepaidCardManager.getSendData(
@@ -1201,7 +1209,7 @@ exports.registerRewardee = async function (
     0,
     0,
     0,
-    gasToken.address,
+    issuingToken.address,
     ZERO_ADDRESS,
     await prepaidCard.nonce(),
     prepaidCardOwner,
@@ -1281,8 +1289,6 @@ exports.transferRewardSafe = async function (
 exports.registerRewardProgram = async function (
   prepaidCardManager,
   prepaidCard,
-  issuingToken,
-  gasToken,
   relayer,
   prepaidCardOwner,
   spendAmount,
@@ -1293,6 +1299,7 @@ exports.registerRewardProgram = async function (
   if (usdRate == null) {
     usdRate = 100000000;
   }
+  let issuingToken = await getIssuingToken(prepaidCardManager, prepaidCard);
   const actionName = "registerRewardProgram";
   const actionData = AbiCoder.encodeParameters(
     ["address", "address"],
@@ -1313,7 +1320,7 @@ exports.registerRewardProgram = async function (
     0,
     0,
     0,
-    gasToken.address,
+    issuingToken.address,
     ZERO_ADDRESS,
     await prepaidCard.nonce(),
     prepaidCardOwner,
@@ -1337,8 +1344,6 @@ exports.registerRewardProgram = async function (
 exports.lockRewardProgram = async function (
   prepaidCardManager,
   prepaidCard,
-  issuingToken,
-  gasToken,
   relayer,
   prepaidCardOwner,
   spendAmount,
@@ -1349,6 +1354,7 @@ exports.lockRewardProgram = async function (
     usdRate = 100000000;
   }
 
+  let issuingToken = await getIssuingToken(prepaidCardManager, prepaidCard);
   const actionName = "lockRewardProgram";
   const actionData = AbiCoder.encodeParameters(["address"], [rewardProgramID]);
   let data = await prepaidCardManager.getSendData(
@@ -1366,7 +1372,7 @@ exports.lockRewardProgram = async function (
     0,
     0,
     0,
-    gasToken.address,
+    issuingToken.address,
     ZERO_ADDRESS,
     await prepaidCard.nonce(),
     prepaidCardOwner,
@@ -1389,8 +1395,6 @@ exports.lockRewardProgram = async function (
 exports.addRewardRule = async function (
   prepaidCardManager,
   prepaidCard,
-  issuingToken,
-  gasToken,
   relayer,
   prepaidCardOwner,
   spendAmount,
@@ -1404,6 +1408,7 @@ exports.addRewardRule = async function (
     usdRate = 100000000;
   }
 
+  let issuingToken = await getIssuingToken(prepaidCardManager, prepaidCard);
   const actionName = "addRewardRule";
   const actionData = AbiCoder.encodeParameters(
     ["address", "string", "string", "string"],
@@ -1424,7 +1429,7 @@ exports.addRewardRule = async function (
     0,
     0,
     0,
-    gasToken.address,
+    issuingToken.address,
     ZERO_ADDRESS,
     await prepaidCard.nonce(),
     prepaidCardOwner,
@@ -1447,8 +1452,6 @@ exports.addRewardRule = async function (
 exports.removeRewardRule = async function (
   prepaidCardManager,
   prepaidCard,
-  issuingToken,
-  gasToken,
   relayer,
   prepaidCardOwner,
   spendAmount,
@@ -1460,6 +1463,7 @@ exports.removeRewardRule = async function (
     usdRate = 100000000;
   }
 
+  let issuingToken = await getIssuingToken(prepaidCardManager, prepaidCard);
   const actionName = "removeRewardRule";
   const actionData = AbiCoder.encodeParameters(
     ["address", "string"],
@@ -1480,7 +1484,7 @@ exports.removeRewardRule = async function (
     0,
     0,
     0,
-    gasToken.address,
+    issuingToken.address,
     ZERO_ADDRESS,
     await prepaidCard.nonce(),
     prepaidCardOwner,
@@ -1503,8 +1507,6 @@ exports.removeRewardRule = async function (
 exports.updateRewardProgramAdmin = async function (
   prepaidCardManager,
   prepaidCard,
-  issuingToken,
-  gasToken,
   relayer,
   prepaidCardOwner,
   spendAmount,
@@ -1515,6 +1517,7 @@ exports.updateRewardProgramAdmin = async function (
   if (usdRate == null) {
     usdRate = 100000000;
   }
+  let issuingToken = await getIssuingToken(prepaidCardManager, prepaidCard);
   const actionName = "updateRewardProgramAdmin";
   const actionData = AbiCoder.encodeParameters(
     ["address", "address"],
@@ -1535,7 +1538,7 @@ exports.updateRewardProgramAdmin = async function (
     0,
     0,
     0,
-    gasToken.address,
+    issuingToken.address,
     ZERO_ADDRESS,
     await prepaidCard.nonce(),
     prepaidCardOwner,
@@ -1555,18 +1558,6 @@ exports.updateRewardProgramAdmin = async function (
   );
 };
 
-// function to airdrops gas tokens to safe so it can pay the relayer
-// - cardstack ("we") do these airdrops, the funds are recouped from fee charged
-const DEFAULT_AIRDROP_AMOUNT_IN_WEI = toTokenUnit(1);
-const airdropGas = async function (
-  token,
-  to,
-  amountInWei = DEFAULT_AIRDROP_AMOUNT_IN_WEI
-) {
-  // the default gas token is cardcpxd
-  return token.mint(to, amountInWei);
-};
-
 exports.createPrepaidCardAndTransfer = async function (
   prepaidCardManager,
   relayer,
@@ -1574,9 +1565,7 @@ exports.createPrepaidCardAndTransfer = async function (
   issuer,
   issuingToken,
   issuingTokenAmount,
-  gasToken,
-  newOwner,
-  transferGasToken
+  newOwner
 ) {
   let prepaidCard;
   ({
@@ -1585,26 +1574,21 @@ exports.createPrepaidCardAndTransfer = async function (
     depot,
     prepaidCardManager,
     issuingToken,
-    gasToken,
     issuer,
     relayer,
     [issuingTokenAmount]
   ));
-  await airdropGas(transferGasToken, prepaidCard.address);
   await transferOwner(
     prepaidCardManager,
     prepaidCard,
     issuer,
     newOwner,
-    transferGasToken,
-    relayer,
-    issuingToken
+    relayer
   );
   return prepaidCard;
 };
 
 exports.claimReward = async function (
-  rewardManager,
   rewardPool,
   relayer,
   rewardSafe,
@@ -1661,8 +1645,6 @@ exports.mintWalletAndRefillPool = async function (
 exports.payRewardTokens = async function (
   prepaidCardManager,
   prepaidCard,
-  issuingToken,
-  gasToken,
   relayer,
   prepaidCardOwner,
   spendAmount,
@@ -1672,6 +1654,7 @@ exports.payRewardTokens = async function (
   if (usdRate == null) {
     usdRate = 100000000;
   }
+  let issuingToken = await getIssuingToken(prepaidCardManager, prepaidCard);
   const actionName = "payRewardTokens";
   const actionData = AbiCoder.encodeParameters(["address"], [rewardProgramID]);
   let data = await prepaidCardManager.getSendData(
@@ -1689,7 +1672,7 @@ exports.payRewardTokens = async function (
     0,
     0,
     0,
-    gasToken.address,
+    issuingToken.address,
     ZERO_ADDRESS,
     await prepaidCard.nonce(),
     prepaidCardOwner,
@@ -1722,6 +1705,5 @@ exports.toTokenUnit = toTokenUnit;
 exports.encodeCreateCardsData = encodeCreateCardsData;
 exports.packExecutionData = packExecutionData;
 exports.signAndSendSafeTransaction = signAndSendSafeTransaction;
-exports.airdropGas = airdropGas;
 exports.transferOwner = transferOwner;
 exports.createPrepaidCards = createPrepaidCards;

@@ -102,7 +102,6 @@ const setupProtocol = async (accounts) => {
     actionDispatcher.address,
     ZERO_ADDRESS,
     0,
-    cardcpxdToken.address,
     100,
     500000,
     []
@@ -126,25 +125,15 @@ const setupProtocol = async (accounts) => {
   );
   await rewardPool.setup(tally, rewardManager.address, tokenManager.address);
 
-  await prepaidCardManager.addGasPolicy("transfer", false, true, false);
-  await prepaidCardManager.addGasPolicy("split", true, true, false);
-  await prepaidCardManager.addGasPolicy(
-    "registerRewardProgram",
-    true,
-    true,
-    false
-  );
-  await prepaidCardManager.addGasPolicy("registerRewardee", true, true, false);
-  await prepaidCardManager.addGasPolicy("lockRewardProgram", true, true, false);
-  await prepaidCardManager.addGasPolicy(
-    "updateRewardProgramAdmin",
-    true,
-    true,
-    false
-  );
-  await prepaidCardManager.addGasPolicy("addRewardRule", true, true, false);
-  await prepaidCardManager.addGasPolicy("removeRewardRule", true, true, false);
-  await prepaidCardManager.addGasPolicy("payRewardTokens", true, true, false);
+  await prepaidCardManager.addGasPolicy("transfer", false);
+  await prepaidCardManager.addGasPolicy("split", false);
+  await prepaidCardManager.addGasPolicy("registerRewardProgram", false);
+  await prepaidCardManager.addGasPolicy("registerRewardee", false);
+  await prepaidCardManager.addGasPolicy("lockRewardProgram", false);
+  await prepaidCardManager.addGasPolicy("updateRewardProgramAdmin", false);
+  await prepaidCardManager.addGasPolicy("addRewardRule", false);
+  await prepaidCardManager.addGasPolicy("removeRewardRule", false);
+  await prepaidCardManager.addGasPolicy("payRewardTokens", false);
 
   await actionDispatcher.setup(
     tokenManager.address,

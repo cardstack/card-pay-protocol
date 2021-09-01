@@ -33,7 +33,6 @@ const {
 
 contract("RevenuePool", (accounts) => {
   let daicpxdToken,
-    cardcpxdToken,
     revenuePool,
     spendToken,
     fakeToken,
@@ -85,6 +84,7 @@ contract("RevenuePool", (accounts) => {
     merchantManager = await MerchantManager.new();
     await merchantManager.initialize(owner);
 
+    let cardcpxdToken;
     ({ daiFeed, daicpxdToken, cardcpxdToken, exchange } = await setupExchanges(
       owner
     ));
@@ -119,13 +119,12 @@ contract("RevenuePool", (accounts) => {
       actionDispatcher.address,
       ZERO_ADDRESS,
       0,
-      cardcpxdToken.address,
       100,
       500000,
       []
     );
-    await prepaidCardManager.addGasPolicy("transfer", false, true, false);
-    await prepaidCardManager.addGasPolicy("split", true, true, false);
+    await prepaidCardManager.addGasPolicy("transfer", false);
+    await prepaidCardManager.addGasPolicy("split", false);
 
     await actionDispatcher.setup(
       tokenManager.address,
@@ -237,12 +236,10 @@ contract("RevenuePool", (accounts) => {
         depot,
         prepaidCardManager,
         daicpxdToken,
-        daicpxdToken,
         issuer,
         relayer,
         [toTokenUnit(10)]
       );
-      await cardcpxdToken.mint(merchantPrepaidCard.address, toTokenUnit(1));
       let startingPrepaidCardDaicpxdBalance = await getBalance(
         daicpxdToken,
         merchantPrepaidCard.address
@@ -256,15 +253,11 @@ contract("RevenuePool", (accounts) => {
         merchantPrepaidCard,
         issuer,
         merchant,
-        cardcpxdToken,
-        relayer,
-        daicpxdToken
+        relayer
       );
       let merchantTx = await registerMerchant(
         prepaidCardManager,
         merchantPrepaidCard,
-        daicpxdToken,
-        cardcpxdToken,
         relayer,
         merchant,
         1000,
@@ -309,7 +302,6 @@ contract("RevenuePool", (accounts) => {
         depot,
         prepaidCardManager,
         daicpxdToken,
-        daicpxdToken,
         issuer,
         relayer,
         [toTokenUnit(11)]
@@ -327,15 +319,11 @@ contract("RevenuePool", (accounts) => {
         merchantPrepaidCard,
         issuer,
         _merchant,
-        cardcpxdToken,
-        relayer,
-        daicpxdToken
+        relayer
       );
       await registerMerchant(
         prepaidCardManager,
         merchantPrepaidCard,
-        daicpxdToken,
-        cardcpxdToken,
         relayer,
         _merchant,
         1100
@@ -369,7 +357,6 @@ contract("RevenuePool", (accounts) => {
         depot,
         prepaidCardManager,
         daicpxdToken,
-        daicpxdToken,
         issuer,
         relayer,
         [toTokenUnit(10)]
@@ -387,15 +374,11 @@ contract("RevenuePool", (accounts) => {
         merchantPrepaidCard,
         issuer,
         _merchant,
-        cardcpxdToken,
-        relayer,
-        daicpxdToken
+        relayer
       );
       await registerMerchant(
         prepaidCardManager,
         merchantPrepaidCard,
-        daicpxdToken,
-        cardcpxdToken,
         relayer,
         _merchant,
         1000
@@ -431,7 +414,6 @@ contract("RevenuePool", (accounts) => {
         depot,
         prepaidCardManager,
         daicpxdToken,
-        daicpxdToken,
         issuer,
         relayer,
         [toTokenUnit(10)]
@@ -449,15 +431,11 @@ contract("RevenuePool", (accounts) => {
         merchantPrepaidCard,
         issuer,
         _merchant,
-        cardcpxdToken,
-        relayer,
-        daicpxdToken
+        relayer
       );
       await registerMerchant(
         prepaidCardManager,
         merchantPrepaidCard,
-        daicpxdToken,
-        cardcpxdToken,
         relayer,
         _merchant,
         900
@@ -487,7 +465,6 @@ contract("RevenuePool", (accounts) => {
         depot,
         prepaidCardManager,
         daicpxdToken,
-        daicpxdToken,
         issuer,
         relayer,
         [toTokenUnit(9)]
@@ -505,15 +482,11 @@ contract("RevenuePool", (accounts) => {
         merchantPrepaidCard,
         issuer,
         _merchant,
-        cardcpxdToken,
-        relayer,
-        daicpxdToken
+        relayer
       );
       await registerMerchant(
         prepaidCardManager,
         merchantPrepaidCard,
-        daicpxdToken,
-        cardcpxdToken,
         relayer,
         _merchant,
         1000
@@ -543,7 +516,6 @@ contract("RevenuePool", (accounts) => {
         depot,
         prepaidCardManager,
         daicpxdToken,
-        daicpxdToken,
         issuer,
         relayer,
         [toTokenUnit(10)]
@@ -561,15 +533,11 @@ contract("RevenuePool", (accounts) => {
         merchantPrepaidCard,
         issuer,
         merchant,
-        cardcpxdToken,
-        relayer,
-        daicpxdToken
+        relayer
       );
       let merchantTx = await registerMerchant(
         prepaidCardManager,
         merchantPrepaidCard,
-        daicpxdToken,
-        cardcpxdToken,
         relayer,
         merchant,
         1000,
@@ -655,7 +623,6 @@ contract("RevenuePool", (accounts) => {
         depot,
         prepaidCardManager,
         daicpxdToken,
-        daicpxdToken,
         issuer,
         relayer,
         [toTokenUnit(10)]
@@ -663,8 +630,6 @@ contract("RevenuePool", (accounts) => {
       await registerMerchant(
         prepaidCardManager,
         merchantPrepaidCard,
-        daicpxdToken,
-        cardcpxdToken,
         relayer,
         issuer,
         1000
@@ -674,9 +639,7 @@ contract("RevenuePool", (accounts) => {
         merchantPrepaidCard,
         issuer,
         customer,
-        cardcpxdToken,
-        relayer,
-        daicpxdToken
+        relayer
       ).should.be.rejectedWith(
         Error,
         // the real revert reason is behind the gnosis safe execTransaction
@@ -695,20 +658,16 @@ contract("RevenuePool", (accounts) => {
         depot,
         prepaidCardManager,
         daicpxdToken,
-        daicpxdToken,
         issuer,
         relayer,
         [toTokenUnit(100)]
       ));
-      await cardcpxdToken.mint(prepaidCard.address, toTokenUnit(1));
       await transferOwner(
         prepaidCardManager,
         prepaidCard,
         issuer,
         customer,
-        cardcpxdToken,
-        relayer,
-        daicpxdToken
+        relayer
       );
     });
 
@@ -721,8 +680,6 @@ contract("RevenuePool", (accounts) => {
       await payMerchant(
         prepaidCardManager,
         prepaidCard,
-        daicpxdToken,
-        cardcpxdToken,
         relayer,
         customer,
         merchantSafe,
@@ -749,8 +706,6 @@ contract("RevenuePool", (accounts) => {
       await payMerchant(
         prepaidCardManager,
         prepaidCard,
-        daicpxdToken,
-        cardcpxdToken,
         relayer,
         customer,
         merchantSafe,
@@ -804,8 +759,6 @@ contract("RevenuePool", (accounts) => {
       await payMerchant(
         prepaidCardManager,
         prepaidCard,
-        daicpxdToken,
-        cardcpxdToken,
         relayer,
         customer,
         merchantSafe,
@@ -866,8 +819,6 @@ contract("RevenuePool", (accounts) => {
       await payMerchant(
         prepaidCardManager,
         prepaidCard,
-        daicpxdToken,
-        cardcpxdToken,
         relayer,
         customer,
         depot.address, // the depot is not a merchant safe
@@ -911,8 +862,6 @@ contract("RevenuePool", (accounts) => {
       await payMerchant(
         prepaidCardManager,
         prepaidCard,
-        daicpxdToken,
-        cardcpxdToken,
         relayer,
         customer,
         merchantSafe,
@@ -953,8 +902,6 @@ contract("RevenuePool", (accounts) => {
       await payMerchant(
         prepaidCardManager,
         prepaidCard,
-        daicpxdToken,
-        cardcpxdToken,
         relayer,
         customer,
         merchantSafe,
@@ -995,8 +942,6 @@ contract("RevenuePool", (accounts) => {
       await payMerchant(
         prepaidCardManager,
         prepaidCard,
-        daicpxdToken,
-        cardcpxdToken,
         relayer,
         customer,
         merchantSafe,
@@ -1039,8 +984,6 @@ contract("RevenuePool", (accounts) => {
       await payMerchant(
         prepaidCardManager,
         prepaidCard,
-        daicpxdToken,
-        cardcpxdToken,
         relayer,
         customer,
         merchantSafe,
@@ -1109,8 +1052,8 @@ contract("RevenuePool", (accounts) => {
         0,
         0,
         0,
-        cardcpxdToken.address,
-        prepaidCard.address,
+        daicpxdToken.address,
+        ZERO_ADDRESS,
         await prepaidCard.nonce(),
         customer,
         prepaidCard
@@ -1175,8 +1118,8 @@ contract("RevenuePool", (accounts) => {
         0,
         0,
         0,
-        cardcpxdToken.address,
-        prepaidCard.address,
+        daicpxdToken.address,
+        ZERO_ADDRESS,
         await prepaidCard.nonce(),
         customer,
         prepaidCard
@@ -1213,7 +1156,6 @@ contract("RevenuePool", (accounts) => {
         depot,
         prepaidCardManager,
         daicpxdToken,
-        daicpxdToken,
         issuer,
         relayer,
         [toTokenUnit(100)]
@@ -1223,11 +1165,8 @@ contract("RevenuePool", (accounts) => {
         prepaidCard,
         issuer,
         customer,
-        cardcpxdToken,
-        relayer,
-        daicpxdToken
+        relayer
       );
-      await cardcpxdToken.mint(prepaidCard.address, toTokenUnit(1000000));
     });
     afterEach(async () => {
       // reset the rate to 1:1
@@ -1248,8 +1187,6 @@ contract("RevenuePool", (accounts) => {
       await payMerchant(
         prepaidCardManager,
         prepaidCard,
-        daicpxdToken,
-        cardcpxdToken,
         relayer,
         customer,
         merchantSafe,
@@ -1288,8 +1225,6 @@ contract("RevenuePool", (accounts) => {
       await payMerchant(
         prepaidCardManager,
         prepaidCard,
-        daicpxdToken,
-        cardcpxdToken,
         relayer,
         customer,
         merchantSafe,
@@ -1323,8 +1258,6 @@ contract("RevenuePool", (accounts) => {
       await payMerchant(
         prepaidCardManager,
         prepaidCard,
-        daicpxdToken,
-        cardcpxdToken,
         relayer,
         customer,
         merchantSafe,

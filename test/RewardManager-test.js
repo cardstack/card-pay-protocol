@@ -150,7 +150,6 @@ contract("RewardManager", (accounts) => {
       actionDispatcher.address,
       ZERO_ADDRESS,
       0,
-      cardcpxdToken.address,
       100,
       500000,
       []
@@ -172,39 +171,14 @@ contract("RewardManager", (accounts) => {
       REWARDEE_REGISTRATION_FEE_IN_SPEND,
       REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND
     );
-    await prepaidCardManager.addGasPolicy("transfer", false, true, false);
-    await prepaidCardManager.addGasPolicy("split", true, true, false);
-    await prepaidCardManager.addGasPolicy(
-      "registerRewardProgram",
-      true,
-      true,
-      false
-    );
-    await prepaidCardManager.addGasPolicy(
-      "registerRewardee",
-      true,
-      true,
-      false
-    );
-    await prepaidCardManager.addGasPolicy(
-      "lockRewardProgram",
-      true,
-      true,
-      false
-    );
-    await prepaidCardManager.addGasPolicy(
-      "updateRewardProgramAdmin",
-      true,
-      true,
-      false
-    );
-    await prepaidCardManager.addGasPolicy("addRewardRule", true, true, false);
-    await prepaidCardManager.addGasPolicy(
-      "removeRewardRule",
-      true,
-      true,
-      false
-    );
+    await prepaidCardManager.addGasPolicy("transfer", false);
+    await prepaidCardManager.addGasPolicy("split", false);
+    await prepaidCardManager.addGasPolicy("registerRewardProgram", false);
+    await prepaidCardManager.addGasPolicy("registerRewardee", false);
+    await prepaidCardManager.addGasPolicy("lockRewardProgram", false);
+    await prepaidCardManager.addGasPolicy("updateRewardProgramAdmin", false);
+    await prepaidCardManager.addGasPolicy("addRewardRule", false);
+    await prepaidCardManager.addGasPolicy("removeRewardRule", false);
 
     await actionDispatcher.setup(
       tokenManager.address,
@@ -337,9 +311,7 @@ contract("RewardManager", (accounts) => {
         issuer,
         daicpxdToken,
         toTokenUnit(5 + 1),
-        daicpxdToken,
-        prepaidCardOwner,
-        cardcpxdToken
+        prepaidCardOwner
       );
     });
     it("can register reward program", async () => {
@@ -354,8 +326,6 @@ contract("RewardManager", (accounts) => {
       await registerRewardProgram(
         prepaidCardManager,
         prepaidCard,
-        daicpxdToken,
-        daicpxdToken,
         relayer,
         prepaidCardOwner,
         REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
@@ -382,15 +352,11 @@ contract("RewardManager", (accounts) => {
         issuer,
         daicpxdToken,
         toTokenUnit(5 + 1),
-        daicpxdToken,
-        prepaidCardOwner,
-        cardcpxdToken
+        prepaidCardOwner
       );
       await registerRewardProgram(
         prepaidCardManager,
         otherPrepaidCard,
-        daicpxdToken,
-        daicpxdToken,
         relayer,
         prepaidCardOwner,
         REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
@@ -401,8 +367,6 @@ contract("RewardManager", (accounts) => {
       await registerRewardProgram(
         prepaidCardManager,
         otherPrepaidCard,
-        daicpxdToken,
-        daicpxdToken,
         relayer,
         prepaidCardOwner,
         REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
@@ -467,8 +431,6 @@ contract("RewardManager", (accounts) => {
       await registerRewardProgram(
         prepaidCardManager,
         prepaidCard,
-        daicpxdToken,
-        daicpxdToken,
         relayer,
         prepaidCardOwner,
         REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND - 1,
@@ -489,8 +451,6 @@ contract("RewardManager", (accounts) => {
       await registerRewardProgram(
         prepaidCardManager,
         prepaidCard,
-        daicpxdToken,
-        daicpxdToken,
         relayer,
         prepaidCardOwner,
         REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND + 1,
@@ -522,15 +482,11 @@ contract("RewardManager", (accounts) => {
         issuer,
         daicpxdToken,
         toTokenUnit(5 + 1),
-        daicpxdToken,
-        prepaidCardOwner,
-        cardcpxdToken
+        prepaidCardOwner
       );
       await registerRewardProgram(
         prepaidCardManager,
         prepaidCard,
-        daicpxdToken,
-        daicpxdToken,
         relayer,
         prepaidCardOwner,
         REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
@@ -562,8 +518,6 @@ contract("RewardManager", (accounts) => {
       await addRewardRule(
         prepaidCardManager,
         prepaidCard,
-        daicpxdToken,
-        daicpxdToken,
         relayer,
         prepaidCardOwner,
         0, //paying nothing from prepaid card
@@ -585,15 +539,11 @@ contract("RewardManager", (accounts) => {
         issuer,
         daicpxdToken,
         toTokenUnit(5 + 1),
-        daicpxdToken,
-        otherPrepaidCardOwner,
-        cardcpxdToken
+        otherPrepaidCardOwner
       );
       await addRewardRule(
         prepaidCardManager,
         otherPrepaidCard,
-        daicpxdToken,
-        daicpxdToken,
         relayer,
         otherPrepaidCardOwner,
         0, //paying nothing from prepaid card
@@ -658,8 +608,6 @@ contract("RewardManager", (accounts) => {
       await addRewardRule(
         prepaidCardManager,
         prepaidCard,
-        daicpxdToken,
-        daicpxdToken,
         relayer,
         prepaidCardOwner,
         0,
@@ -675,8 +623,6 @@ contract("RewardManager", (accounts) => {
       await removeRewardRule(
         prepaidCardManager,
         prepaidCard,
-        daicpxdToken,
-        daicpxdToken,
         relayer,
         prepaidCardOwner,
         0, //paying nothing from prepaid card
@@ -692,8 +638,6 @@ contract("RewardManager", (accounts) => {
       await addRewardRule(
         prepaidCardManager,
         prepaidCard,
-        daicpxdToken,
-        daicpxdToken,
         relayer,
         prepaidCardOwner,
         0,
@@ -710,15 +654,11 @@ contract("RewardManager", (accounts) => {
         issuer,
         daicpxdToken,
         toTokenUnit(5 + 1),
-        daicpxdToken,
-        otherPrepaidCardOwner,
-        cardcpxdToken
+        otherPrepaidCardOwner
       );
       await removeRewardRule(
         prepaidCardManager,
         otherPrepaidCard,
-        daicpxdToken,
-        daicpxdToken,
         relayer,
         otherPrepaidCardOwner,
         0, //paying nothing from prepaid card
@@ -731,8 +671,6 @@ contract("RewardManager", (accounts) => {
       await addRewardRule(
         prepaidCardManager,
         prepaidCard,
-        daicpxdToken,
-        daicpxdToken,
         relayer,
         prepaidCardOwner,
         0,
@@ -753,8 +691,6 @@ contract("RewardManager", (accounts) => {
       await addRewardRule(
         prepaidCardManager,
         prepaidCard,
-        daicpxdToken,
-        daicpxdToken,
         relayer,
         prepaidCardOwner,
         0,
@@ -790,8 +726,6 @@ contract("RewardManager", (accounts) => {
       await addRewardRule(
         prepaidCardManager,
         prepaidCard,
-        daicpxdToken,
-        daicpxdToken,
         relayer,
         prepaidCardOwner,
         0,
@@ -826,8 +760,6 @@ contract("RewardManager", (accounts) => {
       await lockRewardProgram(
         prepaidCardManager,
         prepaidCard,
-        daicpxdToken,
-        daicpxdToken,
         relayer,
         prepaidCardOwner,
         0, //paying nothing from prepaid card
@@ -846,9 +778,7 @@ contract("RewardManager", (accounts) => {
         issuer,
         daicpxdToken,
         toTokenUnit(5 + 1),
-        daicpxdToken,
-        otherPrepaidCardOwner,
-        cardcpxdToken
+        otherPrepaidCardOwner
       );
       expect(
         (await rewardManager.rewardPrograms.call(rewardProgramID)).locked
@@ -856,8 +786,6 @@ contract("RewardManager", (accounts) => {
       await lockRewardProgram(
         prepaidCardManager,
         otherPrepaidCard,
-        daicpxdToken,
-        daicpxdToken,
         relayer,
         otherPrepaidCardOwner,
         0, //paying nothing from prepaid card
@@ -917,8 +845,6 @@ contract("RewardManager", (accounts) => {
       await updateRewardProgramAdmin(
         prepaidCardManager,
         prepaidCard,
-        daicpxdToken,
-        daicpxdToken,
         relayer,
         prepaidCardOwner,
         0, //paying nothing from prepaid card
@@ -938,16 +864,12 @@ contract("RewardManager", (accounts) => {
         issuer,
         daicpxdToken,
         toTokenUnit(5 + 1),
-        daicpxdToken,
-        otherPrepaidCardOwner,
-        cardcpxdToken
+        otherPrepaidCardOwner
       );
 
       await updateRewardProgramAdmin(
         prepaidCardManager,
         otherPrepaidCard,
-        daicpxdToken,
-        daicpxdToken,
         relayer,
         otherPrepaidCardOwner,
         0, //paying nothing from prepaid card
@@ -1019,15 +941,11 @@ contract("RewardManager", (accounts) => {
         issuer,
         daicpxdToken,
         toTokenUnit(10 + 1),
-        daicpxdToken,
-        prepaidCardOwner,
-        cardcpxdToken
+        prepaidCardOwner
       );
       await registerRewardProgram(
         prepaidCardManager,
         prepaidCard,
-        daicpxdToken,
-        daicpxdToken,
         relayer,
         prepaidCardOwner,
         REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
@@ -1051,8 +969,6 @@ contract("RewardManager", (accounts) => {
       await registerRewardee(
         prepaidCardManager,
         prepaidCard,
-        daicpxdToken,
-        daicpxdToken,
         relayer,
         prepaidCardOwner,
         REWARDEE_REGISTRATION_FEE_IN_SPEND,
@@ -1123,8 +1039,6 @@ contract("RewardManager", (accounts) => {
       await registerRewardee(
         prepaidCardManager,
         prepaidCard,
-        daicpxdToken,
-        daicpxdToken,
         relayer,
         prepaidCardOwner,
         REWARDEE_REGISTRATION_FEE_IN_SPEND,
@@ -1138,15 +1052,11 @@ contract("RewardManager", (accounts) => {
         issuer,
         daicpxdToken,
         toTokenUnit(5 + 1),
-        daicpxdToken,
-        prepaidCardOwner,
-        cardcpxdToken
+        prepaidCardOwner
       );
       await registerRewardee(
         prepaidCardManager,
         otherPrepaidCard,
-        daicpxdToken,
-        daicpxdToken,
         relayer,
         prepaidCardOwner,
         REWARDEE_REGISTRATION_FEE_IN_SPEND,
@@ -1158,8 +1068,6 @@ contract("RewardManager", (accounts) => {
       await registerRewardee(
         prepaidCardManager,
         prepaidCard,
-        daicpxdToken,
-        daicpxdToken,
         relayer,
         prepaidCardOwner,
         REWARDEE_REGISTRATION_FEE_IN_SPEND - 1,
@@ -1179,8 +1087,6 @@ contract("RewardManager", (accounts) => {
       await registerRewardee(
         prepaidCardManager,
         prepaidCard,
-        daicpxdToken,
-        daicpxdToken,
         relayer,
         prepaidCardOwner,
         REWARDEE_REGISTRATION_FEE_IN_SPEND + 1,
@@ -1212,15 +1118,11 @@ contract("RewardManager", (accounts) => {
         issuer,
         daicpxdToken,
         toTokenUnit(10 + 1),
-        daicpxdToken,
-        prepaidCardOwner,
-        cardcpxdToken
+        prepaidCardOwner
       );
       await registerRewardProgram(
         prepaidCardManager,
         prepaidCard,
-        daicpxdToken,
-        daicpxdToken,
         relayer,
         prepaidCardOwner,
         REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,

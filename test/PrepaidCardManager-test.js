@@ -43,7 +43,6 @@ contract("PrepaidCardManager", (accounts) => {
     prepaidCardManager,
     merchant,
     daicpxdToken,
-    cardcpxdToken,
     fakeDaicpxdToken,
     gnosisSafeMasterCopy,
     proxyFactory,
@@ -101,7 +100,7 @@ contract("PrepaidCardManager", (accounts) => {
       accounts.slice(10),
       prepaidCardManager.address
     );
-
+    let cardcpxdToken;
     ({ daicpxdToken, cardcpxdToken, exchange } = await setupExchanges(owner));
     // Deploy and mint 1000 daicpxd token for deployer as owner
     await daicpxdToken.mint(owner, toTokenUnit(1000));
@@ -178,13 +177,12 @@ contract("PrepaidCardManager", (accounts) => {
         actionDispatcher.address,
         gasFeeReceiver,
         0,
-        cardcpxdToken.address,
         MINIMUM_AMOUNT,
         MAXIMUM_AMOUNT,
         [contractSigner]
       );
-      await prepaidCardManager.addGasPolicy("transfer", false, true, false);
-      await prepaidCardManager.addGasPolicy("split", true, true, false);
+      await prepaidCardManager.addGasPolicy("transfer", false);
+      await prepaidCardManager.addGasPolicy("split", false);
     });
 
     it("should initialize parameters", async () => {
@@ -208,9 +206,6 @@ contract("PrepaidCardManager", (accounts) => {
       );
       expect(await prepaidCardManager.maximumFaceValue()).to.a.bignumber.equal(
         toBN(MAXIMUM_AMOUNT)
-      );
-      expect(await prepaidCardManager.gasToken()).to.equal(
-        cardcpxdToken.address
       );
       expect(await prepaidCardManager.getContractSigners()).to.deep.equal([
         contractSigner,
@@ -269,7 +264,6 @@ contract("PrepaidCardManager", (accounts) => {
         depot,
         prepaidCardManager,
         daicpxdToken,
-        daicpxdToken,
         issuer,
         relayer,
         [amount]
@@ -311,7 +305,6 @@ contract("PrepaidCardManager", (accounts) => {
         depot,
         prepaidCardManager,
         daicpxdToken,
-        daicpxdToken,
         issuer,
         relayer,
         [amount],
@@ -348,7 +341,6 @@ contract("PrepaidCardManager", (accounts) => {
       } = await createPrepaidCards(
         depot,
         prepaidCardManager,
-        daicpxdToken,
         daicpxdToken,
         issuer,
         relayer,
@@ -393,7 +385,6 @@ contract("PrepaidCardManager", (accounts) => {
         depot,
         prepaidCardManager,
         daicpxdToken,
-        daicpxdToken,
         issuer,
         relayer,
         amounts,
@@ -426,7 +417,6 @@ contract("PrepaidCardManager", (accounts) => {
         depot,
         prepaidCardManager,
         daicpxdToken,
-        daicpxdToken,
         issuer,
         relayer,
         amounts
@@ -444,7 +434,6 @@ contract("PrepaidCardManager", (accounts) => {
         depot,
         prepaidCardManager,
         daicpxdToken,
-        daicpxdToken,
         issuer,
         relayer,
         amounts
@@ -460,7 +449,6 @@ contract("PrepaidCardManager", (accounts) => {
       } = await createPrepaidCards(
         depot,
         prepaidCardManager,
-        daicpxdToken,
         daicpxdToken,
         issuer,
         relayer,
@@ -488,7 +476,6 @@ contract("PrepaidCardManager", (accounts) => {
         depot,
         prepaidCardManager,
         daicpxdToken,
-        daicpxdToken,
         issuer,
         relayer,
         [toTokenUnit(0)] // sending no tokens
@@ -499,7 +486,6 @@ contract("PrepaidCardManager", (accounts) => {
       await createPrepaidCards(
         depot,
         prepaidCardManager,
-        daicpxdToken,
         daicpxdToken,
         issuer,
         relayer,
@@ -516,7 +502,6 @@ contract("PrepaidCardManager", (accounts) => {
         depot,
         prepaidCardManager,
         daicpxdToken,
-        daicpxdToken,
         issuer,
         relayer,
         [],
@@ -529,7 +514,6 @@ contract("PrepaidCardManager", (accounts) => {
         depot,
         prepaidCardManager,
         fakeDaicpxdToken,
-        daicpxdToken,
         issuer,
         relayer,
         [toTokenUnit(1)]
@@ -553,7 +537,6 @@ contract("PrepaidCardManager", (accounts) => {
         // We are setting this value specifically, which with the configured
         // exchange rate is equal to 1 DAI (100 CARD:1 DAI)
         toTokenUnit(100),
-        cardcpxdToken.address,
         MINIMUM_AMOUNT,
         MAXIMUM_AMOUNT,
         []
@@ -576,7 +559,6 @@ contract("PrepaidCardManager", (accounts) => {
         actionDispatcher.address,
         gasFeeReceiver,
         0, // We are setting this value specifically
-        cardcpxdToken.address,
         MINIMUM_AMOUNT,
         MAXIMUM_AMOUNT,
         []
@@ -756,7 +738,6 @@ contract("PrepaidCardManager", (accounts) => {
         // We are setting this value specifically, which with the configured
         // exchange rate is equal to 1 DAI (100 CARD:1 DAI)
         toTokenUnit(100),
-        cardcpxdToken.address,
         MINIMUM_AMOUNT,
         MAXIMUM_AMOUNT,
         []
@@ -838,7 +819,6 @@ contract("PrepaidCardManager", (accounts) => {
         // We are setting this value specifically, which with the configured
         // exchange rate is equal to 1 DAI (100 CARD:1 DAI)
         toTokenUnit(100),
-        cardcpxdToken.address,
         MINIMUM_AMOUNT,
         MAXIMUM_AMOUNT,
         []
@@ -908,7 +888,6 @@ contract("PrepaidCardManager", (accounts) => {
       let safeTx = await splitPrepaidCard(
         prepaidCardManager,
         prepaidCards[1],
-        daicpxdToken,
         relayer,
         issuer,
         200,
@@ -951,7 +930,6 @@ contract("PrepaidCardManager", (accounts) => {
         depot,
         prepaidCardManager,
         daicpxdToken,
-        daicpxdToken,
         issuer,
         relayer,
         [toTokenUnit(2)]
@@ -962,16 +940,13 @@ contract("PrepaidCardManager", (accounts) => {
         prepaidCard,
         issuer,
         customer,
-        cardcpxdToken,
-        relayer,
-        daicpxdToken
+        relayer
       );
 
       let amounts = [1, 1].map((amount) => toTokenUnit(amount).toString());
       await splitPrepaidCard(
         prepaidCardManager,
         prepaidCard,
-        daicpxdToken,
         relayer,
         customer,
         200,
@@ -995,7 +970,6 @@ contract("PrepaidCardManager", (accounts) => {
         depot,
         prepaidCardManager,
         daicpxdToken,
-        daicpxdToken,
         issuer,
         relayer,
         [toTokenUnit(2)]
@@ -1004,7 +978,6 @@ contract("PrepaidCardManager", (accounts) => {
       await splitPrepaidCard(
         prepaidCardManager,
         prepaidCard,
-        daicpxdToken,
         relayer,
         issuer,
         200,
@@ -1018,9 +991,7 @@ contract("PrepaidCardManager", (accounts) => {
         prepaidCard,
         issuer,
         customer,
-        cardcpxdToken,
-        relayer,
-        daicpxdToken
+        relayer
       ).should.be.rejectedWith(
         Error,
         // the real revert reason is behind the gnosis safe execTransaction
@@ -1036,7 +1007,6 @@ contract("PrepaidCardManager", (accounts) => {
       } = await createPrepaidCards(
         depot,
         prepaidCardManager,
-        daicpxdToken,
         daicpxdToken,
         issuer,
         relayer,
@@ -1073,7 +1043,6 @@ contract("PrepaidCardManager", (accounts) => {
         depot,
         prepaidCardManager,
         daicpxdToken,
-        daicpxdToken,
         issuer,
         relayer,
         [toTokenUnit(2)]
@@ -1106,7 +1075,6 @@ contract("PrepaidCardManager", (accounts) => {
         depot,
         prepaidCardManager,
         daicpxdToken,
-        daicpxdToken,
         issuer,
         relayer,
         [toTokenUnit(2)]
@@ -1124,8 +1092,6 @@ contract("PrepaidCardManager", (accounts) => {
     let prepaidCard;
     before(async () => {
       prepaidCard = prepaidCards[2];
-      // mint gas token token for prepaid card
-      await cardcpxdToken.mint(prepaidCard.address, toTokenUnit(100));
     });
 
     // Warning this test is stateful, all the other tests rely on this prepaid
@@ -1141,9 +1107,7 @@ contract("PrepaidCardManager", (accounts) => {
         prepaidCard,
         issuer,
         customer,
-        cardcpxdToken,
-        relayer,
-        daicpxdToken
+        relayer
       );
 
       await prepaidCard.isOwner(customer).should.eventually.become(true);
@@ -1163,9 +1127,7 @@ contract("PrepaidCardManager", (accounts) => {
         prepaidCard,
         customer,
         otherCustomer,
-        cardcpxdToken,
-        relayer,
-        daicpxdToken
+        relayer
       ).should.be.rejectedWith(
         Error,
         // the real revert reason is behind the gnosis safe execTransaction
@@ -1181,7 +1143,6 @@ contract("PrepaidCardManager", (accounts) => {
       } = await createPrepaidCards(
         depot,
         prepaidCardManager,
-        daicpxdToken,
         daicpxdToken,
         issuer,
         relayer,
@@ -1217,7 +1178,6 @@ contract("PrepaidCardManager", (accounts) => {
         depot,
         prepaidCardManager,
         daicpxdToken,
-        daicpxdToken,
         issuer,
         relayer,
         [toTokenUnit(2)]
@@ -1249,7 +1209,6 @@ contract("PrepaidCardManager", (accounts) => {
         depot,
         prepaidCardManager,
         daicpxdToken,
-        daicpxdToken,
         issuer,
         relayer,
         [toTokenUnit(2)]
@@ -1275,7 +1234,6 @@ contract("PrepaidCardManager", (accounts) => {
         depot,
         prepaidCardManager,
         daicpxdToken,
-        daicpxdToken,
         issuer,
         relayer,
         [toTokenUnit(10)]
@@ -1285,12 +1243,8 @@ contract("PrepaidCardManager", (accounts) => {
         merchantPrepaidCard,
         issuer,
         merchant,
-        cardcpxdToken,
-        relayer,
-        daicpxdToken
+        relayer
       );
-      // mint gas token token for prepaid card
-      await cardcpxdToken.mint(merchantPrepaidCard.address, toTokenUnit(100));
       let merchantTx = await merchantManager.registerMerchant(merchant, "");
       let merchantCreation = await getParamsFromEvent(
         merchantTx,
@@ -1298,7 +1252,6 @@ contract("PrepaidCardManager", (accounts) => {
         merchantManager.address
       );
       merchantSafe = merchantCreation[0]["merchantSafe"];
-      await cardcpxdToken.mint(prepaidCard.address, toTokenUnit(100));
     });
 
     after(async () => {
@@ -1333,18 +1286,6 @@ contract("PrepaidCardManager", (accounts) => {
         daicpxdToken,
         revenuePool.address
       );
-      let startingPrepaidCardCardcpxdBalance = await getBalance(
-        cardcpxdToken,
-        prepaidCard.address
-      );
-      let startingRelayerCardcpxdBalance = await getBalance(
-        cardcpxdToken,
-        relayer
-      );
-      let startingRevenuePoolCardcpxdBalance = await getBalance(
-        cardcpxdToken,
-        revenuePool.address
-      );
       expect(
         (await prepaidCardManager.faceValue(prepaidCard.address)).toString()
       ).to.equal("500");
@@ -1352,8 +1293,6 @@ contract("PrepaidCardManager", (accounts) => {
       await payMerchant(
         prepaidCardManager,
         prepaidCard,
-        daicpxdToken,
-        cardcpxdToken,
         relayer,
         customer,
         merchantSafe,
@@ -1370,22 +1309,6 @@ contract("PrepaidCardManager", (accounts) => {
         prepaidCard.address,
         startingPrepaidCardDaicpxdBalance.sub(toTokenUnit(1))
       );
-      await shouldBeSameBalance(
-        cardcpxdToken,
-        prepaidCard.address,
-        startingPrepaidCardCardcpxdBalance
-      );
-      await shouldBeSameBalance(
-        cardcpxdToken,
-        relayer,
-        startingRelayerCardcpxdBalance
-      );
-      await shouldBeSameBalance(
-        cardcpxdToken,
-        revenuePool.address,
-        startingRevenuePoolCardcpxdBalance
-      );
-
       expect(
         (await prepaidCardManager.faceValue(prepaidCard.address)).toString()
       ).to.equal("400");
@@ -1398,7 +1321,6 @@ contract("PrepaidCardManager", (accounts) => {
         depot,
         prepaidCardManager,
         daicpxdToken,
-        daicpxdToken,
         issuer,
         relayer,
         [toTokenUnit(1)]
@@ -1408,12 +1330,8 @@ contract("PrepaidCardManager", (accounts) => {
         prepaidCardA,
         issuer,
         customerA,
-        cardcpxdToken,
-        relayer,
-        daicpxdToken
+        relayer
       );
-      // mint gas token token for prepaid card
-      await cardcpxdToken.mint(prepaidCardA.address, toTokenUnit(100));
 
       let startingPrepaidCardDaicpxdBalance = await getBalance(
         daicpxdToken,
@@ -1426,8 +1344,6 @@ contract("PrepaidCardManager", (accounts) => {
       await payMerchant(
         prepaidCardManager,
         prepaidCardA,
-        daicpxdToken,
-        cardcpxdToken,
         relayer,
         customerA,
         merchantSafe,
@@ -1452,7 +1368,6 @@ contract("PrepaidCardManager", (accounts) => {
         depot,
         prepaidCardManager,
         daicpxdToken,
-        daicpxdToken,
         issuer,
         relayer,
         [toTokenUnit(1)]
@@ -1462,12 +1377,8 @@ contract("PrepaidCardManager", (accounts) => {
         prepaidCardB,
         issuer,
         customerB,
-        cardcpxdToken,
-        relayer,
-        daicpxdToken
+        relayer
       );
-      // mint gas token token for prepaid card
-      await cardcpxdToken.mint(prepaidCardB.address, toTokenUnit(100));
 
       let startingPrepaidCardDaicpxdBalance = await getBalance(
         daicpxdToken,
@@ -1480,8 +1391,6 @@ contract("PrepaidCardManager", (accounts) => {
       await payMerchant(
         prepaidCardManager,
         prepaidCardB,
-        daicpxdToken,
-        cardcpxdToken,
         relayer,
         customerB,
         merchantSafe,
@@ -1506,18 +1415,13 @@ contract("PrepaidCardManager", (accounts) => {
         depot,
         prepaidCardManager,
         daicpxdToken,
-        daicpxdToken,
         issuer,
         relayer,
         [toTokenUnit(1)]
       );
-      // mint gas token token for prepaid card
-      await cardcpxdToken.mint(prepaidCard.address, toTokenUnit(100));
       await payMerchant(
         prepaidCardManager,
         prepaidCard,
-        daicpxdToken,
-        cardcpxdToken,
         relayer,
         issuer,
         merchantSafe,
@@ -1528,9 +1432,7 @@ contract("PrepaidCardManager", (accounts) => {
         prepaidCard,
         issuer,
         customer,
-        cardcpxdToken,
-        relayer,
-        daicpxdToken
+        relayer
       ).should.be.rejectedWith(
         Error,
         // the real revert reason is behind the gnosis safe execTransaction
@@ -1553,8 +1455,6 @@ contract("PrepaidCardManager", (accounts) => {
       await payMerchant(
         prepaidCardManager,
         prepaidCard,
-        daicpxdToken,
-        cardcpxdToken,
         relayer,
         customer,
         merchantSafe,
@@ -1589,8 +1489,6 @@ contract("PrepaidCardManager", (accounts) => {
       await payMerchant(
         prepaidCardManager,
         prepaidCard,
-        daicpxdToken,
-        cardcpxdToken,
         relayer,
         customer,
         merchantSafe,
