@@ -4,29 +4,34 @@ const retry = require("async-retry");
 const hre = require("hardhat");
 const { makeFactory, patchNetworks, asyncMain } = require("./util");
 patchNetworks();
+const {
+  network: { name: network },
+} = hre;
 
-
-async function main() {
+async function main(addresses) {
   const ChainlinkOracle = await makeFactory("ChainlinkFeedAdapter");
   const DIAOracle = await makeFactory("DIAOracleAdapter");
 
-  const {
-    network: { name: network }
-  } = hre;
-
-  const addressesFile = `./.openzeppelin/addresses-${network}.json`;
-  if (!existsSync(addressesFile)) {
-    throw new Error(`Cannot read from the addresses file ${addressesFile}`);
+  if (addresses == null) {
+    const addressesFile = `./.openzeppelin/addresses-${network}.json`;
+    if (!existsSync(addressesFile)) {
+      throw new Error(`Cannot read from the addresses file ${addressesFile}`);
+    }
+    addresses = readJSONSync(addressesFile);
   }
-  let addresses = readJSONSync(addressesFile);
 
   let diaOracleAddress;
+  let chainlinkCARDUSDAddress; // testing only
   let chainlinkDAIUSDAddress;
   let chainlinkETHUSDAddress;
 
   if (network === "sokol") {
     diaOracleAddress = "0xBA03d4bF8950128a7779C5C1E7899c6E39D29332";
     // use manual feeds in our chainlink oracles
+    chainlinkDAIUSDAddress = getAddress("DAIUSDFeed", addresses);
+    chainlinkETHUSDAddress = getAddress("ETHUSDFeed", addresses);
+  } else if (network === "hardhat") {
+    chainlinkCARDUSDAddress = getAddress("CARDUSDFeed", addresses);
     chainlinkDAIUSDAddress = getAddress("DAIUSDFeed", addresses);
     chainlinkETHUSDAddress = getAddress("ETHUSDFeed", addresses);
   } else if (network === "xdai") {
@@ -43,7 +48,6 @@ async function main() {
   let daiOracleAddress = getAddress("DAIOracle", addresses);
   let cardOracleAddress = getAddress("CARDOracle", addresses);
   let daiOracle = await ChainlinkOracle.attach(daiOracleAddress);
-  let cardOracle = await DIAOracle.attach(cardOracleAddress);
   await retry(
     async () => {
       console.log(`
@@ -61,17 +65,46 @@ Configuring DAIOracle ${daiOracleAddress}
     { retries: 3 }
   );
 
-  await retry(
-    async () => {
-      console.log(`
+  if (!chainlinkCARDUSDAddress) {
+    // use real DIA Oracle
+    let cardOracle = await DIAOracle.attach(cardOracleAddress);
+    await retry(
+      async () => {
+        console.log(`
 ==================================================
 Configuring CARDOracle ${cardOracleAddress}
   DIA oracle address: ${diaOracleAddress}
   DAI/USD chainlink feed address: ${chainlinkDAIUSDAddress}`);
-      await cardOracle.setup(diaOracleAddress, "CARD", chainlinkDAIUSDAddress);
-    },
-    { retries: 3 }
-  );
+        await cardOracle.setup(
+          diaOracleAddress,
+          "CARD",
+          chainlinkDAIUSDAddress
+        );
+      },
+      { retries: 3 }
+    );
+  } else {
+    // Use manual feed DIA Oracle (for hardhat deploys only)
+    let cardManualOracle = await ChainlinkOracle.attach(cardOracleAddress);
+    await retry(
+      async () => {
+        console.log(`
+==================================================
+Configuring CARDOracle (for manual feed) ${cardOracleAddress}
+  CARD/USD chainlink feed address: ${chainlinkCARDUSDAddress}
+  ETH/USD chainlink feed address: ${chainlinkETHUSDAddress}
+  DAI/USD chainlink feed address: ${chainlinkDAIUSDAddress}
+  `);
+
+        await cardManualOracle.setup(
+          chainlinkCARDUSDAddress,
+          chainlinkETHUSDAddress,
+          chainlinkDAIUSDAddress
+        );
+      },
+      { retries: 3 }
+    );
+  }
 }
 
 function getAddress(contractId, addresses) {
@@ -84,4 +117,9 @@ function getAddress(contractId, addresses) {
   return info.proxy;
 }
 
-asyncMain(main);
+if (network !== "hardhat") {
+  asyncMain(main);
+}
+
+// this is exported so we can also use this logic in the private network deploy
+module.exports = { main };

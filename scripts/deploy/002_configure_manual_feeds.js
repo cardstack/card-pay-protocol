@@ -5,12 +5,13 @@ const hre = require("hardhat");
 const { makeFactory, patchNetworks, asyncMain } = require("./util");
 patchNetworks();
 
-async function main() {
-  const {
-    network: { name: network }
-  } = hre;
+const {
+  network: { name: network },
+} = hre;
+
+async function main(proxyAddresses) {
   // Only setup manual feeds in our test network
-  if (network === "sokol") {
+  if (network === "sokol" || network === "hardhat") {
     let config = {
       DAIUSDFeed: {
         description: "DAI",
@@ -19,9 +20,9 @@ async function main() {
           {
             price: "100200000",
             startedAt: "1618433281",
-            updatedAt: "1618433281"
-          }
-        ]
+            updatedAt: "1618433281",
+          },
+        ],
       },
       ETHUSDFeed: {
         description: "ETH",
@@ -30,23 +31,41 @@ async function main() {
           {
             price: "330999661517",
             startedAt: "1618433281",
-            updatedAt: "1618433281"
-          }
-        ]
-      }
+            updatedAt: "1618433281",
+          },
+        ],
+      },
     };
-
-    const addressesFile = `./.openzeppelin/addresses-${network}.json`;
-    if (!existsSync(addressesFile)) {
-      throw new Error(`Cannot read from the addresses file ${addressesFile}`);
+    if (network === "hardhat") {
+      config = {
+        ...config,
+        ...{
+          CARDUSDFeed: {
+            description: "CARD",
+            decimals: 8,
+            rounds: [
+              {
+                price: "1186000",
+                startedAt: "1618433281",
+                updatedAt: "1618433281",
+              },
+            ],
+          },
+        },
+      };
     }
-    let proxyAddresses = readJSONSync(addressesFile);
+
+    if (proxyAddresses == null) {
+      const addressesFile = `./.openzeppelin/addresses-${network}.json`;
+      if (!existsSync(addressesFile)) {
+        throw new Error(`Cannot read from the addresses file ${addressesFile}`);
+      }
+      proxyAddresses = readJSONSync(addressesFile);
+    }
     for (let [contractId, feedConfig] of Object.entries(config)) {
       let { contractName, proxy } = proxyAddresses[contractId] ?? {};
       if (!contractName || !proxy) {
-        throw new Error(
-          `Cannot find entry ${contractId} in the addresses file ${addressesFile}`
-        );
+        throw new Error(`Cannot find address for ${contractId}`);
       }
 
       let factory = await makeFactory(contractName);
@@ -54,10 +73,10 @@ async function main() {
         async () => {
           let instance = await factory.attach(proxy);
           console.log(`
-          ==================================================
-          Configuring ${contractId} ${proxy}
-            setting description as '${feedConfig.description}'
-            setting decimals as '${feedConfig.decimals}'`);
+==================================================
+Configuring ${contractId} ${proxy}
+  setting description as '${feedConfig.description}'
+  setting decimals as '${feedConfig.decimals}'`);
           await instance.setup(feedConfig.description, feedConfig.decimals);
         },
         { retries: 5 }
@@ -73,7 +92,7 @@ async function main() {
             await instance.addRound(price, startedAt, updatedAt);
           },
           {
-            retries: 3
+            retries: 3,
           }
         );
       }
@@ -81,4 +100,9 @@ async function main() {
   }
 }
 
-asyncMain(main);
+if (network !== "hardhat") {
+  asyncMain(main);
+}
+
+// this is exported so we can also use this logic in the private network deploy
+module.exports = { main };

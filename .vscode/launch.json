@@ -17,6 +17,15 @@
     {
       "type": "node",
       "request": "launch",
+      "name": "Deploy to Hardhat",
+      "cwd": "${workspaceRoot}",
+      "program": "${workspaceFolder}/scripts/deploy/deploy_to_private_network.js",
+      "console": "integratedTerminal",
+      "args": []
+    },
+    {
+      "type": "node",
+      "request": "launch",
       "name": "Deploy to Sokol",
       "cwd": "${workspaceRoot}",
       "program": "${workspaceFolder}/scripts/deploy/001_initialize_contracts.js",

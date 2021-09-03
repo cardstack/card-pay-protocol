@@ -55,7 +55,7 @@ const REWARDEE_REGISTRATION_FEE_IN_SPEND =
 const REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND =
   process.env.REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND ?? 500;
 
-async function main() {
+async function main(proxyAddresses) {
   const RevenuePool = await makeFactory("RevenuePool");
   const PrepaidCardManager = await makeFactory("PrepaidCardManager");
   const PrepaidCardMarket = await makeFactory("PrepaidCardMarket");
@@ -102,24 +102,27 @@ async function main() {
   const MERCHANT_FEE_RECEIVER = process.env.MERCHANT_FEE_RECEIVER ?? deployer;
   const REWARD_FEE_RECEIVER = process.env.REWARD_FEE_RECEIVER ?? deployer;
 
-  // TODO after the next deploy with these addresses we can just use zero
-  // address for this
-  const deprecatedMerchantManager =
-    network === "xdai"
-      ? "0x3C29B2A563F4bB9D625175bE823c528A4Ddd1107" // v0.6.4+xdai
-      : "0xA113ECa0Af275e1906d1fe1B7Bef1dDB033113E2"; // v0.6.7+sokol
+  let deprecatedMerchantManager = ZERO_ADDRESS;
+  if (proxyAddresses == null) {
+    const addressesFile = resolve(
+      __dirname,
+      "..",
+      "..",
+      ".openzeppelin",
+      `addresses-${network}.json`
+    );
+    if (!existsSync(addressesFile)) {
+      throw new Error(`Cannot read from the addresses file ${addressesFile}`);
+    }
+    proxyAddresses = readJSONSync(addressesFile);
 
-  const addressesFile = resolve(
-    __dirname,
-    "..",
-    "..",
-    ".openzeppelin",
-    `addresses-${network}.json`
-  );
-  if (!existsSync(addressesFile)) {
-    throw new Error(`Cannot read from the addresses file ${addressesFile}`);
+    // TODO after the next deploy with these addresses we can just use zero
+    // address for this
+    deprecatedMerchantManager =
+      network === "xdai"
+        ? "0x3C29B2A563F4bB9D625175bE823c528A4Ddd1107" // v0.6.4+xdai
+        : "0xA113ECa0Af275e1906d1fe1B7Bef1dDB033113E2"; // v0.6.7+sokol
   }
-  let proxyAddresses = readJSONSync(addressesFile);
 
   let revenuePoolAddress = getAddress("RevenuePool", proxyAddresses);
   let prepaidCardManagerAddress = getAddress(
@@ -708,8 +711,12 @@ Configuring PrepaidCardManager ${prepaidCardManagerAddress}
   console.log(`
 ==================================================
 Configuring RewardPool ${rewardPoolAddress}
-  tally ${TALLY}`);
-  await sendTx(() => rewardPool.setup(TALLY, rewardManagerAddress));
+  tally ${TALLY}
+  RewardManager address: ${rewardManagerAddress}
+  TokenManager address: ${tokenManagerAddress}`);
+  await sendTx(() =>
+    rewardPool.setup(TALLY, rewardManagerAddress, tokenManagerAddress)
+  );
 
   // BridgeUtils configuration
   let bridgeUtils = await BridgeUtils.attach(bridgeUtilsAddress);
@@ -916,4 +923,9 @@ function getAddress(contractId, addresses) {
   return info.proxy;
 }
 
-asyncMain(main);
+if (network !== "hardhat") {
+  asyncMain(main);
+}
+
+// this is exported so we can also use this logic in the private network deploy
+module.exports = { main };
