@@ -1,15 +1,18 @@
 const hre = require("hardhat");
 const { existsSync, readJSONSync } = require("node-fs-extra");
 const { resolve } = require("path");
-const { asyncMain } = require("./deploy/util");
+const { asyncMain } = require("./util");
+const { main: configManualFeeds } = require("./002_configure_manual_feeds.js");
 const {
-  main: configProtocol,
-} = require("./deploy/004_configure_card_protocol.js");
+  main: configPriceOracles,
+} = require("./003_configure_price_oracles.js");
+const { main: configProtocol } = require("./004_configure_card_protocol.js");
 const { ethers } = hre;
 
 // add not-yet-deployed contracts to object
 function patchContracts(contracts) {
   return {
+    ...contracts,
     ...{
       PrepaidCardMarket: {
         contractName: "PrepaidCardMarket",
@@ -45,13 +48,19 @@ function patchContracts(contracts) {
       PayRewardTokensHandler: {
         contractName: "PayRewardTokensHandler",
       },
+      CARDOracle: {
+        contractName: "ChainlinkFeedAdapter",
+      },
+      CARDUSDFeed: {
+        contractName: "ManualFeed",
+      },
     },
-    ...contracts,
   };
 }
 function getContracts(shadowNetwork) {
   const addressesFile = resolve(
     __dirname,
+    "..",
     "..",
     ".openzeppelin",
     `addresses-${shadowNetwork}.json`
@@ -120,6 +129,8 @@ async function configureContracts(addresses) {
 
 async function main() {
   let addresses = await deployContracts();
+  await configManualFeeds(addresses);
+  await configPriceOracles(addresses);
   await configureContracts(addresses);
   let [signer] = await ethers.getSigners();
   console.log(`
