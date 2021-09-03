@@ -153,10 +153,9 @@ contract RewardPool is Initializable, Versionable, Ownable {
       TokenManager(tokenManager).isValidToken(msg.sender),
       "calling token is unaccepted"
     );
-    RewardManager rewardManager = RewardManager(rewardManager);
     address rewardProgramID = abi.decode(data, (address));
     require(
-      rewardManager.isRewardProgram(rewardProgramID),
+      RewardManager(rewardManager).isRewardProgram(rewardProgramID),
       "reward program is not found"
     );
     rewardBalance[rewardProgramID][msg.sender] = rewardBalance[rewardProgramID][
