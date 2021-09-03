@@ -1,7 +1,7 @@
 const TrezorWalletProvider = require("trezor-cli-wallet-provider");
 
-const hre = require('hardhat');
-const {ethers} = hre;
+const hre = require("hardhat");
+const { ethers } = hre;
 const networks = require("@ethersproject/networks/lib/index.js");
 
 function patchNetworks() {
@@ -16,24 +16,25 @@ function patchNetworks() {
   };
 }
 
- async function makeFactory (contractName) {
-  return (await ethers.getContractFactory(contractName)).connect(
-    getSigner()
-  );
-};
+async function makeFactory(contractName) {
+  if (hre.network.name === "hardhat") {
+    return await ethers.getContractFactory(contractName);
+  }
+  return (await ethers.getContractFactory(contractName)).connect(getSigner());
+}
 
 function getSigner() {
   const {
     network: {
       name: network,
-      config: { chainId, url: rpcUrl, derivationPath }
-    }
+      config: { chainId, url: rpcUrl, derivationPath },
+    },
   } = hre;
 
   const walletProvider = new TrezorWalletProvider(rpcUrl, {
     chainId: chainId,
     numberOfAccounts: 3,
-    derivationPath
+    derivationPath,
   });
 
   const ethersProvider = new ethers.providers.Web3Provider(
@@ -44,6 +45,10 @@ function getSigner() {
 }
 
 async function getDeployAddress() {
+  if (hre.network.name === "hardhat") {
+    let [signer] = await ethers.getSigners();
+    return signer.address;
+  }
   const trezorSigner = getSigner();
   return await trezorSigner.getAddress();
 }
@@ -51,12 +56,11 @@ async function getDeployAddress() {
 function asyncMain(main) {
   main()
     .then(() => process.exit(0))
-    .catch(error => {
+    .catch((error) => {
       console.error(error);
       process.exit(1);
     });
 }
-
 
 async function retry(cb, maxAttempts = 5) {
   let attempts = 0;
@@ -72,7 +76,13 @@ async function retry(cb, maxAttempts = 5) {
   } while (attempts > maxAttempts);
 
   throw new Error("Reached max retry attempts");
+}
 
+module.exports = {
+  makeFactory,
+  getSigner,
+  getDeployAddress,
+  patchNetworks,
+  asyncMain,
+  retry,
 };
-
-module.exports = { makeFactory, getSigner, getDeployAddress, patchNetworks, asyncMain, retry }

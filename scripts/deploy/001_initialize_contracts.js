@@ -37,6 +37,10 @@ async function main() {
       contractName: "PrepaidCardManager",
       init: [owner],
     },
+    PrepaidCardMarket: {
+      contractName: "PrepaidCardMarket",
+      init: [owner],
+    },
     RevenuePool: { contractName: "RevenuePool", init: [owner] },
     RewardPool: { contractName: "RewardPool", init: [owner] },
     Exchange: { contractName: "Exchange", init: [owner] },
@@ -85,7 +89,6 @@ async function main() {
     SPEND: { contractName: "SPEND", init: [owner] },
     DAIOracle: { contractName: "ChainlinkFeedAdapter", init: [owner] },
     CARDOracle: { contractName: "DIAOracleAdapter", init: [owner] },
-
     RewardManager: { contractName: "RewardManager", init: [owner] },
     AddRewardRuleHandler: {
       contractName: "AddRewardRuleHandler",
