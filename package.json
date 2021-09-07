@@ -31,6 +31,7 @@
     "deploy:xdai:upgrade-only": "yarn build:clean && env HARDHAT_NETWORK=xdai yarn deploy:contracts",
     "deploy:xdai:config-only": "env HARDHAT_NETWORK=xdai yarn deploy:config-only",
     "deploy:xdai:upgrade-only:skip-verify": "env SKIP_VERIFY=true yarn deploy:xdai:upgrade-only",
+    "deploy:hardhat": "env HARDHAT_NETWORK=localhost node scripts/deploy/deploy_to_private_network.js",
     "verify": "node scripts/verify.js",
     "verify:sokol": "env HARDHAT_NETWORK=sokol yarn verify",
     "release:sokol:patch": "node ./lib/prerelease.js patch && yarn deploy:sokol && node ./lib/release.js sokol patch",

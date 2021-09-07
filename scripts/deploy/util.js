@@ -16,9 +16,22 @@ function patchNetworks() {
   };
 }
 
+function getHardhatTestWallet() {
+  let provider = new ethers.getDefaultProvider("http://localhost:8545");
+  // This is the default hardhat test mnemonic
+  let wallet = new ethers.Wallet.fromMnemonic(
+    "test test test test test test test test test test test junk"
+  );
+  return wallet.connect(provider);
+}
+
 async function makeFactory(contractName) {
   if (hre.network.name === "hardhat") {
     return await ethers.getContractFactory(contractName);
+  } else if (hre.network.name === "localhost") {
+    return (await ethers.getContractFactory(contractName)).connect(
+      getHardhatTestWallet()
+    );
   }
   return (await ethers.getContractFactory(contractName)).connect(getSigner());
 }
@@ -48,6 +61,8 @@ async function getDeployAddress() {
   if (hre.network.name === "hardhat") {
     let [signer] = await ethers.getSigners();
     return signer.address;
+  } else if (hre.network.name === "localhost") {
+    return getHardhatTestWallet().address;
   }
   const trezorSigner = getSigner();
   return await trezorSigner.getAddress();

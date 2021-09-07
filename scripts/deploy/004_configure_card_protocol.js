@@ -923,7 +923,7 @@ function getAddress(contractId, addresses) {
   return info.proxy;
 }
 
-if (network !== "hardhat") {
+if (!["hardhat", "localhost"].includes(network)) {
   asyncMain(main);
 }
 

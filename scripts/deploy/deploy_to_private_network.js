@@ -1,7 +1,7 @@
 const hre = require("hardhat");
 const { existsSync, readJSONSync } = require("node-fs-extra");
 const { resolve } = require("path");
-const { asyncMain } = require("./util");
+const { asyncMain, makeFactory } = require("./util");
 const { main: configManualFeeds } = require("./002_configure_manual_feeds.js");
 const {
   main: configPriceOracles,
@@ -78,7 +78,7 @@ async function deployContracts(shadowNetwork = "sokol") {
   contracts = patchContracts(contracts);
   for (let contractId of Object.keys(contracts)) {
     let contractName = contracts[contractId].contractName;
-    let factory = await ethers.getContractFactory(contractName);
+    let factory = await makeFactory(contractName);
     let signer = factory.signer;
     let instance = await factory.deploy();
     await instance.deployed();
@@ -92,20 +92,33 @@ async function deployContracts(shadowNetwork = "sokol") {
   }
 
   for (let contract of ["GnosisSafe", "GnosisSafeProxyFactory"]) {
-    let factory = await ethers.getContractFactory(contract);
+    let factory = await makeFactory(contract);
     let instance = await factory.deploy();
     await instance.deployed();
     addresses[contract] = { proxy: instance.address, contractName: contract };
   }
 
   for (let contract of ["CARD", "DAI"]) {
-    let factory = await ethers.getContractFactory("ERC677Token");
+    let factory = await makeFactory("ERC677Token");
+    let signer = factory.signer;
     let instance = await factory.deploy();
     await instance.deployed();
     addresses[contract] = {
       proxy: instance.address,
       contractName: "ERC677Token",
     };
+
+    let writeableInstance = await new ethers.Contract(
+      instance.address,
+      instance.interface.fragments,
+      signer
+    );
+    await writeableInstance["initialize(string,string,uint8,address)"](
+      contract,
+      contract,
+      18,
+      signer.address
+    );
   }
 
   return addresses;
