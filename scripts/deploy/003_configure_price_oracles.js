@@ -30,7 +30,7 @@ async function main(addresses) {
     // use manual feeds in our chainlink oracles
     chainlinkDAIUSDAddress = getAddress("DAIUSDFeed", addresses);
     chainlinkETHUSDAddress = getAddress("ETHUSDFeed", addresses);
-  } else if (network === "hardhat") {
+  } else if (["hardhat", "localhost"].includes(network)) {
     chainlinkCARDUSDAddress = getAddress("CARDUSDFeed", addresses);
     chainlinkDAIUSDAddress = getAddress("DAIUSDFeed", addresses);
     chainlinkETHUSDAddress = getAddress("ETHUSDFeed", addresses);
@@ -117,7 +117,7 @@ function getAddress(contractId, addresses) {
   return info.proxy;
 }
 
-if (network !== "hardhat") {
+if (!["hardhat", "localhost"].includes(network)) {
   asyncMain(main);
 }
 

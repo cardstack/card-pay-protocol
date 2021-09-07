@@ -11,7 +11,7 @@ const {
 
 async function main(proxyAddresses) {
   // Only setup manual feeds in our test network
-  if (network === "sokol" || network === "hardhat") {
+  if (["sokol", "hardhat", "localhost"].includes(network)) {
     let config = {
       DAIUSDFeed: {
         description: "DAI",
@@ -36,7 +36,7 @@ async function main(proxyAddresses) {
         ],
       },
     };
-    if (network === "hardhat") {
+    if (["hardhat", "localhost"].includes(network)) {
       config = {
         ...config,
         ...{
@@ -100,7 +100,7 @@ Configuring ${contractId} ${proxy}
   }
 }
 
-if (network !== "hardhat") {
+if (!["hardhat", "localhost"].includes(network)) {
   asyncMain(main);
 }
 

@@ -21,6 +21,9 @@
       "cwd": "${workspaceRoot}",
       "program": "${workspaceFolder}/scripts/deploy/deploy_to_private_network.js",
       "console": "integratedTerminal",
+      "env": {
+        "HARDHAT_NETWORK": "localhost"
+      },
       "args": []
     },
     {

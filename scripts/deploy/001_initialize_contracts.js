@@ -121,7 +121,7 @@ async function main() {
   };
 
   // Use manual feeds in sokol
-  if (network === "sokol" || network == "hardhat") {
+  if (["sokol", "hardhat", "localhost"].includes(network)) {
     contracts["DAIUSDFeed"] = {
       contractName: "ManualFeed",
       init: [owner],
