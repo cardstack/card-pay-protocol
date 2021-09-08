@@ -40,12 +40,6 @@ const BRIDGE_MEDIATOR = process.env.BRIDGE_MEDIATOR ?? ZERO_ADDRESS;
 const PAYABLE_TOKENS = process.env.PAYABLE_TOKENS
   ? process.env.PAYABLE_TOKENS.split(",").map((t) => t.trim())
   : [];
-const GNOSIS_SAFE_MASTER_COPY =
-  process.env.GNOSIS_SAFE_MASTER_COPY ??
-  "0x6851D6fDFAfD08c0295C392436245E5bc78B0185";
-const GNOSIS_SAFE_FACTORY =
-  process.env.GNOSIS_SAFE_FACTORY ??
-  "0x76E2cFc1F5Fa8F6a5b3fC4c8F4788F0116861F9B";
 const MINIMUM_AMOUNT = process.env.MINIMUM_AMOUNT ?? "100"; // minimum face value (in SPEND) for new prepaid card
 const MAXIMUM_AMOUNT = process.env.MAXIMUM_AMOUNT ?? "100000"; // maximum face value (in SPEND) for new prepaid card
 const TALLY = process.env.TALLY ?? "0x76E2cFc1F5Fa8F6a5b3fC4c8F4788F0116861F9B";
@@ -56,6 +50,13 @@ const REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND =
   process.env.REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND ?? 500;
 
 async function main(proxyAddresses) {
+  const GNOSIS_SAFE_MASTER_COPY =
+    process.env.GNOSIS_SAFE_MASTER_COPY ??
+    "0x6851D6fDFAfD08c0295C392436245E5bc78B0185";
+  const GNOSIS_SAFE_FACTORY =
+    process.env.GNOSIS_SAFE_FACTORY ??
+    "0x76E2cFc1F5Fa8F6a5b3fC4c8F4788F0116861F9B";
+
   const RevenuePool = await makeFactory("RevenuePool");
   const PrepaidCardManager = await makeFactory("PrepaidCardManager");
   const PrepaidCardMarket = await makeFactory("PrepaidCardMarket");
