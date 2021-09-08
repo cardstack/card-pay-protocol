@@ -42,7 +42,7 @@ contract SplitPrepaidCardHandler is Ownable, Versionable {
    * @param from the token sender (should be the revenue pool)
    * @param amount the amount of tokens being transferred
    * @param data the data encoded as (address prepaidCard, uint256 spendAmount, bytes actionData)
-   * where actionData is encoded as (uint256[] issuingTokenAmounts, uint256[] spendAmounts, string customizatoinDID)
+   * where actionData is encoded as (uint256[] issuingTokenAmounts, uint256[] spendAmounts, string customizatoinDID, address marketAddress)
    */
   function onTokenTransfer(
     address payable from,
