@@ -50,7 +50,7 @@ contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
 
   bytes4 internal constant EIP1271_MAGIC_VALUE = 0x20c13b0b;
   bytes4 internal constant SWAP_OWNER = 0xe318b52b; //swapOwner(address,address,address)
-  uint256 internal nonce = 0;
+  uint256 internal nonce;
   address public prepaidCardManagerAddress;
   address public actionDispatcher;
   address public provisioner;
@@ -82,6 +82,11 @@ contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
       "caller is not the provisioner nor the owner"
     );
     _;
+  }
+
+  function initialize(address owner) public initializer {
+    nonce = 0;
+    Ownable.initialize(owner);
   }
 
   function setup(
