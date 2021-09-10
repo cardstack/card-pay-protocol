@@ -191,6 +191,7 @@ async function main() {
           console.log("Waiting for transaction");
           await instance.deployed();
         } catch (e) {
+          console.log(e);
           throw new Error("It failed, retrying");
         }
       });
