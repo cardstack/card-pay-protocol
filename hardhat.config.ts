@@ -2,13 +2,15 @@
  * @type import('hardhat/config').HardhatUserConfig
  */
 
-require("@nomiclabs/hardhat-truffle5");
-require("solidity-coverage");
-require("hardhat-contract-sizer");
-require("@openzeppelin/hardhat-upgrades");
-require("@nomiclabs/hardhat-ethers");
+import "@nomiclabs/hardhat-truffle5";
+import "solidity-coverage";
+import "hardhat-contract-sizer";
+import "@openzeppelin/hardhat-upgrades";
+import "@nomiclabs/hardhat-waffle";
+import "hardhat-typechain";
+import "@nomiclabs/hardhat-ethers";
 
-module.exports = {
+export default {
   solidity: {
     compilers: [
       {
@@ -18,6 +20,22 @@ module.exports = {
           optimizer: {
             enabled: true,
             runs: 200,
+          },
+        },
+      },
+      {
+        version: "0.6.8",
+        settings: {
+          optimizer: {
+            enabled: true,
+          },
+        },
+      },
+      {
+        version: "0.8.0",
+        settings: {
+          optimizer: {
+            enabled: true,
           },
         },
       },

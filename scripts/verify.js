@@ -1,5 +1,5 @@
 const { asyncMain } = require("./deploy/util.js");
-const { verifyImpl } = require("../lib/verify")
+const { verifyImpl } = require("../lib/verify");
 
 async function main() {
   let contractAtAddress = process.argv[2];
@@ -13,7 +13,5 @@ async function main() {
 
   await verifyImpl(contractName, address);
 }
-
-
 
 asyncMain(main);

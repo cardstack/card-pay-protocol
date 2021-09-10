@@ -147,7 +147,9 @@ contract("SPEND", (accounts) => {
 });
 
 function errorReason(error) {
-  let match = error.message.match(/^VM Exception while processing transaction: reverted with reason string '(.+)'$/);
+  let match = error.message.match(
+    /^VM Exception while processing transaction: reverted with reason string '(.+)'$/
+  );
   if (match) {
     return match[1];
   } else {

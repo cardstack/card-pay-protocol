@@ -18,7 +18,7 @@ chai.use(chaiBN(BN));
 chai.use(chaiExclude);
 chai.use(chaiAsPromised);
 
-chai.should()
+chai.should();
 
 exports.expect = chai.expect;
 exports.assert = chai.assert;
