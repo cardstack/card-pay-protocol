@@ -7,10 +7,6 @@
     "proxy": "0xfD59940a9789E161217A853F3D78ec619247ADb7",
     "contractName": "RevenuePool"
   },
-  "RewardPool": {
-    "proxy": "0x9d8Ea61555Ee7A5d1Ca9422de7Fd7866430710bB",
-    "contractName": "RewardPool"
-  },
   "ActionDispatcher": {
     "proxy": "0xaE5AC3685630b33Ed2677438EEaAe0aD5372c795",
     "contractName": "ActionDispatcher"
@@ -70,5 +66,57 @@
   "MerchantManager": {
     "proxy": "0xD764e42Af9B63aDb21a79974f80Ed381c79aC90A",
     "contractName": "MerchantManager"
+  },
+  "PrepaidCardMarket": {
+    "proxy": "0x959CF9c3f8bDdba69210159c25f77BCE58EADC75",
+    "contractName": "PrepaidCardMarket"
+  },
+  "RewardPool": {
+    "proxy": "0x2D23acfEA32492911E8DF12E697AF0013B8D4E7b",
+    "contractName": "RewardPool"
+  },
+  "SetPrepaidCardInventoryHandler": {
+    "proxy": "0x1243E39e42eD35cd272a05B152996cBB4E883fB8",
+    "contractName": "SetPrepaidCardInventoryHandler"
+  },
+  "RemovePrepaidCardInventoryHandler": {
+    "proxy": "0x2044a32A3515Db07E36c2D57b043Fd8eAb4b01a9",
+    "contractName": "RemovePrepaidCardInventoryHandler"
+  },
+  "SetPrepaidCardAskHandler": {
+    "proxy": "0x666A439cd8fbcF2cb826720C2E282Bb2c9743D0D",
+    "contractName": "SetPrepaidCardAskHandler"
+  },
+  "RewardManager": {
+    "proxy": "0x9A89A110238201c12568f3a4a02BE5Ae63284497",
+    "contractName": "RewardManager"
+  },
+  "AddRewardRuleHandler": {
+    "proxy": "0x9b36e44C9CF5846824D031C2C36Acc233523Aa82",
+    "contractName": "AddRewardRuleHandler"
+  },
+  "LockRewardProgramHandler": {
+    "proxy": "0xE78472ee61339ACb45563641A9450b215E456517",
+    "contractName": "LockRewardProgramHandler"
+  },
+  "RegisterRewardProgramHandler": {
+    "proxy": "0xaF5B2869Be9Eb9c45cc0501F17B145A3229dD2C0",
+    "contractName": "RegisterRewardProgramHandler"
+  },
+  "RegisterRewardeeHandler": {
+    "proxy": "0x0B793A280F2E47997432a9047073F5e634A9A731",
+    "contractName": "RegisterRewardeeHandler"
+  },
+  "RemoveRewardRuleHandler": {
+    "proxy": "0x35C56d847E97C47DDAEf701d1b2fD4990bdb9982",
+    "contractName": "RemoveRewardRuleHandler"
+  },
+  "UpdateRewardProgramAdminHandler": {
+    "proxy": "0x48D6Ec82d17CEd07aD14b1ADafd9d0a55Cb04769",
+    "contractName": "UpdateRewardProgramAdminHandler"
+  },
+  "PayRewardTokensHandler": {
+    "proxy": "0x51bB036F75D989bC576A50F3d68924ca23e6073d",
+    "contractName": "PayRewardTokensHandler"
   }
 }

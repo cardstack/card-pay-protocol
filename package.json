@@ -1,6 +1,6 @@
 {
   "name": "card-protocol-xdai",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -40,6 +40,7 @@
     "release:sokol:patch:upgrade-only": "node ./lib/prerelease.js patch && yarn deploy:sokol:upgrade-only && node ./lib/release.js sokol patch",
     "release:sokol:patch:upgrade-only:skip-verify": "node ./lib/prerelease.js patch && yarn deploy:sokol:upgrade-only:skip-verify && node ./lib/release.js sokol patch",
     "release:sokol:minor": "node ./lib/prerelease.js minor && yarn deploy:sokol && node ./lib/release.js sokol minor",
+    "release:sokol:minor:config-only": "node ./lib/prerelease.js minor && yarn deploy:sokol:config-only && node ./lib/release.js sokol minor",
     "release:sokol:major": "node ./lib/prerelease.js major && yarn deploy:sokol && node ./lib/release.js sokol major",
     "promote:xdai": "yarn deploy:xdai && node ./lib/release.js xdai promote",
     "promote:xdai:skip-verify": "yarn deploy:xdai:skip-verify && node ./lib/release.js xdai promote",
