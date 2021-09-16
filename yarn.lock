@@ -3829,9 +3829,9 @@
   resolved "https://registry.yarnpkg.com/@zxing/text-encoding/-/text-encoding-0.9.0.tgz#fb50ffabc6c7c66a0c96b4c03e3d9be74864b70b"
   integrity sha512-U/4aVJ2mxI0aDNI8Uq0wEhMgY+u4CNtEb0om3+y3+niDAsoTCOB33UF0sxpzqzdqXLqmvc+vZyAt4O8pPdfkwA==
 
-"CardPay-Contracts@link:../CardPay-Commerce-Protocol":
-  version "0.0.0"
-  uid ""
+"CardPay-Contracts@github:cardstack/CardPay-Commerce-Protocol#24d2f4ba2d6cea88cc9aa0e407ec910893430f98":
+  version "1.0.4"
+  resolved "git+ssh://git@github.com/cardstack/CardPay-Commerce-Protocol.git#24d2f4ba2d6cea88cc9aa0e407ec910893430f98"
 
 abab@^1.0.0:
   version "1.0.4"
@@ -8528,7 +8528,7 @@ ethers@^4.0.0-beta.1, ethers@^4.0.20, ethers@^4.0.32, ethers@^4.0.40, ethers@^4.
     uuid "2.0.1"
     xmlhttprequest "1.8.0"
 
-ethers@^5.0.1, ethers@^5.0.19, ethers@^5.0.2:
+ethers@^5.0.1, ethers@^5.0.2:
   version "5.4.6"
   resolved "https://registry.yarnpkg.com/ethers/-/ethers-5.4.6.tgz#fe0a023956b5502c947f58e82fbcf9a73e5e75b6"
   integrity sha512-F7LXARyB/Px3AQC6/QKedWZ8eqCkgOLORqL4B/F0Mag/K+qJSFGqsR36EaOZ6fKg3ZonI+pdbhb4A8Knt/43jQ==
