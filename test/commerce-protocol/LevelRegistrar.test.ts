@@ -1,8 +1,9 @@
 import chai, { expect } from "chai";
 import asPromised from "chai-as-promised";
-import { BaseErc20Factory } from "../typechain/BaseErc20Factory";
-import { LevelRegistrar } from "../typechain/LevelRegistrar";
-import { BaseErc20, LevelRegistrarFactory } from "../typechain";
+import { BaseERC20__factory } from "../../typechain/factories/BaseERC20__factory";
+import { LevelRegistrar__factory } from "../../typechain/factories/LevelRegistrar__factory";
+import { LevelRegistrar } from "../../typechain/LevelRegistrar";
+import { BaseERC20 } from "../../typechain/BaseERC20";
 import { Wallet } from "ethers";
 import { ethers } from "hardhat";
 
@@ -49,13 +50,13 @@ describe("Level Registrar", () => {
 
   async function deploy() {
     const levelRegistrar = await (
-      await new LevelRegistrarFactory(deployerWallet).deploy()
+      await new LevelRegistrar__factory(deployerWallet).deploy()
     ).deployed();
     levelRegistrarAddress = levelRegistrar.address;
   }
 
   function createERC20() {
-    return new BaseErc20Factory(deployerWallet).deploy(
+    return new BaseERC20__factory(deployerWallet).deploy(
       "Test Token",
       "TEST",
       18
@@ -63,7 +64,7 @@ describe("Level Registrar", () => {
   }
 
   async function registrarAs(wallet: Wallet) {
-    return LevelRegistrarFactory.connect(levelRegistrarAddress, wallet);
+    return LevelRegistrar__factory.connect(levelRegistrarAddress, wallet);
   }
 
   describe("#constructor", () => {
@@ -74,7 +75,7 @@ describe("Level Registrar", () => {
 
   describe("#levels", () => {
     let levelRegistrarContract: LevelRegistrar;
-    let erc20: BaseErc20;
+    let erc20: BaseERC20;
 
     beforeEach(async () => {
       await deploy();
@@ -105,7 +106,7 @@ describe("Level Registrar", () => {
       );
     });
 
-    it.only("should be able to get the level based on a balance", async () => {
+    it("should be able to get the level based on a balance", async () => {
       await levelRegistrarContract.setLevels([defaultLevel], erc20.address);
       const levelByBalance = await levelRegistrarContract.getLevelByBalance(
         deployerWallet.address,

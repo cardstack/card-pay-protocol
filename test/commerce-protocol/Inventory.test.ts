@@ -1,12 +1,12 @@
 import chai, { expect } from "chai";
 import asPromised from "chai-as-promised";
 import { Blockchain } from "./utils/Blockchain";
-import { MarketFactory } from "../../typechain/MarketFactory";
+import { Market__factory } from "../../typechain/factories/Market__factory";
 import { Wallet } from "ethers";
 import { waffle, ethers } from "hardhat";
 import { AddressZero } from "@ethersproject/constants";
 import { BigNumberish, Bytes } from "ethers";
-import { InventoryFactory } from "../typechain/InventoryFactory";
+import { Inventory__factory } from "../../typechain/factories/Inventory__factory";
 import { Inventory } from "../../typechain/Inventory";
 import {
   approveCurrency,
@@ -19,7 +19,10 @@ import {
   toNumWei,
 } from "./utils";
 import { arrayify, formatBytes32String, sha256 } from "ethers/lib/utils";
-import { ExchangeMockFactory, LevelRegistrarFactory } from "../typechain";
+import { ExchangeMock__factory } from "../../typechain/factories/ExchangeMock__factory";
+import { LevelRegistrar__factory } from "../../typechain/factories/LevelRegistrar__factory";
+import hre from "hardhat";
+const { chainId } = hre.network.config;
 
 chai.use(asPromised);
 
@@ -86,24 +89,24 @@ describe("Inventory", () => {
   let registarAddress: string;
 
   async function tokenAs(wallet: Wallet) {
-    return InventoryFactory.connect(tokenAddress, wallet);
+    return Inventory__factory.connect(tokenAddress, wallet);
   }
   async function deploy() {
     const auction = await (
-      await new MarketFactory(deployerWallet).deploy()
+      await new Market__factory(deployerWallet).deploy()
     ).deployed();
     auctionAddress = auction.address;
     const token = await (
-      await new InventoryFactory(deployerWallet).deploy(auction.address)
+      await new Inventory__factory(deployerWallet).deploy(auction.address)
     ).deployed();
     tokenAddress = token.address;
 
     const registrar = await (
-      await new LevelRegistrarFactory(deployerWallet).deploy()
+      await new LevelRegistrar__factory(deployerWallet).deploy()
     ).deployed();
     registarAddress = registrar.address;
 
-    const exchangeMock = await await new ExchangeMockFactory(
+    const exchangeMock = await await new ExchangeMock__factory(
       deployerWallet
     ).deploy();
 
@@ -115,7 +118,7 @@ describe("Inventory", () => {
       label: "noob",
       threshold: 0,
     };
-    await LevelRegistrarFactory.connect(registarAddress, wallet).setLevels(
+    await LevelRegistrar__factory.connect(registarAddress, wallet).setLevels(
       [defaultLevel],
       tokenAddress
     );
@@ -380,7 +383,7 @@ describe("Inventory", () => {
         merchantWallet.address,
         contentHash,
         metadataHash,
-        1
+        chainId
       );
 
       const beforeNonce = await token.mintWithSigNonces(merchantWallet.address);
@@ -418,9 +421,9 @@ describe("Inventory", () => {
         bidderWallet,
         token.address,
         merchantWallet.address,
-        tokenURI,
-        metadataURI,
-        1
+        "0xdeadbeef",
+        "0xbeefdead",
+        chainId
       );
 
       await expect(
@@ -499,8 +502,8 @@ describe("Inventory", () => {
         merchantWallet,
         token.address,
         merchantWallet.address,
-        tokenURI,
-        metadataURI,
+        contentHash,
+        metadataHash,
         1
       );
 
@@ -533,9 +536,17 @@ describe("Inventory", () => {
   });
 
   describe("#removeAsk", () => {
+    beforeEach(async () => {
+      await deploy();
+      const token = await tokenAs(ownerWallet);
+      await expect(
+        mint(token, metadataURI, tokenURI, contentHashBytes, metadataHashBytes)
+      ).fulfilled;
+    });
+
     it("should remove the ask", async () => {
       const token = await tokenAs(ownerWallet);
-      const market = await MarketFactory.connect(
+      const market = await Market__factory.connect(
         auctionAddress,
         deployerWallet
       );
@@ -548,13 +559,14 @@ describe("Inventory", () => {
 
     it("should emit an Ask Removed event", async () => {
       const token = await tokenAs(ownerWallet);
-      const auction = await MarketFactory.connect(
+      const auction = await Market__factory.connect(
         auctionAddress,
         deployerWallet
       );
+
       await setAsk(token, 0, defaultAsk);
       const block = await provider.getBlockNumber();
-
+      await removeAsk(token, 0);
       const events = await auction.queryFilter(
         auction.filters.AskRemoved(0, null),
         block
@@ -726,7 +738,10 @@ describe("Inventory", () => {
     it("should emit a bid finalized event if the bid is accepted", async () => {
       const asBidder = await tokenAs(bidderWallet);
       const token = await tokenAs(ownerWallet);
-      const auction = await MarketFactory.connect(auctionAddress, bidderWallet);
+      const auction = await Market__factory.connect(
+        auctionAddress,
+        bidderWallet
+      );
       const bid = defaultBid(currencyAddr, bidderWallet.address);
       const block = await provider.getBlockNumber();
       await setBid(asBidder, bid, 0);
@@ -1186,8 +1201,7 @@ describe("Inventory", () => {
         otherWallet.address,
         token.address,
         0,
-        // NOTE: We set the chain ID to 1 because of an error with ganache-core: https://github.com/trufflesuite/ganache-core/issues/515
-        1
+        chainId
       );
       await expect(token.permit(otherWallet.address, 0, sig)).fulfilled;
       await expect(token.getApproved(0)).eventually.eq(otherWallet.address);
@@ -1200,7 +1214,7 @@ describe("Inventory", () => {
         bidderWallet.address,
         token.address,
         0,
-        1
+        chainId
       );
       await expect(token.permit(otherWallet.address, 0, sig)).rejectedWith(
         "Inventory: Signature invalid"

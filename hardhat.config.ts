@@ -7,8 +7,22 @@ import "solidity-coverage";
 import "hardhat-contract-sizer";
 import "@openzeppelin/hardhat-upgrades";
 import "@nomiclabs/hardhat-waffle";
-import "hardhat-typechain";
+import "@typechain/hardhat";
 import "@nomiclabs/hardhat-ethers";
+
+import glob from "fast-glob";
+
+// force compiler version 0.5.17 for gnosis safe contracts, because their pragma
+// version is too lenient and they won't actually compile with 0.6.8 compiler
+const overrides = glob
+  .sync(`${__dirname}/node_modules/@gnosis.pm/safe-contracts/**/*.sol`)
+  .reduce(
+    (memo, path) =>
+      Object.assign(memo, {
+        [path.split("node_modules/")[1]]: { version: "0.5.17" },
+      }),
+    {}
+  );
 
 export default {
   solidity: {
@@ -40,6 +54,7 @@ export default {
         },
       },
     ],
+    overrides,
   },
 
   networks: {
@@ -63,7 +78,6 @@ export default {
   },
   contractSizer: {
     alphaSort: true,
-    runOnCompile: true,
     disambiguatePaths: true,
   },
   mocha: {

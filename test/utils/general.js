@@ -179,6 +179,7 @@ Object.assign(exports, {
   getRewardSafeFromEventLog,
   getParamsFromEvent,
   padZero,
+  signTypedData,
 });
 
 module.exports = exports;

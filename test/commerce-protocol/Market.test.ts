@@ -1,15 +1,15 @@
 import chai, { expect } from "chai";
 import asPromised from "chai-as-promised";
-import { Blockchain } from "../utils/Blockchain";
-import { MarketFactory } from "../typechain/MarketFactory";
+import { Blockchain } from "./utils/Blockchain";
+import { Market__factory } from "../../typechain/factories/Market__factory";
 import { BigNumberish, Wallet } from "ethers";
 import { formatUnits } from "@ethersproject/units";
 import { AddressZero, MaxUint256 } from "@ethersproject/constants";
-import { BaseErc20Factory } from "../typechain/BaseErc20Factory";
-import { Market } from "../typechain/Market";
-import { ExchangeMockFactory } from "../typechain/ExchangeMockFactory";
-import { LevelRegistrarFactory } from "../typechain";
-import Decimal from "../utils/Decimal";
+import { BaseERC20__factory } from "../../typechain/factories/BaseERC20__factory";
+import { Market } from "../../typechain/Market";
+import { ExchangeMock__factory } from "../../typechain/factories/ExchangeMock__factory";
+import { LevelRegistrar__factory } from "../../typechain/factories/LevelRegistrar__factory";
+import Decimal from "./utils/Decimal";
 import { ethers, waffle } from "hardhat";
 
 chai.use(asPromised);
@@ -71,21 +71,21 @@ describe("Market", () => {
   }
 
   async function auctionAs(wallet: Wallet) {
-    return MarketFactory.connect(auctionAddress, wallet);
+    return Market__factory.connect(auctionAddress, wallet);
   }
 
   async function levelRegistrarAs(wallet: Wallet) {
-    return LevelRegistrarFactory.connect(levelRegistrarAddress, wallet);
+    return LevelRegistrar__factory.connect(levelRegistrarAddress, wallet);
   }
 
   async function deploy() {
     const auction = await (
-      await new MarketFactory(deployerWallet).deploy()
+      await new Market__factory(deployerWallet).deploy()
     ).deployed();
     const exchange = await (
-      await new ExchangeMockFactory(deployerWallet).deploy()
+      await new ExchangeMock__factory(deployerWallet).deploy()
     ).deployed();
-    const levelRegistrar = await await new LevelRegistrarFactory(
+    const levelRegistrar = await await new LevelRegistrar__factory(
       deployerWallet
     ).deploy();
     levelRegistrarAddress = levelRegistrar.address;
@@ -94,7 +94,7 @@ describe("Market", () => {
   }
 
   async function configure() {
-    return MarketFactory.connect(auctionAddress, deployerWallet).configure(
+    return Market__factory.connect(auctionAddress, deployerWallet).configure(
       mockTokenWallet.address,
       exchangeAddress
     );
@@ -113,7 +113,7 @@ describe("Market", () => {
   }
 
   async function readInventoryContract() {
-    return MarketFactory.connect(
+    return Market__factory.connect(
       auctionAddress,
       deployerWallet
     ).inventoryContract();
@@ -124,7 +124,7 @@ describe("Market", () => {
   }
 
   async function deployCurrency() {
-    const currency = await new BaseErc20Factory(deployerWallet).deploy(
+    const currency = await new BaseERC20__factory(deployerWallet).deploy(
       "test",
       "TEST",
       18
@@ -133,7 +133,7 @@ describe("Market", () => {
   }
 
   async function mintCurrency(currency: string, to: string, value: number) {
-    await BaseErc20Factory.connect(currency, deployerWallet).mint(to, value);
+    await BaseERC20__factory.connect(currency, deployerWallet).mint(to, value);
   }
 
   async function approveCurrency(
@@ -141,13 +141,15 @@ describe("Market", () => {
     spender: string,
     owner: Wallet
   ) {
-    await BaseErc20Factory.connect(currency, owner).approve(
+    await BaseERC20__factory.connect(currency, owner).approve(
       spender,
       MaxUint256
     );
   }
   async function getBalance(currency: string, owner: string) {
-    return BaseErc20Factory.connect(currency, deployerWallet).balanceOf(owner);
+    return BaseERC20__factory.connect(currency, deployerWallet).balanceOf(
+      owner
+    );
   }
   async function setBid(
     auction: Market,
@@ -189,7 +191,7 @@ describe("Market", () => {
 
     it("should revert if not called by the owner", async () => {
       await expect(
-        MarketFactory.connect(auctionAddress, otherWallet).configure(
+        Market__factory.connect(auctionAddress, otherWallet).configure(
           mockTokenWallet.address,
           mockTokenWallet.address
         )
@@ -732,7 +734,7 @@ describe("Market", () => {
       await approveCurrency(currency, auction.address, bidderWallet);
 
       const bidderBalance = toNumWei(
-        await BaseErc20Factory.connect(currency, bidderWallet).balanceOf(
+        await BaseERC20__factory.connect(currency, bidderWallet).balanceOf(
           bidderWallet.address
         )
       );
@@ -747,7 +749,7 @@ describe("Market", () => {
       ).fulfilled;
 
       const afterBalance = toNumWei(
-        await BaseErc20Factory.connect(currency, bidderWallet).balanceOf(
+        await BaseERC20__factory.connect(currency, bidderWallet).balanceOf(
           bidderWallet.address
         )
       );
