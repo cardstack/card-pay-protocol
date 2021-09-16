@@ -1,3 +1,5 @@
+// Solhint doesn't know about hardhat supporting multiple compilers
+// solhint-disable-next-line compiler-version
 pragma solidity 0.6.8;
 
 // This contract exists solely to pull in the contracts from the CardPay-Contracts package,
