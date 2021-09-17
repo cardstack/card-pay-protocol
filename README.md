@@ -1,9 +1,9 @@
 ![main status](https://github.com/cardstack/card-protocol-xdai/actions/workflows/main.yml/badge.svg)
-# Card Protocol Contracts
+# Card Pay Protocol Contracts
 The project hosts the contracts that comprise the Card Protocol. This includes the Prepaid Card Manager, Revenue Pool, SPEND token, and L2 Payment Token (e.g. DAI-CPXD).
 
-## About the Card Protocol
-The Card Protocol is a set of contracts that are used to support commerce functions within the Cardstack ecosystem. This is includes fiat on-ramping, support for suppliers of prepaid cards via token bridging, the ability for merchants to sell digital goods and be paid by customers with prepaid cards.
+## About the Card Pay Protocol
+The Card Pay Protocol is a set of contracts that are used to support commerce functions within the Cardstack ecosystem. This is includes fiat on-ramping, support for suppliers of prepaid cards via token bridging, the ability for merchants to sell digital goods and be paid by customers with prepaid cards.
 ![Card Protocol Flow Diagram](https://user-images.githubusercontent.com/61075/116917836-2d5c8800-ac1d-11eb-991f-0ab53bd2cb67.png)
 
 The sequence diagram above depicts the flow of funds through the Card Protocol. The idea is starting from the left:
