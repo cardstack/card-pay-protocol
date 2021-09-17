@@ -63,6 +63,17 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
   );
   event GasPolicyAdded(string action, bool useGasPrice);
   event ContractSignerRemoved(address signer);
+  event PrepaidCardSend(
+    address prepaidCard,
+    uint256 spendAmount,
+    uint256 rateLock,
+    uint256 gasPrice,
+    uint256 safeTxGas,
+    uint256 baseGas,
+    string action,
+    bytes data,
+    bytes ownerSignature
+  );
 
   bytes4 public constant SWAP_OWNER = 0xe318b52b; //swapOwner(address,address,address)
   bytes4 public constant TRANSFER_AND_CALL = 0x4000aea0; //transferAndCall(address,uint256,bytes)
@@ -293,6 +304,17 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
   ) external returns (bool) {
     ExecTransactionData memory exTxData =
       validatedSendFields(prepaidCard, spendAmount, action, rateLock, data);
+    emit PrepaidCardSend(
+      prepaidCard,
+      spendAmount,
+      rateLock,
+      gasPrice,
+      safeTxGas,
+      baseGas,
+      action,
+      data,
+      ownerSignature
+    );
     return
       execTransaction(exTxData, ownerSignature, gasPrice, safeTxGas, baseGas);
   }
