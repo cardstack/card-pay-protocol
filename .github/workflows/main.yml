@@ -14,8 +14,11 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2-beta
 
-      - name: Build
+      - name: Install dependencies
         run: yarn install
+
+      - name: Build
+        run: yarn build && npx hardhat typechain && ls typechain
 
       - name: Test
         run: yarn test
