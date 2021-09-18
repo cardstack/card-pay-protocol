@@ -83,7 +83,7 @@
     "@types/node": "^14.14.2",
     "@typescript-eslint/eslint-plugin": "^4.31.0",
     "@typescript-eslint/parser": "^4.31.0",
-    "CardPay-Contracts": "github:cardstack/card-commerce-protocol#24d2f4ba2d6cea88cc9aa0e407ec910893430f98",
+    "CardPay-Contracts": "github:cardstack/card-commerce-protocol#c4a168df436ab66589ae2e65f58925b01c47d537",
     "async-await-retry": "^1.2.2",
     "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",

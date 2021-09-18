@@ -2169,6 +2169,11 @@
   version "2.5.0"
   resolved "https://codeload.github.com/OpenZeppelin/openzeppelin-contracts-upgradeable/tar.gz/bf0277b398c0454276bd8caf0ee35efaf46e686b"
 
+"@openzeppelin/contracts@3.2.0":
+  version "3.2.0"
+  resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-3.2.0.tgz#3e6b3a7662d8ed64271ade96ef42655db983fd9d"
+  integrity sha512-bUOmkSoPkjnUyMiKo6RYnb0VHBk5D9KKDAgNLzF41aqAM3TeE0yGdFF5dVRcV60pZdJLlyFT/jjXIZCWyyEzAQ==
+
 "@openzeppelin/fuzzy-solidity-import-parser@^0.1.2":
   version "0.1.2"
   resolved "https://registry.yarnpkg.com/@openzeppelin/fuzzy-solidity-import-parser/-/fuzzy-solidity-import-parser-0.1.2.tgz#3b9f524d6028ca73df60474a313e0295e5610c51"
@@ -3829,9 +3834,11 @@
   resolved "https://registry.yarnpkg.com/@zxing/text-encoding/-/text-encoding-0.9.0.tgz#fb50ffabc6c7c66a0c96b4c03e3d9be74864b70b"
   integrity sha512-U/4aVJ2mxI0aDNI8Uq0wEhMgY+u4CNtEb0om3+y3+niDAsoTCOB33UF0sxpzqzdqXLqmvc+vZyAt4O8pPdfkwA==
 
-"CardPay-Contracts@github:cardstack/card-commerce-protocol#24d2f4ba2d6cea88cc9aa0e407ec910893430f98":
+"CardPay-Contracts@github:cardstack/card-commerce-protocol#c4a168df436ab66589ae2e65f58925b01c47d537":
   version "1.0.4"
-  resolved "https://codeload.github.com/cardstack/card-commerce-protocol/tar.gz/24d2f4ba2d6cea88cc9aa0e407ec910893430f98"
+  resolved "https://codeload.github.com/cardstack/card-commerce-protocol/tar.gz/c4a168df436ab66589ae2e65f58925b01c47d537"
+  dependencies:
+    "@openzeppelin/contracts" "3.2.0"
 
 abab@^1.0.0:
   version "1.0.4"
