@@ -3,7 +3,7 @@
 pragma solidity 0.6.8;
 
 // This contract exists solely to pull in the contracts from the CardPay-Contracts package,
-// so that they are built by hardhat and included in the
+// so that they are built by hardhat and included in the artifacts directory
 
 import "CardPay-Contracts/contracts/BaseErc20.sol";
 import "CardPay-Contracts/contracts/ExchangeMock.sol";
