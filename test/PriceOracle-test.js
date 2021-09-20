@@ -9,6 +9,7 @@ contract("PriceOracle", async (accounts) => {
 
   describe("chainlink", () => {
     let daiFeed, ethFeed, chainlinkPrice, chainlinkPrice2;
+
     before(async () => {
       daiFeed = await Feed.new();
       await daiFeed.initialize(owner);

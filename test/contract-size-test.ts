@@ -1,3 +1,7 @@
+import hre from "hardhat";
+
+const { artifacts } = hre;
+
 const PrepaidCardManager = artifacts.require("PrepaidCardManager");
 const PrepaidCardMarket = artifacts.require("PrepaidCardMarket");
 const RevenuePool = artifacts.require("RevenuePool");
@@ -37,37 +41,39 @@ const UpdateRewardProgramAdminHandler = artifacts.require(
 const AddRewardRuleHandler = artifacts.require("AddRewardRuleHandler");
 const RemoveRewardRuleHandler = artifacts.require("RemoveRewardRuleHandler");
 
-module.exports = async () => {
-  await Promise.all([
-    // We use this to measure gas for all our contract creation. Please add
-    // any new contracts here:
-    await PrepaidCardManager.new(),
-    await PrepaidCardMarket.new(),
-    await RevenuePool.new(),
-    await BridgeUtils.new(),
-    await SPEND.new(),
-    await Feed.new(),
-    await ChainlinkOracle.new(),
-    await DIAOracle.new(),
-    await RewardPool.new(),
-    await Exchange.new(),
-    await ActionDispatcher.new(),
-    await PayMerchantHandler.new(),
-    await RegisterMerchantHandler.new(),
-    await TokenManager.new(),
-    await SupplierManager.new(),
-    await MerchantManager.new(),
-    await SplitPrepaidCardHandler.new(),
-    await TransferPrepaidCardHandler.new(),
-    await SetPrepaidCardInventoryHandler.new(),
-    await RemovePrepaidCardInventoryHandler.new(),
-    await SetPrepaidCardAskHandler.new(),
-    await RewardManager.new(),
-    await RegisterRewardProgramHandler.new(),
-    await RegisterRewardeeHandler.new(),
-    await LockRewardProgramHandler.new(),
-    await UpdateRewardProgramAdminHandler.new(),
-    await AddRewardRuleHandler.new(),
-    await RemoveRewardRuleHandler.new(),
-  ]);
-};
+describe("Contract deploy gas usage", async () => {
+  it("Deploys all of the contracts", async () => {
+    await Promise.all([
+      // We use this to measure gas for all our contract creation. Please add
+      // any new contracts here:
+      await PrepaidCardManager.new(),
+      await PrepaidCardMarket.new(),
+      await RevenuePool.new(),
+      await BridgeUtils.new(),
+      await SPEND.new(),
+      await Feed.new(),
+      await ChainlinkOracle.new(),
+      await DIAOracle.new(),
+      await RewardPool.new(),
+      await Exchange.new(),
+      await ActionDispatcher.new(),
+      await PayMerchantHandler.new(),
+      await RegisterMerchantHandler.new(),
+      await TokenManager.new(),
+      await SupplierManager.new(),
+      await MerchantManager.new(),
+      await SplitPrepaidCardHandler.new(),
+      await TransferPrepaidCardHandler.new(),
+      await SetPrepaidCardInventoryHandler.new(),
+      await RemovePrepaidCardInventoryHandler.new(),
+      await SetPrepaidCardAskHandler.new(),
+      await RewardManager.new(),
+      await RegisterRewardProgramHandler.new(),
+      await RegisterRewardeeHandler.new(),
+      await LockRewardProgramHandler.new(),
+      await UpdateRewardProgramAdminHandler.new(),
+      await AddRewardRuleHandler.new(),
+      await RemoveRewardRuleHandler.new(),
+    ]);
+  });
+});

@@ -16,3 +16,5 @@ coverage
 cache
 artifacts
 build
+typechain
+dist
