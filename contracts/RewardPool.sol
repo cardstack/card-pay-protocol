@@ -21,7 +21,7 @@ contract RewardPool is Initializable, Versionable, Ownable {
     address rewardProgramID,
     address rewardee,
     address rewardSafe,
-    address token
+    address token,
     uint256 amount
   );
   event MerkleRootSubmission(bytes32 payeeRoot, uint256 numPaymentCycles);
