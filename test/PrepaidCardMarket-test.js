@@ -149,6 +149,10 @@ contract("PrepaidCardMarket", (accounts) => {
     await cardcpxdToken.mint(fundingCard.address, toTokenUnit(1));
   });
 
+  beforeEach(async () => {
+    await prepaidCardMarket.setPaused(false);
+  });
+
   describe("manage inventory", () => {
     describe("setItems", () => {
       it(`can set item in the inventory`, async function () {
@@ -501,6 +505,23 @@ contract("PrepaidCardMarket", (accounts) => {
         ).should.be.rejectedWith(Error, "Invalid owner provided");
       });
 
+      it(`rejects when contract is paused (paused contract cannot perform EIP-1271 signing)`, async function () {
+        let inventory = await prepaidCardMarket.getInventory(sku);
+        expect(inventory.length).to.be.greaterThanOrEqual(1);
+        let testCards = await Promise.all(
+          inventory.slice(0, 1).map((a) => GnosisSafe.at(a))
+        );
+        await prepaidCardMarket.setPaused(true);
+        await removePrepaidCardInventory(
+          prepaidCardManager,
+          fundingCard,
+          testCards,
+          prepaidCardMarket,
+          issuer,
+          relayer
+        ).should.be.rejectedWith(Error, "safe transaction was reverted");
+      });
+
       it(`rejects when market address is missing`, async function () {
         let inventory = await prepaidCardMarket.getInventory(sku);
         expect(inventory.length).to.be.greaterThanOrEqual(1);
@@ -829,6 +850,18 @@ contract("PrepaidCardMarket", (accounts) => {
       );
     });
 
+    it(`rejects when contract is paused`, async function () {
+      expect(
+        (await prepaidCardMarket.getInventory(sku)).length
+      ).to.be.greaterThanOrEqual(1);
+      await prepaidCardMarket.setPaused(true);
+      await prepaidCardMarket
+        .provisionPrepaidCard(customer, sku, {
+          from: provisioner,
+        })
+        .should.be.rejectedWith(Error, "Contract is paused");
+    });
+
     it(`rejects when no more inventory exists for the sku`, async function () {
       let inventory = await prepaidCardMarket.getInventory(sku);
       for (let i = 0; i < inventory.length; i++) {
@@ -839,6 +872,25 @@ contract("PrepaidCardMarket", (accounts) => {
       await prepaidCardMarket
         .provisionPrepaidCard(customer, sku)
         .should.be.rejectedWith(Error, "No more prepaid cards for sku");
+    });
+  });
+
+  describe("contract management", () => {
+    it("owner can pause contract", async function () {
+      await prepaidCardMarket.setPaused(true);
+      expect(await prepaidCardMarket.paused()).to.equal(true);
+    });
+
+    it("owner can resume contract", async function () {
+      await prepaidCardMarket.setPaused(true);
+      await prepaidCardMarket.setPaused(false);
+      expect(await prepaidCardMarket.paused()).to.equal(false);
+    });
+
+    it("rejects when non-owner pauses contract", async function () {
+      await prepaidCardMarket
+        .setPaused(true, { from: customer })
+        .should.be.rejectedWith(Error, "Ownable: caller is not the owner");
     });
   });
 

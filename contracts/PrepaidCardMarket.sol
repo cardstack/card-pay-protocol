@@ -47,6 +47,7 @@ contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
     bytes32 sku,
     uint256 askPrice
   );
+  event PausedToggled(bool paused);
 
   bytes4 internal constant EIP1271_MAGIC_VALUE = 0x20c13b0b;
   bytes4 internal constant SWAP_OWNER = 0xe318b52b; //swapOwner(address,address,address)
@@ -60,6 +61,7 @@ contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
   mapping(bytes32 => SKU) public skus; // sku => sku data
   mapping(address => address) public provisionedCards; // prepaid card => EOA
   mapping(bytes32 => bool) internal signatures;
+  bool public paused;
 
   modifier onlyHandlersOrPrepaidCardManager() {
     require(
@@ -87,6 +89,7 @@ contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
   function initialize(address owner) public initializer {
     nonce = 0;
     Ownable.initialize(owner);
+    paused = false;
   }
 
   function setup(
@@ -99,6 +102,11 @@ contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
     actionDispatcher = _actionDispatcher;
 
     emit Setup();
+  }
+
+  function setPaused(bool _paused) external onlyOwner {
+    paused = _paused;
+    emit PausedToggled(_paused);
   }
 
   function setItem(address issuer, address prepaidCard)
@@ -180,6 +188,7 @@ contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
     onlyProvisionerOrOwner
     returns (bool)
   {
+    require(!paused, "Contract is paused");
     require(inventory[sku].length() > 0, "No more prepaid cards for sku");
     require(asks[sku] > 0, "No ask price for sku");
 
@@ -269,7 +278,10 @@ contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
     bytes memory data, // solhint-disable-line no-unused-vars
     bytes memory signature
   ) public view returns (bytes4) {
-    return signatures[keccak256(signature)] ? EIP1271_MAGIC_VALUE : bytes4(0);
+    return
+      signatures[keccak256(signature)] && !paused
+        ? EIP1271_MAGIC_VALUE
+        : bytes4(0);
   }
 
   function validateItem(address issuer, address prepaidCard)
