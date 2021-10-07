@@ -34,6 +34,7 @@
     "deploy:hardhat": "env HARDHAT_NETWORK=localhost ./node_modules/.bin/hardhat run scripts/deploy/deploy_to_private_network.js",
     "verify": "./node_modules/.bin/hardhat run scripts/verify.js",
     "verify:sokol": "env HARDHAT_NETWORK=sokol yarn verify",
+    "verify:xdai": "env HARDHAT_NETWORK=xdai yarn verify",
     "release:sokol:patch": "node ./lib/prerelease.js patch && yarn deploy:sokol && node ./lib/release.js sokol patch",
     "release:sokol:patch:skip-verify": "node ./lib/prerelease.js patch && yarn deploy:sokol:skip-verify && node ./lib/release.js sokol patch",
     "release:sokol:patch:config-only": "node ./lib/prerelease.js patch && yarn deploy:sokol:config-only && node ./lib/release.js sokol patch",
