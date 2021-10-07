@@ -201,6 +201,9 @@ async function main() {
         proxy: proxyAddress,
         contractName,
       };
+      console.log(
+        `Deployed new proxy for ${contractId} (contract name: ${contractName}) to address ${proxyAddress}`
+      );
     }
     let unverifiedImpls = difference(implAddresses(network), [
       ...previousImpls,
