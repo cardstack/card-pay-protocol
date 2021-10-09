@@ -10,7 +10,6 @@ import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 import "./core/Safe.sol";
 import "./core/Versionable.sol";
 import "./ActionDispatcher.sol";
-import "hardhat/console.sol";
 
 contract RewardManager is Ownable, Versionable, Safe {
   using EnumerableSet for EnumerableSet.AddressSet;
@@ -55,6 +54,7 @@ contract RewardManager is Ownable, Versionable, Safe {
   }
 
   EnumerableSet.AddressSet rewardProgramIDs;
+  EnumerableSet.AddressSet eip1271Contracts;
   mapping(address => address) public rewardProgramAdmins; //reward program id <> reward program admins
   mapping(address => RewardProgram) public rewardPrograms; //reward program ids
   mapping(address => EnumerableSet.AddressSet) internal rewardSafes; //reward program id <> reward safes
@@ -81,7 +81,8 @@ contract RewardManager is Ownable, Versionable, Safe {
     address _gsProxyFactory,
     address payable _rewardFeeReceiver,
     uint256 _rewardeeRegistrationFeeInSPEND,
-    uint256 _rewardProgramRegistrationFeeInSPEND
+    uint256 _rewardProgramRegistrationFeeInSPEND,
+    address[] calldata _eip1271Contracts
   ) external onlyOwner {
     require(_rewardFeeReceiver != ZERO_ADDRESS, "rewardFeeReceiver not set");
     require(
@@ -97,6 +98,9 @@ contract RewardManager is Ownable, Versionable, Safe {
     rewardFeeReceiver = _rewardFeeReceiver;
     rewardeeRegistrationFeeInSPEND = _rewardeeRegistrationFeeInSPEND;
     rewardProgramRegistrationFeeInSPEND = _rewardProgramRegistrationFeeInSPEND;
+    for (uint256 i = 0; i < _eip1271Contracts.length; i++) {
+      eip1271Contracts.add(_eip1271Contracts[i]);
+    }
     emit Setup();
   }
 
@@ -278,9 +282,11 @@ contract RewardManager is Ownable, Versionable, Safe {
     return
       ((_equalBytes(data, encodedTransactionData) &&
         (to == msg.sender && signatures[keccak256(contractSignature)])) ||
-        to == address(this))
+        (to == address(this)) ||
+        (eip1271Contracts.contains(to)))
         ? EIP1271_MAGIC_VALUE
         : bytes4(0);
+    return EIP1271_MAGIC_VALUE;
   }
 
   function hasRule(address rewardProgramID, string calldata ruleDID)
