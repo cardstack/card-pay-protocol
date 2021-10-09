@@ -2,26 +2,30 @@ pragma solidity ^0.5.17;
 
 import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contract-upgradeable/contracts/utils/EnumerableSet.sol";
-import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 import "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
 import "@openzeppelin/contract-upgradeable/contracts/math/SafeMath.sol";
+import "@gnosis.pm/safe-contracts/contracts/interfaces/ISignatureValidator.sol";
+import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 
 import "./core/Safe.sol";
 import "./core/Versionable.sol";
 import "./ActionDispatcher.sol";
+import "hardhat/console.sol";
 
 contract RewardManager is Ownable, Versionable, Safe {
-  //Using
   using EnumerableSet for EnumerableSet.AddressSet;
   using SafeMath for uint256;
 
-  //Events
   event Setup();
   event RewardProgramCreated(address rewardProgramID, address admin);
   event RewardProgramRemoved(address rewardProgramID);
   event RewardProgramAdminUpdated(address rewardProgramID, address newAdmin);
   event RewardProgramLocked(address rewardProgramID);
-  event RewardSafeTransferred(address oldOwner, address newOwner);
+  event RewardSafeTransferred(
+    address rewardSafe,
+    address oldOwner,
+    address newOwner
+  );
   event RewardRuleAdded(address rewardProgramID, string ruleDID);
   event RewardRuleRemoved(address rewardProgramID, string ruleDID);
   event RewardeeRegistered(
@@ -30,10 +34,12 @@ contract RewardManager is Ownable, Versionable, Safe {
     address rewardSafe
   );
 
-  // Constants
   address internal constant ZERO_ADDRESS = address(0);
+  bytes4 internal constant EIP1271_MAGIC_VALUE = 0x20c13b0b;
+  bytes4 internal constant SWAP_OWNER = 0xe318b52b; //swapOwner(address,address,address)
+  string internal constant REWARD_PREFIX = "safe.rewards.cardstack";
+  uint256 internal _nonce;
 
-  //State Variables
   address public actionDispatcher;
   uint256 public rewardeeRegistrationFeeInSPEND;
   uint256 public rewardProgramRegistrationFeeInSPEND;
@@ -51,9 +57,10 @@ contract RewardManager is Ownable, Versionable, Safe {
   EnumerableSet.AddressSet rewardProgramIDs;
   mapping(address => address) public rewardProgramAdmins; //reward program id <> reward program admins
   mapping(address => RewardProgram) public rewardPrograms; //reward program ids
-  mapping(address => mapping(address => address)) public rewardSafes; //reward program id <> prepaid card owner <> reward safes
+  mapping(address => EnumerableSet.AddressSet) internal rewardSafes; //reward program id <> reward safes
   mapping(address => mapping(string => Rule)) public rule; //reward program id <> rule did <> Rule
   mapping(address => bool) public rewardProgramLocked; //reward program id <> locked
+  mapping(bytes32 => bool) internal signatures;
 
   modifier onlyHandlers() {
     require(
@@ -63,7 +70,11 @@ contract RewardManager is Ownable, Versionable, Safe {
     _;
   }
 
-  //External Mutating Functions
+  function initialize(address owner) public initializer {
+    _nonce = 0;
+    Ownable.initialize(owner);
+  }
+
   function setup(
     address _actionDispatcher,
     address _gsMasterCopy,
@@ -145,31 +156,51 @@ contract RewardManager is Ownable, Versionable, Safe {
     onlyHandlers
     returns (address)
   {
-    // creation of reward safe
-    // - enable person to claim rewards
-    address rewardSafe = rewardSafes[rewardProgramID][prepaidCardOwner];
-    require(
-      rewardSafe == ZERO_ADDRESS,
-      "prepaid card owner already registered for reward program"
-    );
     address[] memory owners = new address[](2);
-
     owners[0] = address(this);
     owners[1] = prepaidCardOwner;
-    rewardSafe = createSafe(owners[1]);
-    rewardSafes[rewardProgramID][prepaidCardOwner] = rewardSafe;
+    uint256 salt = _createSalt(rewardProgramID, prepaidCardOwner);
+    address rewardSafe = create2Safe(owners, 2, salt);
+    rewardSafes[rewardProgramID].add(rewardSafe);
     emit RewardeeRegistered(rewardProgramID, prepaidCardOwner, rewardSafe);
     return rewardSafe;
   }
 
-  //Public View Functions
+  function transferRewardSafe(
+    address to,
+    bytes calldata data,
+    uint256 safeTxGas,
+    uint256 baseGas,
+    uint256 gasPrice,
+    address gasToken,
+    bytes calldata signature,
+    address payable rewardSafe,
+    address rewardProgramID
+  ) external {
+    address rewardSafeOwner = getRewardSafeOwner(rewardSafe);
+    bytes memory conSignature = contractSignature(rewardSafe, rewardSafeOwner);
+    signatures[keccak256(conSignature)] = true;
+    execTransaction(
+      to,
+      data,
+      safeTxGas,
+      baseGas,
+      gasPrice,
+      gasToken,
+      signature,
+      rewardSafe
+    );
+    signatures[keccak256(conSignature)] = false;
+  }
+
   function getRewardSafeOwner(address payable rewardSafe)
     public
     view
     returns (address)
   {
     address[] memory owners = GnosisSafe(rewardSafe).getOwners();
-    return owners[0];
+    require(owners.length == 2, "unexpected number of owners for reward safe");
+    return owners[0] == address(this) ? owners[1] : owners[0];
   }
 
   function isRewardProgram(address rewardProgramID) public view returns (bool) {
@@ -180,11 +211,78 @@ contract RewardManager is Ownable, Versionable, Safe {
     address payable rewardSafe,
     address rewardProgramID
   ) public view returns (bool) {
-    address rewardSafeOwner = getRewardSafeOwner(rewardSafe);
-    return rewardSafe == rewardSafes[rewardProgramID][rewardSafeOwner];
+    return rewardSafes[rewardProgramID].contains(rewardSafe);
   }
 
-  // External View Functions
+  function encodeTransactionData(bytes memory signature)
+    public
+    view
+    returns (address, bytes memory)
+  {
+    (
+      address to,
+      uint256 value,
+      bytes memory payload,
+      uint8 operation,
+      uint256 safeTxGas,
+      uint256 baseGas,
+      uint256 gasPrice,
+      address gasToken,
+      address refundReceiver,
+      uint256 nonce
+    ) =
+      abi.decode(
+        signature,
+        (
+          address,
+          uint256,
+          bytes,
+          uint8,
+          uint256,
+          uint256,
+          uint256,
+          address,
+          address,
+          uint256
+        )
+      );
+    return (
+      to,
+      GnosisSafe(msg.sender).encodeTransactionData(
+        to,
+        value,
+        payload,
+        Enum.Operation.Call,
+        safeTxGas,
+        baseGas,
+        gasPrice,
+        gasToken,
+        refundReceiver,
+        nonce
+      )
+    );
+  }
+
+  function isValidSignature(bytes memory data, bytes memory signature)
+    public
+    view
+    returns (bytes4)
+  {
+    (address to, bytes memory encodedTransactionData) =
+      encodeTransactionData(signature);
+    address rewardSafeOwner = getRewardSafeOwner(msg.sender);
+
+    bytes memory contractSignature =
+      _contractSignature(msg.sender, rewardSafeOwner);
+    //can't use contractSignature function because it modifies state
+    return
+      ((_equalBytes(data, encodedTransactionData) &&
+        (to == msg.sender && signatures[keccak256(contractSignature)])) ||
+        to == address(this))
+        ? EIP1271_MAGIC_VALUE
+        : bytes4(0);
+  }
+
   function hasRule(address rewardProgramID, string calldata ruleDID)
     external
     view
@@ -197,19 +295,6 @@ contract RewardManager is Ownable, Versionable, Safe {
     }
   }
 
-  function hasRewardSafe(address rewardProgramID, address prepaidCardOwner)
-    external
-    view
-    returns (bool)
-  {
-    if (rewardSafes[rewardProgramID][prepaidCardOwner] == ZERO_ADDRESS) {
-      return false;
-    } else {
-      return true;
-    }
-  }
-
-  //Internal View Functions
   function _equalRule(Rule memory rule1, Rule memory rule2)
     internal
     pure
@@ -219,5 +304,76 @@ contract RewardManager is Ownable, Versionable, Safe {
     return
       (keccak256(abi.encodePacked(rule1.tallyRuleDID, rule1.benefitDID))) ==
       keccak256(abi.encodePacked(rule2.tallyRuleDID, rule2.benefitDID));
+  }
+
+  function _createSalt(address rewardProgramID, address prepaidCardOwner)
+    internal
+    pure
+    returns (uint256)
+  {
+    return
+      uint256(
+        keccak256(
+          abi.encodePacked(REWARD_PREFIX, rewardProgramID, prepaidCardOwner)
+        )
+      );
+  }
+
+  function _equalBytes(bytes memory bytesArr1, bytes memory bytesArr2)
+    internal
+    view
+    returns (bool)
+  {
+    return
+      keccak256(abi.encodePacked(bytesArr1)) ==
+      keccak256(abi.encodePacked(bytesArr2));
+  }
+
+  function contractSignature(address rewardSafe, address owner)
+    internal
+    returns (bytes memory)
+  {
+    _nonce++;
+    return _contractSignature(rewardSafe, owner);
+  }
+
+  function _contractSignature(address rewardSafe, address owner)
+    private
+    view
+    returns (bytes memory)
+  {
+    return
+      abi.encodePacked(
+        keccak256(abi.encodePacked(address(this), _nonce, rewardSafe, owner))
+      );
+  }
+
+  function execTransaction(
+    address to,
+    bytes memory data,
+    uint256 safeTxGas,
+    uint256 baseGas,
+    uint256 gasPrice,
+    address gasToken,
+    bytes memory signature,
+    address payable rewardSafe
+  ) private returns (bool) {
+    require(
+      GnosisSafe(rewardSafe).execTransaction(
+        to,
+        0,
+        data,
+        Enum.Operation.Call,
+        safeTxGas,
+        baseGas,
+        gasPrice,
+        gasToken,
+        rewardSafe,
+        signature
+      ),
+      "safe transaction was reverted"
+    );
+
+    return true;
   }
 }
