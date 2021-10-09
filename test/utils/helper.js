@@ -1827,6 +1827,66 @@ exports.claimReward = async function (
 
   let payload = claimReward.encodeABI();
   let gasEstimate = await claimReward.estimateGas({ from: rewardSafe.address });
+
+  let safeTxData = {
+    to: rewardPool.address,
+    data: payload,
+    txGasEstimate: gasEstimate,
+    gasPrice: 1000000000,
+    txGasToken: token.address,
+    refundReceive: rewardSafe.address,
+  };
+
+  const nonce = await rewardSafe.nonce();
+
+  let packData = packExecutionData(safeTxData);
+  let safeTxArr = Object.keys(packData).map((key) => packData[key]);
+
+  let signature = await createEIP1271Signature(
+    ...safeTxArr,
+    nonce,
+    rewardSafeOwner,
+    rewardSafe,
+    rewardManager
+  );
+
+  let { safeTxHash, safeTx } = await sendSafeTransaction(
+    safeTxData,
+    rewardSafe,
+    relayer,
+    signature
+  );
+
+  return {
+    safeTx,
+    safeTxHash,
+    executionSucceeded: checkGnosisExecution(
+      safeTx,
+      safeTxHash,
+      rewardSafe.address
+    ),
+  };
+};
+exports.claimReward2 = async function (
+  rewardManager,
+  rewardPool,
+  relayer,
+  rewardSafe,
+  rewardSafeOwner,
+  rewardProgramID,
+  token,
+  claimAmount,
+  proof
+) {
+  let claimReward = rewardPool.contract.methods.claim(
+    rewardProgramID,
+    token.address,
+    claimAmount,
+    proof
+  );
+
+  let payload = claimReward.encodeABI();
+  let gasEstimate = await claimReward.estimateGas({ from: rewardSafe.address });
   const nonce = await rewardSafe.nonce();
   let previousOwnerSignature = await createSignature(
     rewardPool.address,
