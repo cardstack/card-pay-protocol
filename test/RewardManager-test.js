@@ -9,6 +9,7 @@ const RewardManager = artifacts.require("RewardManager");
 const RevenuePool = artifacts.require("RevenuePool.sol");
 const MerchantManager = artifacts.require("MerchantManager");
 const ERC677Token = artifacts.require("ERC677Token.sol");
+const RewardPool = artifacts.require("RewardPool");
 
 const { randomHex } = require("web3-utils");
 const { expect, TOKEN_DETAIL_DATA } = require("./setup");
@@ -54,7 +55,8 @@ contract("RewardManager", (accounts) => {
     spendToken,
     actionDispatcher,
     revenuePool,
-    merchantManager;
+    merchantManager,
+    rewardPool;
   // handlers
   let registerRewardeeHandler,
     registerRewardProgramHandler,
@@ -76,6 +78,7 @@ contract("RewardManager", (accounts) => {
     relayer,
     merchantFeeReceiver,
     otherPrepaidCardOwner,
+    tally,
     prepaidCardOwnerA,
     prepaidCardOwnerB;
   // safes
@@ -93,6 +96,7 @@ contract("RewardManager", (accounts) => {
     merchantFeeReceiver = accounts[5];
     rewardFeeReceiver = accounts[6];
     otherPrepaidCardOwner = accounts[7];
+    tally = accounts[8];
 
     // deploy
     proxyFactory = await ProxyFactory.new();
@@ -117,6 +121,8 @@ contract("RewardManager", (accounts) => {
     await merchantManager.initialize(owner);
     rewardManager = await RewardManager.new();
     await rewardManager.initialize(owner);
+    rewardPool = await RewardPool.new();
+    await rewardPool.initialize(owner);
 
     prepaidCardOwnerA = findAccountAfterAddress(
       accounts.slice(10),
@@ -166,13 +172,15 @@ contract("RewardManager", (accounts) => {
       0,
       1000
     );
+    await rewardPool.setup(tally, rewardManager.address, tokenManager.address);
     await rewardManager.setup(
       actionDispatcher.address,
       gnosisSafeMasterCopy.address,
       proxyFactory.address,
       rewardFeeReceiver,
       REWARDEE_REGISTRATION_FEE_IN_SPEND,
-      REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND
+      REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
+      [rewardPool.address]
     );
     await prepaidCardManager.addGasPolicy("transfer", false);
     await prepaidCardManager.addGasPolicy("split", false);
@@ -227,7 +235,8 @@ contract("RewardManager", (accounts) => {
         proxyFactory.address,
         rewardFeeReceiver,
         REWARDEE_REGISTRATION_FEE_IN_SPEND,
-        REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND
+        REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
+        [rewardPool.address]
       );
     });
 
@@ -239,7 +248,8 @@ contract("RewardManager", (accounts) => {
           proxyFactory.address,
           ZERO_ADDRESS,
           REWARDEE_REGISTRATION_FEE_IN_SPEND,
-          REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND
+          REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
+          [rewardPool.address]
         )
         .should.be.rejectedWith(Error, "rewardFeeReceiver not set");
     });
@@ -251,7 +261,8 @@ contract("RewardManager", (accounts) => {
           proxyFactory.address,
           rewardFeeReceiver,
           0,
-          REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND
+          REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
+          [rewardPool.address]
         )
         .should.be.rejectedWith(
           Error,
@@ -267,7 +278,8 @@ contract("RewardManager", (accounts) => {
           proxyFactory.address,
           rewardFeeReceiver,
           REWARDEE_REGISTRATION_FEE_IN_SPEND,
-          0
+          0,
+          [rewardPool.address]
         )
         .should.be.rejectedWith(
           Error,
@@ -283,6 +295,7 @@ contract("RewardManager", (accounts) => {
           rewardFeeReceiver,
           REWARDEE_REGISTRATION_FEE_IN_SPEND,
           REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
+          [rewardPool.address],
           { from: issuer }
         )
         .should.be.rejectedWith(Error, "Ownable: caller is not the owner");
