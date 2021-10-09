@@ -16,7 +16,7 @@ contract RewardPool is Initializable, Versionable, Ownable {
   using SafeMath for uint256;
   using MerkleProof for bytes32[];
 
-  event Setup(address tally, address rewardManager);
+  event Setup(address tally, address rewardManager, address tokenManager);
   event RewardeeClaim(
     address rewardProgramID,
     address rewardee,
@@ -72,7 +72,7 @@ contract RewardPool is Initializable, Versionable, Ownable {
       rewardManager != ZERO_ADDRESS,
       "Reward Manager should not be zero address"
     );
-    emit Setup(_tally, _rewardManager);
+    emit Setup(_tally, _rewardManager, _tokenManager);
   }
 
   function submitPayeeMerkleRoot(bytes32 payeeRoot)
