@@ -32,7 +32,13 @@ const UpdateRewardProgramAdminHandler = artifacts.require(
 );
 const PayRewardTokensHandler = artifacts.require("PayRewardTokensHandler");
 
-const { toBN } = require("web3-utils");
+const {
+  toBN,
+  numberToHex,
+  padLeft,
+  soliditySha3,
+  hexToBytes,
+} = require("web3-utils");
 const { TOKEN_DETAIL_DATA } = require("../setup");
 const eventABIs = require("./constant/eventABIs");
 const {
@@ -41,12 +47,18 @@ const {
   signSafeTransaction,
   ZERO_ADDRESS,
   getGnosisSafeFromEventLog,
+  createSignature,
+  createContractSignature,
+  sortSignatures,
+  createEIP1271Signature,
+  checkGnosisExecution,
 } = require("./general");
 
 // we'll just use the block gas limit as a safe tx gas estimate because its
 // easy and the relay server is really responsible for this (and not part of
 // these tests)
 const BLOCK_GAS_LIMIT = 6000000;
+const SENTINEL_OWNER = "0x0000000000000000000000000000000000000001";
 
 function toTokenUnit(_numberToken, _decimals = 18) {
   let dec = toBN("10").pow(toBN(_decimals));
@@ -131,27 +143,16 @@ async function getIssuingToken(prepaidCardManager, prepaidCard) {
   return await ERC677Token.at(details.issueToken);
 }
 
-async function signAndSendSafeTransaction(
+const sendSafeTransaction = async (
   safeTxData,
-  owner,
   gnosisSafe,
   relayer,
+  signature,
   options = null
-) {
+) => {
   let packData = packExecutionData(safeTxData);
-
   let safeTxArr = Object.keys(packData).map((key) => packData[key]);
-
   let nonce = await gnosisSafe.nonce();
-  // sign data with nonce by owner and gnosisSafe
-  let signature = await signSafeTransaction(
-    ...safeTxArr,
-    nonce,
-    owner,
-    gnosisSafe
-  );
-
-  // compute txHash of transaction
   let safeTxHash = await gnosisSafe.getTransactionHash(...safeTxArr, nonce);
   let safeTx;
   if (!options) {
@@ -169,6 +170,32 @@ async function signAndSendSafeTransaction(
     safeTxHash,
     safeTx,
   };
+};
+
+async function signAndSendSafeTransaction(
+  safeTxData,
+  owner,
+  gnosisSafe,
+  relayer,
+  options = null
+) {
+  let nonce = await gnosisSafe.nonce();
+  let packData = packExecutionData(safeTxData);
+  let safeTxArr = Object.keys(packData).map((key) => packData[key]);
+  // sign data with nonce by owner and gnosisSafe
+  let signature = await signSafeTransaction(
+    ...safeTxArr,
+    nonce,
+    owner,
+    gnosisSafe
+  );
+  return await sendSafeTransaction(
+    safeTxData,
+    gnosisSafe,
+    relayer,
+    signature,
+    options
+  );
 }
 
 exports.shouldBeSameBalance = async function (token, address, amount) {
@@ -1230,17 +1257,28 @@ exports.registerRewardee = async function (
   );
 };
 
-exports.transferRewardSafe = async function (
+const createVerificationData = function (
+  rewardProgramID,
+  rewardSafe,
+  oldOwner
+) {
+  return soliditySha3(
+    { t: "address", v: rewardProgramID },
+    { t: "address", v: rewardSafe.address },
+    { t: "address", v: oldOwner }
+  );
+};
+
+const transferRewardSafe = async function (
   rewardManager,
   rewardSafe,
   oldOwner,
   newOwner,
+  relayer,
   gasToken,
-  gasRecipient,
-  rewardProgramID,
-  relayer
+  rewardProgramID
 ) {
-  const data = AbiCoder.encodeFunctionCall(
+  const swapData = AbiCoder.encodeFunctionCall(
     {
       name: "swapOwner",
       type: "function",
@@ -1261,29 +1299,210 @@ exports.transferRewardSafe = async function (
     },
     [rewardManager.address, oldOwner, newOwner]
   );
-  let previousOwnerSignature = await signSafeTransaction(
+  const nonce = await rewardSafe.nonce();
+
+  const fullIncompleteSignature = await createEIP1271Signature(
     rewardSafe.address,
     0,
-    data,
+    swapData,
     0,
     0,
     0,
     0,
     gasToken.address,
     rewardSafe.address,
-    await rewardSafe.nonce(),
+    nonce.add(toBN("1")),
     oldOwner,
-    rewardSafe
+    rewardSafe,
+    rewardManager
   );
-  return await rewardManager.transferRewardSafe(
-    rewardSafe.address,
-    rewardProgramID,
+
+  let payload = rewardManager.contract.methods
+    .transferRewardSafe(
+      rewardSafe.address,
+      swapData,
+      0,
+      0,
+      0,
+      gasToken.address,
+      fullIncompleteSignature,
+      rewardSafe.address,
+      rewardProgramID
+    )
+    .encodeABI();
+
+  const fullSignature = await createEIP1271Signature(
+    rewardManager.address,
+    0,
+    payload,
+    0,
+    0,
+    0,
+    0,
     gasToken.address,
-    gasRecipient,
-    previousOwnerSignature,
-    data,
-    { from: relayer }
+    rewardSafe.address,
+    nonce,
+    oldOwner,
+    rewardSafe,
+    rewardManager
   );
+
+  let safeTxData = {
+    to: rewardManager.address,
+    data: payload,
+    operation: 0,
+    txGasEstimate: 0,
+    gasPrice: 0,
+    txGasToken: gasToken.address,
+    refundReceive: rewardSafe.address,
+  };
+
+  let packData = packExecutionData(safeTxData);
+  let safeTxArr = Object.keys(packData).map((key) => packData[key]);
+  let safeTxHash = await rewardSafe.getTransactionHash(...safeTxArr, nonce);
+
+  const safeTx = await rewardSafe.execTransaction(...safeTxArr, fullSignature, {
+    from: relayer,
+  });
+
+  const executionResult = getParamsFromEvent(
+    safeTx,
+    eventABIs.EXECUTION_SUCCESS,
+    rewardSafe.address
+  );
+
+  return {
+    safeTx,
+    safeTxHash,
+    executionSucceeded: executionResult[0].txHash === safeTxHash,
+  };
+};
+
+exports.swapOwner = async function (
+  rewardManager,
+  rewardSafe,
+  oldOwner,
+  newOwner,
+  relayer,
+  gasToken
+) {
+  const swapData = AbiCoder.encodeFunctionCall(
+    {
+      name: "swapOwner",
+      type: "function",
+      inputs: [
+        {
+          type: "address",
+          name: "prevOwner",
+        },
+        {
+          type: "address",
+          name: "oldOwner",
+        },
+        {
+          type: "address",
+          name: "newOwner",
+        },
+      ],
+    },
+    [SENTINEL_OWNER, oldOwner, newOwner]
+  );
+
+  let safeTxData = {
+    to: rewardSafe.address,
+    data: swapData,
+    operation: 0,
+    txGasEstimate: 0,
+    gasPrice: 0,
+    txGasToken: gasToken.address,
+    refundReceive: rewardSafe.address,
+  };
+
+  let { safeTxHash, safeTx } = await signAndSendSafeTransaction(
+    safeTxData,
+    oldOwner,
+    rewardSafe,
+    relayer
+  );
+
+  return {
+    safeTx,
+    safeTxHash,
+    executionSucceeded: checkGnosisExecution(
+      safeTx,
+      safeTxHash,
+      rewardSafe.address
+    ),
+  };
+};
+
+exports.swapOwnerWithFullSignature = async function (
+  rewardManager,
+  rewardSafe,
+  oldOwner,
+  newOwner,
+  relayer,
+  gasToken
+) {
+  const swapData = AbiCoder.encodeFunctionCall(
+    {
+      name: "swapOwner",
+      type: "function",
+      inputs: [
+        {
+          type: "address",
+          name: "prevOwner",
+        },
+        {
+          type: "address",
+          name: "oldOwner",
+        },
+        {
+          type: "address",
+          name: "newOwner",
+        },
+      ],
+    },
+    [rewardManager.address, oldOwner, newOwner]
+  );
+
+  let safeTxData = {
+    to: rewardSafe.address,
+    data: swapData,
+    operation: 0,
+    txGasEstimate: 0,
+    gasPrice: 0,
+    txGasToken: gasToken.address,
+    refundReceive: rewardSafe.address,
+  };
+  let nonce = await rewardSafe.nonce();
+
+  let packData = packExecutionData(safeTxData);
+  let safeTxArr = Object.keys(packData).map((key) => packData[key]);
+  // sign data with nonce by owner and gnosisSafe
+  let signature = await createEIP1271Signature(
+    ...safeTxArr,
+    nonce,
+    oldOwner,
+    rewardSafe,
+    rewardManager
+  );
+  let { safeTxHash, safeTx } = await sendSafeTransaction(
+    safeTxData,
+    rewardSafe,
+    relayer,
+    signature
+  );
+
+  return {
+    safeTx,
+    safeTxHash,
+    executionSucceeded: checkGnosisExecution(
+      safeTx,
+      safeTxHash,
+      rewardSafe.address
+    ),
+  };
 };
 
 exports.registerRewardProgram = async function (
@@ -1589,6 +1808,7 @@ exports.createPrepaidCardAndTransfer = async function (
 };
 
 exports.claimReward = async function (
+  rewardManager,
   rewardPool,
   relayer,
   rewardSafe,
@@ -1607,23 +1827,72 @@ exports.claimReward = async function (
 
   let payload = claimReward.encodeABI();
   let gasEstimate = await claimReward.estimateGas({ from: rewardSafe.address });
+  const nonce = await rewardSafe.nonce();
+  let previousOwnerSignature = await createSignature(
+    rewardPool.address,
+    0,
+    payload,
+    0, //operation
+    gasEstimate,
+    0,
+    1000000000,
+    token.address,
+    rewardSafe.address,
+    nonce,
+    rewardSafeOwner,
+    rewardSafe
+  );
+  let contractSignature = await createContractSignature(
+    rewardSafe,
+    rewardManager
+  );
+  const signData = createVerificationData(
+    rewardProgramID,
+    rewardSafe,
+    rewardSafeOwner
+  );
+  const verificationData = padLeft(signData.replace("0x", ""), 64);
+  const verificationDataLength = padLeft(
+    numberToHex(hexToBytes(signData).length).replace("0x", ""),
+    64
+  ); //hexToBytes counts the bytes
+  const extraData = verificationDataLength + verificationData;
+  const signatures = sortSignatures(
+    previousOwnerSignature,
+    contractSignature,
+    rewardSafeOwner,
+    rewardManager.address
+  );
+  const fullSignature = "0x" + signatures[0] + signatures[1] + extraData;
 
   let safeTxData = {
     to: rewardPool.address,
     data: payload,
     txGasEstimate: gasEstimate,
-    gasPrice: 0, //TODO:handle gas payment with prepaid card
+    gasPrice: 1000000000, //TODO:handle gas payment with prepaid card
     txGasToken: token.address,
-    refundReceive: relayer,
+    refundReceive: rewardSafe.address,
   };
 
-  let { safeTx } = await signAndSendSafeTransaction(
-    safeTxData,
-    rewardSafeOwner,
-    rewardSafe,
-    relayer
+  let packData = packExecutionData(safeTxData);
+  let safeTxArr = Object.keys(packData).map((key) => packData[key]);
+  let safeTxHash = await rewardSafe.getTransactionHash(...safeTxArr, nonce);
+
+  const safeTx = await rewardSafe.execTransaction(...safeTxArr, fullSignature, {
+    from: relayer,
+  });
+
+  const executionResult = getParamsFromEvent(
+    safeTx,
+    eventABIs.EXECUTION_SUCCESS,
+    rewardSafe.address
   );
-  return safeTx;
+
+  return {
+    safeTx,
+    safeTxHash,
+    executionSucceeded: executionResult[0].txHash === safeTxHash,
+  };
 };
 
 exports.mintWalletAndRefillPool = async function (
@@ -1707,3 +1976,4 @@ exports.packExecutionData = packExecutionData;
 exports.signAndSendSafeTransaction = signAndSendSafeTransaction;
 exports.transferOwner = transferOwner;
 exports.createPrepaidCards = createPrepaidCards;
+exports.transferRewardSafe = transferRewardSafe;
