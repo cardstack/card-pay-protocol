@@ -286,7 +286,6 @@ contract RewardManager is Ownable, Versionable, Safe {
         (eip1271Contracts.contains(to)))
         ? EIP1271_MAGIC_VALUE
         : bytes4(0);
-    return EIP1271_MAGIC_VALUE;
   }
 
   function hasRule(address rewardProgramID, string calldata ruleDID)
