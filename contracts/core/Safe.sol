@@ -70,11 +70,5 @@ contract Safe {
     return safe;
   }
 
-  function create2Safe(address owner, uint256 nonce) internal returns (address) {
-    address[] memory ownerArr = new address[](1);
-    ownerArr[0] = owner;
-
-    return create2Safe(ownerArr, 1, nonce);
-  }
   uint256[50] private ____gap;
 }
