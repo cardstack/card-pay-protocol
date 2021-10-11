@@ -326,7 +326,7 @@ contract RewardManager is Ownable, Versionable, Safe {
 
   function _equalBytes(bytes memory bytesArr1, bytes memory bytesArr2)
     internal
-    view
+    pure
     returns (bool)
   {
     return
