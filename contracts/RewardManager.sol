@@ -171,30 +171,28 @@ contract RewardManager is Ownable, Versionable, Safe {
   }
 
   function transferRewardSafe(
-    address to,
-    bytes calldata data,
+    address newOwner,
     uint256 safeTxGas,
     uint256 baseGas,
     uint256 gasPrice,
     address gasToken,
-    bytes calldata signature,
-    address payable rewardSafe,
-    address rewardProgramID
+    bytes calldata signature
   ) external {
-    address rewardSafeOwner = getRewardSafeOwner(rewardSafe);
-    bytes memory conSignature = contractSignature(rewardSafe, rewardSafeOwner);
+    address oldOwner = getRewardSafeOwner(msg.sender);
+    bytes memory conSignature = contractSignature(msg.sender, oldOwner);
     signatures[keccak256(conSignature)] = true;
     execTransaction(
-      to,
-      data,
+      msg.sender,
+      getTransferRewardSafeData(msg.sender, newOwner),
       safeTxGas,
       baseGas,
       gasPrice,
       gasToken,
       signature,
-      rewardSafe
+      msg.sender
     );
     signatures[keccak256(conSignature)] = false;
+    emit RewardSafeTransferred(msg.sender, oldOwner, newOwner);
   }
 
   function getRewardSafeOwner(address payable rewardSafe)
@@ -205,6 +203,15 @@ contract RewardManager is Ownable, Versionable, Safe {
     address[] memory owners = GnosisSafe(rewardSafe).getOwners();
     require(owners.length == 2, "unexpected number of owners for reward safe");
     return owners[0] == address(this) ? owners[1] : owners[0];
+  }
+
+  function getTransferRewardSafeData(
+    address payable rewardSafe,
+    address newOwner
+  ) public view returns (bytes memory) {
+    address oldOwner = getRewardSafeOwner(rewardSafe);
+    return
+      abi.encodeWithSelector(SWAP_OWNER, address(this), oldOwner, newOwner);
   }
 
   function isRewardProgram(address rewardProgramID) public view returns (bool) {
@@ -278,7 +285,6 @@ contract RewardManager is Ownable, Versionable, Safe {
 
     bytes memory contractSignature =
       _contractSignature(msg.sender, rewardSafeOwner);
-    //can't use contractSignature function because it modifies state
     return
       ((_equalBytes(data, encodedTransactionData) &&
         (to == msg.sender && signatures[keccak256(contractSignature)])) ||
@@ -366,9 +372,9 @@ contract RewardManager is Ownable, Versionable, Safe {
     require(
       GnosisSafe(rewardSafe).execTransaction(
         to,
-        0,
+        0, //only 0 value
         data,
-        Enum.Operation.Call,
+        Enum.Operation.Call, //only call operations
         safeTxGas,
         baseGas,
         gasPrice,

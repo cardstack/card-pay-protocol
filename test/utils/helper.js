@@ -1275,8 +1275,7 @@ const transferRewardSafe = async function (
   oldOwner,
   newOwner,
   relayer,
-  gasToken,
-  rewardProgramID
+  gasToken
 ) {
   const swapData = AbiCoder.encodeFunctionCall(
     {
@@ -1301,7 +1300,7 @@ const transferRewardSafe = async function (
   );
   const nonce = await rewardSafe.nonce();
 
-  const fullIncompleteSignature = await createEIP1271Signature(
+  const fullSignatureInnerExec = await createEIP1271Signature(
     rewardSafe.address,
     0,
     swapData,
@@ -1319,15 +1318,12 @@ const transferRewardSafe = async function (
 
   let payload = rewardManager.contract.methods
     .transferRewardSafe(
-      rewardSafe.address,
-      swapData,
+      newOwner,
       0,
       0,
       0,
       gasToken.address,
-      fullIncompleteSignature,
-      rewardSafe.address,
-      rewardProgramID
+      fullSignatureInnerExec
     )
     .encodeABI();
 
