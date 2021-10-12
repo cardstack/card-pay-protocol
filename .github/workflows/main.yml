@@ -50,6 +50,9 @@ jobs:
       - name: Build
         run: yarn build
 
+      - name: Run hardhat node in background
+        run: ./node_modules/.bin/hardhat node &
+
       - name: check deploy
         run: yarn deploy:smoketest
 
