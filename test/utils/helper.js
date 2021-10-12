@@ -366,7 +366,8 @@ exports.addActionHandlers = async function ({
       prepaidCardManager.address,
       tokenManager.address
     );
-    removePrepaidCardInventoryHandler = await RemovePrepaidCardInventoryHandler.new();
+    removePrepaidCardInventoryHandler =
+      await RemovePrepaidCardInventoryHandler.new();
     await removePrepaidCardInventoryHandler.initialize(owner);
     await removePrepaidCardInventoryHandler.setup(
       actionDispatcher.address,
@@ -493,7 +494,8 @@ exports.addActionHandlers = async function ({
     tokenManager &&
     rewardManager
   ) {
-    updateRewardProgramAdminHandler = await UpdateRewardProgramAdminHandler.new();
+    updateRewardProgramAdminHandler =
+      await UpdateRewardProgramAdminHandler.new();
     await updateRewardProgramAdminHandler.initialize(owner);
     await updateRewardProgramAdminHandler.setup(
       actionDispatcher.address,

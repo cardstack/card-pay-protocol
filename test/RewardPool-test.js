@@ -51,9 +51,8 @@ contract("RewardPool", function (accounts) {
   describe("Reward Pool", function () {
     let prepaidCard;
     before(async () => {
-      ({ owner, tally, issuer, prepaidCardOwner, relayer } = setupRoles(
-        accounts
-      ));
+      ({ owner, tally, issuer, prepaidCardOwner, relayer } =
+        setupRoles(accounts));
 
       // do not run this fixture inside a beforeEach
       // until we find a way to instantiate the objects that are only required
@@ -1690,11 +1689,12 @@ contract("RewardPool", function (accounts) {
           rewardPool.address
         );
 
-        const rewardPoolBalanceCardByRewardProgram = await getPoolBalanceByRewardProgram(
-          rewardProgramID,
-          rewardPool,
-          daicpxdToken
-        );
+        const rewardPoolBalanceCardByRewardProgram =
+          await getPoolBalanceByRewardProgram(
+            rewardProgramID,
+            rewardPool,
+            daicpxdToken
+          );
         const prepaidCardBalanceDai = await getBalance(
           daicpxdToken,
           prepaidCard.address

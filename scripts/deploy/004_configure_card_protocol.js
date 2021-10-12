@@ -300,44 +300,41 @@ Configuring ActionDispatcher ${actionDispatcherAddress}
   Exchange address: ${exchangeAddress}
   PrepaidCardManager address: ${prepaidCardManagerAddress}`);
   await sendTx(async () =>
-    (await actionDispatcher()).setup(
-      tokenManagerAddress,
-      exchangeAddress,
-      prepaidCardManagerAddress
-    )
+    (
+      await actionDispatcher()
+    ).setup(tokenManagerAddress, exchangeAddress, prepaidCardManagerAddress)
   );
   console.log(
     `  adding action handler for "payMerchant": ${payMerchantHandlerAddress}`
   );
   await sendTx(async () =>
-    (await actionDispatcher()).addHandler(
-      payMerchantHandlerAddress,
-      "payMerchant"
-    )
+    (
+      await actionDispatcher()
+    ).addHandler(payMerchantHandlerAddress, "payMerchant")
   );
   console.log(
     `  adding action handler for "registerMerchant": ${registerMerchantHandlerAddress}`
   );
   await sendTx(async () =>
-    (await actionDispatcher()).addHandler(
-      registerMerchantHandlerAddress,
-      "registerMerchant"
-    )
+    (
+      await actionDispatcher()
+    ).addHandler(registerMerchantHandlerAddress, "registerMerchant")
   );
   console.log(
     `  adding action handler for "split": ${splitPrepaidCardHandlerAddress}`
   );
   await sendTx(async () =>
-    (await actionDispatcher()).addHandler(
-      splitPrepaidCardHandlerAddress,
-      "split"
-    )
+    (
+      await actionDispatcher()
+    ).addHandler(splitPrepaidCardHandlerAddress, "split")
   );
   console.log(
     `  adding action handler for "setPrepaidCardInventory": ${setPrepaidCardInventoryHandlerAddress}`
   );
   await sendTx(async () =>
-    (await actionDispatcher()).addHandler(
+    (
+      await actionDispatcher()
+    ).addHandler(
       setPrepaidCardInventoryHandlerAddress,
       "setPrepaidCardInventory"
     )
@@ -346,7 +343,9 @@ Configuring ActionDispatcher ${actionDispatcherAddress}
     `  adding action handler for "removePrepaidCardInventory": ${removePrepaidCardInventoryHandlerAddress}`
   );
   await sendTx(async () =>
-    (await actionDispatcher()).addHandler(
+    (
+      await actionDispatcher()
+    ).addHandler(
       removePrepaidCardInventoryHandlerAddress,
       "removePrepaidCardInventory"
     )
@@ -355,75 +354,70 @@ Configuring ActionDispatcher ${actionDispatcherAddress}
     `  adding action handler for "setPrepaidCardAsk": ${setPrepaidCardAskHandlerAddress}`
   );
   await sendTx(async () =>
-    (await actionDispatcher()).addHandler(
-      setPrepaidCardAskHandlerAddress,
-      "setPrepaidCardAsk"
-    )
+    (
+      await actionDispatcher()
+    ).addHandler(setPrepaidCardAskHandlerAddress, "setPrepaidCardAsk")
   );
   console.log(
     `  adding action handler for "transfer": ${transferPrepaidCardHandlerAddress}`
   );
   await sendTx(async () =>
-    (await actionDispatcher()).addHandler(
-      transferPrepaidCardHandlerAddress,
-      "transfer"
-    )
+    (
+      await actionDispatcher()
+    ).addHandler(transferPrepaidCardHandlerAddress, "transfer")
   );
   console.log(
     `  adding action handler for "registerRewardee": ${registerRewardeeHandlerAddress}`
   );
   await sendTx(async () =>
-    (await actionDispatcher()).addHandler(
-      registerRewardeeHandlerAddress,
-      "registerRewardee"
-    )
+    (
+      await actionDispatcher()
+    ).addHandler(registerRewardeeHandlerAddress, "registerRewardee")
   );
 
   console.log(
     `  adding action handler for "registerRewardProgram": ${registerRewardProgramHandlerAddress}`
   );
   await sendTx(async () =>
-    (await actionDispatcher()).addHandler(
-      registerRewardProgramHandlerAddress,
-      "registerRewardProgram"
-    )
+    (
+      await actionDispatcher()
+    ).addHandler(registerRewardProgramHandlerAddress, "registerRewardProgram")
   );
 
   console.log(
     `  adding action handler for "lockRewardProgram": ${lockRewardProgramHandlerAddress}`
   );
   await sendTx(async () =>
-    (await actionDispatcher()).addHandler(
-      lockRewardProgramHandlerAddress,
-      "lockRewardProgram"
-    )
+    (
+      await actionDispatcher()
+    ).addHandler(lockRewardProgramHandlerAddress, "lockRewardProgram")
   );
 
   console.log(
     `  adding action handler for "addRewardRule": ${addRewardRuleHandlerAddress}`
   );
   await sendTx(async () =>
-    (await actionDispatcher()).addHandler(
-      addRewardRuleHandlerAddress,
-      "addRewardRule"
-    )
+    (
+      await actionDispatcher()
+    ).addHandler(addRewardRuleHandlerAddress, "addRewardRule")
   );
 
   console.log(
     `  adding action handler for "removeRewardRule": ${removeRewardRuleHandlerAddress}`
   );
   await sendTx(async () =>
-    (await actionDispatcher()).addHandler(
-      removeRewardRuleHandlerAddress,
-      "removeRewardRule"
-    )
+    (
+      await actionDispatcher()
+    ).addHandler(removeRewardRuleHandlerAddress, "removeRewardRule")
   );
 
   console.log(
     `  adding action handler for "updateRewardProgramAdmin": ${updateRewardProgramAdminHandlerAddress}`
   );
   await sendTx(async () =>
-    (await actionDispatcher()).addHandler(
+    (
+      await actionDispatcher()
+    ).addHandler(
       updateRewardProgramAdminHandlerAddress,
       "updateRewardProgramAdmin"
     )
@@ -433,10 +427,9 @@ Configuring ActionDispatcher ${actionDispatcherAddress}
     `  adding action handler for "payRewardTokens": ${payRewardTokensHandlerAddress}`
   );
   await sendTx(async () =>
-    (await actionDispatcher()).addHandler(
-      payRewardTokensHandlerAddress,
-      "payRewardTokens"
-    )
+    (
+      await actionDispatcher()
+    ).addHandler(payRewardTokensHandlerAddress, "payRewardTokens")
   );
 
   // PayMerchantHandler configuration
@@ -526,9 +519,10 @@ Configuring TransferPrepaidCardHandler ${transferPrepaidCardHandlerAddress}
   );
 
   // SetPrepaidCardInventoryHandler configuration
-  let setPrepaidCardInventoryHandler = await SetPrepaidCardInventoryHandler.attach(
-    setPrepaidCardInventoryHandlerAddress
-  );
+  let setPrepaidCardInventoryHandler =
+    await SetPrepaidCardInventoryHandler.attach(
+      setPrepaidCardInventoryHandlerAddress
+    );
   console.log(`
 ==================================================
 Configuring SetPrepaidCardInventoryHandler ${setPrepaidCardInventoryHandlerAddress}
@@ -544,9 +538,10 @@ Configuring SetPrepaidCardInventoryHandler ${setPrepaidCardInventoryHandlerAddre
   );
 
   // RemovePrepaidCardInventoryHandler configuration
-  let removePrepaidCardInventoryHandler = await RemovePrepaidCardInventoryHandler.attach(
-    removePrepaidCardInventoryHandlerAddress
-  );
+  let removePrepaidCardInventoryHandler =
+    await RemovePrepaidCardInventoryHandler.attach(
+      removePrepaidCardInventoryHandlerAddress
+    );
   console.log(`
 ==================================================
 Configuring RemovePrepaidCardInventoryHandler ${removePrepaidCardInventoryHandlerAddress}
@@ -617,7 +612,9 @@ Configuring PrepaidCardManager ${prepaidCardManagerAddress}
   maximum face value: ${MAXIMUM_AMOUNT}
   contract signers: [${prepaidCardMarketAddress}]`);
   await sendTx(async () =>
-    (await prepaidCardManager()).setup(
+    (
+      await prepaidCardManager()
+    ).setup(
       tokenManagerAddress,
       supplierManagerAddress,
       exchangeAddress,
@@ -653,10 +650,9 @@ Configuring PrepaidCardManager ${prepaidCardManagerAddress}
     `  setting gas policy for "removePrepaidCardInventory" to pay gas recipient the actual cost of gas`
   );
   await sendTx(async () =>
-    (await prepaidCardManager()).addGasPolicy(
-      "removePrepaidCardInventory",
-      true
-    )
+    (
+      await prepaidCardManager()
+    ).addGasPolicy("removePrepaidCardInventory", true)
   );
   console.log(
     `  setting gas policy for "setPrepaidCardAsk" to pay gas recipient the actual cost of gas`
@@ -831,9 +827,10 @@ Configuring LockRewardProgramHandler ${lockRewardProgramHandlerAddress}
     )
   );
 
-  let updateRewardProgramAdminHandler = await UpdateRewardProgramAdminHandler.attach(
-    updateRewardProgramAdminHandlerAddress
-  );
+  let updateRewardProgramAdminHandler =
+    await UpdateRewardProgramAdminHandler.attach(
+      updateRewardProgramAdminHandlerAddress
+    );
   console.log(`
 ==================================================
 Configuring UpdateRewardProgramAdminHandler ${updateRewardProgramAdminHandlerAddress}

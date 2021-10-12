@@ -121,11 +121,12 @@ describe("Level Registrar", () => {
 
     it("should be able to get the required balance by label", async () => {
       await levelRegistrarContract.setLevels([defaultLevel], erc20.address);
-      const balanceRequired = await levelRegistrarContract.getRequiredBalanceByLabel(
-        deployerWallet.address,
-        erc20.address,
-        "noob"
-      );
+      const balanceRequired =
+        await levelRegistrarContract.getRequiredBalanceByLabel(
+          deployerWallet.address,
+          erc20.address,
+          "noob"
+        );
       expect(balanceRequired.toNumber()).eq(
         0,
         "required balance for noob should be 0"

@@ -23,13 +23,8 @@ contract("Feed", async (accounts) => {
     await feed.addRound(110000000, 1618430000, 1618430001);
 
     {
-      let {
-        roundId,
-        answer,
-        startedAt,
-        updatedAt,
-        answeredInRound,
-      } = await feed.latestRoundData();
+      let { roundId, answer, startedAt, updatedAt, answeredInRound } =
+        await feed.latestRoundData();
       expect(BN(roundId).toString()).to.equal("2");
       expect(BN(answer).toString()).to.equal("110000000");
       expect(BN(startedAt).toString()).to.equal("1618430000");
@@ -38,13 +33,8 @@ contract("Feed", async (accounts) => {
     }
 
     {
-      let {
-        roundId,
-        answer,
-        startedAt,
-        updatedAt,
-        answeredInRound,
-      } = await feed.getRoundData(1);
+      let { roundId, answer, startedAt, updatedAt, answeredInRound } =
+        await feed.getRoundData(1);
       expect(BN(roundId).toString()).to.equal("1");
       expect(BN(answer).toString()).to.equal("100000000");
       expect(BN(startedAt).toString()).to.equal("1618420000");
