@@ -1262,18 +1262,6 @@ exports.registerRewardee = async function (
   );
 };
 
-const createVerificationData = function (
-  rewardProgramID,
-  rewardSafe,
-  oldOwner
-) {
-  return soliditySha3(
-    { t: "address", v: rewardProgramID },
-    { t: "address", v: rewardSafe.address },
-    { t: "address", v: oldOwner }
-  );
-};
-
 const transferRewardSafe = async function (
   rewardManager,
   rewardSafe,
