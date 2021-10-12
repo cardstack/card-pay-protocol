@@ -169,6 +169,11 @@ const sendSafeTransaction = async (
   return {
     safeTxHash,
     safeTx,
+    executionSucceeded: checkGnosisExecution(
+      safeTx,
+      safeTxHash,
+      gnosisSafe.address
+    ),
   };
 };
 
@@ -1353,22 +1358,12 @@ const transferRewardSafe = async function (
     refundReceive: rewardSafe.address,
   };
 
-  let { safeTxHash, safeTx } = await sendSafeTransaction(
+  return await sendSafeTransaction(
     safeTxData,
     rewardSafe,
     relayer,
     fullSignature
   );
-
-  return {
-    safeTx,
-    safeTxHash,
-    executionSucceeded: checkGnosisExecution(
-      safeTx,
-      safeTxHash,
-      rewardSafe.address
-    ),
-  };
 };
 
 exports.swapOwner = async function (
@@ -1480,22 +1475,7 @@ exports.swapOwnerWithFullSignature = async function (
     rewardSafe,
     rewardManager
   );
-  let { safeTxHash, safeTx } = await sendSafeTransaction(
-    safeTxData,
-    rewardSafe,
-    relayer,
-    signature
-  );
-
-  return {
-    safeTx,
-    safeTxHash,
-    executionSucceeded: checkGnosisExecution(
-      safeTx,
-      safeTxHash,
-      rewardSafe.address
-    ),
-  };
+  return await sendSafeTransaction(safeTxData, rewardSafe, relayer, signature);
 };
 
 exports.registerRewardProgram = async function (
@@ -1843,109 +1823,7 @@ exports.claimReward = async function (
     rewardManager
   );
 
-  let { safeTxHash, safeTx } = await sendSafeTransaction(
-    safeTxData,
-    rewardSafe,
-    relayer,
-    signature
-  );
-
-  return {
-    safeTx,
-    safeTxHash,
-    executionSucceeded: checkGnosisExecution(
-      safeTx,
-      safeTxHash,
-      rewardSafe.address
-    ),
-  };
-};
-exports.claimReward2 = async function (
-  rewardManager,
-  rewardPool,
-  relayer,
-  rewardSafe,
-  rewardSafeOwner,
-  rewardProgramID,
-  token,
-  claimAmount,
-  proof
-) {
-  let claimReward = rewardPool.contract.methods.claim(
-    rewardProgramID,
-    token.address,
-    claimAmount,
-    proof
-  );
-
-  let payload = claimReward.encodeABI();
-  let gasEstimate = await claimReward.estimateGas({ from: rewardSafe.address });
-  const nonce = await rewardSafe.nonce();
-  let previousOwnerSignature = await createSignature(
-    rewardPool.address,
-    0,
-    payload,
-    0, //operation
-    gasEstimate,
-    0,
-    1000000000,
-    token.address,
-    rewardSafe.address,
-    nonce,
-    rewardSafeOwner,
-    rewardSafe
-  );
-  let contractSignature = await createContractSignature(
-    rewardSafe,
-    rewardManager
-  );
-  const signData = createVerificationData(
-    rewardProgramID,
-    rewardSafe,
-    rewardSafeOwner
-  );
-  const verificationData = padLeft(signData.replace("0x", ""), 64);
-  const verificationDataLength = padLeft(
-    numberToHex(hexToBytes(signData).length).replace("0x", ""),
-    64
-  ); //hexToBytes counts the bytes
-  const extraData = verificationDataLength + verificationData;
-  const signatures = sortSignatures(
-    previousOwnerSignature,
-    contractSignature,
-    rewardSafeOwner,
-    rewardManager.address
-  );
-  const fullSignature = "0x" + signatures[0] + signatures[1] + extraData;
-
-  let safeTxData = {
-    to: rewardPool.address,
-    data: payload,
-    txGasEstimate: gasEstimate,
-    gasPrice: 1000000000, //TODO:handle gas payment with prepaid card
-    txGasToken: token.address,
-    refundReceive: rewardSafe.address,
-  };
-
-  let packData = packExecutionData(safeTxData);
-  let safeTxArr = Object.keys(packData).map((key) => packData[key]);
-  let safeTxHash = await rewardSafe.getTransactionHash(...safeTxArr, nonce);
-
-  const safeTx = await rewardSafe.execTransaction(...safeTxArr, fullSignature, {
-    from: relayer,
-  });
-
-  const executionResult = getParamsFromEvent(
-    safeTx,
-    eventABIs.EXECUTION_SUCCESS,
-    rewardSafe.address
-  );
-
-  return {
-    safeTx,
-    safeTxHash,
-    executionSucceeded: executionResult[0].txHash === safeTxHash,
-  };
+  return await sendSafeTransaction(safeTxData, rewardSafe, relayer, signature);
 };
 
 exports.mintWalletAndRefillPool = async function (
