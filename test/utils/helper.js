@@ -32,13 +32,7 @@ const UpdateRewardProgramAdminHandler = artifacts.require(
 );
 const PayRewardTokensHandler = artifacts.require("PayRewardTokensHandler");
 
-const {
-  toBN,
-  numberToHex,
-  padLeft,
-  soliditySha3,
-  hexToBytes,
-} = require("web3-utils");
+const { toBN } = require("web3-utils");
 const { TOKEN_DETAIL_DATA } = require("../setup");
 const eventABIs = require("./constant/eventABIs");
 const {
@@ -47,9 +41,6 @@ const {
   signSafeTransaction,
   ZERO_ADDRESS,
   getGnosisSafeFromEventLog,
-  createSignature,
-  createContractSignature,
-  sortSignatures,
   createEIP1271Signature,
   checkGnosisExecution,
 } = require("./general");
