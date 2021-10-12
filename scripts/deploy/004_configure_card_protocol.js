@@ -753,7 +753,8 @@ Configuring RewardManager ${rewardManagerAddress}
   gnosis master copy: ${GNOSIS_SAFE_MASTER_COPY}
   gnosis proxy factory: ${GNOSIS_SAFE_FACTORY}
   reward fee receiver: ${MERCHANT_FEE_RECEIVER}
-  rewardee registration fee: §${MERCHANT_REGISTRATION_FEE_IN_SPEND} SPEND`);
+  rewardee registration fee: ${MERCHANT_REGISTRATION_FEE_IN_SPEND} SPEND
+  eip1271 contracts: ${[rewardPoolAddress]}`);
   await sendTx(() =>
     rewardManager.setup(
       actionDispatcherAddress,
@@ -761,7 +762,8 @@ Configuring RewardManager ${rewardManagerAddress}
       GNOSIS_SAFE_FACTORY,
       REWARD_FEE_RECEIVER,
       REWARDEE_REGISTRATION_FEE_IN_SPEND,
-      REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND
+      REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
+      [rewardPoolAddress]
     )
   );
 
