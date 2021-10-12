@@ -1353,24 +1353,21 @@ const transferRewardSafe = async function (
     refundReceive: rewardSafe.address,
   };
 
-  let packData = packExecutionData(safeTxData);
-  let safeTxArr = Object.keys(packData).map((key) => packData[key]);
-  let safeTxHash = await rewardSafe.getTransactionHash(...safeTxArr, nonce);
-
-  const safeTx = await rewardSafe.execTransaction(...safeTxArr, fullSignature, {
-    from: relayer,
-  });
-
-  const executionResult = getParamsFromEvent(
-    safeTx,
-    eventABIs.EXECUTION_SUCCESS,
-    rewardSafe.address
+  let { safeTxHash, safeTx } = await sendSafeTransaction(
+    safeTxData,
+    rewardSafe,
+    relayer,
+    fullSignature
   );
 
   return {
     safeTx,
     safeTxHash,
-    executionSucceeded: executionResult[0].txHash === safeTxHash,
+    executionSucceeded: checkGnosisExecution(
+      safeTx,
+      safeTxHash,
+      rewardSafe.address
+    ),
   };
 };
 
