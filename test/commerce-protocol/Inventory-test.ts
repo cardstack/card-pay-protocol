@@ -95,10 +95,15 @@ describe("Inventory", () => {
     const auction = await (
       await new Market__factory(deployerWallet).deploy()
     ).deployed();
+
+    await auction.initialize();
+
     auctionAddress = auction.address;
     const token = await (
-      await new Inventory__factory(deployerWallet).deploy(auction.address)
+      await new Inventory__factory(deployerWallet).deploy()
     ).deployed();
+    await token.initialize(auction.address);
+
     tokenAddress = token.address;
 
     const registrar = await (

@@ -82,6 +82,8 @@ describe("Market", () => {
     const auction = await (
       await new Market__factory(deployerWallet).deploy()
     ).deployed();
+    await auction.initialize();
+
     const exchange = await (
       await new ExchangeMock__factory(deployerWallet).deploy()
     ).deployed();
@@ -161,12 +163,8 @@ describe("Market", () => {
   }
 
   beforeEach(async () => {
-    [
-      deployerWallet,
-      bidderWallet,
-      mockTokenWallet,
-      otherWallet,
-    ] = await ethers.getSigners();
+    [deployerWallet, bidderWallet, mockTokenWallet, otherWallet] =
+      await ethers.getSigners();
 
     defaultLevelRequirement = {
       setter: deployerWallet.address,
@@ -195,7 +193,7 @@ describe("Market", () => {
           mockTokenWallet.address,
           mockTokenWallet.address
         )
-      ).eventually.rejectedWith("Market: Only owner");
+      ).eventually.rejectedWith("Ownable: caller is not the owner");
     });
 
     it("should be callable by the owner", async () => {
