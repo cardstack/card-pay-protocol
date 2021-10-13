@@ -274,6 +274,24 @@ contract RewardManager is Ownable, Versionable, Safe {
     );
   }
 
+  // isValidSignature uses a guard-pattern to restrict gnosis transactions from reward safe
+  // - prevent a safe eoa owner to interact directly with gnosis safe directly without going through the reward manager contract, e.g. executing SWAP_OWNER
+  // - any gnosis execution of this safe will hit this callback
+  // - facilitate the use of nested gnosis execution, we do it st any gnosis function calls (.e.g SWAP_OWNER) can only be executed on the reward manager contract itself
+  // - reward safe has two owners, the eoa and the reward manager contract
+  //
+  // conditions:
+  // (_equalBytes(data, encodedTransactionData) && (to == msg.sender && signatures[keccak256(contractSignature)]))
+  // - allows gnosis exec of a gnosis function call, .e.g. SWAP_OWNER to the reward safe
+  // - signatures is a state variable that needs to be switched on in the reward manager contract function to execute the inner safe transaction. This prevents the direct interaction with the safe.
+  // - _equalBytes checks that the data verifying part of the eip1271 signature to make sure that the user is not trying to exploit this callback, for example, if they pass in a different nonce or different payload
+  //
+  // (to == address(this))
+  // - allows gnosis exec of reward safe to call any function on reward manager
+  //
+  // (eip1271Contracts.contains(to))
+  // - allows gnosis exec of reward safe to call any function on federated contracts
+  // - essentially, we can lock all reward safe transactions by unfederating a contract
   function isValidSignature(bytes memory data, bytes memory signature)
     public
     view
