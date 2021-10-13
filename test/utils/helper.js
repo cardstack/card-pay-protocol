@@ -41,7 +41,7 @@ const {
   signSafeTransaction,
   ZERO_ADDRESS,
   getGnosisSafeFromEventLog,
-  createEIP1271Signature,
+  rewardEIP1271Signature,
   checkGnosisExecution,
 } = require("./general");
 
@@ -178,7 +178,6 @@ async function signAndSendSafeTransaction(
   let nonce = await gnosisSafe.nonce();
   let packData = packExecutionData(safeTxData);
   let safeTxArr = Object.keys(packData).map((key) => packData[key]);
-  // sign data with nonce by owner and gnosisSafe
   let signature = await signSafeTransaction(
     ...safeTxArr,
     nonce,
@@ -1284,7 +1283,7 @@ const transferRewardSafe = async function (
   );
   const nonce = await rewardSafe.nonce();
 
-  const fullSignatureInnerExec = await createEIP1271Signature(
+  const fullSignatureInnerExec = await rewardEIP1271Signature(
     rewardSafe.address,
     0,
     swapData,
@@ -1311,7 +1310,7 @@ const transferRewardSafe = async function (
     )
     .encodeABI();
 
-  const fullSignature = await createEIP1271Signature(
+  const fullSignature = await rewardEIP1271Signature(
     rewardManager.address,
     0,
     payload,
@@ -1446,8 +1445,7 @@ exports.swapOwnerWithFullSignature = async function (
 
   let packData = packExecutionData(safeTxData);
   let safeTxArr = Object.keys(packData).map((key) => packData[key]);
-  // sign data with nonce by owner and gnosisSafe
-  let signature = await createEIP1271Signature(
+  let signature = await rewardEIP1271Signature(
     ...safeTxArr,
     nonce,
     oldOwner,
@@ -1794,7 +1792,7 @@ exports.claimReward = async function (
   let packData = packExecutionData(safeTxData);
   let safeTxArr = Object.keys(packData).map((key) => packData[key]);
 
-  let signature = await createEIP1271Signature(
+  let signature = await rewardEIP1271Signature(
     ...safeTxArr,
     nonce,
     rewardSafeOwner,

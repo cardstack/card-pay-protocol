@@ -173,7 +173,8 @@ function getParamsFromEvent(safeResult, event, address) {
   return eventParams;
 }
 
-async function createEIP1271Signature(
+// https://docs.gnosis.io/safe/docs/contracts_signatures/
+async function rewardEIP1271Signature(
   to,
   value,
   data,
@@ -334,10 +335,7 @@ Object.assign(exports, {
   getParamsFromEvent,
   padZero,
   signTypedData,
-  createContractSignature,
-  sortSignatures,
-  createEIP1271Signature,
-  createVerifyingSignature,
+  rewardEIP1271Signature,
   checkGnosisExecution,
 });
 

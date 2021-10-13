@@ -1158,6 +1158,8 @@ contract("RewardManager", (accounts) => {
       );
       let rewardSafe = await GnosisSafe.at(rewardSafeCreation[0].rewardSafe);
       let owners = await rewardSafe.getOwners();
+      expect(owners.length).to.equal(2);
+      expect(owners[1]).to.equal(prepaidCardOwner);
       await transferRewardSafe(
         rewardManager,
         rewardSafe,
