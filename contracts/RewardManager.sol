@@ -183,6 +183,7 @@ contract RewardManager is Ownable, Versionable, Safe {
     signatures[keccak256(conSignature)] = true;
     execTransaction(
       msg.sender,
+      0,
       getTransferRewardSafeData(msg.sender, newOwner),
       safeTxGas,
       baseGas,
@@ -379,6 +380,7 @@ contract RewardManager is Ownable, Versionable, Safe {
 
   function execTransaction(
     address to,
+    uint256 value,
     bytes memory data,
     uint256 safeTxGas,
     uint256 baseGas,
@@ -390,7 +392,7 @@ contract RewardManager is Ownable, Versionable, Safe {
     require(
       GnosisSafe(rewardSafe).execTransaction(
         to,
-        0, //only 0 value
+        value,
         data,
         Enum.Operation.Call, //only call operations
         safeTxGas,
