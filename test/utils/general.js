@@ -2,6 +2,8 @@ const gnosisUtils = require("@gnosis.pm/safe-contracts/test/utils/general");
 const web3EthAbi = require("web3-eth-abi");
 const GnosisSafe = artifacts.require("GnosisSafe");
 const eventABIs = require("./constant/eventABIs.js");
+const { toHex, padLeft, hexToBytes, numberToHex } = require("web3-utils");
+const AbiCoder = require("web3-eth-abi");
 
 exports = Object.assign({}, gnosisUtils);
 
@@ -171,6 +173,159 @@ function getParamsFromEvent(safeResult, event, address) {
   return eventParams;
 }
 
+// https://docs.gnosis.io/safe/docs/contracts_signatures/
+async function rewardEIP1271Signature(
+  to,
+  value,
+  data,
+  operation,
+  txGasEstimate,
+  baseGasEstimate,
+  gasPrice,
+  txGasToken,
+  refundReceiver,
+  nonce,
+  owner,
+  gnosisSafe,
+  verifyingContract //contract which implements isValidSignature() callback
+) {
+  let eoaSignature = (
+    await signSafeTransaction(
+      to,
+      value,
+      data,
+      operation,
+      txGasEstimate,
+      baseGasEstimate,
+      gasPrice,
+      txGasToken,
+      refundReceiver,
+      nonce,
+      owner,
+      gnosisSafe
+    )
+  ).replace("0x", "");
+
+  let contractSignature = await createContractSignature(
+    gnosisSafe,
+    verifyingContract
+  );
+  let verifyingSignature = await createVerifyingSignature(
+    to,
+    value,
+    data,
+    operation,
+    txGasEstimate,
+    baseGasEstimate,
+    gasPrice,
+    txGasToken,
+    refundReceiver,
+    nonce
+  );
+
+  const signatures = sortSignatures(
+    eoaSignature,
+    contractSignature,
+    owner,
+    verifyingContract.address
+  );
+  return "0x" + signatures[0] + signatures[1] + verifyingSignature;
+}
+
+// https://docs.gnosis.io/safe/docs/contracts_signatures/#contract-signature-eip-1271
+async function createContractSignature(gnosisSafe, verifyingContract) {
+  const threshold = (await gnosisSafe.getThreshold()).toNumber(); //should be 2
+  const address = padLeft(verifyingContract.address, 64).replace("0x", "");
+  const dynamicPosition = padLeft(toHex(threshold * 65), 64).replace("0x", "");
+  const signatureType = "00";
+  return address + dynamicPosition + signatureType;
+}
+
+// Signature that is verified within isValidSignature() callback;
+// "signature" in the callback -- eip1271 signature
+// This signature is custom
+// - for reward manager, we found that it was useful to encode ALL parameters of safe transaction
+const createVerifyingSignature = function (
+  to,
+  value,
+  data,
+  operation,
+  safeTxGas,
+  baseGas,
+  gasPrice,
+  gasToken,
+  refundReceiver,
+  nonce
+) {
+  const signData = AbiCoder.encodeParameters(
+    [
+      "address",
+      "uint256",
+      "bytes",
+      "uint8",
+      "uint256",
+      "uint256",
+      "uint256",
+      "address",
+      "address",
+      "uint256",
+    ],
+    [
+      to,
+      value,
+      data,
+      operation,
+      safeTxGas,
+      baseGas,
+      gasPrice,
+      gasToken,
+      refundReceiver,
+      nonce,
+    ]
+  );
+  const verifyingData = padLeft(signData.replace("0x", ""), 64);
+  const verifyingDataLength = padLeft(
+    numberToHex(hexToBytes(signData).length).replace("0x", ""),
+    64
+  );
+  return verifyingDataLength + verifyingData;
+};
+
+function sortSignatures(
+  ownerSignature,
+  contractSignature,
+  safeOwnerAddress,
+  contractAddress
+) {
+  if (safeOwnerAddress.toLowerCase() < contractAddress.toLowerCase()) {
+    return [ownerSignature, contractSignature];
+  } else {
+    return [contractSignature, ownerSignature];
+  }
+}
+
+const checkGnosisExecution = (safeTx, safeTxHash, safeAddress) => {
+  const executionSucceeded = getParamsFromEvent(
+    safeTx,
+    eventABIs.EXECUTION_SUCCESS,
+    safeAddress
+  );
+  const executionFailed = getParamsFromEvent(
+    safeTx,
+    eventABIs.EXECUTION_FAILURE,
+    safeAddress
+  );
+  if (executionFailed.length > 0) {
+    return false;
+  } else {
+    if (executionSucceeded.length > 0) {
+      return executionSucceeded[0].txHash === safeTxHash;
+    } else {
+      return false;
+    }
+  }
+};
+
 Object.assign(exports, {
   ZERO_ADDRESS,
   encodeMultiSendCall,
@@ -180,6 +335,8 @@ Object.assign(exports, {
   getParamsFromEvent,
   padZero,
   signTypedData,
+  rewardEIP1271Signature,
+  checkGnosisExecution,
 });
 
 module.exports = exports;

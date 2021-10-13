@@ -30,7 +30,12 @@ const REWARDEE_REGISTRATION_FEE_IN_SPEND = 500;
 contract("RewardPool", function (accounts) {
   let daicpxdToken, cardcpxdToken;
 
-  let rewardManager, prepaidCardManager, tokenManager;
+  let rewardManager,
+    prepaidCardManager,
+    tokenManager,
+    actionDispatcher,
+    gnosisSafeMasterCopy,
+    proxyFactory;
 
   let owner, issuer, prepaidCardOwner, relayer;
 
@@ -49,6 +54,9 @@ contract("RewardPool", function (accounts) {
       // do not run this fixture inside a beforeEach
       // until we find a way to instantiate the objects that are only required
       ({
+        actionDispatcher,
+        gnosisSafeMasterCopy,
+        proxyFactory,
         prepaidCardManager,
         rewardManager,
         depot,
@@ -64,6 +72,17 @@ contract("RewardPool", function (accounts) {
         tally,
         rewardManager.address,
         tokenManager.address
+      );
+      let rewardFeeReceiver = accounts[5]; //same as in setupProtocol()
+      // have to recall setup because reward pool is being created independently of setupProtocol
+      await rewardManager.setup(
+        actionDispatcher.address,
+        gnosisSafeMasterCopy.address,
+        proxyFactory.address,
+        rewardFeeReceiver,
+        REWARDEE_REGISTRATION_FEE_IN_SPEND,
+        REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
+        [rewardPool.address]
       );
       rewardProgramID = randomHex(20);
       otherRewardProgramID = randomHex(20);
@@ -600,6 +619,7 @@ contract("RewardPool", function (accounts) {
 
       it("payee can claim up to their allotted amount from pool", async function () {
         await claimReward(
+          rewardManager,
           rewardPool,
           relayer,
           rewardSafe,
@@ -689,6 +709,7 @@ contract("RewardPool", function (accounts) {
           rewardManager.address
         );
         await claimReward(
+          rewardManager,
           rewardPool,
           relayer,
           otherRewardSafe,
@@ -709,6 +730,7 @@ contract("RewardPool", function (accounts) {
           "claim amoount is less than payment"
         );
         await claimReward(
+          rewardManager,
           rewardPool,
           relayer,
           rewardSafe,
@@ -759,6 +781,7 @@ contract("RewardPool", function (accounts) {
         let claimAmount = toTokenUnit(4).add(toTokenUnit(6));
 
         await claimReward(
+          rewardManager,
           rewardPool,
           relayer,
           rewardSafe,
@@ -770,6 +793,7 @@ contract("RewardPool", function (accounts) {
         );
 
         await claimReward(
+          rewardManager,
           rewardPool,
           relayer,
           rewardSafe,
@@ -820,6 +844,7 @@ contract("RewardPool", function (accounts) {
       it("payee cannot claim more than their allotted amount from the pool", async function () {
         let claimAmount = toTokenUnit(11);
         await claimReward(
+          rewardManager,
           rewardPool,
           relayer,
           rewardSafe,
@@ -838,6 +863,7 @@ contract("RewardPool", function (accounts) {
           "0x0000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000c2e46ed0464b1e11097030a04086c9f068606b4c9808ccdac0343863c5e4f8244749e106fa8d91408f2578e5d93447f727f59279be85ce491faf212a7201d3b836b94214bff74426647e9cf0b5c5c3cbc9cef25b7e08759ca2b85357ec22c9b40";
 
         await claimReward(
+          rewardManager,
           rewardPool,
           relayer,
           rewardSafe,
@@ -869,6 +895,7 @@ contract("RewardPool", function (accounts) {
           "total claim amoount exceeds paymentAmount"
         );
         await claimReward(
+          rewardManager,
           rewardPool,
           relayer,
           rewardSafe,
@@ -880,6 +907,7 @@ contract("RewardPool", function (accounts) {
         );
 
         await claimReward(
+          rewardManager,
           rewardPool,
           relayer,
           rewardSafe,
@@ -894,6 +922,7 @@ contract("RewardPool", function (accounts) {
       it("payee cannot claim 0 tokens from payment pool", async function () {
         let claimAmount = toTokenUnit(0);
         await claimReward(
+          rewardManager,
           rewardPool,
           relayer,
           rewardSafe,
@@ -932,6 +961,7 @@ contract("RewardPool", function (accounts) {
           rewardManager.address
         );
         await claimReward(
+          rewardManager,
           rewardPool,
           relayer,
           someRewardSafe,
@@ -981,6 +1011,7 @@ contract("RewardPool", function (accounts) {
           rewardManager.address
         );
         await claimReward(
+          rewardManager,
           rewardPool,
           relayer,
           someRewardSafe,
@@ -1043,6 +1074,7 @@ contract("RewardPool", function (accounts) {
           rewardManager.address
         );
         await claimReward(
+          rewardManager,
           rewardPool,
           relayer,
           someRewardSafe,
@@ -1077,6 +1109,7 @@ contract("RewardPool", function (accounts) {
         let claimAmount = toTokenUnit(8);
 
         await claimReward(
+          rewardManager,
           rewardPool,
           relayer,
           rewardSafe,
@@ -1153,6 +1186,7 @@ contract("RewardPool", function (accounts) {
         let claimAmount = toTokenUnit(8);
 
         await claimReward(
+          rewardManager,
           rewardPool,
           relayer,
           rewardSafe,
@@ -1220,6 +1254,7 @@ contract("RewardPool", function (accounts) {
         let claimAmount = toTokenUnit(8);
 
         await claimReward(
+          rewardManager,
           rewardPool,
           relayer,
           rewardSafe,
@@ -1269,6 +1304,7 @@ contract("RewardPool", function (accounts) {
 
         //claim from newer proof
         await claimReward(
+          rewardManager,
           rewardPool,
           relayer,
           rewardSafe,
@@ -1301,168 +1337,6 @@ contract("RewardPool", function (accounts) {
         assert(
           newerProofBalanceAfterClaim.eq(updatedPaymentAmount.sub(claimAmount)),
           "the newer proof balance is correct"
-        );
-      });
-    });
-
-    describe("addRewardTokens", function () {
-      let rewardPoolPreviousBalance, rewardProgramAdminPreviousBalance;
-
-      beforeEach(async function () {
-        rewardPoolPreviousBalance = await getBalance(
-          cardcpxdToken,
-          rewardPool.address
-        );
-        await cardcpxdToken.mint(prepaidCardOwner, toTokenUnit(100));
-        rewardProgramAdminPreviousBalance = await getBalance(
-          cardcpxdToken,
-          prepaidCardOwner
-        );
-      });
-
-      it("reward pool can be refilled using an eoa", async function () {
-        await cardcpxdToken.transferAndCall(
-          rewardPool.address,
-          toTokenUnit(50),
-          AbiCoder.encodeParameters(["address"], [rewardProgramID]),
-          { from: prepaidCardOwner }
-        );
-        let rewardPoolBalance = await getBalance(
-          cardcpxdToken,
-          rewardPool.address
-        );
-        let rewardProgramAdminBalance = await getBalance(
-          cardcpxdToken,
-          prepaidCardOwner
-        );
-        assert(
-          rewardPoolBalance.eq(rewardPoolPreviousBalance.add(toTokenUnit(50))),
-          "the pool balance is correct"
-        );
-        assert(
-          rewardProgramAdminBalance.eq(
-            rewardProgramAdminPreviousBalance.sub(toTokenUnit(50))
-          ),
-          "the reward program admin balance is correct"
-        );
-      });
-      it("reward pool cannot be refilled if reward program is unknown", async function () {
-        await cardcpxdToken.mint(prepaidCardOwner, toTokenUnit(100));
-        await cardcpxdToken
-          .transferAndCall(
-            rewardPool.address,
-            toTokenUnit(50),
-            AbiCoder.encodeParameters(["address"], [randomHex(20)]),
-            { from: prepaidCardOwner }
-          )
-          .should.be.rejectedWith(Error, "reward program is not found");
-      });
-      it("reward pool cannot be refilled with token not federated by token manager", async function () {
-        const fakeToken = await ERC677Token.new();
-        await fakeToken.initialize(...TOKEN_DETAIL_DATA, owner);
-        await fakeToken.mint(prepaidCardOwner, toTokenUnit(100));
-        await fakeToken
-          .transferAndCall(
-            rewardPool.address,
-            toTokenUnit(50),
-            AbiCoder.encodeParameters(["address"], [rewardProgramID]),
-            { from: prepaidCardOwner }
-          )
-          .should.be.rejectedWith(Error, "calling token is unaccepted");
-      });
-      it("reward pool can be refilled using a prepaid card", async function () {
-        ({
-          prepaidCardManager,
-          rewardManager,
-          depot,
-          daicpxdToken,
-          cardcpxdToken,
-          tokenManager,
-          rewardPool,
-        } = await setupProtocol(accounts));
-        rewardProgramID = randomHex(20);
-        const rewardPoolPreviousBalanceCard = await getBalance(
-          daicpxdToken,
-          rewardPool.address
-        );
-        prepaidCard = await createPrepaidCardAndTransfer(
-          prepaidCardManager,
-          relayer,
-          depot,
-          issuer,
-          daicpxdToken,
-          toTokenUnit(10 + 1),
-          prepaidCardOwner
-        );
-        const prepaidCardPreviousBalanceCard = await getBalance(
-          daicpxdToken,
-          prepaidCard.address
-        );
-        const prepaidCardPreviousFaceValue = await prepaidCardManager.faceValue(
-          prepaidCard.address
-        );
-
-        await registerRewardProgram(
-          prepaidCardManager,
-          prepaidCard,
-          relayer,
-          prepaidCardOwner,
-          REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
-          undefined,
-          prepaidCardOwner,
-          rewardProgramID
-        );
-        await payRewardTokens(
-          prepaidCardManager,
-          prepaidCard,
-          relayer,
-          prepaidCardOwner,
-          500,
-          undefined,
-          rewardProgramID
-        );
-        const rewardPoolBalanceCard = await getBalance(
-          daicpxdToken,
-          rewardPool.address
-        );
-
-        const rewardPoolBalanceCardByRewardProgram = await getPoolBalanceByRewardProgram(
-          rewardProgramID,
-          rewardPool,
-          daicpxdToken
-        );
-        const prepaidCardBalanceCard = await getBalance(
-          daicpxdToken,
-          prepaidCard.address
-        );
-        const prepaidCardFaceValue = await prepaidCardManager.faceValue(
-          prepaidCard.address
-        );
-        assert(
-          rewardPoolPreviousBalanceCard
-            .add(rewardPoolBalanceCard)
-            .eq(new BN("5000000000000000000")),
-          "the reward pool balance is correct"
-        );
-        assert(
-          rewardPoolBalanceCardByRewardProgram.eq(
-            new BN("5000000000000000000")
-          ),
-          "the reward pool balance is correct"
-        );
-        assert(
-          prepaidCardPreviousBalanceCard
-            .sub(new BN("5000000000000000000"))
-            .sub(new BN("5000000000000000000"))
-            .eq(prepaidCardBalanceCard),
-          "the prepaid card token balance is correct"
-        );
-        assert.equal(
-          prepaidCardPreviousFaceValue -
-            REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND -
-            500,
-          prepaidCardFaceValue,
-          "the prepaid card face value is correct"
         );
       });
     });
@@ -1582,6 +1456,7 @@ contract("RewardPool", function (accounts) {
         );
 
         await claimReward(
+          rewardManager,
           rewardPool,
           relayer,
           rewardSafe,
@@ -1593,6 +1468,7 @@ contract("RewardPool", function (accounts) {
         );
 
         await claimReward(
+          rewardManager,
           rewardPool,
           relayer,
           rewardSafe,
@@ -1642,6 +1518,167 @@ contract("RewardPool", function (accounts) {
         assert(
           rewardPoolBalanceDai.eq(rewardPoolPreviousBalanceDai.sub(daiAmount)),
           "the pool balance is correct"
+        );
+      });
+    });
+    describe("addRewardTokens", function () {
+      let rewardPoolPreviousBalance, rewardProgramAdminPreviousBalance;
+
+      beforeEach(async function () {
+        rewardPoolPreviousBalance = await getBalance(
+          cardcpxdToken,
+          rewardPool.address
+        );
+        await cardcpxdToken.mint(prepaidCardOwner, toTokenUnit(100));
+        rewardProgramAdminPreviousBalance = await getBalance(
+          cardcpxdToken,
+          prepaidCardOwner
+        );
+      });
+
+      it("reward pool can be refilled using an eoa", async function () {
+        await cardcpxdToken.transferAndCall(
+          rewardPool.address,
+          toTokenUnit(50),
+          AbiCoder.encodeParameters(["address"], [rewardProgramID]),
+          { from: prepaidCardOwner }
+        );
+        let rewardPoolBalance = await getBalance(
+          cardcpxdToken,
+          rewardPool.address
+        );
+        let rewardProgramAdminBalance = await getBalance(
+          cardcpxdToken,
+          prepaidCardOwner
+        );
+        assert(
+          rewardPoolBalance.eq(rewardPoolPreviousBalance.add(toTokenUnit(50))),
+          "the pool balance is correct"
+        );
+        assert(
+          rewardProgramAdminBalance.eq(
+            rewardProgramAdminPreviousBalance.sub(toTokenUnit(50))
+          ),
+          "the reward program admin balance is correct"
+        );
+      });
+      it("reward pool cannot be refilled if reward program is unknown", async function () {
+        await cardcpxdToken.mint(prepaidCardOwner, toTokenUnit(100));
+        await cardcpxdToken
+          .transferAndCall(
+            rewardPool.address,
+            toTokenUnit(50),
+            AbiCoder.encodeParameters(["address"], [randomHex(20)]),
+            { from: prepaidCardOwner }
+          )
+          .should.be.rejectedWith(Error, "reward program is not found");
+      });
+      it("reward pool cannot be refilled with token not federated by token manager", async function () {
+        const fakeToken = await ERC677Token.new();
+        await fakeToken.initialize(...TOKEN_DETAIL_DATA, owner);
+        await fakeToken.mint(prepaidCardOwner, toTokenUnit(100));
+        await fakeToken
+          .transferAndCall(
+            rewardPool.address,
+            toTokenUnit(50),
+            AbiCoder.encodeParameters(["address"], [rewardProgramID]),
+            { from: prepaidCardOwner }
+          )
+          .should.be.rejectedWith(Error, "calling token is unaccepted");
+      });
+      it("reward pool can be refilled using a prepaid card", async function () {
+        ({
+          prepaidCardManager,
+          rewardManager,
+          depot,
+          daicpxdToken,
+          cardcpxdToken,
+          tokenManager,
+          rewardPool,
+        } = await setupProtocol(accounts));
+        const rewardPoolPreviousBalanceCard = await getBalance(
+          daicpxdToken,
+          rewardPool.address
+        );
+        prepaidCard = await createPrepaidCardAndTransfer(
+          prepaidCardManager,
+          relayer,
+          depot,
+          issuer,
+          daicpxdToken,
+          toTokenUnit(10 + 1),
+          prepaidCardOwner
+        );
+        const prepaidCardPreviousBalanceCard = await getBalance(
+          daicpxdToken,
+          prepaidCard.address
+        );
+        const prepaidCardPreviousFaceValue = await prepaidCardManager.faceValue(
+          prepaidCard.address
+        );
+
+        // console.log("same reward program id ", rewardProgramID);
+        await registerRewardProgram(
+          prepaidCardManager,
+          prepaidCard,
+          relayer,
+          prepaidCardOwner,
+          REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
+          undefined,
+          prepaidCardOwner,
+          rewardProgramID
+        );
+        await payRewardTokens(
+          prepaidCardManager,
+          prepaidCard,
+          relayer,
+          prepaidCardOwner,
+          500,
+          undefined,
+          rewardProgramID
+        );
+        const rewardPoolBalanceCard = await getBalance(
+          daicpxdToken,
+          rewardPool.address
+        );
+
+        const rewardPoolBalanceCardByRewardProgram = await getPoolBalanceByRewardProgram(
+          rewardProgramID,
+          rewardPool,
+          daicpxdToken
+        );
+        const prepaidCardBalanceCard = await getBalance(
+          daicpxdToken,
+          prepaidCard.address
+        );
+        const prepaidCardFaceValue = await prepaidCardManager.faceValue(
+          prepaidCard.address
+        );
+        assert(
+          rewardPoolPreviousBalanceCard
+            .add(rewardPoolBalanceCard)
+            .eq(new BN("5000000000000000000")),
+          "the reward pool balance is correct"
+        );
+        assert(
+          rewardPoolBalanceCardByRewardProgram.eq(
+            new BN("5000000000000000000")
+          ),
+          "the reward pool balance is correct"
+        );
+        assert(
+          prepaidCardPreviousBalanceCard
+            .sub(new BN("5000000000000000000"))
+            .sub(new BN("5000000000000000000"))
+            .eq(prepaidCardBalanceCard),
+          "the prepaid card token balance is correct"
+        );
+        assert.equal(
+          prepaidCardPreviousFaceValue -
+            REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND -
+            500,
+          prepaidCardFaceValue,
+          "the prepaid card face value is correct"
         );
       });
     });

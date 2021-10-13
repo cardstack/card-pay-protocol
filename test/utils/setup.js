@@ -121,7 +121,8 @@ const setupProtocol = async (accounts) => {
     proxyFactory.address,
     rewardFeeReceiver,
     REWARDEE_REGISTRATION_FEE_IN_SPEND,
-    REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND
+    REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
+    [rewardPool.address]
   );
   await rewardPool.setup(tally, rewardManager.address, tokenManager.address);
 
