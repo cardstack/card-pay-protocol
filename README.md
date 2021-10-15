@@ -128,6 +128,12 @@ To run all the tests execute:
 yarn test
 ```
 
+Or to run in parallel execute:
+
+```sh
+yarn test:parallel
+```
+
 The tests include a gas report which provides the min, max, and avg gas consumed for all the public functions in the contract based on the gas consumed while running tests, as well as, the gas required to deploy the contracts.
 
 To generate the test coverage report execute:

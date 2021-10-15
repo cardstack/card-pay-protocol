@@ -1,0 +1,6 @@
+require: ['hardhat/register', 'test/setup']
+ui: 'bdd'
+timeout: 10000
+parallel: true
+recursive: true
+extension: ['js', 'cjs', 'mjs', 'ts']
