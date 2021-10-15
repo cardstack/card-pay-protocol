@@ -7,7 +7,7 @@
     "build": "./node_modules/.bin/hardhat compile && ./node_modules/.bin/hardhat typechain",
     "build:clean": "rm -rf typechain && ./node_modules/.bin/hardhat clean && yarn build",
     "test": "yarn lint && yarn test:sol",
-    "test:parallel": "yarn lint && npx mocha",
+    "test:parallel": "yarn lint && ./node_modules/.bin/mocha",
     "test:sol": "./node_modules/.bin/hardhat test",
     "test:coverage": "./node_modules/.bin/hardhat coverage",
     "test:size": "{ ./node_modules/.bin/hardhat size-contracts | tee /dev/fd/3 | grep -q 'exceed the size limit for mainnet deployment' && exit 1; } 3>&1 || echo 'All contracts within size limit'",
