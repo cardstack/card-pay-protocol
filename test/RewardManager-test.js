@@ -1141,7 +1141,7 @@ contract("RewardManager", (accounts) => {
       );
     });
 
-    it("can transfer reward safe", async () => {
+    it.only("can transfer reward safe", async () => {
       let tx = await registerRewardee(
         prepaidCardManager,
         prepaidCard,

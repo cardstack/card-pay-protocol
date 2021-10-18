@@ -134,7 +134,7 @@ const setupProtocol = async (accounts) => {
   await prepaidCardManager.addGasPolicy("updateRewardProgramAdmin", false);
   await prepaidCardManager.addGasPolicy("addRewardRule", false);
   await prepaidCardManager.addGasPolicy("removeRewardRule", false);
-  await prepaidCardManager.addGasPolicy("payRewardTokens", false);
+  await prepaidCardManager.addGasPolicy("payRewardTokens", true);
 
   await actionDispatcher.setup(
     tokenManager.address,

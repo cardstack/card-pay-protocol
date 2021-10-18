@@ -32,7 +32,7 @@ const UpdateRewardProgramAdminHandler = artifacts.require(
 );
 const PayRewardTokensHandler = artifacts.require("PayRewardTokensHandler");
 
-const { toBN } = require("web3-utils");
+const { toBN, toWei, BN } = require("web3-utils");
 const { TOKEN_DETAIL_DATA } = require("../setup");
 const eventABIs = require("./constant/eventABIs");
 const {
@@ -49,6 +49,7 @@ const {
 // easy and the relay server is really responsible for this (and not part of
 // these tests)
 const BLOCK_GAS_LIMIT = 6000000;
+const DEFAULT_GAS_PRICE = 1000000000;
 const SENTINEL_OWNER = "0x0000000000000000000000000000000000000001";
 
 function toTokenUnit(_numberToken, _decimals = 18) {
@@ -160,11 +161,7 @@ const sendSafeTransaction = async (
   return {
     safeTxHash,
     safeTx,
-    executionSucceeded: checkGnosisExecution(
-      safeTx,
-      safeTxHash,
-      gnosisSafe.address
-    ),
+    executionResult: checkGnosisExecution(safeTx, gnosisSafe.address),
   };
 };
 
@@ -1394,11 +1391,7 @@ exports.swapOwner = async function (
   return {
     safeTx,
     safeTxHash,
-    executionSucceeded: checkGnosisExecution(
-      safeTx,
-      safeTxHash,
-      rewardSafe.address
-    ),
+    executionResult: checkGnosisExecution(safeTx, rewardSafe.address),
   };
 };
 
@@ -1846,9 +1839,9 @@ exports.payRewardTokens = async function (
     0,
     data,
     0,
+    BLOCK_GAS_LIMIT,
     0,
-    0,
-    0,
+    DEFAULT_GAS_PRICE,
     issuingToken.address,
     ZERO_ADDRESS,
     await prepaidCard.nonce(),
@@ -1860,8 +1853,8 @@ exports.payRewardTokens = async function (
     prepaidCard.address,
     spendAmount,
     usdRate,
-    0, // justin: consider using a mock gas price here
-    0,
+    DEFAULT_GAS_PRICE, // justin: consider using a mock gas price here
+    BLOCK_GAS_LIMIT,
     0,
     actionName,
     actionData,
@@ -1876,6 +1869,13 @@ exports.getPoolBalanceByRewardProgram = async function (
   token
 ) {
   return rewardPool.rewardBalance(rewardProgramID, token.address);
+};
+const SIXTEEN_ZEROES = "0000000000000000";
+
+// The configured rate is 1^18 DAI : 100 SPEND
+// The configured rate is 1^16 DAI : 1 SPEND
+exports.convertFromSpend = (spendAmount) => {
+  return new BN((spendAmount + SIXTEEN_ZEROES).toString());
 };
 
 exports.toTokenUnit = toTokenUnit;

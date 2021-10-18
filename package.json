@@ -9,6 +9,8 @@
     "test": "yarn lint && yarn test:sol",
     "test:parallel": "yarn lint && ./node_modules/.bin/mocha",
     "test:sol": "./node_modules/.bin/hardhat test",
+    "test:reward": "./node_modules/.bin/hardhat test /Users/justinthong/Documents/GitHub/card-protocol-xdai/test/RewardManager-test.js",
+    "test:pool": "./node_modules/.bin/hardhat test /Users/justinthong/Documents/GitHub/card-protocol-xdai/test/RewardPool-test.js",
     "test:coverage": "./node_modules/.bin/hardhat coverage",
     "test:size": "{ ./node_modules/.bin/hardhat size-contracts | tee /dev/fd/3 | grep -q 'exceed the size limit for mainnet deployment' && exit 1; } 3>&1 || echo 'All contracts within size limit'",
     "watch:compile": "./node_modules/.bin/hardhat watch compile",

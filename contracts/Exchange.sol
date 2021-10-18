@@ -6,6 +6,7 @@ import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
 import "./token/IERC677.sol";
 import "./oracles/IPriceOracle.sol";
 import "./core/Versionable.sol";
+import "hardhat/console.sol";
 
 contract Exchange is Ownable, Versionable {
   using SafeMath for uint256;
@@ -129,11 +130,17 @@ contract Exchange is Ownable, Versionable {
       decimals == exchangeRateDecimals(),
       "unexpected decimals value for token price"
     );
+    console.log("hi what");
+    console.log("token %s", token);
+    console.logUint(amount);
+    console.logUint(price);
+    console.logUint(convertFromSpendWithRate(token, amount, price));
+
     return convertFromSpendWithRate(token, amount, price);
   }
 
   /**
-   * @dev convert amount in SPEND to the amount in token using the
+
    * provided rate. Note that the rate needs to use decimals 8
    * @param token address of token
    * @param amount amount in SPEND

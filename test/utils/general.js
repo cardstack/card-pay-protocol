@@ -4,6 +4,7 @@ const GnosisSafe = artifacts.require("GnosisSafe");
 const eventABIs = require("./constant/eventABIs.js");
 const { toHex, padLeft, hexToBytes, numberToHex } = require("web3-utils");
 const AbiCoder = require("web3-eth-abi");
+const { BN } = require("web3-utils");
 
 exports = Object.assign({}, gnosisUtils);
 
@@ -304,7 +305,7 @@ function sortSignatures(
   }
 }
 
-const checkGnosisExecution = (safeTx, safeTxHash, safeAddress) => {
+const checkGnosisExecution = (safeTx, safeAddress) => {
   const executionSucceeded = getParamsFromEvent(
     safeTx,
     eventABIs.EXECUTION_SUCCESS,
@@ -315,15 +316,9 @@ const checkGnosisExecution = (safeTx, safeTxHash, safeAddress) => {
     eventABIs.EXECUTION_FAILURE,
     safeAddress
   );
-  if (executionFailed.length > 0) {
-    return false;
-  } else {
-    if (executionSucceeded.length > 0) {
-      return executionSucceeded[0].txHash === safeTxHash;
-    } else {
-      return false;
-    }
-  }
+  return executionFailed.length > 0
+    ? { success: false, gasFee: new BN(executionSucceeded[0].payment) }
+    : { success: true, gasFee: new BN(executionSucceeded[0].payment) };
 };
 
 Object.assign(exports, {
