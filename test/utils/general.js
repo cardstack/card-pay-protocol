@@ -305,6 +305,8 @@ function sortSignatures(
   }
 }
 
+// Note: if you have nested gnosis execution, this checks the outer gnosis execution
+// Also, it doesn't take into give the gas fee paid by the relayer, only the outer most gnosis execution
 const checkGnosisExecution = (safeTx, safeAddress) => {
   const executionSucceeded = getParamsFromEvent(
     safeTx,
