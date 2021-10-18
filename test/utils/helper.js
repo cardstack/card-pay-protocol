@@ -1777,7 +1777,7 @@ exports.claimReward = async function (
     txGasEstimate: gasEstimate,
     gasPrice: DEFAULT_GAS_PRICE,
     txGasToken: token.address,
-    refundReceive: rewardSafe.address,
+    refundReceive: relayer,
   };
 
   const nonce = await rewardSafe.nonce();

@@ -622,7 +622,9 @@ contract("RewardPool", function (accounts) {
       });
 
       it("payee can claim up to their allotted amount from pool", async function () {
-        await claimReward(
+        const {
+          executionResult: { gasFee },
+        } = await claimReward(
           rewardManager,
           rewardPool,
           relayer,
@@ -656,7 +658,9 @@ contract("RewardPool", function (accounts) {
           payee
         );
         assert(
-          rewardSafeBalance.eq(rewardSafePreviousBalance.add(paymentAmount)),
+          rewardSafeBalance.eq(
+            rewardSafePreviousBalance.add(paymentAmount).sub(gasFee)
+          ),
           "the reward safe balance is correct"
         );
         assert(
