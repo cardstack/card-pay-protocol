@@ -94,7 +94,7 @@ contract RegisterRewardeeHandler is Ownable, Versionable {
             rewardeeRegistrationFeeInSpend,
             rewardProgramID
         );
-        address rewardSafe = RewardManager(rewardManagerAddress).registerRewardee(
+        RewardManager(rewardManagerAddress).registerRewardee(
             rewardProgramID,
             prepaidCardOwner
         );

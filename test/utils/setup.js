@@ -127,13 +127,13 @@ const setupProtocol = async (accounts) => {
   await rewardPool.setup(tally, rewardManager.address, tokenManager.address);
 
   await prepaidCardManager.addGasPolicy("transfer", false);
-  await prepaidCardManager.addGasPolicy("split", false);
+  await prepaidCardManager.addGasPolicy("split", true);
   await prepaidCardManager.addGasPolicy("registerRewardProgram", false);
   await prepaidCardManager.addGasPolicy("registerRewardee", false);
-  await prepaidCardManager.addGasPolicy("lockRewardProgram", false);
-  await prepaidCardManager.addGasPolicy("updateRewardProgramAdmin", false);
-  await prepaidCardManager.addGasPolicy("addRewardRule", false);
-  await prepaidCardManager.addGasPolicy("removeRewardRule", false);
+  await prepaidCardManager.addGasPolicy("lockRewardProgram", true);
+  await prepaidCardManager.addGasPolicy("updateRewardProgramAdmin", true);
+  await prepaidCardManager.addGasPolicy("addRewardRule", true);
+  await prepaidCardManager.addGasPolicy("removeRewardRule", true);
   await prepaidCardManager.addGasPolicy("payRewardTokens", true);
 
   await actionDispatcher.setup(

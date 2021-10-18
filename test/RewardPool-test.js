@@ -25,7 +25,6 @@ const {
   claimReward,
   mintWalletAndRefillPool,
   payRewardTokens,
-  convertFromSpend,
 } = require("./utils/helper");
 const AbiCoder = require("web3-eth-abi");
 
@@ -1591,7 +1590,7 @@ contract("RewardPool", function (accounts) {
           )
           .should.be.rejectedWith(Error, "calling token is unaccepted");
       });
-      it.only("reward pool can be refilled using a prepaid card", async function () {
+      it("reward pool can be refilled using a prepaid card", async function () {
         ({
           prepaidCardManager,
           rewardManager,
@@ -1601,7 +1600,7 @@ contract("RewardPool", function (accounts) {
           tokenManager,
           rewardPool,
         } = await setupProtocol(accounts));
-        const rewardPoolPreviousBalanceCard = await getBalance(
+        const rewardPoolPreviousBalanceDai = await getBalance(
           daicpxdToken,
           rewardPool.address
         );
@@ -1614,11 +1613,8 @@ contract("RewardPool", function (accounts) {
           toTokenUnit(10 + 1),
           prepaidCardOwner
         );
-        const prepaidCardPreviousBalanceCard = await getBalance(
+        const prepaidCardPreviousBalanceDai = await getBalance(
           daicpxdToken,
-          prepaidCard.address
-        );
-        const prepaidCardPreviousFaceValue = await prepaidCardManager.faceValue(
           prepaidCard.address
         );
 
@@ -1645,9 +1641,8 @@ contract("RewardPool", function (accounts) {
           txn,
           prepaidCard.address
         );
-
         assert(success, "gnosis execution succesfull");
-        const rewardPoolBalanceCard = await getBalance(
+        const rewardPoolBalanceDai = await getBalance(
           daicpxdToken,
           rewardPool.address
         );
@@ -1657,16 +1652,13 @@ contract("RewardPool", function (accounts) {
           rewardPool,
           daicpxdToken
         );
-        const prepaidCardBalanceCard = await getBalance(
+        const prepaidCardBalanceDai = await getBalance(
           daicpxdToken,
           prepaidCard.address
         );
-        const prepaidCardFaceValue = await prepaidCardManager.faceValue(
-          prepaidCard.address
-        );
         assert(
-          rewardPoolPreviousBalanceCard
-            .add(rewardPoolBalanceCard)
+          rewardPoolPreviousBalanceDai
+            .add(rewardPoolBalanceDai)
             .eq(new BN("5000000000000000000")),
           "the reward pool balance is correct"
         );
@@ -1677,56 +1669,12 @@ contract("RewardPool", function (accounts) {
           "the reward pool balance is correct"
         );
         assert(
-          prepaidCardPreviousBalanceCard
+          prepaidCardPreviousBalanceDai
             .sub(new BN("5000000000000000000"))
             .sub(new BN("5000000000000000000"))
             .sub(gasFee)
-            .eq(prepaidCardBalanceCard),
+            .eq(prepaidCardBalanceDai),
           "the prepaid card token balance is correct"
-        );
-        console.log("in test");
-
-        console.log(
-          `
-${convertFromSpend(prepaidCardPreviousFaceValue)}
-${convertFromSpend(REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND)}
-${new BN("5000000000000000000").toString()}
-          `
-        );
-        console.log(
-          "gasFee",
-          gasFee.add(
-            convertFromSpend(
-              REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND
-            ).toString()
-          )
-        );
-        console.log(
-          convertFromSpend(prepaidCardPreviousFaceValue)
-            .sub(convertFromSpend(REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND))
-            .sub(new BN("5000000000000000000"))
-            .sub(gasFee)
-            .toString()
-        );
-        console.log(convertFromSpend(prepaidCardFaceValue).toString());
-        console.log(
-          convertFromSpend(prepaidCardPreviousFaceValue)
-            .sub(convertFromSpend(REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND))
-            .sub(new BN("5000000000000000000"))
-            .sub(gasFee)
-            .eq(convertFromSpend(prepaidCardFaceValue))
-        );
-        const priceForFaceValue = await prepaidCardManager.priceForFaceValue(
-          daicpxdToken.address,
-          prepaidCardFaceValue
-        );
-        console.log(priceForFaceValue.toString());
-        assert.equal(
-          prepaidCardPreviousFaceValue.toNumber() -
-            REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND -
-            500,
-          prepaidCardFaceValue,
-          "the prepaid card face value is correct"
         );
       });
     });

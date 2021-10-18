@@ -5,7 +5,6 @@ import "@openzeppelin/contract-upgradeable/contracts/math/SafeMath.sol";
 import "../TokenManager.sol";
 import "../core/Versionable.sol";
 import "../token/IERC677.sol";
-import "hardhat/console.sol";
 
 contract PayRewardTokensHandler is Ownable, Versionable {
   using SafeMath for uint256;
@@ -49,9 +48,6 @@ contract PayRewardTokensHandler is Ownable, Versionable {
       abi.decode(data, (address, uint256, bytes));
 
     address rewardProgramID = abi.decode(actionData, (address));
-    console.log("pay reward tokens handler");
-    console.log("amount");
-    console.logUint(amount);
 
     IERC677(msg.sender).transferAndCall(rewardPoolAddress, amount, actionData);
     emit RewardTokensPaid(prepaidCard, msg.sender, amount, rewardProgramID);
