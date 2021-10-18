@@ -1496,7 +1496,9 @@ contract("RewardPool", function (accounts) {
           paymentCycle
         );
 
-        await claimReward(
+        const {
+          executionResult: { gasFee: gasFeeCardClaim },
+        } = await claimReward(
           rewardManager,
           rewardPool,
           relayer,
@@ -1508,7 +1510,9 @@ contract("RewardPool", function (accounts) {
           cardProof
         );
 
-        await claimReward(
+        const {
+          executionResult: { gasFee: gasFeeDaiClaim },
+        } = await claimReward(
           rewardManager,
           rewardPool,
           relayer,
@@ -1539,7 +1543,7 @@ contract("RewardPool", function (accounts) {
         );
         assert(
           rewardSafeBalanceCard.eq(
-            rewardSafePreviousBalanceCard.add(cardAmount)
+            rewardSafePreviousBalanceCard.add(cardAmount).sub(gasFeeCardClaim)
           ),
           "the reward safe balance is correct"
         );
@@ -1552,7 +1556,9 @@ contract("RewardPool", function (accounts) {
         );
 
         assert(
-          rewardSafeBalanceDai.eq(rewardSafePreviousBalanceDai.add(daiAmount)),
+          rewardSafeBalanceDai.eq(
+            rewardSafePreviousBalanceDai.add(daiAmount).sub(gasFeeDaiClaim)
+          ),
           "the reward safe balance is correct"
         );
 
