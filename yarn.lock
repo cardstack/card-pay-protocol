@@ -3681,6 +3681,9 @@
 "CardPay-Contracts@github:cardstack/card-commerce-protocol#371e0810ba0a252fc3a3a8c159fba3bc57b4fe0c":
   version "1.0.4"
   resolved "https://codeload.github.com/cardstack/card-commerce-protocol/tar.gz/371e0810ba0a252fc3a3a8c159fba3bc57b4fe0c"
+  dependencies:
+    "@openzeppelin/contracts" "3.2.0"
+    "@openzeppelin/contracts-upgradeable" "3.2.0"
 
 abab@^1.0.0:
   version "1.0.4"
