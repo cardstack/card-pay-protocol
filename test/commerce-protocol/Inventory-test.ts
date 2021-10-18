@@ -23,6 +23,7 @@ import { ExchangeMock__factory } from "../../typechain/factories/ExchangeMock__f
 import { LevelRegistrar__factory } from "../../typechain/factories/LevelRegistrar__factory";
 import hre from "hardhat";
 const { chainId } = hre.network.config;
+import { ZERO_ADDRESS } from "../utils/general";
 
 chai.use(asPromised);
 
@@ -283,6 +284,41 @@ describe("Inventory", () => {
   describe("#constructor", () => {
     it("should be able to deploy", async () => {
       await expect(deploy()).eventually.fulfilled;
+    });
+  });
+
+  describe("ownership", () => {
+    it("Should be ownable and transferrable", async () => {
+      const auction = await (
+        await new Market__factory(deployerWallet).deploy()
+      ).deployed();
+
+      const contract = await (
+        await new Inventory__factory(deployerWallet).deploy()
+      ).deployed();
+
+      const contractWithOtherWallet = Inventory__factory.connect(
+        contract.address,
+        otherWallet
+      );
+
+      expect(await contract.owner()).to.be.eq(ZERO_ADDRESS);
+
+      await contractWithOtherWallet.initialize(auction.address);
+      expect(await contract.owner()).to.be.eq(otherWallet.address);
+
+      await expect(
+        contractWithOtherWallet.initialize(auction.address)
+      ).eventually.rejectedWith(
+        "Initializable: contract is already initialized"
+      );
+
+      await expect(
+        contract.transferOwnership(deployerWallet.address)
+      ).eventually.rejectedWith("Ownable: caller is not the owner");
+
+      await contractWithOtherWallet.transferOwnership(deployerWallet.address);
+      expect(await contract.owner()).to.be.eq(deployerWallet.address);
     });
   });
 

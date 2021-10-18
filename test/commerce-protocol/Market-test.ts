@@ -11,6 +11,7 @@ import { ExchangeMock__factory } from "../../typechain/factories/ExchangeMock__f
 import { LevelRegistrar__factory } from "../../typechain/factories/LevelRegistrar__factory";
 import Decimal from "./utils/Decimal";
 import { ethers, waffle } from "hardhat";
+import { ZERO_ADDRESS } from "../utils/general";
 
 chai.use(asPromised);
 
@@ -179,6 +180,35 @@ describe("Market", () => {
   describe("#constructor", () => {
     it("should be able to deploy", async () => {
       await expect(deploy()).eventually.fulfilled;
+    });
+  });
+
+  describe("ownership", () => {
+    it("Should be ownable and transferrable", async () => {
+      const auction = await (
+        await new Market__factory(deployerWallet).deploy()
+      ).deployed();
+
+      const auctionWithOtherWallet = Market__factory.connect(
+        auction.address,
+        otherWallet
+      );
+
+      expect(await auction.owner()).to.be.eq(ZERO_ADDRESS);
+
+      await auctionWithOtherWallet.initialize();
+      expect(await auction.owner()).to.be.eq(otherWallet.address);
+
+      await expect(auctionWithOtherWallet.initialize()).eventually.rejectedWith(
+        "Initializable: contract is already initialized"
+      );
+
+      await expect(
+        auction.transferOwnership(deployerWallet.address)
+      ).eventually.rejectedWith("Ownable: caller is not the owner");
+
+      await auctionWithOtherWallet.transferOwnership(deployerWallet.address);
+      expect(await auction.owner()).to.be.eq(deployerWallet.address);
     });
   });
 

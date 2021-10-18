@@ -126,6 +126,10 @@ async function main() {
       contractName: "Inventory",
       init: ["Market.address"],
     },
+    LevelRegistrar: {
+      contractName: "LevelRegistrar",
+      init: [],
+    },
   };
 
   // Use manual feeds in sokol
