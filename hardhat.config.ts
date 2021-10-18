@@ -94,7 +94,7 @@ export default {
       tasks: [
         {
           command: "test",
-          params: { testFiles: [] }, //.e.g [./test/RewardManger-test.js]
+          params: { testFiles: [] }, //.e.g ["./test/RewardManger-test.js"]
         },
       ],
       files: ["./test"],
