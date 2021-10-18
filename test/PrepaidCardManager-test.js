@@ -91,7 +91,6 @@ contract("PrepaidCardManager", (accounts) => {
     await tokenManager.initialize(owner);
     merchantManager = await MerchantManager.new();
     await merchantManager.initialize(owner);
-
     customerA = findAccountBeforeAddress(
       accounts.slice(10),
       prepaidCardManager.address

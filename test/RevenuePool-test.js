@@ -14,7 +14,7 @@ const utils = require("./utils/general");
 const eventABIs = require("./utils/constant/eventABIs");
 
 const { ZERO_ADDRESS, getParamsFromEvent, signSafeTransaction } = utils;
-const { expect, TOKEN_DETAIL_DATA } = require("./setup");
+const { expect, TOKEN_DETAIL_DATA, assert } = require("./setup");
 const { BN, fromWei, toBN, toWei } = require("web3").utils;
 
 const {
@@ -1316,19 +1316,17 @@ contract("RevenuePool", (accounts) => {
         txGasToken: daicpxdToken.address,
         refundReceive: relayer,
       };
+
       let merchantSafeContract = await GnosisSafe.at(merchantSafe);
-      let { safeTx } = await signAndSendSafeTransaction(
+      let {
+        executionResult: { success, gasFee },
+      } = await signAndSendSafeTransaction(
         safeTxData,
         merchant,
         merchantSafeContract,
         relayer
       );
-      let executeSuccess = utils.getParamsFromEvent(
-        safeTx,
-        eventABIs.EXECUTION_SUCCESS,
-        merchantSafe
-      );
-      let gasFee = toBN(executeSuccess[0]["payment"]);
+      assert(success, "gnosis execution succesful");
 
       await shouldBeSameBalance(
         daicpxdToken,

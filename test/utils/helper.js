@@ -49,6 +49,7 @@ const {
 // easy and the relay server is really responsible for this (and not part of
 // these tests)
 const BLOCK_GAS_LIMIT = 6000000;
+const DEFAULT_GAS_PRICE = 1000000000;
 const SENTINEL_OWNER = "0x0000000000000000000000000000000000000001";
 
 function toTokenUnit(_numberToken, _decimals = 18) {
@@ -160,11 +161,7 @@ const sendSafeTransaction = async (
   return {
     safeTxHash,
     safeTx,
-    executionSucceeded: checkGnosisExecution(
-      safeTx,
-      safeTxHash,
-      gnosisSafe.address
-    ),
+    executionResult: checkGnosisExecution(safeTx, gnosisSafe.address),
   };
 };
 
@@ -718,7 +715,7 @@ const createPrepaidCards = async function (
     to: issuingToken.address,
     data: payloads,
     txGasEstimate: gasEstimate,
-    gasPrice: 1000000000,
+    gasPrice: DEFAULT_GAS_PRICE,
     txGasToken: issuingToken.address,
     refundReceive: relayer,
   };
@@ -882,7 +879,7 @@ exports.setPrepaidCardInventory = async function (
     usdRate = 100000000;
   }
   if (gasPrice == null) {
-    gasPrice = "1000000000"; // 1 gwei
+    gasPrice = DEFAULT_GAS_PRICE;
   }
   let issuingToken = await getIssuingToken(
     prepaidCardManager,
@@ -954,7 +951,7 @@ exports.removePrepaidCardInventory = async function (
     usdRate = 100000000;
   }
   if (gasPrice == null) {
-    gasPrice = 1000000000; // 1 gwei
+    gasPrice = DEFAULT_GAS_PRICE;
   }
   let issuingToken = await getIssuingToken(
     prepaidCardManager,
@@ -1018,7 +1015,7 @@ exports.setPrepaidCardAsk = async function (
     usdRate = 100000000;
   }
   if (gasPrice == null) {
-    gasPrice = 1000000000; // 1 gwei
+    gasPrice = DEFAULT_GAS_PRICE;
   }
   let issuingToken = await getIssuingToken(
     prepaidCardManager,
@@ -1087,7 +1084,7 @@ exports.splitPrepaidCard = async function (
     usdRate = 100000000;
   }
   if (gasPrice == null) {
-    gasPrice = 1000000000; // 1 gwei
+    gasPrice = DEFAULT_GAS_PRICE;
   }
   let issuingToken = await getIssuingToken(prepaidCardManager, prepaidCard);
   let payload = AbiCoder.encodeParameters(
@@ -1242,7 +1239,7 @@ exports.registerRewardee = async function (
     prepaidCard.address,
     spendAmount,
     usdRate,
-    0, // justin: consider using a mock gas price here
+    0,
     0,
     0,
     actionName,
@@ -1394,11 +1391,7 @@ exports.swapOwner = async function (
   return {
     safeTx,
     safeTxHash,
-    executionSucceeded: checkGnosisExecution(
-      safeTx,
-      safeTxHash,
-      rewardSafe.address
-    ),
+    executionResult: checkGnosisExecution(safeTx, rewardSafe.address),
   };
 };
 
@@ -1500,7 +1493,7 @@ exports.registerRewardProgram = async function (
     prepaidCard.address,
     spendAmount,
     usdRate,
-    0, // justin: consider using a mock gas price here
+    0,
     0,
     0,
     actionName,
@@ -1538,9 +1531,9 @@ exports.lockRewardProgram = async function (
     0,
     data,
     0,
+    BLOCK_GAS_LIMIT,
     0,
-    0,
-    0,
+    DEFAULT_GAS_PRICE,
     issuingToken.address,
     ZERO_ADDRESS,
     await prepaidCard.nonce(),
@@ -1551,8 +1544,8 @@ exports.lockRewardProgram = async function (
     prepaidCard.address,
     spendAmount,
     usdRate,
-    0, // justin: consider using a mock gas price here
-    0,
+    DEFAULT_GAS_PRICE,
+    BLOCK_GAS_LIMIT,
     0,
     actionName,
     actionData,
@@ -1595,9 +1588,9 @@ exports.addRewardRule = async function (
     0,
     data,
     0,
+    BLOCK_GAS_LIMIT,
     0,
-    0,
-    0,
+    DEFAULT_GAS_PRICE,
     issuingToken.address,
     ZERO_ADDRESS,
     await prepaidCard.nonce(),
@@ -1608,8 +1601,8 @@ exports.addRewardRule = async function (
     prepaidCard.address,
     spendAmount,
     usdRate,
-    0, // justin: consider using a mock gas price here
-    0,
+    DEFAULT_GAS_PRICE,
+    BLOCK_GAS_LIMIT,
     0,
     actionName,
     actionData,
@@ -1650,9 +1643,9 @@ exports.removeRewardRule = async function (
     0,
     data,
     0,
+    BLOCK_GAS_LIMIT,
     0,
-    0,
-    0,
+    DEFAULT_GAS_PRICE,
     issuingToken.address,
     ZERO_ADDRESS,
     await prepaidCard.nonce(),
@@ -1663,8 +1656,8 @@ exports.removeRewardRule = async function (
     prepaidCard.address,
     spendAmount,
     usdRate,
-    0, // justin: consider using a mock gas price here
-    0,
+    DEFAULT_GAS_PRICE,
+    BLOCK_GAS_LIMIT,
     0,
     actionName,
     actionData,
@@ -1704,9 +1697,9 @@ exports.updateRewardProgramAdmin = async function (
     0,
     data,
     0,
+    BLOCK_GAS_LIMIT,
     0,
-    0,
-    0,
+    DEFAULT_GAS_PRICE,
     issuingToken.address,
     ZERO_ADDRESS,
     await prepaidCard.nonce(),
@@ -1717,8 +1710,8 @@ exports.updateRewardProgramAdmin = async function (
     prepaidCard.address,
     spendAmount,
     usdRate,
-    0, // justin: consider using a mock gas price here
-    0,
+    DEFAULT_GAS_PRICE,
+    BLOCK_GAS_LIMIT,
     0,
     actionName,
     actionData,
@@ -1782,9 +1775,9 @@ exports.claimReward = async function (
     to: rewardPool.address,
     data: payload,
     txGasEstimate: gasEstimate,
-    gasPrice: 1000000000,
+    gasPrice: DEFAULT_GAS_PRICE,
     txGasToken: token.address,
-    refundReceive: rewardSafe.address,
+    refundReceive: relayer,
   };
 
   const nonce = await rewardSafe.nonce();
@@ -1846,9 +1839,9 @@ exports.payRewardTokens = async function (
     0,
     data,
     0,
+    BLOCK_GAS_LIMIT,
     0,
-    0,
-    0,
+    DEFAULT_GAS_PRICE,
     issuingToken.address,
     ZERO_ADDRESS,
     await prepaidCard.nonce(),
@@ -1860,8 +1853,8 @@ exports.payRewardTokens = async function (
     prepaidCard.address,
     spendAmount,
     usdRate,
-    0, // justin: consider using a mock gas price here
-    0,
+    DEFAULT_GAS_PRICE,
+    BLOCK_GAS_LIMIT,
     0,
     actionName,
     actionData,

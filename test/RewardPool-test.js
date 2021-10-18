@@ -7,7 +7,11 @@ const ERC677Token = artifacts.require("ERC677Token.sol");
 
 const RewardPool = artifacts.require("RewardPool.sol");
 
-const { ZERO_ADDRESS, getRewardSafeFromEventLog } = require("./utils/general");
+const {
+  ZERO_ADDRESS,
+  getRewardSafeFromEventLog,
+  checkGnosisExecution,
+} = require("./utils/general");
 const { setupProtocol, setupRoles } = require("./utils/setup");
 const { randomHex, BN } = require("web3-utils");
 const {
@@ -618,7 +622,9 @@ contract("RewardPool", function (accounts) {
       });
 
       it("payee can claim up to their allotted amount from pool", async function () {
-        await claimReward(
+        const {
+          executionResult: { gasFee },
+        } = await claimReward(
           rewardManager,
           rewardPool,
           relayer,
@@ -652,7 +658,9 @@ contract("RewardPool", function (accounts) {
           payee
         );
         assert(
-          rewardSafeBalance.eq(rewardSafePreviousBalance.add(paymentAmount)),
+          rewardSafeBalance.eq(
+            rewardSafePreviousBalance.add(paymentAmount).sub(gasFee)
+          ),
           "the reward safe balance is correct"
         );
         assert(
@@ -727,9 +735,11 @@ contract("RewardPool", function (accounts) {
         let claimAmount = toTokenUnit(8);
         assert(
           claimAmount.lt(paymentAmount),
-          "claim amoount is less than payment"
+          "claim amount is less than payment"
         );
-        await claimReward(
+        const {
+          executionResult: { gasFee },
+        } = await claimReward(
           rewardManager,
           rewardPool,
           relayer,
@@ -763,7 +773,9 @@ contract("RewardPool", function (accounts) {
           payee
         );
         assert(
-          claimAmount.eq(rewardSafeBalance.sub(rewardSafePreviousBalance)),
+          rewardSafeBalance.eq(
+            rewardSafePreviousBalance.add(claimAmount).sub(gasFee)
+          ),
           "the reward safe balance is correct"
         );
         assert(
@@ -780,7 +792,9 @@ contract("RewardPool", function (accounts) {
       it("payee can make mulitple claims within their allotted amount from the pool", async function () {
         let claimAmount = toTokenUnit(4).add(toTokenUnit(6));
 
-        await claimReward(
+        const {
+          executionResult: { gasFee: gasFeeFirstClaim },
+        } = await claimReward(
           rewardManager,
           rewardPool,
           relayer,
@@ -792,7 +806,9 @@ contract("RewardPool", function (accounts) {
           proof
         );
 
-        await claimReward(
+        const {
+          executionResult: { gasFee: gasFeeSecondClaim },
+        } = await claimReward(
           rewardManager,
           rewardPool,
           relayer,
@@ -827,7 +843,12 @@ contract("RewardPool", function (accounts) {
         );
 
         assert(
-          rewardSafeBalance.eq(rewardSafePreviousBalance.add(claimAmount)),
+          rewardSafeBalance.eq(
+            rewardSafePreviousBalance
+              .add(claimAmount)
+              .sub(gasFeeFirstClaim)
+              .sub(gasFeeSecondClaim)
+          ),
           "the reward safe balance is correct"
         );
         assert(
@@ -1088,7 +1109,7 @@ contract("RewardPool", function (accounts) {
           "Reward program has insufficient balance inside reward pool"
         );
       });
-      it("payee claim their allotted amount from an older proof", async function () {
+      it("payee can claim their allotted amount from an older proof", async function () {
         let updatedPayments = payments.slice();
         let updatedPaymentAmount = updatedPayments[payeeIndex].amount;
         let updatedMerkleTree = new CumulativePaymentTree(updatedPayments);
@@ -1108,7 +1129,9 @@ contract("RewardPool", function (accounts) {
 
         let claimAmount = toTokenUnit(8);
 
-        await claimReward(
+        const {
+          executionResult: { gasFee },
+        } = await claimReward(
           rewardManager,
           rewardPool,
           relayer,
@@ -1147,8 +1170,10 @@ contract("RewardPool", function (accounts) {
           payee
         );
         assert(
-          rewardSafeBalance.eq(rewardSafePreviousBalance.add(claimAmount)),
-          "the payee balance is correct"
+          rewardSafeBalance.eq(
+            rewardSafePreviousBalance.add(claimAmount).sub(gasFee)
+          ),
+          "the reward safe balance is correct"
         );
         assert(
           rewardPoolBalance.eq(rewardPoolPreviousBalance.sub(claimAmount)),
@@ -1165,7 +1190,7 @@ contract("RewardPool", function (accounts) {
         );
       });
 
-      it("payee claim their allotted amount from a newer proof", async function () {
+      it("payee can claim their allotted amount from a newer proof", async function () {
         let updatedPayments = payments.slice();
         let updatedPaymentAmount = updatedPayments[payeeIndex].amount;
         let updatedMerkleTree = new CumulativePaymentTree(updatedPayments);
@@ -1185,7 +1210,9 @@ contract("RewardPool", function (accounts) {
 
         let claimAmount = toTokenUnit(8);
 
-        await claimReward(
+        const {
+          executionResult: { gasFee },
+        } = await claimReward(
           rewardManager,
           rewardPool,
           relayer,
@@ -1219,8 +1246,10 @@ contract("RewardPool", function (accounts) {
         );
 
         assert(
-          rewardSafeBalance.eq(rewardSafePreviousBalance.add(claimAmount)),
-          "the payee balance is correct"
+          rewardSafeBalance.eq(
+            rewardSafePreviousBalance.add(claimAmount).sub(gasFee)
+          ),
+          "the reward safe balance is correct"
         );
         assert(
           rewardPoolBalance.eq(rewardPoolPreviousBalance.sub(claimAmount)),
@@ -1233,7 +1262,7 @@ contract("RewardPool", function (accounts) {
         );
       });
 
-      it("payee claim their allotted amount from a newer proof even after claim from older proof", async function () {
+      it("payee can claim their allotted amount from a newer proof even after claim from older proof", async function () {
         let updatedPayments = payments.slice();
         let updatedPaymentAmount = updatedPayments[payeeIndex].amount;
         let updatedMerkleTree = new CumulativePaymentTree(updatedPayments);
@@ -1253,7 +1282,9 @@ contract("RewardPool", function (accounts) {
 
         let claimAmount = toTokenUnit(8);
 
-        await claimReward(
+        const {
+          executionResult: { gasFee: gasFeeClaimFromOlderProof },
+        } = await claimReward(
           rewardManager,
           rewardPool,
           relayer,
@@ -1274,8 +1305,12 @@ contract("RewardPool", function (accounts) {
           rewardPool.address
         );
         assert(
-          rewardSafeBalance.eq(rewardSafePreviousBalance.add(claimAmount)),
-          "the payee balance is correct"
+          rewardSafeBalance.eq(
+            rewardSafePreviousBalance
+              .add(claimAmount)
+              .sub(gasFeeClaimFromOlderProof)
+          ),
+          "the reward safe balance is correct"
         );
         assert(
           rewardPoolBalance.eq(rewardPoolPreviousBalance.sub(claimAmount)),
@@ -1303,7 +1338,9 @@ contract("RewardPool", function (accounts) {
         );
 
         //claim from newer proof
-        await claimReward(
+        const {
+          executionResult: { gasFee: gasFeeClaimFromNewerProof },
+        } = await claimReward(
           rewardManager,
           rewardPool,
           relayer,
@@ -1324,9 +1361,13 @@ contract("RewardPool", function (accounts) {
         );
         assert(
           rewardSafeBalance.eq(
-            rewardSafePreviousBalance.add(claimAmount).add(claimAmount)
+            rewardSafePreviousBalance
+              .add(claimAmount)
+              .add(claimAmount)
+              .sub(gasFeeClaimFromOlderProof)
+              .sub(gasFeeClaimFromNewerProof)
           ),
-          "the payee balance is correct"
+          "the reward safe balance is correct"
         );
         assert(
           rewardPoolBalance.eq(
@@ -1455,7 +1496,9 @@ contract("RewardPool", function (accounts) {
           paymentCycle
         );
 
-        await claimReward(
+        const {
+          executionResult: { gasFee: gasFeeCardClaim },
+        } = await claimReward(
           rewardManager,
           rewardPool,
           relayer,
@@ -1467,7 +1510,9 @@ contract("RewardPool", function (accounts) {
           cardProof
         );
 
-        await claimReward(
+        const {
+          executionResult: { gasFee: gasFeeDaiClaim },
+        } = await claimReward(
           rewardManager,
           rewardPool,
           relayer,
@@ -1498,7 +1543,7 @@ contract("RewardPool", function (accounts) {
         );
         assert(
           rewardSafeBalanceCard.eq(
-            rewardSafePreviousBalanceCard.add(cardAmount)
+            rewardSafePreviousBalanceCard.add(cardAmount).sub(gasFeeCardClaim)
           ),
           "the reward safe balance is correct"
         );
@@ -1511,7 +1556,9 @@ contract("RewardPool", function (accounts) {
         );
 
         assert(
-          rewardSafeBalanceDai.eq(rewardSafePreviousBalanceDai.add(daiAmount)),
+          rewardSafeBalanceDai.eq(
+            rewardSafePreviousBalanceDai.add(daiAmount).sub(gasFeeDaiClaim)
+          ),
           "the reward safe balance is correct"
         );
 
@@ -1596,7 +1643,7 @@ contract("RewardPool", function (accounts) {
           tokenManager,
           rewardPool,
         } = await setupProtocol(accounts));
-        const rewardPoolPreviousBalanceCard = await getBalance(
+        const rewardPoolPreviousBalanceDai = await getBalance(
           daicpxdToken,
           rewardPool.address
         );
@@ -1609,15 +1656,11 @@ contract("RewardPool", function (accounts) {
           toTokenUnit(10 + 1),
           prepaidCardOwner
         );
-        const prepaidCardPreviousBalanceCard = await getBalance(
+        const prepaidCardPreviousBalanceDai = await getBalance(
           daicpxdToken,
           prepaidCard.address
         );
-        const prepaidCardPreviousFaceValue = await prepaidCardManager.faceValue(
-          prepaidCard.address
-        );
 
-        // console.log("same reward program id ", rewardProgramID);
         await registerRewardProgram(
           prepaidCardManager,
           prepaidCard,
@@ -1628,7 +1671,7 @@ contract("RewardPool", function (accounts) {
           prepaidCardOwner,
           rewardProgramID
         );
-        await payRewardTokens(
+        let txn = await payRewardTokens(
           prepaidCardManager,
           prepaidCard,
           relayer,
@@ -1637,7 +1680,12 @@ contract("RewardPool", function (accounts) {
           undefined,
           rewardProgramID
         );
-        const rewardPoolBalanceCard = await getBalance(
+        const { gasFee, success } = checkGnosisExecution(
+          txn,
+          prepaidCard.address
+        );
+        assert(success, "gnosis execution succesfull");
+        const rewardPoolBalanceDai = await getBalance(
           daicpxdToken,
           rewardPool.address
         );
@@ -1647,16 +1695,13 @@ contract("RewardPool", function (accounts) {
           rewardPool,
           daicpxdToken
         );
-        const prepaidCardBalanceCard = await getBalance(
+        const prepaidCardBalanceDai = await getBalance(
           daicpxdToken,
           prepaidCard.address
         );
-        const prepaidCardFaceValue = await prepaidCardManager.faceValue(
-          prepaidCard.address
-        );
         assert(
-          rewardPoolPreviousBalanceCard
-            .add(rewardPoolBalanceCard)
+          rewardPoolPreviousBalanceDai
+            .add(rewardPoolBalanceDai)
             .eq(new BN("5000000000000000000")),
           "the reward pool balance is correct"
         );
@@ -1667,18 +1712,12 @@ contract("RewardPool", function (accounts) {
           "the reward pool balance is correct"
         );
         assert(
-          prepaidCardPreviousBalanceCard
+          prepaidCardPreviousBalanceDai
             .sub(new BN("5000000000000000000"))
             .sub(new BN("5000000000000000000"))
-            .eq(prepaidCardBalanceCard),
+            .sub(gasFee)
+            .eq(prepaidCardBalanceDai),
           "the prepaid card token balance is correct"
-        );
-        assert.equal(
-          prepaidCardPreviousFaceValue -
-            REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND -
-            500,
-          prepaidCardFaceValue,
-          "the prepaid card face value is correct"
         );
       });
     });

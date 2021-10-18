@@ -12,10 +12,10 @@ const ERC677Token = artifacts.require("ERC677Token.sol");
 const RewardPool = artifacts.require("RewardPool");
 
 const { randomHex } = require("web3-utils");
-const { expect, TOKEN_DETAIL_DATA } = require("./setup");
+const { assert, expect, TOKEN_DETAIL_DATA } = require("./setup");
 const utils = require("./utils/general");
 const { ZERO_ADDRESS } = utils;
-const { getParamsFromEvent } = require("./utils/general");
+const { getParamsFromEvent, checkGnosisExecution } = require("./utils/general");
 const eventABIs = require("./utils/constant/eventABIs");
 
 const {
@@ -182,14 +182,15 @@ contract("RewardManager", (accounts) => {
       REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
       [rewardPool.address]
     );
+
     await prepaidCardManager.addGasPolicy("transfer", false);
-    await prepaidCardManager.addGasPolicy("split", false);
+    await prepaidCardManager.addGasPolicy("split", true);
     await prepaidCardManager.addGasPolicy("registerRewardProgram", false);
     await prepaidCardManager.addGasPolicy("registerRewardee", false);
-    await prepaidCardManager.addGasPolicy("lockRewardProgram", false);
-    await prepaidCardManager.addGasPolicy("updateRewardProgramAdmin", false);
-    await prepaidCardManager.addGasPolicy("addRewardRule", false);
-    await prepaidCardManager.addGasPolicy("removeRewardRule", false);
+    await prepaidCardManager.addGasPolicy("lockRewardProgram", true);
+    await prepaidCardManager.addGasPolicy("updateRewardProgramAdmin", true);
+    await prepaidCardManager.addGasPolicy("addRewardRule", true);
+    await prepaidCardManager.addGasPolicy("removeRewardRule", true);
 
     await actionDispatcher.setup(
       tokenManager.address,
@@ -528,20 +529,37 @@ contract("RewardManager", (accounts) => {
         .should.be.rejectedWith("Ownable: caller is not the owner");
     });
     it("can add rule in reward program", async () => {
+      const prepaidCardPreviousBalanceDai = await getBalance(
+        daicpxdToken,
+        prepaidCard.address
+      );
       expect(await rewardManager.hasRule(rewardProgramID, ruleDID)).to.equal(
         false
       );
-      await addRewardRule(
+      const txn = await addRewardRule(
         prepaidCardManager,
         prepaidCard,
         relayer,
         prepaidCardOwner,
-        0, //paying nothing from prepaid card
+        0,
         undefined,
         rewardProgramID,
         ruleDID,
         tallyRuleDID,
         benefitDID
+      );
+      const { gasFee, success } = checkGnosisExecution(
+        txn,
+        prepaidCard.address
+      );
+      const prepaidCardBalanceDai = await getBalance(
+        daicpxdToken,
+        prepaidCard.address
+      );
+      assert(success, "gnosis execution succesfull");
+      assert(
+        prepaidCardPreviousBalanceDai.sub(gasFee).eq(prepaidCardBalanceDai),
+        "the prepaid card token balance is correct"
       );
       expect(await rewardManager.hasRule(rewardProgramID, ruleDID)).to.equal(
         true
@@ -562,7 +580,7 @@ contract("RewardManager", (accounts) => {
         otherPrepaidCard,
         relayer,
         otherPrepaidCardOwner,
-        0, //paying nothing from prepaid card
+        0,
         undefined,
         rewardProgramID,
         ruleDID,
@@ -633,18 +651,35 @@ contract("RewardManager", (accounts) => {
         tallyRuleDID,
         benefitDID
       );
+      const prepaidCardPreviousBalanceDai = await getBalance(
+        daicpxdToken,
+        prepaidCard.address
+      );
       expect(await rewardManager.hasRule(rewardProgramID, ruleDID)).to.equal(
         true
       );
-      await removeRewardRule(
+      const txn = await removeRewardRule(
         prepaidCardManager,
         prepaidCard,
         relayer,
         prepaidCardOwner,
-        0, //paying nothing from prepaid card
+        0,
         undefined,
         rewardProgramID,
         ruleDID
+      );
+      const { gasFee, success } = checkGnosisExecution(
+        txn,
+        prepaidCard.address
+      );
+      const prepaidCardBalanceDai = await getBalance(
+        daicpxdToken,
+        prepaidCard.address
+      );
+      assert(success, "gnosis execution succesfull");
+      assert(
+        prepaidCardPreviousBalanceDai.sub(gasFee).eq(prepaidCardBalanceDai),
+        "the prepaid card token balance is correct"
       );
       expect(await rewardManager.hasRule(rewardProgramID, ruleDID)).to.equal(
         false
@@ -677,7 +712,7 @@ contract("RewardManager", (accounts) => {
         otherPrepaidCard,
         relayer,
         otherPrepaidCardOwner,
-        0, //paying nothing from prepaid card
+        0,
         undefined,
         rewardProgramID,
         ruleDID
@@ -770,17 +805,34 @@ contract("RewardManager", (accounts) => {
         .should.be.rejectedWith(Error, "calling token is unaccepted");
     });
     it("can lock reward program", async () => {
+      const prepaidCardPreviousBalanceDai = await getBalance(
+        daicpxdToken,
+        prepaidCard.address
+      );
       expect(
         (await rewardManager.rewardPrograms.call(rewardProgramID)).locked
       ).to.equal(false);
-      await lockRewardProgram(
+      let txn = await lockRewardProgram(
         prepaidCardManager,
         prepaidCard,
         relayer,
         prepaidCardOwner,
-        0, //paying nothing from prepaid card
+        0,
         undefined,
         rewardProgramID
+      );
+      const { gasFee, success } = checkGnosisExecution(
+        txn,
+        prepaidCard.address
+      );
+      const prepaidCardBalanceDai = await getBalance(
+        daicpxdToken,
+        prepaidCard.address
+      );
+      assert(success, "gnosis execution succesfull");
+      assert(
+        prepaidCardPreviousBalanceDai.sub(gasFee).eq(prepaidCardBalanceDai),
+        "the prepaid card token balance is correct"
       );
       expect(
         (await rewardManager.rewardPrograms.call(rewardProgramID)).locked
@@ -804,7 +856,7 @@ contract("RewardManager", (accounts) => {
         otherPrepaidCard,
         relayer,
         otherPrepaidCardOwner,
-        0, //paying nothing from prepaid card
+        0,
         undefined,
         rewardProgramID
       ).should.be.rejectedWith(Error, "safe transaction was reverted");
@@ -855,18 +907,35 @@ contract("RewardManager", (accounts) => {
         .should.be.rejectedWith(Error, "calling token is unaccepted");
     });
     it("can update rewardProgramAdmin of reward program", async () => {
+      const prepaidCardPreviousBalanceDai = await getBalance(
+        daicpxdToken,
+        prepaidCard.address
+      );
       expect(
         await rewardManager.rewardProgramAdmins.call(rewardProgramID)
       ).to.equal(prepaidCardOwner);
-      await updateRewardProgramAdmin(
+      const txn = await updateRewardProgramAdmin(
         prepaidCardManager,
         prepaidCard,
         relayer,
         prepaidCardOwner,
-        0, //paying nothing from prepaid card
+        0,
         undefined,
         rewardProgramID,
         rewardProgramAdmin
+      );
+      const { gasFee, success } = checkGnosisExecution(
+        txn,
+        prepaidCard.address
+      );
+      const prepaidCardBalanceDai = await getBalance(
+        daicpxdToken,
+        prepaidCard.address
+      );
+      assert(success, "gnosis execution succesfull");
+      assert(
+        prepaidCardPreviousBalanceDai.sub(gasFee).eq(prepaidCardBalanceDai),
+        "the prepaid card token balance is correct"
       );
       expect(
         await rewardManager.rewardProgramAdmins.call(rewardProgramID)
@@ -888,7 +957,7 @@ contract("RewardManager", (accounts) => {
         otherPrepaidCard,
         relayer,
         otherPrepaidCardOwner,
-        0, //paying nothing from prepaid card
+        0,
         undefined,
         rewardProgramID,
         rewardProgramAdmin
