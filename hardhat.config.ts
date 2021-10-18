@@ -9,6 +9,7 @@ import "@openzeppelin/hardhat-upgrades";
 import "@nomiclabs/hardhat-waffle";
 import "@typechain/hardhat";
 import "@nomiclabs/hardhat-ethers";
+import "hardhat-watcher";
 
 import glob from "fast-glob";
 
@@ -82,5 +83,17 @@ export default {
   },
   mocha: {
     timeout: 60000,
+  },
+  watcher: {
+    compile: {
+      tasks: ["compile"],
+      files: ["./contracts"],
+      verbose: true,
+    },
+    test: {
+      tasks: ["test"],
+      files: ["./test"],
+      verbose: true,
+    },
   },
 };

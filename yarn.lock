@@ -6081,7 +6081,7 @@ chokidar@3.5.1:
   optionalDependencies:
     fsevents "~2.3.1"
 
-chokidar@^3.4.0:
+chokidar@^3.4.0, chokidar@^3.4.3:
   version "3.5.2"
   resolved "https://registry.yarnpkg.com/chokidar/-/chokidar-3.5.2.tgz#dba3976fcadb016f66fd365021d91600d01c1e75"
   integrity sha512-ekGhOnNVPgT77r4K/U3GDhu+FQ2S8TnK/s2KbIGXi0SZWuwkZ2QNyfWdZW+TVfn84DpEP7rLeCt2UI6bJ8GwbQ==
@@ -10036,6 +10036,13 @@ hardhat-contract-sizer@^2.0.3:
   dependencies:
     cli-table3 "^0.6.0"
     colors "^1.4.0"
+
+hardhat-watcher@^2.1.1:
+  version "2.1.1"
+  resolved "https://registry.yarnpkg.com/hardhat-watcher/-/hardhat-watcher-2.1.1.tgz#8b05fec429ed45da11808bbf6054a90f3e34c51a"
+  integrity sha512-zilmvxAYD34IofBrwOliQn4z92UiDmt2c949DW4Gokf0vS0qk4YTfVCi/LmUBICThGygNANE3WfnRTpjCJGtDA==
+  dependencies:
+    chokidar "^3.4.3"
 
 hardhat@^2.6.0:
   version "2.6.0"
