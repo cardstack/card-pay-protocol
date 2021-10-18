@@ -715,7 +715,7 @@ const createPrepaidCards = async function (
     to: issuingToken.address,
     data: payloads,
     txGasEstimate: gasEstimate,
-    gasPrice: 1000000000,
+    gasPrice: DEFAULT_GAS_PRICE,
     txGasToken: issuingToken.address,
     refundReceive: relayer,
   };
@@ -879,7 +879,7 @@ exports.setPrepaidCardInventory = async function (
     usdRate = 100000000;
   }
   if (gasPrice == null) {
-    gasPrice = "1000000000"; // 1 gwei
+    gasPrice = DEFAULT_GAS_PRICE; // 1 gwei
   }
   let issuingToken = await getIssuingToken(
     prepaidCardManager,
@@ -951,7 +951,7 @@ exports.removePrepaidCardInventory = async function (
     usdRate = 100000000;
   }
   if (gasPrice == null) {
-    gasPrice = 1000000000; // 1 gwei
+    gasPrice = DEFAULT_GAS_PRICE; // 1 gwei
   }
   let issuingToken = await getIssuingToken(
     prepaidCardManager,
@@ -1015,7 +1015,7 @@ exports.setPrepaidCardAsk = async function (
     usdRate = 100000000;
   }
   if (gasPrice == null) {
-    gasPrice = 1000000000; // 1 gwei
+    gasPrice = DEFAULT_GAS_PRICE; // 1 gwei
   }
   let issuingToken = await getIssuingToken(
     prepaidCardManager,
@@ -1084,7 +1084,7 @@ exports.splitPrepaidCard = async function (
     usdRate = 100000000;
   }
   if (gasPrice == null) {
-    gasPrice = 1000000000; // 1 gwei
+    gasPrice = DEFAULT_GAS_PRICE; // 1 gwei
   }
   let issuingToken = await getIssuingToken(prepaidCardManager, prepaidCard);
   let payload = AbiCoder.encodeParameters(
@@ -1775,7 +1775,7 @@ exports.claimReward = async function (
     to: rewardPool.address,
     data: payload,
     txGasEstimate: gasEstimate,
-    gasPrice: 1000000000,
+    gasPrice: DEFAULT_GAS_PRICE,
     txGasToken: token.address,
     refundReceive: rewardSafe.address,
   };

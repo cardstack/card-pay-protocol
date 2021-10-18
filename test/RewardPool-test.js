@@ -13,7 +13,7 @@ const {
   checkGnosisExecution,
 } = require("./utils/general");
 const { setupProtocol, setupRoles } = require("./utils/setup");
-const { randomHex, BN, toBN, toWei, fromWei } = require("web3-utils");
+const { randomHex, BN } = require("web3-utils");
 const {
   advanceBlock,
   toTokenUnit,
