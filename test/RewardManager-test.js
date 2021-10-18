@@ -125,11 +125,11 @@ contract("RewardManager", (accounts) => {
     await rewardPool.initialize(owner);
 
     prepaidCardOwnerA = findAccountAfterAddress(
-      accounts,
+      accounts.slice(10),
       rewardManager.address
     );
     prepaidCardOwnerB = findAccountBeforeAddress(
-      accounts,
+      accounts.slice(10),
       rewardManager.address
     );
     ({ daicpxdToken, cardcpxdToken, exchange } = await setupExchanges(owner));
