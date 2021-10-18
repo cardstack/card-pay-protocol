@@ -91,7 +91,12 @@ export default {
       verbose: true,
     },
     test: {
-      tasks: ["test"],
+      tasks: [
+        {
+          command: "test",
+          params: { testFiles: [] }, //.e.g [./test/RewardManger-test.js]
+        },
+      ],
       files: ["./test"],
       verbose: true,
     },
