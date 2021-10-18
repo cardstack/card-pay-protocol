@@ -879,7 +879,7 @@ exports.setPrepaidCardInventory = async function (
     usdRate = 100000000;
   }
   if (gasPrice == null) {
-    gasPrice = DEFAULT_GAS_PRICE; // 1 gwei
+    gasPrice = DEFAULT_GAS_PRICE;
   }
   let issuingToken = await getIssuingToken(
     prepaidCardManager,
@@ -951,7 +951,7 @@ exports.removePrepaidCardInventory = async function (
     usdRate = 100000000;
   }
   if (gasPrice == null) {
-    gasPrice = DEFAULT_GAS_PRICE; // 1 gwei
+    gasPrice = DEFAULT_GAS_PRICE;
   }
   let issuingToken = await getIssuingToken(
     prepaidCardManager,
@@ -1015,7 +1015,7 @@ exports.setPrepaidCardAsk = async function (
     usdRate = 100000000;
   }
   if (gasPrice == null) {
-    gasPrice = DEFAULT_GAS_PRICE; // 1 gwei
+    gasPrice = DEFAULT_GAS_PRICE;
   }
   let issuingToken = await getIssuingToken(
     prepaidCardManager,
@@ -1084,7 +1084,7 @@ exports.splitPrepaidCard = async function (
     usdRate = 100000000;
   }
   if (gasPrice == null) {
-    gasPrice = DEFAULT_GAS_PRICE; // 1 gwei
+    gasPrice = DEFAULT_GAS_PRICE;
   }
   let issuingToken = await getIssuingToken(prepaidCardManager, prepaidCard);
   let payload = AbiCoder.encodeParameters(
