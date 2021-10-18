@@ -91,9 +91,14 @@ contract("PrepaidCardManager", (accounts) => {
     await tokenManager.initialize(owner);
     merchantManager = await MerchantManager.new();
     await merchantManager.initialize(owner);
-
-    customerA = findAccountBeforeAddress(accounts, prepaidCardManager.address);
-    customerB = findAccountAfterAddress(accounts, prepaidCardManager.address);
+    customerA = findAccountBeforeAddress(
+      accounts.slice(10),
+      prepaidCardManager.address
+    );
+    customerB = findAccountAfterAddress(
+      accounts.slice(10),
+      prepaidCardManager.address
+    );
     let cardcpxdToken;
     ({ daicpxdToken, cardcpxdToken, exchange } = await setupExchanges(owner));
     // Deploy and mint 1000 daicpxd token for deployer as owner
