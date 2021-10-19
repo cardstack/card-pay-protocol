@@ -1,7 +1,11 @@
 const TrezorWalletProvider = require("trezor-cli-wallet-provider");
 
 const hre = require("hardhat");
-const { ethers } = hre;
+const {
+  upgrades: { deployProxy, upgradeProxy },
+  ethers,
+} = hre;
+
 const networks = require("@ethersproject/networks/lib/index.js");
 
 function patchNetworks() {
@@ -93,6 +97,31 @@ async function retry(cb, maxAttempts = 5) {
   throw new Error("Reached max retry attempts");
 }
 
+async function upgradeImplementation(contractName, proxyAddress) {
+  await retry(async () => {
+    console.log(`Upgrading ${contractName}@${proxyAddress}...`);
+    let factory = await makeFactory(contractName);
+    await upgradeProxy(proxyAddress, factory);
+  });
+}
+
+async function deployNewProxyAndImplementation(contractName, constructorArgs) {
+  return await retry(async () => {
+    try {
+      console.log(`Creating factory`);
+      let factory = await makeFactory(contractName);
+      console.log(`Deploying proxy`);
+      let instance = await deployProxy(factory, constructorArgs);
+      console.log("Waiting for transaction");
+      await instance.deployed();
+      return instance;
+    } catch (e) {
+      console.log(e);
+      throw new Error("It failed, retrying");
+    }
+  });
+}
+
 module.exports = {
   makeFactory,
   getSigner,
@@ -100,4 +129,6 @@ module.exports = {
   patchNetworks,
   asyncMain,
   retry,
+  upgradeImplementation,
+  deployNewProxyAndImplementation,
 };

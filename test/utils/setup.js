@@ -43,13 +43,8 @@ const setupRoles = function (accounts) {
 
 // this is bad but I use as placeholder because it greedily loads all contracts
 const setupProtocol = async (accounts) => {
-  const {
-    owner,
-    issuer,
-    merchantFeeReceiver,
-    rewardFeeReceiver,
-    tally,
-  } = setupRoles(accounts);
+  const { owner, issuer, merchantFeeReceiver, rewardFeeReceiver, tally } =
+    setupRoles(accounts);
 
   const proxyFactory = await ProxyFactory.new();
   const gnosisSafeMasterCopy = await utils.deployContract(

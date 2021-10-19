@@ -255,18 +255,15 @@ contract("PrepaidCardManager", (accounts) => {
 
     it("should create prepaid card when balance is 1 token", async () => {
       let amount = toTokenUnit(1);
-      let {
-        prepaidCards,
-        paymentActual,
-        executionSucceeded,
-      } = await createPrepaidCards(
-        depot,
-        prepaidCardManager,
-        daicpxdToken,
-        issuer,
-        relayer,
-        [amount]
-      );
+      let { prepaidCards, paymentActual, executionSucceeded } =
+        await createPrepaidCards(
+          depot,
+          prepaidCardManager,
+          daicpxdToken,
+          issuer,
+          relayer,
+          [amount]
+        );
 
       expect(executionSucceeded).to.equal(true);
       await shouldBeSameBalance(daicpxdToken, relayer, paymentActual);
@@ -441,19 +438,16 @@ contract("PrepaidCardManager", (accounts) => {
 
     it("should refund the supplier when the total amount specified to be applied to a prepaid card is less than the amount of tokens they send", async () => {
       let amount = toTokenUnit(1);
-      let {
-        prepaidCards,
-        paymentActual,
-        executionSucceeded,
-      } = await createPrepaidCards(
-        depot,
-        prepaidCardManager,
-        daicpxdToken,
-        issuer,
-        relayer,
-        [amount], // create a 1 DAI prepaid card
-        amount.add(toTokenUnit(1)) // send 2 DAI for the txn
-      );
+      let { prepaidCards, paymentActual, executionSucceeded } =
+        await createPrepaidCards(
+          depot,
+          prepaidCardManager,
+          daicpxdToken,
+          issuer,
+          relayer,
+          [amount], // create a 1 DAI prepaid card
+          amount.add(toTokenUnit(1)) // send 2 DAI for the txn
+        );
 
       expect(executionSucceeded).to.equal(true);
       await shouldBeSameBalance(daicpxdToken, relayer, paymentActual);

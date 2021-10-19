@@ -13,6 +13,8 @@ coverage
 *.lock
 
 .openzeppelin/.session
+.openzeppelin/addresses-localhost.json
+.openzeppelin/unknown-31337.json
 cache
 artifacts
 build

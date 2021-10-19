@@ -11,6 +11,7 @@ import { ExchangeMock__factory } from "../../typechain/factories/ExchangeMock__f
 import { LevelRegistrar__factory } from "../../typechain/factories/LevelRegistrar__factory";
 import Decimal from "./utils/Decimal";
 import { ethers, waffle } from "hardhat";
+import { ZERO_ADDRESS } from "../utils/general";
 
 chai.use(asPromised);
 
@@ -82,6 +83,8 @@ describe("Market", () => {
     const auction = await (
       await new Market__factory(deployerWallet).deploy()
     ).deployed();
+    await auction.initialize();
+
     const exchange = await (
       await new ExchangeMock__factory(deployerWallet).deploy()
     ).deployed();
@@ -161,12 +164,8 @@ describe("Market", () => {
   }
 
   beforeEach(async () => {
-    [
-      deployerWallet,
-      bidderWallet,
-      mockTokenWallet,
-      otherWallet,
-    ] = await ethers.getSigners();
+    [deployerWallet, bidderWallet, mockTokenWallet, otherWallet] =
+      await ethers.getSigners();
 
     defaultLevelRequirement = {
       setter: deployerWallet.address,
@@ -184,6 +183,35 @@ describe("Market", () => {
     });
   });
 
+  describe("ownership", () => {
+    it("Should be ownable and transferrable", async () => {
+      const auction = await (
+        await new Market__factory(deployerWallet).deploy()
+      ).deployed();
+
+      const auctionWithOtherWallet = Market__factory.connect(
+        auction.address,
+        otherWallet
+      );
+
+      expect(await auction.owner()).to.be.eq(ZERO_ADDRESS);
+
+      await auctionWithOtherWallet.initialize();
+      expect(await auction.owner()).to.be.eq(otherWallet.address);
+
+      await expect(auctionWithOtherWallet.initialize()).eventually.rejectedWith(
+        "Initializable: contract is already initialized"
+      );
+
+      await expect(
+        auction.transferOwnership(deployerWallet.address)
+      ).eventually.rejectedWith("Ownable: caller is not the owner");
+
+      await auctionWithOtherWallet.transferOwnership(deployerWallet.address);
+      expect(await auction.owner()).to.be.eq(deployerWallet.address);
+    });
+  });
+
   describe("#configure", () => {
     beforeEach(async () => {
       await deploy();
@@ -195,7 +223,7 @@ describe("Market", () => {
           mockTokenWallet.address,
           mockTokenWallet.address
         )
-      ).eventually.rejectedWith("Market: Only owner");
+      ).eventually.rejectedWith("Ownable: caller is not the owner");
     });
 
     it("should be callable by the owner", async () => {

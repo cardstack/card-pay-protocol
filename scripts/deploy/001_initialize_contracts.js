@@ -2,22 +2,21 @@ const glob = require("glob");
 const difference = require("lodash/difference");
 const { writeJSONSync, readJSONSync, existsSync } = require("node-fs-extra");
 const { verifyImpl } = require("../../lib/verify");
-const retry = require("async-await-retry");
 
 const hre = require("hardhat");
 
 const {
   getDeployAddress,
-  makeFactory,
   patchNetworks,
   asyncMain,
+  upgradeImplementation,
+  deployNewProxyAndImplementation,
 } = require("./util");
 
 patchNetworks();
 
 async function main() {
   const {
-    upgrades: { deployProxy, upgradeProxy },
     network: { name: network },
   } = hre;
 
@@ -118,6 +117,19 @@ async function main() {
       contractName: "PayRewardTokensHandler",
       init: [owner],
     },
+    // Commerce Protocol
+    Market: {
+      contractName: "Market",
+      init: [],
+    },
+    Inventory: {
+      contractName: "Inventory",
+      init: ["Market.address"],
+    },
+    LevelRegistrar: {
+      contractName: "LevelRegistrar",
+      init: [],
+    },
   };
 
   // Use manual feeds in sokol
@@ -145,56 +157,45 @@ async function main() {
   for (let [contractId, { contractName, init }] of Object.entries(contracts)) {
     let proxyAddress;
 
+    init = init.map((i) => {
+      if (typeof i !== "string") {
+        return i;
+      }
+      let iParts = i.split(".");
+      if (iParts.length === 1) {
+        return i;
+      }
+      let [id, prop] = iParts;
+      switch (prop) {
+        case "address": {
+          let address = proxyAddresses[id].proxy;
+          if (address == null) {
+            throw new Error(
+              `The address for contract ${id} has not been derived yet. Cannot initialize ${contractId} with ${i}`
+            );
+          }
+          return address;
+        }
+        default:
+          throw new Error(
+            `Do not know how to handle property "${prop}" from ${i} when processing the init args for ${contractId}`
+          );
+      }
+    });
+
     if (proxyAddresses[contractId]) {
       ({ proxy: proxyAddress } = proxyAddresses[contractId]);
-      await retry(async () => {
-        console.log(`Upgrading ${contractId}...`);
-        let factory = await makeFactory(contractName);
-        await upgradeProxy(proxyAddress, factory);
-      });
+
+      console.log(proxyAddresses);
+
+      console.log(
+        `Upgrading ${contractId} (${contractName}@${proxyAddress}) ...`
+      );
+      await upgradeImplementation(contractName, proxyAddress);
     } else {
-      console.log(`Deploying new contract ${contractId}...`);
-      init = init.map((i) => {
-        if (typeof i !== "string") {
-          return i;
-        }
-        let iParts = i.split(".");
-        if (iParts.length === 1) {
-          return i;
-        }
-        let [id, prop] = iParts;
-        switch (prop) {
-          case "address": {
-            let address = proxyAddresses[id].proxy;
-            if (address == null) {
-              throw new Error(
-                `The address for contract ${id} has not been derived yet. Cannot initialize ${contractId} with ${i}`
-              );
-            }
-            return address;
-          }
-          default:
-            throw new Error(
-              `Do not know how to handle property "${prop}" from ${i} when processing the init args for ${contractId}`
-            );
-        }
-      });
+      console.log(`Deploying new contract ${contractId} (${contractName})...`);
 
-      let instance;
-
-      await retry(async () => {
-        try {
-          console.log(`Creating factory`);
-          let factory = await makeFactory(contractName);
-          console.log(`Deploying proxy`);
-          instance = await deployProxy(factory, init);
-          console.log("Waiting for transaction");
-          await instance.deployed();
-        } catch (e) {
-          console.log(e);
-          throw new Error("It failed, retrying");
-        }
-      });
+      let instance = await deployNewProxyAndImplementation(contractName, init);
 
       ({ address: proxyAddress } = instance);
       proxyAddresses[contractId] = {

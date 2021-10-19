@@ -29,11 +29,32 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2-beta
 
-      - name: Build
+      - name: Install dependencies
         run: yarn install
 
-      - name: Test
-        run: yarn build:clean && yarn test:size
+      - name: Build
+        run: yarn build:clean
+
+      - name: Test Size
+        run: yarn test:size
+
+  deploy-smoke-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2-beta
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Build
+        run: yarn build
+
+      - name: Run hardhat node in background
+        run: ./node_modules/.bin/hardhat node &
+
+      - name: check deploy
+        run: yarn deploy:smoketest
 
   coverage:
     runs-on: ubuntu-latest

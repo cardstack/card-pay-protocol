@@ -6,6 +6,7 @@ import { LevelRegistrar } from "../../typechain/LevelRegistrar";
 import { BaseERC20 } from "../../typechain/BaseERC20";
 import { Wallet } from "ethers";
 import { ethers } from "hardhat";
+import { ZERO_ADDRESS } from "../utils/general";
 
 chai.use(asPromised);
 
@@ -73,6 +74,34 @@ describe("Level Registrar", () => {
     });
   });
 
+  describe("ownership", () => {
+    it("Should be ownable and transferrable", async () => {
+      const auction = await (
+        await new LevelRegistrar__factory(deployerWallet).deploy()
+      ).deployed();
+
+      const auctionWithOtherWallet = LevelRegistrar__factory.connect(
+        auction.address,
+        otherWallet
+      );
+
+      expect(await auction.owner()).to.be.eq(ZERO_ADDRESS);
+
+      await auctionWithOtherWallet.initialize();
+      expect(await auction.owner()).to.be.eq(otherWallet.address);
+
+      await expect(auctionWithOtherWallet.initialize()).eventually.rejectedWith(
+        "Initializable: contract is already initialized"
+      );
+
+      await expect(
+        auction.transferOwnership(deployerWallet.address)
+      ).eventually.rejectedWith("Ownable: caller is not the owner");
+
+      await auctionWithOtherWallet.transferOwnership(deployerWallet.address);
+      expect(await auction.owner()).to.be.eq(deployerWallet.address);
+    });
+  });
   describe("#levels", () => {
     let levelRegistrarContract: LevelRegistrar;
     let erc20: BaseERC20;
@@ -121,11 +150,12 @@ describe("Level Registrar", () => {
 
     it("should be able to get the required balance by label", async () => {
       await levelRegistrarContract.setLevels([defaultLevel], erc20.address);
-      const balanceRequired = await levelRegistrarContract.getRequiredBalanceByLabel(
-        deployerWallet.address,
-        erc20.address,
-        "noob"
-      );
+      const balanceRequired =
+        await levelRegistrarContract.getRequiredBalanceByLabel(
+          deployerWallet.address,
+          erc20.address,
+          "noob"
+        );
       expect(balanceRequired.toNumber()).eq(
         0,
         "required balance for noob should be 0"
