@@ -1,0 +1,49 @@
+import {
+  getAddress,
+  AddressFile,
+  ContractConfig,
+  GNOSIS_SAFE_MASTER_COPY,
+  GNOSIS_SAFE_FACTORY,
+  REWARDEE_REGISTRATION_FEE_IN_SPEND,
+} from "../config-utils";
+import { getDeployAddress } from "../util";
+
+export default async function (
+  proxyAddresses: AddressFile
+): Promise<ContractConfig> {
+  function address(name: string) {
+    return getAddress(name, proxyAddresses);
+  }
+  let deployer = await getDeployAddress();
+
+  const REWARD_FEE_RECEIVER = process.env.REWARD_FEE_RECEIVER ?? deployer;
+  return Promise.resolve({
+    setup: [
+      {
+        name: "actionDispatcher",
+        value: address("ActionDispatcher"),
+      },
+      {
+        name: "gnosisSafe",
+        value: GNOSIS_SAFE_MASTER_COPY,
+      },
+      {
+        name: "gnosisProxyFactory",
+        value: GNOSIS_SAFE_FACTORY,
+      },
+      {
+        name: "rewardFeeReceiver",
+        value: REWARD_FEE_RECEIVER,
+      },
+      {
+        name: "rewardeeRegistrationFeeInSPEND",
+        value: REWARDEE_REGISTRATION_FEE_IN_SPEND,
+      },
+      // TODO need to deploy new RewardManager that exposes this first
+      // {
+      //   name: "getEip1271Contracts",
+      //   value: [address("RewardPool")],
+      // },
+    ],
+  });
+}

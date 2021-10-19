@@ -104,6 +104,10 @@ contract RewardManager is Ownable, Versionable, Safe {
     emit Setup();
   }
 
+  function getEip1271Contracts() public view returns (address[] memory) {
+    return eip1271Contracts.enumerate();
+  }
+
   function registerRewardProgram(address admin, address rewardProgramID)
     external
     onlyHandlers

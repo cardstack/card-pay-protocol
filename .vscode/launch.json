@@ -109,6 +109,18 @@
         "HARDHAT_NETWORK": "xdai"
       },
       "args": []
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "NEW Config Sokol - protocol",
+      "cwd": "${workspaceRoot}",
+      "program": "${workspaceFolder}/node_modules/.bin/hardhat",
+      "console": "integratedTerminal",
+      "env": {
+        "HARDHAT_NETWORK": "sokol"
+      },
+      "args": ["run", "./scripts/deploy/005_configure_card_protocol.ts"]
     }
   ]
 }
