@@ -7,6 +7,7 @@ import "../RevenuePool.sol";
 import "../Exchange.sol";
 import "../core/Versionable.sol";
 import "../TokenManager.sol";
+import "../VersionManager.sol";
 
 contract RegisterMerchantHandler is Ownable, Versionable {
   using SafeMath for uint256;
@@ -25,6 +26,7 @@ contract RegisterMerchantHandler is Ownable, Versionable {
   address public actionDispatcher;
   address public prepaidCardManager;
   address public tokenManagerAddress;
+  address public versionManager;
 
   function setup(
     address _actionDispatcher,
@@ -32,7 +34,8 @@ contract RegisterMerchantHandler is Ownable, Versionable {
     address _prepaidCardManager,
     address _revenuePoolAddress,
     address _exchangeAddress,
-    address _tokenManagerAddress
+    address _tokenManagerAddress,
+    address _versionManager
   ) external onlyOwner returns (bool) {
     actionDispatcher = _actionDispatcher;
     revenuePoolAddress = _revenuePoolAddress;
@@ -40,6 +43,7 @@ contract RegisterMerchantHandler is Ownable, Versionable {
     merchantManager = _merchantManager;
     exchangeAddress = _exchangeAddress;
     tokenManagerAddress = _tokenManagerAddress;
+    versionManager = _versionManager;
     emit Setup();
     return true;
   }
@@ -67,10 +71,12 @@ contract RegisterMerchantHandler is Ownable, Versionable {
     );
     RevenuePool revenuePool = RevenuePool(revenuePoolAddress);
     address issuingToken = msg.sender;
-    (address payable prepaidCard, , bytes memory actionData) =
-      abi.decode(data, (address, uint256, bytes));
-    uint256 merchantRegistrationFeeInToken =
-      Exchange(exchangeAddress).convertFromSpend(
+    (address payable prepaidCard, , bytes memory actionData) = abi.decode(
+      data,
+      (address, uint256, bytes)
+    );
+    uint256 merchantRegistrationFeeInToken = Exchange(exchangeAddress)
+      .convertFromSpend(
         issuingToken,
         revenuePool.merchantRegistrationFeeInSPEND()
       );
@@ -92,10 +98,8 @@ contract RegisterMerchantHandler is Ownable, Versionable {
       IERC677(issuingToken).transfer(prepaidCard, refund);
     }
 
-    address merchant =
-      PrepaidCardManager(revenuePool.prepaidCardManager()).getPrepaidCardOwner(
-        prepaidCard
-      );
+    address merchant = PrepaidCardManager(revenuePool.prepaidCardManager())
+      .getPrepaidCardOwner(prepaidCard);
     emit MerchantRegistrationFee(
       prepaidCard,
       issuingToken,
@@ -103,5 +107,9 @@ contract RegisterMerchantHandler is Ownable, Versionable {
       revenuePool.merchantRegistrationFeeInSPEND()
     );
     MerchantManager(merchantManager).registerMerchant(merchant, infoDID);
+  }
+
+  function cardpayVersion() external view returns (string memory) {
+    return VersionManager(versionManager).version();
   }
 }

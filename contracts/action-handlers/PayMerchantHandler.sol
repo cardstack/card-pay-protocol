@@ -7,6 +7,7 @@ import "../RevenuePool.sol";
 import "../MerchantManager.sol";
 import "../core/Versionable.sol";
 import "../TokenManager.sol";
+import "../VersionManager.sol";
 
 contract PayMerchantHandler is Ownable, Versionable {
   using SafeMath for uint256;
@@ -32,6 +33,7 @@ contract PayMerchantHandler is Ownable, Versionable {
   address public actionDispatcher;
   address public prepaidCardManager;
   address public tokenManagerAddress;
+  address public versionManager;
 
   function setup(
     address _actionDispatcher,
@@ -39,7 +41,8 @@ contract PayMerchantHandler is Ownable, Versionable {
     address _prepaidCardManager,
     address _revenuePoolAddress,
     address _spendTokenAddress,
-    address _tokenManagerAddress
+    address _tokenManagerAddress,
+    address _versionManager
   ) external onlyOwner returns (bool) {
     merchantManager = _merchantManager;
     actionDispatcher = _actionDispatcher;
@@ -47,6 +50,7 @@ contract PayMerchantHandler is Ownable, Versionable {
     spendTokenAddress = _spendTokenAddress;
     prepaidCardManager = _prepaidCardManager;
     tokenManagerAddress = _tokenManagerAddress;
+    versionManager = _versionManager;
     emit Setup();
     return true;
   }
@@ -96,12 +100,11 @@ contract PayMerchantHandler is Ownable, Versionable {
     );
 
     uint256 ten = 10;
-    uint256 merchantFee =
-      revenuePool.merchantFeePercentage() > 0
-        ? (amount.mul(revenuePool.merchantFeePercentage())).div(
-          ten**revenuePool.merchantFeeDecimals()
-        )
-        : 0;
+    uint256 merchantFee = revenuePool.merchantFeePercentage() > 0
+      ? (amount.mul(revenuePool.merchantFeePercentage())).div(
+        ten**revenuePool.merchantFeeDecimals()
+      )
+      : 0;
     uint256 merchantProceeds = amount.sub(merchantFee);
     PrepaidCardManager(prepaidCardManager).setPrepaidCardUsed(prepaidCard);
     revenuePool.addToMerchantBalance(
@@ -133,5 +136,9 @@ contract PayMerchantHandler is Ownable, Versionable {
       merchantFee
     );
     return true;
+  }
+
+  function cardpayVersion() external view returns (string memory) {
+    return VersionManager(versionManager).version();
   }
 }

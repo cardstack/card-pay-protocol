@@ -11,6 +11,7 @@ import "./token/IERC677.sol";
 import "./core/Versionable.sol";
 import "./RewardManager.sol";
 import "./TokenManager.sol";
+import "./VersionManager.sol";
 
 contract RewardPool is Initializable, Versionable, Ownable {
   using SafeMath for uint256;
@@ -48,6 +49,7 @@ contract RewardPool is Initializable, Versionable, Ownable {
     public claims; //payment cycle <> rewardProgramID <> token <> rewardee
   mapping(uint256 => bytes32) payeeRoots;
   mapping(address => mapping(address => uint256)) public rewardBalance;
+  address public versionManager;
 
   modifier onlyTally() {
     require(tally == msg.sender, "Caller is not tally");
@@ -62,11 +64,13 @@ contract RewardPool is Initializable, Versionable, Ownable {
   function setup(
     address _tally,
     address _rewardManager,
-    address _tokenManager
+    address _tokenManager,
+    address _versionManager
   ) external onlyOwner {
     tally = _tally;
     rewardManager = _rewardManager;
     tokenManager = _tokenManager;
+    versionManager = _versionManager;
     require(tally != ZERO_ADDRESS, "Tally should not be zero address");
     require(
       rewardManager != ZERO_ADDRESS,
@@ -95,8 +99,9 @@ contract RewardPool is Initializable, Versionable, Ownable {
     bytes calldata proof
   ) external returns (bool) {
     require(amount > 0, "Cannot claim non-positive amount");
-    address rewardSafeOwner =
-      RewardManager(rewardManager).getRewardSafeOwner(msg.sender);
+    address rewardSafeOwner = RewardManager(rewardManager).getRewardSafeOwner(
+      msg.sender
+    );
     require(
       RewardManager(rewardManager).isValidRewardSafe(
         msg.sender,
@@ -110,13 +115,12 @@ contract RewardPool is Initializable, Versionable, Ownable {
     (meta, _proof) = splitIntoBytes32(proof, 2);
     uint256 paymentCycleNumber = uint256(meta[0]);
 
-    uint256 balance =
-      _balanceForProofWithAddress(
-        rewardProgramID,
-        payableToken,
-        rewardSafeOwner,
-        proof
-      );
+    uint256 balance = _balanceForProofWithAddress(
+      rewardProgramID,
+      payableToken,
+      rewardSafeOwner,
+      proof
+    );
     require(balance >= amount, "Insufficient balance for proof");
 
     require(
@@ -132,16 +136,20 @@ contract RewardPool is Initializable, Versionable, Ownable {
       rewardSafeOwner
     ] = claims[paymentCycleNumber][rewardProgramID][payableToken][
       rewardSafeOwner
-    ]
-      .add(amount);
+    ].add(amount);
 
     rewardBalance[rewardProgramID][payableToken] = rewardBalance[
       rewardProgramID
-    ][payableToken]
-      .sub(amount);
+    ][payableToken].sub(amount);
     IERC677(payableToken).transfer(msg.sender, amount);
 
-    emit RewardeeClaim(rewardProgramID, rewardSafeOwner, msg.sender, payableToken, amount);
+    emit RewardeeClaim(
+      rewardProgramID,
+      rewardSafeOwner,
+      msg.sender,
+      payableToken,
+      amount
+    );
     return true;
   }
 
@@ -161,8 +169,7 @@ contract RewardPool is Initializable, Versionable, Ownable {
     );
     rewardBalance[rewardProgramID][msg.sender] = rewardBalance[rewardProgramID][
       msg.sender
-    ]
-      .add(amount);
+    ].add(amount);
     emit RewardTokensAdded(rewardProgramID, from, msg.sender, amount);
   }
 
@@ -230,15 +237,14 @@ contract RewardPool is Initializable, Versionable, Ownable {
       return 0;
     }
 
-    bytes32 leaf =
-      keccak256(
-        abi.encodePacked(
-          rewardProgramID,
-          payableToken,
-          _address,
-          cumulativeAmount
-        )
-      );
+    bytes32 leaf = keccak256(
+      abi.encodePacked(
+        rewardProgramID,
+        payableToken,
+        _address,
+        cumulativeAmount
+      )
+    );
     if (
       claims[paymentCycleNumber][rewardProgramID][payableToken][_address] <
       cumulativeAmount &&
@@ -277,5 +283,9 @@ contract RewardPool is Initializable, Versionable, Ownable {
         remainder[k.sub(96).div(32)] = _bytes32;
       }
     }
+  }
+
+  function cardpayVersion() external view returns (string memory) {
+    return VersionManager(versionManager).version();
   }
 }

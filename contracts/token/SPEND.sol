@@ -6,16 +6,25 @@ import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "./ISPEND.sol";
 import "../core/Versionable.sol";
 import "../roles/SPENDMinterRole.sol";
+import "../VersionManager.sol";
 
 contract SPEND is Versionable, ISPEND, SPENDMinterRole {
   using SafeMath for uint256;
+  event Setup();
 
   mapping(address => uint256) public _balances;
 
   uint256 private _totalSupply;
+  address public versionManager;
 
   function initialize(address owner) public initializer {
     initializeMinterRole(owner);
+  }
+
+  function setup(address _versionManager) external onlyOwner returns (bool) {
+    versionManager = _versionManager;
+    emit Setup();
+    return true;
   }
 
   function mint(address account, uint256 amount)
@@ -99,5 +108,9 @@ contract SPEND is Versionable, ISPEND, SPENDMinterRole {
     );
     _totalSupply = _totalSupply.sub(amount);
     emit Burn(account, amount);
+  }
+
+  function cardpayVersion() external view returns (string memory) {
+    return VersionManager(versionManager).version();
   }
 }

@@ -5,6 +5,7 @@ import "./core/Versionable.sol";
 import "./TokenManager.sol";
 import "./Exchange.sol";
 import "./SupplierManager.sol";
+import "./VersionManager.sol";
 
 contract BridgeUtils is Ownable, Versionable {
   event Setup();
@@ -14,6 +15,7 @@ contract BridgeUtils is Ownable, Versionable {
   address public bridgeMediator;
   address public exchange;
   address public supplierManager;
+  address public versionManager;
 
   modifier onlyBridgeMediator() {
     require(msg.sender == bridgeMediator, "caller is not a bridge mediator");
@@ -24,12 +26,14 @@ contract BridgeUtils is Ownable, Versionable {
     address _tokenManager,
     address _supplierManager,
     address _exchange,
-    address _bridgeMediator
+    address _bridgeMediator,
+    address _versionManager
   ) external onlyOwner returns (bool) {
     exchange = _exchange;
     supplierManager = _supplierManager;
     tokenManager = _tokenManager;
     bridgeMediator = _bridgeMediator;
+    versionManager = _versionManager;
     emit Setup();
 
     return true;
@@ -67,5 +71,9 @@ contract BridgeUtils is Ownable, Versionable {
     TokenManager(tokenManager).addPayableToken(tokenAddr);
     emit TokenAdded(tokenAddr);
     return true;
+  }
+
+  function cardpayVersion() external view returns (string memory) {
+    return VersionManager(versionManager).version();
   }
 }

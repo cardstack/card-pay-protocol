@@ -8,6 +8,7 @@ import "./core/Versionable.sol";
 import "./IPrepaidCardMarket.sol";
 import "./PrepaidCardManager.sol";
 import "./ActionDispatcher.sol";
+import "./VersionManager.sol";
 
 contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
   using SafeMath for uint256;
@@ -62,6 +63,7 @@ contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
   mapping(address => address) public provisionedCards; // prepaid card => EOA
   mapping(bytes32 => bool) internal signatures;
   bool public paused;
+  address public versionManager;
 
   modifier onlyHandlersOrPrepaidCardManager() {
     require(
@@ -95,11 +97,13 @@ contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
   function setup(
     address _prepaidCardManager,
     address _actionDispatcher,
-    address _provisioner
+    address _provisioner,
+    address _versionManager
   ) external onlyOwner {
     prepaidCardManagerAddress = _prepaidCardManager;
     provisioner = _provisioner;
     actionDispatcher = _actionDispatcher;
+    versionManager = _versionManager;
 
     emit Setup();
   }
@@ -114,10 +118,13 @@ contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
     onlyHandlersOrPrepaidCardManager
     returns (bool)
   {
-    (address issuingToken, string memory customizationDID) =
-      validateItem(issuer, prepaidCard);
-    PrepaidCardManager prepaidCardManager =
-      PrepaidCardManager(prepaidCardManagerAddress);
+    (address issuingToken, string memory customizationDID) = validateItem(
+      issuer,
+      prepaidCard
+    );
+    PrepaidCardManager prepaidCardManager = PrepaidCardManager(
+      prepaidCardManagerAddress
+    );
     uint256 faceValue = prepaidCardManager.faceValue(prepaidCard);
     bytes32 sku = getSKU(issuer, issuingToken, faceValue, customizationDID);
     if (skus[sku].issuer == address(0)) {
@@ -143,8 +150,9 @@ contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
     onlyHandlers
     returns (bool)
   {
-    PrepaidCardManager prepaidCardManager =
-      PrepaidCardManager(prepaidCardManagerAddress);
+    PrepaidCardManager prepaidCardManager = PrepaidCardManager(
+      prepaidCardManagerAddress
+    );
     require(
       prepaidCards.length <= prepaidCardManager.MAXIMUM_NUMBER_OF_CARD(),
       "too many prepaid cards"
@@ -241,8 +249,9 @@ contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
     view
     returns (bytes32)
   {
-    PrepaidCardManager prepaidCardManager =
-      PrepaidCardManager(prepaidCardManagerAddress);
+    PrepaidCardManager prepaidCardManager = PrepaidCardManager(
+      prepaidCardManagerAddress
+    );
     require(
       !prepaidCardManager.hasBeenUsed(prepaidCard),
       "Can't get SKU for used prepaid card"
@@ -289,8 +298,9 @@ contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
     view
     returns (address issuingToken, string memory customizationDID)
   {
-    PrepaidCardManager prepaidCardManager =
-      PrepaidCardManager(prepaidCardManagerAddress);
+    PrepaidCardManager prepaidCardManager = PrepaidCardManager(
+      prepaidCardManagerAddress
+    );
     address expectedIssuer;
     (expectedIssuer, issuingToken, , customizationDID, , ) = prepaidCardManager
       .cardDetails(prepaidCard);
@@ -308,5 +318,9 @@ contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
       !prepaidCardManager.hasBeenUsed(prepaidCard),
       "Prepaid card has been used"
     );
+  }
+
+  function cardpayVersion() external view returns (string memory) {
+    return VersionManager(versionManager).version();
   }
 }

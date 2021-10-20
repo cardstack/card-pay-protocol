@@ -8,6 +8,7 @@ import "./TokenManager.sol";
 import "./Exchange.sol";
 import "./core/Versionable.sol";
 import "./PrepaidCardManager.sol";
+import "./VersionManager.sol";
 
 contract ActionDispatcher is Ownable, Versionable {
   using SafeMath for uint256;
@@ -28,6 +29,7 @@ contract ActionDispatcher is Ownable, Versionable {
   address public tokenManager;
   mapping(string => address) public actions;
   mapping(address => bool) public isHandler;
+  address public versionManager;
 
   event Setup();
   event HandlerAdded(address handler, string action);
@@ -40,11 +42,13 @@ contract ActionDispatcher is Ownable, Versionable {
   function setup(
     address _tokenManager,
     address _exchangeAddress,
-    address payable _prepaidCardManager
+    address payable _prepaidCardManager,
+    address _versionManager
   ) external onlyOwner {
     tokenManager = _tokenManager;
     exchangeAddress = _exchangeAddress;
     prepaidCardManager = _prepaidCardManager;
+    versionManager = _versionManager;
     emit Setup();
   }
 
@@ -106,16 +110,15 @@ contract ActionDispatcher is Ownable, Versionable {
       string memory actionName,
       bytes memory actionData
     ) = abi.decode(data, (uint256, uint256, string, bytes));
-    Action memory action =
-      makeAction(
-        actionName,
-        from,
-        msg.sender,
-        amount,
-        spendAmount,
-        requestedRate,
-        actionData
-      );
+    Action memory action = makeAction(
+      actionName,
+      from,
+      msg.sender,
+      amount,
+      spendAmount,
+      requestedRate,
+      actionData
+    );
 
     return dispatchAction(action);
   }
@@ -169,8 +172,11 @@ contract ActionDispatcher is Ownable, Versionable {
     uint256 requestedRate
   ) internal view returns (bool) {
     Exchange exchange = Exchange(exchangeAddress);
-    uint256 expectedTokenAmount =
-      exchange.convertFromSpendWithRate(token, spendAmount, requestedRate);
+    uint256 expectedTokenAmount = exchange.convertFromSpendWithRate(
+      token,
+      spendAmount,
+      requestedRate
+    );
     require(
       expectedTokenAmount == tokenAmount,
       "amount received does not match requested rate"
@@ -180,5 +186,9 @@ contract ActionDispatcher is Ownable, Versionable {
       "requested rate is beyond the allowable bounds"
     );
     return true;
+  }
+
+  function cardpayVersion() external view returns (string memory) {
+    return VersionManager(versionManager).version();
   }
 }

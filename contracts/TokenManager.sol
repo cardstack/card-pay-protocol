@@ -4,12 +4,14 @@ import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contract-upgradeable/contracts/utils/EnumerableSet.sol";
 
 import "./core/Versionable.sol";
+import "./VersionManager.sol";
 
 contract TokenManager is Ownable, Versionable {
   using EnumerableSet for EnumerableSet.AddressSet;
 
   EnumerableSet.AddressSet internal payableTokens;
   address public bridgeUtils;
+  address public versionManager;
 
   event PayableTokenAdded(address indexed token);
   event PayableTokenRemoved(address indexed token);
@@ -20,11 +22,13 @@ contract TokenManager is Ownable, Versionable {
     _;
   }
 
-  function setup(address _bridgeUtils, address[] calldata _payableTokens)
-    external
-    onlyOwner
-  {
+  function setup(
+    address _bridgeUtils,
+    address[] calldata _payableTokens,
+    address _versionManager
+  ) external onlyOwner {
     bridgeUtils = _bridgeUtils;
+    versionManager = _versionManager;
     emit BridgeUtilsSet(bridgeUtils);
     for (uint256 i = 0; i < _payableTokens.length; i++) {
       _addPayableToken(_payableTokens[i]);
@@ -69,5 +73,9 @@ contract TokenManager is Ownable, Versionable {
     payableTokens.remove(_token);
     emit PayableTokenRemoved(_token);
     return true;
+  }
+
+  function cardpayVersion() external view returns (string memory) {
+    return VersionManager(versionManager).version();
   }
 }

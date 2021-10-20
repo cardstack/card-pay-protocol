@@ -13,6 +13,7 @@ import "./core/Versionable.sol";
 import "./SupplierManager.sol";
 import "./Exchange.sol";
 import "./ActionDispatcher.sol";
+import "./VersionManager.sol";
 
 contract PrepaidCardManager is Ownable, Versionable, Safe {
   using SafeMath for uint256;
@@ -94,6 +95,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
   mapping(address => bool) public hasBeenUsed;
   EnumerableSet.AddressSet internal contractSigners;
   mapping(string => GasPolicyV2) public gasPoliciesV2;
+  address public versionManager;
 
   modifier onlyHandlers() {
     require(
@@ -135,7 +137,8 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     uint256 _gasFeeInCARD,
     uint256 _minAmount,
     uint256 _maxAmount,
-    address[] calldata _contractSigners
+    address[] calldata _contractSigners,
+    address _versionManager
   ) external onlyOwner {
     actionDispatcher = _actionDispatcher;
     supplierManager = _supplierManager;
@@ -145,6 +148,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     gasFeeInCARD = _gasFeeInCARD;
     minimumFaceValue = _minAmount;
     maximumFaceValue = _maxAmount;
+    versionManager = _versionManager;
     Safe.setup(_gsMasterCopy, _gsProxyFactory);
     for (uint256 i = 0; i < _contractSigners.length; i++) {
       contractSigners.add(_contractSigners[i]);
@@ -302,8 +306,13 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     bytes calldata data,
     bytes calldata ownerSignature
   ) external returns (bool) {
-    ExecTransactionData memory exTxData =
-      validatedSendFields(prepaidCard, spendAmount, action, rateLock, data);
+    ExecTransactionData memory exTxData = validatedSendFields(
+      prepaidCard,
+      spendAmount,
+      action,
+      rateLock,
+      data
+    );
     emit PrepaidCardSend(
       prepaidCard,
       spendAmount,
@@ -334,12 +343,11 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     string memory action,
     bytes memory data
   ) public view returns (bytes memory) {
-    uint256 tokenAmount =
-      Exchange(exchangeAddress).convertFromSpendWithRate(
-        cardDetails[prepaidCard].issueToken,
-        spendAmount,
-        rateLock
-      );
+    uint256 tokenAmount = Exchange(exchangeAddress).convertFromSpendWithRate(
+      cardDetails[prepaidCard].issueToken,
+      spendAmount,
+      rateLock
+    );
     return
       abi.encodeWithSelector(
         TRANSFER_AND_CALL,
@@ -413,8 +421,10 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     view
     returns (bool)
   {
-    uint256 amountInSPEND =
-      Exchange(exchangeAddress).convertToSpend(token, amount - gasFee(token));
+    uint256 amountInSPEND = Exchange(exchangeAddress).convertToSpend(
+      token,
+      amount - gasFee(token)
+    );
     return (minimumFaceValue <= amountInSPEND &&
       amountInSPEND <= maximumFaceValue);
   }
@@ -615,12 +625,14 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     uint256 safeTxGas,
     uint256 baseGas
   ) private returns (bool) {
-    MaterializedGasPolicy memory gasPolicy =
-      getMaterializedGasPolicy(exData.action, exData.prepaidCard, gasPrice);
-    bytes memory signatures =
-      isEIP1271Signer(exData.prepaidCard)
-        ? appendToEIP1271Signature(exData.prepaidCard, signature)
-        : addOwnSignature(exData.prepaidCard, signature);
+    MaterializedGasPolicy memory gasPolicy = getMaterializedGasPolicy(
+      exData.action,
+      exData.prepaidCard,
+      gasPrice
+    );
+    bytes memory signatures = isEIP1271Signer(exData.prepaidCard)
+      ? appendToEIP1271Signature(exData.prepaidCard, signature)
+      : addOwnSignature(exData.prepaidCard, signature);
     require(
       GnosisSafe(exData.prepaidCard).execTransaction(
         exData.to,
@@ -729,8 +741,11 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     //     which is 2 x 65 bytes because the threshold
     //     is 2 and each RSV vector is 65 bytes
     // V = signature type, 0x00 is for EIP-1271 signatures
-    bytes memory eip1271RSV =
-      abi.encodePacked(abi.encode(owner), abi.encode(uint256(130)), v);
+    bytes memory eip1271RSV = abi.encodePacked(
+      abi.encode(owner),
+      abi.encode(uint256(130)),
+      v
+    );
 
     // Gnosis safe signatures must be sorted by owners' address. and
     // additionally EIP-1271 signatures should conclude with 32 bytes for the
@@ -749,5 +764,9 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
         eip1271SignatureLength,
         signature
       );
+  }
+
+  function cardpayVersion() external view returns (string memory) {
+    return VersionManager(versionManager).version();
   }
 }

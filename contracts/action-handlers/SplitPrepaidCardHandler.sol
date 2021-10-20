@@ -5,12 +5,14 @@ import "../core/Versionable.sol";
 import "../token/IERC677.sol";
 import "../PrepaidCardManager.sol";
 import "../TokenManager.sol";
+import "../VersionManager.sol";
 
 contract SplitPrepaidCardHandler is Ownable, Versionable {
   address public actionDispatcher;
   address public prepaidCardManagerAddress;
   address public tokenManagerAddress;
   address public defaultMarketAddress;
+  address public versionManager;
 
   event Setup();
   event SplitPrepaidCard(
@@ -26,12 +28,14 @@ contract SplitPrepaidCardHandler is Ownable, Versionable {
     address _actionDispatcher,
     address _prepaidCardManager,
     address _tokenManagerAddress,
-    address _defaultMarketAddress
+    address _defaultMarketAddress,
+    address _versionManager
   ) external onlyOwner returns (bool) {
     actionDispatcher = _actionDispatcher;
     prepaidCardManagerAddress = _prepaidCardManager;
     tokenManagerAddress = _tokenManagerAddress;
     defaultMarketAddress = _defaultMarketAddress;
+    versionManager = _versionManager;
     emit Setup();
     return true;
   }
@@ -57,16 +61,19 @@ contract SplitPrepaidCardHandler is Ownable, Versionable {
       from == actionDispatcher,
       "can only accept tokens from action dispatcher"
     );
-    (address payable prepaidCard, , bytes memory actionData) =
-      abi.decode(data, (address, uint256, bytes));
+    (address payable prepaidCard, , bytes memory actionData) = abi.decode(
+      data,
+      (address, uint256, bytes)
+    );
     (
       uint256[] memory issuingTokenAmounts,
       uint256[] memory spendAmounts,
       string memory customizationDID,
       address marketAddress
     ) = abi.decode(actionData, (uint256[], uint256[], string, address));
-    PrepaidCardManager prepaidCardMgr =
-      PrepaidCardManager(prepaidCardManagerAddress);
+    PrepaidCardManager prepaidCardMgr = PrepaidCardManager(
+      prepaidCardManagerAddress
+    );
     address owner = prepaidCardMgr.getPrepaidCardOwner(prepaidCard);
     address issuer = prepaidCardMgr.getPrepaidCardIssuer(prepaidCard);
     require(issuer == owner, "only issuer can split card");
@@ -96,5 +103,9 @@ contract SplitPrepaidCardHandler is Ownable, Versionable {
         marketAddress == address(0) ? defaultMarketAddress : marketAddress
       )
     );
+  }
+
+  function cardpayVersion() external view returns (string memory) {
+    return VersionManager(versionManager).version();
   }
 }

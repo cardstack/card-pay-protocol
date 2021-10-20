@@ -3,6 +3,7 @@ pragma solidity 0.5.17;
 import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
 import "@chainlink/contracts/src/v0.5/interfaces/AggregatorV3Interface.sol";
 import "../core/Versionable.sol";
+import "../VersionManager.sol";
 
 contract ManualFeed is Ownable, Versionable, AggregatorV3Interface {
   struct RoundData {
@@ -17,6 +18,7 @@ contract ManualFeed is Ownable, Versionable, AggregatorV3Interface {
   uint80 internal _currentRound;
 
   mapping(uint80 => RoundData) internal rounds;
+  address public versionManager;
 
   event RoundAdded(uint80 indexed roundId);
   event FeedSetup(string description, uint8 decimals);
@@ -26,12 +28,14 @@ contract ManualFeed is Ownable, Versionable, AggregatorV3Interface {
     Ownable.initialize(owner);
   }
 
-  function setup(string calldata description, uint8 decimals)
-    external
-    onlyOwner
-  {
+  function setup(
+    string calldata description,
+    uint8 decimals,
+    address _versionManager
+  ) external onlyOwner {
     _description = description;
     _decimals = decimals;
+    versionManager = _versionManager;
     emit FeedSetup(description, decimals);
   }
 
@@ -107,5 +111,9 @@ contract ManualFeed is Ownable, Versionable, AggregatorV3Interface {
 
   function description() external view returns (string memory) {
     return _description;
+  }
+
+  function cardpayVersion() external view returns (string memory) {
+    return VersionManager(versionManager).version();
   }
 }

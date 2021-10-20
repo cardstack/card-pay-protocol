@@ -6,6 +6,7 @@ import "@chainlink/contracts/src/v0.5/interfaces/AggregatorV3Interface.sol";
 import "./IPriceOracle.sol";
 import "./IDIAOracle.sol";
 import "../core/Versionable.sol";
+import "../VersionManager.sol";
 
 contract DIAOracleAdapter is Ownable, Versionable, IPriceOracle {
   using SafeMath for uint256;
@@ -14,6 +15,7 @@ contract DIAOracleAdapter is Ownable, Versionable, IPriceOracle {
   address internal oracle;
   string internal tokenSymbol;
   address internal daiUsdFeed;
+  address public versionManager;
 
   event DAIOracleSetup(
     address tokenUsdOracle,
@@ -24,7 +26,8 @@ contract DIAOracleAdapter is Ownable, Versionable, IPriceOracle {
   function setup(
     address _oracle,
     string calldata _tokenSymbol,
-    address _daiUsdFeed
+    address _daiUsdFeed,
+    address _versionManager
   ) external onlyOwner {
     require(
       _oracle != address(0) && _daiUsdFeed != address(0),
@@ -36,6 +39,7 @@ contract DIAOracleAdapter is Ownable, Versionable, IPriceOracle {
     oracle = _oracle;
     tokenSymbol = _tokenSymbol;
     daiUsdFeed = _daiUsdFeed;
+    versionManager = _versionManager;
 
     emit DAIOracleSetup(oracle, _tokenSymbol, _daiUsdFeed);
   }
@@ -57,10 +61,11 @@ contract DIAOracleAdapter is Ownable, Versionable, IPriceOracle {
   }
 
   function daiPrice() external view returns (uint256 price, uint256 updatedAt) {
-    (uint256 tokenUsdPrice, uint256 _updatedAt) =
-      priceForPair(string(abi.encodePacked(tokenSymbol, "/USD")));
-    (, int256 daiUsdPrice, , , ) =
-      AggregatorV3Interface(daiUsdFeed).latestRoundData();
+    (uint256 tokenUsdPrice, uint256 _updatedAt) = priceForPair(
+      string(abi.encodePacked(tokenSymbol, "/USD"))
+    );
+    (, int256 daiUsdPrice, , , ) = AggregatorV3Interface(daiUsdFeed)
+      .latestRoundData();
     // a quirk about exponents is that the result will be calculated in the type
     // of the base, so in order to prevent overflows you should use a base of
     // uint256
@@ -78,5 +83,9 @@ contract DIAOracleAdapter is Ownable, Versionable, IPriceOracle {
     (uint128 _price, uint128 _updatedAt) = IDIAOracle(oracle).getValue(pair);
     price = uint256(_price);
     updatedAt = uint256(_updatedAt);
+  }
+
+  function cardpayVersion() external view returns (string memory) {
+    return VersionManager(versionManager).version();
   }
 }
