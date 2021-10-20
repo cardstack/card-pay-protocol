@@ -20,7 +20,7 @@ module.exports = {
   ignorePatterns: ["bin/**", "build/**", "coverage/**", "dist/**"],
   rules: {
     "prettier/prettier": "error",
-    "prefer-const": false,
+    "prefer-const": "off",
   },
   overrides: [
     {

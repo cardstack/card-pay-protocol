@@ -1,7 +1,6 @@
 import { readJSONSync } from "node-fs-extra";
 import { existsSync } from "fs";
 import { resolve } from "path";
-import Web3 from "web3";
 import glob from "glob-promise";
 import dotenv from "dotenv";
 import hre from "hardhat";
@@ -10,7 +9,6 @@ import retry from "async-retry";
 import { makeFactory, patchNetworks, asyncMain } from "./util";
 import { AddressFile, ContractConfig, Formatter, Value } from "./config-utils";
 
-const { fromWei } = Web3.utils;
 patchNetworks();
 
 const {
@@ -200,6 +198,7 @@ function printSend(
   );
 }
 
+//eslint-disable-next-line @typescript-eslint/no-explicit-any
 function normalize(value: any) {
   if (Array.isArray(value)) {
     return value.map((v) => normalize(v));
