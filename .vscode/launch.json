@@ -97,6 +97,18 @@
         "HARDHAT_NETWORK": "xdai"
       },
       "args": []
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Deploy to xDai - protocol",
+      "cwd": "${workspaceRoot}",
+      "program": "${workspaceFolder}/node_modules/.bin/hardhat",
+      "console": "integratedTerminal",
+      "env": {
+        "HARDHAT_NETWORK": "xdai"
+      },
+      "args": ["run", "./scripts/deploy/004_configure_card_protocol.ts"]
     }
   ]
 }
