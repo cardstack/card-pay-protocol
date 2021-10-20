@@ -314,6 +314,9 @@ contract("RewardManager", (accounts) => {
       expect((await rewardManager.actionDispatcher()).toString()).to.equal(
         actionDispatcher.address
       );
+      expect(await rewardManager.getEip1271Contracts()).to.deep.equal([
+        rewardPool.address,
+      ]);
     });
   });
 
