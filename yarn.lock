@@ -3680,7 +3680,7 @@
 
 "CardPay-Contracts@github:cardstack/card-commerce-protocol#96f4079a86adeaf22ba486adf8afdf4c2e847e63":
   version "1.0.4"
-  resolved "https://codeload.github.com/cardstack/card-commerce-protocol/tar.gz/917376d7cc7b524220521b67ef865ade72d76f20"
+  resolved "https://codeload.github.com/cardstack/card-commerce-protocol/tar.gz/96f4079a86adeaf22ba486adf8afdf4c2e847e63"
   dependencies:
     "@openzeppelin/contracts" "3.2.0"
     "@openzeppelin/contracts-upgradeable" "3.2.0"
