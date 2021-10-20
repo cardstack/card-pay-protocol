@@ -67,12 +67,12 @@
       "request": "launch",
       "name": "Config Sokol - protocol",
       "cwd": "${workspaceRoot}",
-      "program": "${workspaceFolder}/scripts/deploy/004_configure_card_protocol.js",
+      "program": "${workspaceFolder}/node_modules/.bin/hardhat",
       "console": "integratedTerminal",
       "env": {
         "HARDHAT_NETWORK": "sokol"
       },
-      "args": []
+      "args": ["run", "./scripts/deploy/004_configure_card_protocol.ts"]
     },
     {
       "type": "node",
@@ -103,12 +103,12 @@
       "request": "launch",
       "name": "Deploy to xDai - protocol",
       "cwd": "${workspaceRoot}",
-      "program": "${workspaceFolder}/scripts/deploy/004_configure_card_protocol.js",
+      "program": "${workspaceFolder}/node_modules/.bin/hardhat",
       "console": "integratedTerminal",
       "env": {
         "HARDHAT_NETWORK": "xdai"
       },
-      "args": []
+      "args": ["run", "./scripts/deploy/004_configure_card_protocol.ts"]
     }
   ]
 }
