@@ -1221,7 +1221,7 @@ describe("Inventory", () => {
       const otherToken = await tokenAs(otherWallet);
       await expect(otherToken.updateTokenMetadataDID(0, "did:cardstack:def456")).fulfilled;
 
-      const tokenURI = await token.tokenMetadataDID(0);
+      const tokenDID = await token.tokenMetadataDID(0);
       expect(tokenURI).eq("blah blah");
     });
   });
