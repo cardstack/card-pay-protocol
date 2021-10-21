@@ -1181,7 +1181,7 @@ describe("Inventory", () => {
       );
     });
 
-    it("should revert if the uri is empty string", async () => {
+    it("should revert if the DID is empty string", async () => {
       const token = await tokenAs(merchantWallet);
       await expect(token.updateTokenMetadataDID(0, "")).rejectedWith(
         "Inventory: specified uri must be non-empty"
