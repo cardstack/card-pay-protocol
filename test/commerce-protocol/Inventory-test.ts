@@ -1219,7 +1219,7 @@ describe("Inventory", () => {
       await token.approve(otherWallet.address, 0);
 
       const otherToken = await tokenAs(otherWallet);
-      await expect(otherToken.updateTokenMetadataDID(0, "blah blah")).fulfilled;
+      await expect(otherToken.updateTokenMetadataDID(0, "did:cardstack:def456")).fulfilled;
 
       const tokenURI = await token.tokenMetadataDID(0);
       expect(tokenURI).eq("blah blah");
