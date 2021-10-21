@@ -1214,7 +1214,7 @@ describe("Inventory", () => {
       expect(tokenURI).eq("blah blah");
     });
 
-    it("should set the tokenMetadataDID to the URI passed if the msg.sender is approved", async () => {
+    it("should set the tokenMetadataDID to the DID passed if the msg.sender is approved", async () => {
       const token = await tokenAs(merchantWallet);
       await token.approve(otherWallet.address, 0);
 
