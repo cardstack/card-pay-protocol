@@ -1210,7 +1210,7 @@ describe("Inventory", () => {
       const token = await tokenAs(merchantWallet);
       await expect(token.updateTokenMetadataDID(0, "blah blah")).fulfilled;
 
-      const tokenURI = await token.tokenMetadataDID(0);
+      const tokenDID = await token.tokenMetadataDID(0);
       expect(tokenURI).eq("blah blah");
     });
 
