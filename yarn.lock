@@ -3678,12 +3678,9 @@
   resolved "https://registry.yarnpkg.com/@zxing/text-encoding/-/text-encoding-0.9.0.tgz#fb50ffabc6c7c66a0c96b4c03e3d9be74864b70b"
   integrity sha512-U/4aVJ2mxI0aDNI8Uq0wEhMgY+u4CNtEb0om3+y3+niDAsoTCOB33UF0sxpzqzdqXLqmvc+vZyAt4O8pPdfkwA==
 
-"CardPay-Contracts@github:cardstack/card-commerce-protocol#96f4079a86adeaf22ba486adf8afdf4c2e847e63":
+"CardPay-Contracts@github:cardstack/card-commerce-protocol#6dd4d470e98f7b94881e3fe256b7b677bbedd3e7":
   version "1.0.4"
-  resolved "https://codeload.github.com/cardstack/card-commerce-protocol/tar.gz/96f4079a86adeaf22ba486adf8afdf4c2e847e63"
-  dependencies:
-    "@openzeppelin/contracts" "3.2.0"
-    "@openzeppelin/contracts-upgradeable" "3.2.0"
+  resolved "https://codeload.github.com/cardstack/card-commerce-protocol/tar.gz/6dd4d470e98f7b94881e3fe256b7b677bbedd3e7"
 
 abab@^1.0.0:
   version "1.0.4"
