@@ -1,3 +1,6 @@
+const { readJSONSync } = require("node-fs-extra");
+const { existsSync } = require("fs");
+const { resolve } = require("path");
 const TrezorWalletProvider = require("trezor-cli-wallet-provider");
 
 const hre = require("hardhat");
@@ -18,6 +21,21 @@ function patchNetworks() {
       return oldGetNetwork(network);
     }
   };
+}
+
+function readAddressFile(network) {
+  network = network === "hardhat" ? "localhost" : network;
+  const addressesFile = resolve(
+    __dirname,
+    "..",
+    "..",
+    ".openzeppelin",
+    `addresses-${network}.json`
+  );
+  if (!existsSync(addressesFile)) {
+    throw new Error(`Cannot read from the addresses file ${addressesFile}`);
+  }
+  return readJSONSync(addressesFile);
 }
 
 function getHardhatTestWallet() {
@@ -128,6 +146,7 @@ module.exports = {
   getDeployAddress,
   patchNetworks,
   asyncMain,
+  readAddressFile,
   retry,
   upgradeImplementation,
   deployNewProxyAndImplementation,

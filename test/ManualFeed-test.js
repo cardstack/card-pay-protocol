@@ -1,18 +1,19 @@
 const Feed = artifacts.require("ManualFeed");
 const { BN } = require("web3").utils;
 const { expect } = require("./setup");
+const { setupVersionManager } = require("./utils/helper");
 
 contract("Feed", async (accounts) => {
   let [owner, nonOwner] = accounts;
-  let feed;
+  let feed, versionManager;
   before(async () => {
+    versionManager = await setupVersionManager(owner);
     feed = await Feed.new();
     await feed.initialize(owner);
+    await feed.setup("DAI.CPXD/USD", 8, versionManager.address);
   });
 
   it("can create feed", async () => {
-    await feed.setup("DAI.CPXD/USD", 8);
-
     expect(BN(await feed.version()).toString()).to.equal("3");
     expect(BN(await feed.decimals()).toString()).to.equal("8");
     expect(await feed.description()).to.equal("DAI.CPXD/USD");
@@ -58,6 +59,6 @@ contract("Feed", async (accounts) => {
   });
 
   it("can get version of contract", async () => {
-    expect(await feed.cardpayVersion()).to.match(/\d\.\d\.\d/);
+    expect(await feed.cardpayVersion()).to.equal("1.0.0");
   });
 });

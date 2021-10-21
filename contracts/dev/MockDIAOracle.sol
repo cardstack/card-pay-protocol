@@ -3,6 +3,7 @@ pragma solidity 0.5.17;
 import "../oracles/IDIAOracle.sol";
 import "../core/Versionable.sol";
 import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
+import "../VersionManager.sol";
 
 // This contract is purely for testing and not meant to be deployed
 contract MockDIAOracle is Ownable, Versionable, IDIAOracle {
@@ -11,7 +12,16 @@ contract MockDIAOracle is Ownable, Versionable, IDIAOracle {
     uint128 updatedAt;
   }
 
+  event Setup();
+
   mapping(bytes32 => PriceData) internal data;
+  address public versionManager;
+
+  function setup(address _versionManager) external onlyOwner returns (bool) {
+    versionManager = _versionManager;
+    emit Setup();
+    return true;
+  }
 
   function setValue(
     string memory pair,
@@ -30,5 +40,9 @@ contract MockDIAOracle is Ownable, Versionable, IDIAOracle {
   {
     PriceData memory priceData = data[keccak256(bytes(pair))];
     return (priceData.price, priceData.updatedAt);
+  }
+
+  function cardpayVersion() external view returns (string memory) {
+    return VersionManager(versionManager).version();
   }
 }

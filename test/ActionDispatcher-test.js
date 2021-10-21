@@ -23,6 +23,7 @@ const {
   transferOwner,
   addActionHandlers,
   createDepotFromSupplierMgr,
+  setupVersionManager,
 } = require("./utils/helper");
 
 contract("Action Dispatcher", (accounts) => {
@@ -43,6 +44,7 @@ contract("Action Dispatcher", (accounts) => {
     merchantSafe,
     customer,
     proxyFactory,
+    versionManager,
     gnosisSafeMasterCopy,
     prepaidCardManager,
     depot;
@@ -61,6 +63,7 @@ contract("Action Dispatcher", (accounts) => {
       GnosisSafe
     );
 
+    versionManager = await setupVersionManager(owner);
     revenuePool = await RevenuePool.new();
     await revenuePool.initialize(owner);
     prepaidCardManager = await PrepaidCardManager.new();
@@ -94,20 +97,23 @@ contract("Action Dispatcher", (accounts) => {
       0,
       100,
       500000,
-      []
+      [],
+      versionManager.address
     );
     await prepaidCardManager.addGasPolicy("transfer", false);
     await prepaidCardManager.addGasPolicy("split", true);
 
-    await tokenManager.setup(ZERO_ADDRESS, [
-      daicpxdToken.address,
-      cardcpxdToken.address,
-    ]);
+    await tokenManager.setup(
+      ZERO_ADDRESS,
+      [daicpxdToken.address, cardcpxdToken.address],
+      versionManager.address
+    );
 
     await actionDispatcher.setup(
       tokenManager.address,
       exchange.address,
-      prepaidCardManager.address
+      prepaidCardManager.address,
+      versionManager.address
     );
 
     ({ payMerchantHandler, registerMerchantHandler } = await addActionHandlers({
@@ -129,18 +135,20 @@ contract("Action Dispatcher", (accounts) => {
       prepaidCardManager.address,
       merchantFeeReceiver,
       0,
-      1000
+      1000,
+      versionManager.address
     );
     await merchantManager.setup(
       actionDispatcher.address,
       gnosisSafeMasterCopy.address,
       proxyFactory.address,
-      ZERO_ADDRESS
+      versionManager.address
     );
     await supplierManager.setup(
       ZERO_ADDRESS,
       gnosisSafeMasterCopy.address,
-      proxyFactory.address
+      proxyFactory.address,
+      versionManager.address
     );
     depot = await createDepotFromSupplierMgr(supplierManager, issuer);
     await daicpxdToken.mint(depot.address, toTokenUnit(1000));
@@ -184,6 +192,7 @@ contract("Action Dispatcher", (accounts) => {
           revenuePool.address,
           spendToken.address,
           tokenManager.address,
+          versionManager.address,
           { from: merchant }
         )
         .should.be.rejectedWith(Error, "Ownable: caller is not the owner");
@@ -198,6 +207,7 @@ contract("Action Dispatcher", (accounts) => {
           revenuePool.address,
           exchange.address,
           tokenManager.address,
+          versionManager.address,
           { from: merchant }
         )
         .should.be.rejectedWith(Error, "Ownable: caller is not the owner");
@@ -381,7 +391,7 @@ contract("Action Dispatcher", (accounts) => {
 
   describe("versioning", () => {
     it("can get version of contract", async () => {
-      expect(await actionDispatcher.cardpayVersion()).to.match(/\d\.\d\.\d/);
+      expect(await actionDispatcher.cardpayVersion()).to.equal("1.0.0");
     });
   });
 });

@@ -37,6 +37,7 @@ const {
   createPrepaidCardAndTransfer,
   findAccountAfterAddress,
   findAccountBeforeAddress,
+  setupVersionManager,
 } = require("./utils/helper");
 
 const AbiCoder = require("web3-eth-abi");
@@ -56,6 +57,7 @@ contract("RewardManager", (accounts) => {
     actionDispatcher,
     revenuePool,
     merchantManager,
+    versionManager,
     rewardPool;
   // handlers
   let registerRewardeeHandler,
@@ -105,6 +107,7 @@ contract("RewardManager", (accounts) => {
       GnosisSafe
     );
 
+    versionManager = await setupVersionManager(owner);
     revenuePool = await RevenuePool.new();
     await revenuePool.initialize(owner);
     prepaidCardManager = await PrepaidCardManager.new();
@@ -135,20 +138,22 @@ contract("RewardManager", (accounts) => {
     ({ daicpxdToken, cardcpxdToken, exchange } = await setupExchanges(owner));
 
     // setup
-    await tokenManager.setup(ZERO_ADDRESS, [
-      daicpxdToken.address,
-      cardcpxdToken.address,
-    ]);
+    await tokenManager.setup(
+      ZERO_ADDRESS,
+      [daicpxdToken.address, cardcpxdToken.address],
+      versionManager.address
+    );
     await supplierManager.setup(
       ZERO_ADDRESS,
       gnosisSafeMasterCopy.address,
-      proxyFactory.address
+      proxyFactory.address,
+      versionManager.address
     );
     await merchantManager.setup(
       actionDispatcher.address,
       gnosisSafeMasterCopy.address,
       proxyFactory.address,
-      ZERO_ADDRESS
+      versionManager.address
     );
     await prepaidCardManager.setup(
       tokenManager.address,
@@ -161,7 +166,8 @@ contract("RewardManager", (accounts) => {
       0,
       100,
       500000,
-      []
+      [],
+      versionManager.address
     );
     await revenuePool.setup(
       exchange.address,
@@ -170,9 +176,15 @@ contract("RewardManager", (accounts) => {
       prepaidCardManager.address,
       merchantFeeReceiver,
       0,
-      1000
+      1000,
+      versionManager.address
     );
-    await rewardPool.setup(tally, rewardManager.address, tokenManager.address);
+    await rewardPool.setup(
+      tally,
+      rewardManager.address,
+      tokenManager.address,
+      versionManager.address
+    );
     await rewardManager.setup(
       actionDispatcher.address,
       gnosisSafeMasterCopy.address,
@@ -180,7 +192,8 @@ contract("RewardManager", (accounts) => {
       rewardFeeReceiver,
       REWARDEE_REGISTRATION_FEE_IN_SPEND,
       REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
-      [rewardPool.address]
+      [rewardPool.address],
+      versionManager.address
     );
 
     await prepaidCardManager.addGasPolicy("transfer", false);
@@ -195,7 +208,8 @@ contract("RewardManager", (accounts) => {
     await actionDispatcher.setup(
       tokenManager.address,
       exchange.address,
-      prepaidCardManager.address
+      prepaidCardManager.address,
+      versionManager.address
     );
 
     ({
@@ -215,6 +229,7 @@ contract("RewardManager", (accounts) => {
       owner,
       exchangeAddress: exchange.address,
       spendAddress: spendToken.address,
+      versionManager,
     }));
 
     await daicpxdToken.mint(owner, toTokenUnit(100));
@@ -237,7 +252,8 @@ contract("RewardManager", (accounts) => {
         rewardFeeReceiver,
         REWARDEE_REGISTRATION_FEE_IN_SPEND,
         REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
-        [rewardPool.address]
+        [rewardPool.address],
+        versionManager.address
       );
     });
 
@@ -250,7 +266,8 @@ contract("RewardManager", (accounts) => {
           ZERO_ADDRESS,
           REWARDEE_REGISTRATION_FEE_IN_SPEND,
           REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
-          [rewardPool.address]
+          [rewardPool.address],
+          versionManager.address
         )
         .should.be.rejectedWith(Error, "rewardFeeReceiver not set");
     });
@@ -263,7 +280,8 @@ contract("RewardManager", (accounts) => {
           rewardFeeReceiver,
           0,
           REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
-          [rewardPool.address]
+          [rewardPool.address],
+          versionManager.address
         )
         .should.be.rejectedWith(
           Error,
@@ -280,7 +298,8 @@ contract("RewardManager", (accounts) => {
           rewardFeeReceiver,
           REWARDEE_REGISTRATION_FEE_IN_SPEND,
           0,
-          [rewardPool.address]
+          [rewardPool.address],
+          versionManager.address
         )
         .should.be.rejectedWith(
           Error,
@@ -297,6 +316,7 @@ contract("RewardManager", (accounts) => {
           REWARDEE_REGISTRATION_FEE_IN_SPEND,
           REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
           [rewardPool.address],
+          versionManager.address,
           { from: issuer }
         )
         .should.be.rejectedWith(Error, "Ownable: caller is not the owner");
@@ -1463,6 +1483,22 @@ contract("RewardManager", (accounts) => {
       owners = await rewardSafe.getOwners();
       expect(owners.length).to.equal(2);
       expect(owners[1]).to.equal(otherPrepaidCardOwner);
+    });
+  });
+
+  describe("versioning", () => {
+    it("can get version of contract", async () => {
+      expect(await rewardManager.cardpayVersion()).to.equal("1.0.0");
+      expect(await registerRewardeeHandler.cardpayVersion()).to.equal("1.0.0");
+      expect(await registerRewardProgramHandler.cardpayVersion()).to.equal(
+        "1.0.0"
+      );
+      expect(await lockRewardProgramHandler.cardpayVersion()).to.equal("1.0.0");
+      expect(await addRewardRuleHandler.cardpayVersion()).to.equal("1.0.0");
+      expect(await removeRewardRuleHandler.cardpayVersion()).to.equal("1.0.0");
+      expect(await updateRewardProgramAdminHandler.cardpayVersion()).to.equal(
+        "1.0.0"
+      );
     });
   });
 });

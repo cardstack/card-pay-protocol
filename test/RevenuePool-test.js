@@ -29,6 +29,7 @@ const {
   payMerchant,
   addActionHandlers,
   createDepotFromSupplierMgr,
+  setupVersionManager,
 } = require("./utils/helper");
 
 contract("RevenuePool", (accounts) => {
@@ -44,6 +45,7 @@ contract("RevenuePool", (accounts) => {
     exchange,
     anotherMerchant,
     payMerchantHandler,
+    registerMerchantHandler,
     actionDispatcher,
     customer,
     merchantManager,
@@ -51,6 +53,7 @@ contract("RevenuePool", (accounts) => {
     merchantFeeReceiver,
     proxyFactory,
     gnosisSafeMasterCopy,
+    versionManager,
     prepaidCardManager,
     depot;
 
@@ -69,6 +72,7 @@ contract("RevenuePool", (accounts) => {
       GnosisSafe
     );
 
+    versionManager = await setupVersionManager(owner);
     revenuePool = await RevenuePool.new();
     await revenuePool.initialize(owner);
     prepaidCardManager = await PrepaidCardManager.new();
@@ -94,21 +98,23 @@ contract("RevenuePool", (accounts) => {
     await fakeToken.initialize(...TOKEN_DETAIL_DATA, owner);
     await fakeToken.mint(owner, toTokenUnit(100));
 
-    await tokenManager.setup(ZERO_ADDRESS, [
-      daicpxdToken.address,
-      cardcpxdToken.address,
-    ]);
+    await tokenManager.setup(
+      ZERO_ADDRESS,
+      [daicpxdToken.address, cardcpxdToken.address],
+      versionManager.address
+    );
 
     await supplierManager.setup(
       ZERO_ADDRESS,
       gnosisSafeMasterCopy.address,
-      proxyFactory.address
+      proxyFactory.address,
+      versionManager.address
     );
     await merchantManager.setup(
       actionDispatcher.address,
       gnosisSafeMasterCopy.address,
       proxyFactory.address,
-      ZERO_ADDRESS
+      versionManager.address
     );
     await prepaidCardManager.setup(
       tokenManager.address,
@@ -121,7 +127,8 @@ contract("RevenuePool", (accounts) => {
       0,
       100,
       500000,
-      []
+      [],
+      versionManager.address
     );
     await prepaidCardManager.addGasPolicy("transfer", false);
     await prepaidCardManager.addGasPolicy("split", false);
@@ -129,10 +136,11 @@ contract("RevenuePool", (accounts) => {
     await actionDispatcher.setup(
       tokenManager.address,
       exchange.address,
-      prepaidCardManager.address
+      prepaidCardManager.address,
+      versionManager.address
     );
 
-    ({ payMerchantHandler } = await addActionHandlers({
+    ({ payMerchantHandler, registerMerchantHandler } = await addActionHandlers({
       prepaidCardManager,
       revenuePool,
       actionDispatcher,
@@ -141,6 +149,7 @@ contract("RevenuePool", (accounts) => {
       owner,
       exchangeAddress: exchange.address,
       spendAddress: spendToken.address,
+      versionManager,
     }));
     await spendToken.addMinter(payMerchantHandler.address);
 
@@ -157,7 +166,8 @@ contract("RevenuePool", (accounts) => {
         prepaidCardManager.address,
         merchantFeeReceiver,
         0,
-        1000
+        1000,
+        versionManager.address
       );
     });
 
@@ -170,7 +180,8 @@ contract("RevenuePool", (accounts) => {
           prepaidCardManager.address,
           ZERO_ADDRESS,
           0,
-          1000
+          1000,
+          versionManager.address
         )
         .should.be.rejectedWith(Error, "merchantFeeReceiver not set");
     });
@@ -184,7 +195,8 @@ contract("RevenuePool", (accounts) => {
           prepaidCardManager.address,
           merchantFeeReceiver,
           0,
-          0
+          0,
+          versionManager.address
         )
         .should.be.rejectedWith(
           Error,
@@ -202,6 +214,7 @@ contract("RevenuePool", (accounts) => {
           merchantFeeReceiver,
           0,
           1000,
+          versionManager.address,
           { from: merchant }
         )
         .should.be.rejectedWith(Error, "Ownable: caller is not the owner");
@@ -349,7 +362,8 @@ contract("RevenuePool", (accounts) => {
         prepaidCardManager.address,
         merchantFeeReceiver,
         10000000,
-        1000
+        1000,
+        versionManager.address
       );
       let {
         prepaidCards: [merchantPrepaidCard],
@@ -402,7 +416,8 @@ contract("RevenuePool", (accounts) => {
         prepaidCardManager.address,
         merchantFeeReceiver,
         0,
-        1000
+        1000,
+        versionManager.address
       );
     });
 
@@ -731,7 +746,8 @@ contract("RevenuePool", (accounts) => {
         prepaidCardManager.address,
         merchantFeeReceiver,
         10000000, // 10% merchant fee
-        1000
+        1000,
+        versionManager.address
       );
       expect((await revenuePool.merchantFeePercentage()).toString()).to.equal(
         "10000000"
@@ -800,7 +816,8 @@ contract("RevenuePool", (accounts) => {
         prepaidCardManager.address,
         merchantFeeReceiver,
         0,
-        1000
+        1000,
+        versionManager.address
       );
     });
 
@@ -1401,7 +1418,9 @@ contract("RevenuePool", (accounts) => {
 
   describe("versioning", () => {
     it("can get version of contract", async () => {
-      expect(await revenuePool.cardpayVersion()).to.match(/\d\.\d\.\d/);
+      expect(await revenuePool.cardpayVersion()).to.equal("1.0.0");
+      expect(await merchantManager.cardpayVersion()).to.equal("1.0.0");
+      expect(await registerMerchantHandler.cardpayVersion()).to.equal("1.0.0");
     });
   });
 });

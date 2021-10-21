@@ -29,6 +29,10 @@ export default async function (
         name: "bridgeMediator",
         value: BRIDGE_MEDIATOR,
       },
+      {
+        name: "versionManager",
+        value: address("VersionManager"),
+      },
     ],
   });
 }

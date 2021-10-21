@@ -31,6 +31,7 @@ const UpdateRewardProgramAdminHandler = artifacts.require(
   "UpdateRewardProgramAdminHandler"
 );
 const PayRewardTokensHandler = artifacts.require("PayRewardTokensHandler");
+const VersionManager = artifacts.require("VersionManager");
 
 const { toBN } = require("web3-utils");
 const { TOKEN_DETAIL_DATA } = require("../setup");
@@ -231,8 +232,18 @@ exports.findAccountAfterAddress = (accounts, address) => {
   );
 };
 
-exports.setupExchanges = async function (owner) {
+exports.setupVersionManager = async function (owner, version = "1.0.0") {
+  let versionManager = await VersionManager.new();
+  await versionManager.initialize(owner);
+  await versionManager.setVersion(version);
+  return versionManager;
+};
+
+exports.setupExchanges = async function (owner, versionManager) {
   let daicpxdToken = await ERC677Token.new();
+  let versionManagerAddress = versionManager
+    ? versionManager.address
+    : ZERO_ADDRESS;
   await daicpxdToken.initialize(...TOKEN_DETAIL_DATA, owner);
 
   let cardcpxdToken = await ERC677Token.new();
@@ -240,29 +251,35 @@ exports.setupExchanges = async function (owner) {
 
   let daiFeed = await Feed.new();
   await daiFeed.initialize(owner);
-  await daiFeed.setup("DAI.CPXD", 8);
+  await daiFeed.setup("DAI.CPXD", 8, versionManagerAddress);
   await daiFeed.addRound(100000000, 1618433281, 1618433281);
   let ethFeed = await Feed.new();
   await ethFeed.initialize(owner);
-  await ethFeed.setup("ETH", 8);
+  await ethFeed.setup("ETH", 8, versionManagerAddress);
   await ethFeed.addRound(300000000000, 1618433281, 1618433281);
   let chainlinkOracle = await ChainlinkOracle.new();
   chainlinkOracle.initialize(owner);
   await chainlinkOracle.setup(
     daiFeed.address,
     ethFeed.address,
-    daiFeed.address
+    daiFeed.address,
+    versionManagerAddress
   );
   let mockDiaOracle = await MockDIAOracle.new();
   await mockDiaOracle.initialize(owner);
   await mockDiaOracle.setValue("CARD/USD", 1000000, 1618433281);
   let diaPriceOracle = await DIAPriceOracle.new();
   await diaPriceOracle.initialize(owner);
-  await diaPriceOracle.setup(mockDiaOracle.address, "CARD", daiFeed.address);
+  await diaPriceOracle.setup(
+    mockDiaOracle.address,
+    "CARD",
+    daiFeed.address,
+    versionManagerAddress
+  );
 
   let exchange = await Exchange.new();
   await exchange.initialize(owner);
-  await exchange.setup(1000000); // this is a 1% rate margin drift
+  await exchange.setup(1000000, versionManagerAddress); // this is a 1% rate margin drift
   await exchange.createExchange("DAI", chainlinkOracle.address);
   await exchange.createExchange("CARD", diaPriceOracle.address);
 
@@ -290,6 +307,7 @@ exports.addActionHandlers = async function ({
   spendAddress,
   rewardPool,
   prepaidCardMarket,
+  versionManager,
 }) {
   let payMerchantHandler,
     registerMerchantHandler,
@@ -305,6 +323,11 @@ exports.addActionHandlers = async function ({
     removeRewardRuleHandler,
     updateRewardProgramAdminHandler,
     payRewardTokensHandler;
+
+  let versionManagerAddress = versionManager
+    ? versionManager.address
+    : ZERO_ADDRESS;
+
   if (
     owner &&
     actionDispatcher &&
@@ -322,7 +345,8 @@ exports.addActionHandlers = async function ({
       prepaidCardManager.address,
       revenuePool.address,
       spendAddress,
-      tokenManager.address
+      tokenManager.address,
+      versionManagerAddress
     );
   }
 
@@ -343,7 +367,8 @@ exports.addActionHandlers = async function ({
       prepaidCardManager.address,
       revenuePool.address,
       exchangeAddress,
-      tokenManager.address
+      tokenManager.address,
+      versionManagerAddress
     );
   }
 
@@ -354,7 +379,8 @@ exports.addActionHandlers = async function ({
       actionDispatcher.address,
       prepaidCardManager.address,
       tokenManager.address,
-      prepaidCardMarket?.address ?? ZERO_ADDRESS
+      prepaidCardMarket?.address ?? ZERO_ADDRESS,
+      versionManagerAddress
     );
   }
 
@@ -364,7 +390,8 @@ exports.addActionHandlers = async function ({
     await setPrepaidCardInventoryHandler.setup(
       actionDispatcher.address,
       prepaidCardManager.address,
-      tokenManager.address
+      tokenManager.address,
+      versionManagerAddress
     );
     removePrepaidCardInventoryHandler =
       await RemovePrepaidCardInventoryHandler.new();
@@ -372,14 +399,16 @@ exports.addActionHandlers = async function ({
     await removePrepaidCardInventoryHandler.setup(
       actionDispatcher.address,
       prepaidCardManager.address,
-      tokenManager.address
+      tokenManager.address,
+      versionManagerAddress
     );
     setPrepaidCardAskHandler = await SetPrepaidCardAskHandler.new();
     await setPrepaidCardAskHandler.initialize(owner);
     await setPrepaidCardAskHandler.setup(
       actionDispatcher.address,
       prepaidCardManager.address,
-      tokenManager.address
+      tokenManager.address,
+      versionManagerAddress
     );
   }
 
@@ -389,7 +418,8 @@ exports.addActionHandlers = async function ({
     await transferPrepaidCardHandler.setup(
       actionDispatcher.address,
       prepaidCardManager.address,
-      tokenManager.address
+      tokenManager.address,
+      versionManagerAddress
     );
   }
 
@@ -408,7 +438,8 @@ exports.addActionHandlers = async function ({
       prepaidCardManager.address,
       exchangeAddress,
       tokenManager.address,
-      rewardManager.address
+      rewardManager.address,
+      versionManagerAddress
     );
   }
 
@@ -425,7 +456,8 @@ exports.addActionHandlers = async function ({
       actionDispatcher.address,
       exchangeAddress,
       tokenManager.address,
-      rewardManager.address
+      rewardManager.address,
+      versionManagerAddress
     );
   }
 
@@ -444,7 +476,8 @@ exports.addActionHandlers = async function ({
       prepaidCardManager.address,
       exchangeAddress,
       tokenManager.address,
-      rewardManager.address
+      rewardManager.address,
+      versionManagerAddress
     );
   }
 
@@ -463,7 +496,8 @@ exports.addActionHandlers = async function ({
       prepaidCardManager.address,
       exchangeAddress,
       tokenManager.address,
-      rewardManager.address
+      rewardManager.address,
+      versionManagerAddress
     );
   }
 
@@ -482,7 +516,8 @@ exports.addActionHandlers = async function ({
       prepaidCardManager.address,
       exchangeAddress,
       tokenManager.address,
-      rewardManager.address
+      rewardManager.address,
+      versionManagerAddress
     );
   }
 
@@ -502,7 +537,8 @@ exports.addActionHandlers = async function ({
       prepaidCardManager.address,
       exchangeAddress,
       tokenManager.address,
-      rewardManager.address
+      rewardManager.address,
+      versionManagerAddress
     );
   }
 
@@ -512,7 +548,8 @@ exports.addActionHandlers = async function ({
     await payRewardTokensHandler.setup(
       actionDispatcher.address,
       tokenManager.address,
-      rewardPool.address
+      rewardPool.address,
+      versionManagerAddress
     );
   }
 

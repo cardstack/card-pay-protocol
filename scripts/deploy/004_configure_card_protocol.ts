@@ -1,12 +1,10 @@
-import { readJSONSync } from "node-fs-extra";
-import { existsSync } from "fs";
 import { resolve } from "path";
 import glob from "glob-promise";
 import dotenv from "dotenv";
 import hre from "hardhat";
 import isEqual from "lodash/isEqual";
 import retry from "async-retry";
-import { makeFactory, patchNetworks, asyncMain } from "./util";
+import { makeFactory, patchNetworks, asyncMain, readAddressFile } from "./util";
 import { AddressFile, ContractConfig, Formatter, Value } from "./config-utils";
 
 patchNetworks();
@@ -21,19 +19,7 @@ const sendTx = async function (cb) {
 };
 
 async function main(proxyAddresses: AddressFile) {
-  if (proxyAddresses == null) {
-    const addressesFile = resolve(
-      __dirname,
-      "..",
-      "..",
-      ".openzeppelin",
-      `addresses-${network}.json`
-    );
-    if (!existsSync(addressesFile)) {
-      throw new Error(`Cannot read from the addresses file ${addressesFile}`);
-    }
-    proxyAddresses = readJSONSync(addressesFile);
-  }
+  proxyAddresses = proxyAddresses || readAddressFile(network);
 
   const configs: string[] = await glob(`${__dirname}/config/**/*.ts`);
   const deployConfig = new Map(
@@ -223,9 +209,4 @@ function replaceParams(params: Value[], name: string, value: Value) {
   });
 }
 
-if (!["hardhat", "localhost"].includes(network)) {
-  asyncMain(main);
-}
-
-// this is exported so we can also use this logic in the private network deploy
-module.exports = { main };
+asyncMain(main);

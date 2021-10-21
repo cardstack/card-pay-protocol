@@ -12,6 +12,7 @@ const {
   setupExchanges,
   signAndSendSafeTransaction,
   toTokenUnit,
+  setupVersionManager,
 } = require("./utils/helper");
 const { expect } = require("./setup");
 
@@ -25,12 +26,15 @@ contract("BridgeUtils", async (accounts) => {
     relayer,
     tokenManager,
     supplierManager,
+    versionManager,
     exchange,
     depot;
   before(async () => {
     owner = accounts[0];
     mediatorBridgeMock = accounts[1];
     relayer = accounts[8];
+
+    versionManager = await setupVersionManager(owner);
     unlistedToken = await ERC677Token.new();
     await unlistedToken.initialize("Kitty Token", "KITTY", 18, owner);
     bridgeUtils = await BridgeUtils.new();
@@ -47,19 +51,21 @@ contract("BridgeUtils", async (accounts) => {
 
     ({ daicpxdToken, exchange } = await setupExchanges(owner));
     tokenMock = daicpxdToken.address;
-    await tokenManager.setup(bridgeUtils.address, []);
+    await tokenManager.setup(bridgeUtils.address, [], versionManager.address);
 
     await supplierManager.setup(
       bridgeUtils.address,
       gnosisMaster.address,
-      gnosisFactory.address
+      gnosisFactory.address,
+      versionManager.address
     );
 
     await bridgeUtils.setup(
       tokenManager.address,
       supplierManager.address,
       exchange.address,
-      mediatorBridgeMock
+      mediatorBridgeMock,
+      versionManager.address
     );
   });
 
@@ -215,8 +221,8 @@ contract("BridgeUtils", async (accounts) => {
   });
 
   it("can get version of contract", async () => {
-    expect(await tokenManager.cardpayVersion()).to.match(/\d\.\d\.\d/);
-    expect(await bridgeUtils.cardpayVersion()).to.match(/\d\.\d\.\d/);
-    expect(await supplierManager.cardpayVersion()).to.match(/\d\.\d\.\d/);
+    expect(await tokenManager.cardpayVersion()).to.equal("1.0.0");
+    expect(await bridgeUtils.cardpayVersion()).to.equal("1.0.0");
+    expect(await supplierManager.cardpayVersion()).to.equal("1.0.0");
   });
 });

@@ -6,6 +6,7 @@ import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
 import "./token/IERC677.sol";
 import "./oracles/IPriceOracle.sol";
 import "./core/Versionable.sol";
+import "./VersionManager.sol";
 
 contract Exchange is Ownable, Versionable {
   using SafeMath for uint256;
@@ -21,6 +22,7 @@ contract Exchange is Ownable, Versionable {
 
   mapping(bytes32 => ExchangeInfo) public exchanges;
   uint256 public rateDriftPercentage; // decimals 8
+  address public versionManager;
 
   /**
    * @dev set up revenue pool
@@ -28,8 +30,12 @@ contract Exchange is Ownable, Versionable {
    * represents the percentage of how much a requested rate lock is allowed to
    * drift from the actual rate
    */
-  function setup(uint256 _rateDriftPercentage) external onlyOwner {
+  function setup(uint256 _rateDriftPercentage, address _versionManager)
+    external
+    onlyOwner
+  {
     rateDriftPercentage = _rateDriftPercentage;
+    versionManager = _versionManager;
     emit Setup();
   }
 
@@ -60,8 +66,9 @@ contract Exchange is Ownable, Versionable {
     returns (uint256 price, uint8 decimals)
   {
     require(hasExchange(token), "no exchange exists for token");
-    ExchangeInfo memory exchange =
-      exchanges[keccak256(bytes(IERC677(token).symbol()))];
+    ExchangeInfo memory exchange = exchanges[
+      keccak256(bytes(IERC677(token).symbol()))
+    ];
     IPriceOracle oracle = IPriceOracle(exchange.feed);
     decimals = oracle.decimals();
     (price, ) = oracle.usdPrice();
@@ -103,8 +110,9 @@ contract Exchange is Ownable, Versionable {
     require(usdRate > 0, "exchange rate cannot be 0");
     // SPEND is equivalent to USD cents, so we move the decimal point 2
     // places to the right after obtaining the USD value of the token amount
-    uint8 spendDecimals =
-      IERC677(token).decimals() + exchangeRateDecimals() - 2;
+    uint8 spendDecimals = IERC677(token).decimals() +
+      exchangeRateDecimals() -
+      2;
     require(spendDecimals <= 30, "exponent overflow is likely");
     // a quirk about exponents is that the result will be calculated in the type
     // of the base, so in order to prevent overflows you should use a base of
@@ -148,8 +156,9 @@ contract Exchange is Ownable, Versionable {
     require(usdRate > 0, "exchange rate cannot be 0");
     // SPEND is equivalent to USD cents, so we move the decimal point 2
     // places to the right after obtaining the USD value of the token amount
-    uint8 spendDecimals =
-      IERC677(token).decimals() + exchangeRateDecimals() - 2;
+    uint8 spendDecimals = IERC677(token).decimals() +
+      exchangeRateDecimals() -
+      2;
     require(spendDecimals <= 30, "exponent overflow is likely");
     // a quirk about exponents is that the result will be calculated in the type
     // of the base, so in order to prevent overflows you should use a base of
@@ -178,8 +187,9 @@ contract Exchange is Ownable, Versionable {
     (uint256 cardUSDPrice, ) = oracle.usdPrice();
     uint256 rawUsdValue = amount.mul(cardUSDPrice);
 
-    (uint256 tokenUSDPrice, uint8 tokenExchangeDecimals) =
-      exchangeRateOf(token);
+    (uint256 tokenUSDPrice, uint8 tokenExchangeDecimals) = exchangeRateOf(
+      token
+    );
     uint256 ten = 10;
     return
       (rawUsdValue.mul(ten**tokenExchangeDecimals)).div(
@@ -199,17 +209,20 @@ contract Exchange is Ownable, Versionable {
     returns (bool)
   {
     (uint256 actualRate, ) = exchangeRateOf(token);
-    uint256 drift =
-      actualRate > requestedRate
-        ? actualRate.sub(requestedRate)
-        : requestedRate.sub(actualRate);
+    uint256 drift = actualRate > requestedRate
+      ? actualRate.sub(requestedRate)
+      : requestedRate.sub(actualRate);
     uint256 ten = 10;
-    uint256 observedDriftPercentage =
-      (drift.mul(ten**exchangeRateDecimals())).div(actualRate);
+    uint256 observedDriftPercentage = (drift.mul(ten**exchangeRateDecimals()))
+      .div(actualRate);
     return observedDriftPercentage <= rateDriftPercentage;
   }
 
   function exchangeRateDecimals() public pure returns (uint8) {
     return 8;
+  }
+
+  function cardpayVersion() external view returns (string memory) {
+    return VersionManager(versionManager).version();
   }
 }

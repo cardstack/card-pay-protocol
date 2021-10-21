@@ -5,12 +5,14 @@ import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contract-upgradeable/contracts/math/SafeMath.sol";
 import "./IPriceOracle.sol";
 import "../core/Versionable.sol";
+import "../VersionManager.sol";
 
 contract ChainlinkFeedAdapter is Ownable, Versionable, IPriceOracle {
   using SafeMath for uint256;
   address internal tokenUsdFeed;
   address internal ethUsdFeed;
   address internal daiUsdFeed;
+  address public versionManager;
 
   event ChainlinkFeedSetup(
     address tokenUsdFeed,
@@ -21,7 +23,8 @@ contract ChainlinkFeedAdapter is Ownable, Versionable, IPriceOracle {
   function setup(
     address _tokenUsdFeed,
     address _ethUsdFeed,
-    address _daiUsdFeed
+    address _daiUsdFeed,
+    address _versionManager
   ) external onlyOwner {
     require(
       _tokenUsdFeed != address(0) &&
@@ -38,6 +41,7 @@ contract ChainlinkFeedAdapter is Ownable, Versionable, IPriceOracle {
     tokenUsdFeed = _tokenUsdFeed;
     ethUsdFeed = _ethUsdFeed;
     daiUsdFeed = _daiUsdFeed;
+    versionManager = _versionManager;
     emit ChainlinkFeedSetup(_tokenUsdFeed, _ethUsdFeed, _daiUsdFeed);
   }
 
@@ -51,8 +55,9 @@ contract ChainlinkFeedAdapter is Ownable, Versionable, IPriceOracle {
 
   function usdPrice() external view returns (uint256 price, uint256 updatedAt) {
     require(tokenUsdFeed != address(0), "feed address is not specified");
-    (, int256 _price, , uint256 _updatedAt, ) =
-      AggregatorV3Interface(tokenUsdFeed).latestRoundData();
+    (, int256 _price, , uint256 _updatedAt, ) = AggregatorV3Interface(
+      tokenUsdFeed
+    ).latestRoundData();
     updatedAt = _updatedAt;
     price = uint256(_price);
   }
@@ -66,8 +71,8 @@ contract ChainlinkFeedAdapter is Ownable, Versionable, IPriceOracle {
     AggregatorV3Interface ethUsd = AggregatorV3Interface(ethUsdFeed);
     uint8 tokenUsdDecimals = tokenUsd.decimals();
 
-    (, int256 tokenUsdPrice, , uint256 _updatedAt, ) =
-      tokenUsd.latestRoundData();
+    (, int256 tokenUsdPrice, , uint256 _updatedAt, ) = tokenUsd
+      .latestRoundData();
     (, int256 ethUsdPrice, , , ) = ethUsd.latestRoundData();
     // a quirk about exponents is that the result will be calculated in the type
     // of the base, so in order to prevent overflows you should use a base of
@@ -97,12 +102,16 @@ contract ChainlinkFeedAdapter is Ownable, Versionable, IPriceOracle {
     AggregatorV3Interface tokenUsd = AggregatorV3Interface(tokenUsdFeed);
     uint8 tokenUsdDecimals = tokenUsd.decimals();
 
-    (, int256 tokenUsdPrice, , uint256 _updatedAt, ) =
-      tokenUsd.latestRoundData();
+    (, int256 tokenUsdPrice, , uint256 _updatedAt, ) = tokenUsd
+      .latestRoundData();
     (, int256 daiUsdPrice, , , ) = daiUsd.latestRoundData();
     price = (uint256(tokenUsdPrice).mul(ten**tokenUsdDecimals)).div(
       uint256(daiUsdPrice)
     );
     updatedAt = _updatedAt;
+  }
+
+  function cardpayVersion() external view returns (string memory) {
+    return VersionManager(versionManager).version();
   }
 }

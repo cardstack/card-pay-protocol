@@ -4,22 +4,26 @@ import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
 import "../core/Versionable.sol";
 import "../PrepaidCardManager.sol";
 import "../TokenManager.sol";
+import "../VersionManager.sol";
 
 contract TransferPrepaidCardHandler is Ownable, Versionable {
   address public actionDispatcher;
   address public prepaidCardManagerAddress;
   address public tokenManagerAddress;
+  address public versionManager;
 
   event Setup();
 
   function setup(
     address _actionDispatcher,
     address _prepaidCardManager,
-    address _tokenManagerAddress
+    address _tokenManagerAddress,
+    address _versionManager
   ) external onlyOwner returns (bool) {
     actionDispatcher = _actionDispatcher;
     prepaidCardManagerAddress = _prepaidCardManager;
     tokenManagerAddress = _tokenManagerAddress;
+    versionManager = _versionManager;
     emit Setup();
     return true;
   }
@@ -34,7 +38,7 @@ contract TransferPrepaidCardHandler is Ownable, Versionable {
    */
   function onTokenTransfer(
     address payable from,
-    uint256 /* amount */,
+    uint256, /* amount */
     bytes calldata data
   ) external returns (bool) {
     require(
@@ -45,14 +49,22 @@ contract TransferPrepaidCardHandler is Ownable, Versionable {
       from == actionDispatcher,
       "can only accept tokens from action dispatcher"
     );
-    (address payable prepaidCard, , bytes memory actionData) =
-      abi.decode(data, (address, uint256, bytes));
-    (address newOwner, bytes memory previousOwnerSignature) =
-      abi.decode(actionData, (address, bytes));
+    (address payable prepaidCard, , bytes memory actionData) = abi.decode(
+      data,
+      (address, uint256, bytes)
+    );
+    (address newOwner, bytes memory previousOwnerSignature) = abi.decode(
+      actionData,
+      (address, bytes)
+    );
     PrepaidCardManager(prepaidCardManagerAddress).transfer(
       prepaidCard,
       newOwner,
       previousOwnerSignature
     );
+  }
+
+  function cardpayVersion() external view returns (string memory) {
+    return VersionManager(versionManager).version();
   }
 }

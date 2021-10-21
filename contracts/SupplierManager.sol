@@ -5,6 +5,7 @@ import "./core/Safe.sol";
 import "./core/Versionable.sol";
 import "./TokenManager.sol";
 import "./Exchange.sol";
+import "./VersionManager.sol";
 
 contract SupplierManager is Ownable, Versionable, Safe {
   event Setup();
@@ -21,6 +22,7 @@ contract SupplierManager is Ownable, Versionable, Safe {
   mapping(address => Supplier) public suppliers;
   mapping(address => address) public safes;
   address public bridgeUtils;
+  address public versionManager;
 
   modifier onlySupplierSafe() {
     require(safes[msg.sender] != address(0), "caller is not a supplier safe");
@@ -30,9 +32,11 @@ contract SupplierManager is Ownable, Versionable, Safe {
   function setup(
     address _bridgeUtils,
     address _gsMasterCopy,
-    address _gsProxyFactory
+    address _gsProxyFactory,
+    address _versionManager
   ) external onlyOwner returns (bool) {
     bridgeUtils = _bridgeUtils;
+    versionManager = _versionManager;
     Safe.setup(_gsMasterCopy, _gsProxyFactory);
     emit Setup();
 
@@ -81,5 +85,9 @@ contract SupplierManager is Ownable, Versionable, Safe {
 
     emit SupplierSafeCreated(supplier, safe);
     return safe;
+  }
+
+  function cardpayVersion() external view returns (string memory) {
+    return VersionManager(versionManager).version();
   }
 }

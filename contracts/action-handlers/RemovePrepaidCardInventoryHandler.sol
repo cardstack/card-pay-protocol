@@ -6,22 +6,26 @@ import "../token/IERC677.sol";
 import "../PrepaidCardManager.sol";
 import "../TokenManager.sol";
 import "../IPrepaidCardMarket.sol";
+import "../VersionManager.sol";
 
 contract RemovePrepaidCardInventoryHandler is Ownable, Versionable {
   address public actionDispatcher;
   address public prepaidCardManagerAddress;
   address public tokenManagerAddress;
+  address public versionManager;
 
   event Setup();
 
   function setup(
     address _actionDispatcher,
     address _prepaidCardManager,
-    address _tokenManagerAddress
+    address _tokenManagerAddress,
+    address _versionManager
   ) external onlyOwner returns (bool) {
     actionDispatcher = _actionDispatcher;
     prepaidCardManagerAddress = _prepaidCardManager;
     tokenManagerAddress = _tokenManagerAddress;
+    versionManager = _versionManager;
     emit Setup();
     return true;
   }
@@ -47,14 +51,19 @@ contract RemovePrepaidCardInventoryHandler is Ownable, Versionable {
       from == actionDispatcher,
       "can only accept tokens from action dispatcher"
     );
-    (address payable prepaidCard, , bytes memory actionData) =
-      abi.decode(data, (address, uint256, bytes));
-    (address[] memory prepaidCards, address marketAddress) =
-      abi.decode(actionData, (address[], address));
+    (address payable prepaidCard, , bytes memory actionData) = abi.decode(
+      data,
+      (address, uint256, bytes)
+    );
+    (address[] memory prepaidCards, address marketAddress) = abi.decode(
+      actionData,
+      (address[], address)
+    );
     require(marketAddress != address(0), "market address is required");
 
-    PrepaidCardManager prepaidCardMgr =
-      PrepaidCardManager(prepaidCardManagerAddress);
+    PrepaidCardManager prepaidCardMgr = PrepaidCardManager(
+      prepaidCardManagerAddress
+    );
     require(prepaidCards.length > 0, "no prepaid cards specified");
 
     address owner = prepaidCardMgr.getPrepaidCardOwner(prepaidCard);
@@ -67,5 +76,9 @@ contract RemovePrepaidCardInventoryHandler is Ownable, Versionable {
 
     prepaidCardMgr.setPrepaidCardUsed(prepaidCard);
     IPrepaidCardMarket(marketAddress).removeItems(owner, prepaidCards);
+  }
+
+  function cardpayVersion() external view returns (string memory) {
+    return VersionManager(versionManager).version();
   }
 }

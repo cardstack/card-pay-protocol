@@ -47,6 +47,10 @@ export default async function (
         name: "merchantRegistrationFeeInSPEND",
         value: MERCHANT_REGISTRATION_FEE_IN_SPEND,
       },
+      {
+        name: "versionManager",
+        value: address("VersionManager"),
+      },
     ],
   };
 }

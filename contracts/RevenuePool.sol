@@ -11,6 +11,7 @@ import "./core/Versionable.sol";
 import "./MerchantManager.sol";
 import "./PrepaidCardManager.sol";
 import "./ActionDispatcher.sol";
+import "./VersionManager.sol";
 
 contract RevenuePool is Ownable, Versionable {
   using EnumerableSet for EnumerableSet.AddressSet;
@@ -30,6 +31,7 @@ contract RevenuePool is Ownable, Versionable {
   address public actionDispatcher;
   address public merchantManager;
   mapping(address => RevenueBalance) internal balances;
+  address public versionManager;
 
   event Setup();
   event MerchantClaim(
@@ -66,7 +68,8 @@ contract RevenuePool is Ownable, Versionable {
     address payable _prepaidCardManager,
     address payable _merchantFeeReceiver,
     uint256 _merchantFeePercentage,
-    uint256 _merchantRegistrationFeeInSPEND
+    uint256 _merchantRegistrationFeeInSPEND,
+    address _versionManager
   ) external onlyOwner {
     require(_merchantFeeReceiver != address(0), "merchantFeeReceiver not set");
     require(
@@ -80,6 +83,7 @@ contract RevenuePool is Ownable, Versionable {
     merchantFeeReceiver = _merchantFeeReceiver;
     merchantFeePercentage = _merchantFeePercentage;
     merchantRegistrationFeeInSPEND = _merchantRegistrationFeeInSPEND;
+    versionManager = _versionManager;
     emit Setup();
   }
 
@@ -171,5 +175,9 @@ contract RevenuePool is Ownable, Versionable {
 
     emit MerchantClaim(merchantSafe, token, amount);
     return true;
+  }
+
+  function cardpayVersion() external view returns (string memory) {
+    return VersionManager(versionManager).version();
   }
 }

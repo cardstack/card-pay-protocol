@@ -1,8 +1,13 @@
-const { readJSONSync, existsSync } = require("node-fs-extra");
 const retry = require("async-retry");
 
 const hre = require("hardhat");
-const { makeFactory, patchNetworks, asyncMain } = require("./util");
+const {
+  makeFactory,
+  patchNetworks,
+  asyncMain,
+  readAddressFile,
+} = require("./util");
+const { getAddress } = require("./config-utils");
 patchNetworks();
 
 const {
@@ -55,13 +60,8 @@ async function main(proxyAddresses) {
       };
     }
 
-    if (proxyAddresses == null) {
-      const addressesFile = `./.openzeppelin/addresses-${network}.json`;
-      if (!existsSync(addressesFile)) {
-        throw new Error(`Cannot read from the addresses file ${addressesFile}`);
-      }
-      proxyAddresses = readJSONSync(addressesFile);
-    }
+    proxyAddresses = proxyAddresses || readAddressFile(network);
+    let versionManagerAddress = getAddress("VersionManager", proxyAddresses);
     for (let [contractId, feedConfig] of Object.entries(config)) {
       let { contractName, proxy } = proxyAddresses[contractId] ?? {};
       if (!contractName || !proxy) {
@@ -76,8 +76,13 @@ async function main(proxyAddresses) {
 ==================================================
 Configuring ${contractId} ${proxy}
   setting description as '${feedConfig.description}'
-  setting decimals as '${feedConfig.decimals}'`);
-          await instance.setup(feedConfig.description, feedConfig.decimals);
+  setting decimals as '${feedConfig.decimals}'
+  setting VersionManager to: ${versionManagerAddress}`);
+          await instance.setup(
+            feedConfig.description,
+            feedConfig.decimals,
+            versionManagerAddress
+          );
         },
         { retries: 5 }
       );
@@ -100,9 +105,4 @@ Configuring ${contractId} ${proxy}
   }
 }
 
-if (!["hardhat", "localhost"].includes(network)) {
-  asyncMain(main);
-}
-
-// this is exported so we can also use this logic in the private network deploy
-module.exports = { main };
+asyncMain(main);

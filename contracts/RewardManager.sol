@@ -10,6 +10,7 @@ import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 import "./core/Safe.sol";
 import "./core/Versionable.sol";
 import "./ActionDispatcher.sol";
+import "./VersionManager.sol";
 
 contract RewardManager is Ownable, Versionable, Safe {
   using EnumerableSet for EnumerableSet.AddressSet;
@@ -33,16 +34,6 @@ contract RewardManager is Ownable, Versionable, Safe {
     address rewardSafe
   );
 
-  address internal constant ZERO_ADDRESS = address(0);
-  bytes4 internal constant EIP1271_MAGIC_VALUE = 0x20c13b0b;
-  bytes4 internal constant SWAP_OWNER = 0xe318b52b; //swapOwner(address,address,address)
-  string internal constant REWARD_PREFIX = "safe.rewards.cardstack";
-  uint256 internal _nonce;
-
-  address public actionDispatcher;
-  uint256 public rewardeeRegistrationFeeInSPEND;
-  uint256 public rewardProgramRegistrationFeeInSPEND;
-  address payable public rewardFeeReceiver; // will receive receive all fees
   struct RewardProgram {
     address admin;
     bool locked;
@@ -53,6 +44,17 @@ contract RewardManager is Ownable, Versionable, Safe {
     string benefitDID;
   }
 
+  address internal constant ZERO_ADDRESS = address(0);
+  bytes4 internal constant EIP1271_MAGIC_VALUE = 0x20c13b0b;
+  bytes4 internal constant SWAP_OWNER = 0xe318b52b; //swapOwner(address,address,address)
+  string internal constant REWARD_PREFIX = "safe.rewards.cardstack";
+  uint256 internal _nonce;
+
+  address public actionDispatcher;
+  uint256 public rewardeeRegistrationFeeInSPEND;
+  uint256 public rewardProgramRegistrationFeeInSPEND;
+  address payable public rewardFeeReceiver; // will receive receive all fees
+
   EnumerableSet.AddressSet rewardProgramIDs;
   EnumerableSet.AddressSet eip1271Contracts;
   mapping(address => address) public rewardProgramAdmins; //reward program id <> reward program admins
@@ -61,6 +63,7 @@ contract RewardManager is Ownable, Versionable, Safe {
   mapping(address => mapping(string => Rule)) public rule; //reward program id <> rule did <> Rule
   mapping(address => bool) public rewardProgramLocked; //reward program id <> locked
   mapping(bytes32 => bool) internal signatures;
+  address public versionManager;
 
   modifier onlyHandlers() {
     require(
@@ -82,7 +85,8 @@ contract RewardManager is Ownable, Versionable, Safe {
     address payable _rewardFeeReceiver,
     uint256 _rewardeeRegistrationFeeInSPEND,
     uint256 _rewardProgramRegistrationFeeInSPEND,
-    address[] calldata _eip1271Contracts
+    address[] calldata _eip1271Contracts,
+    address _versionManager
   ) external onlyOwner {
     require(_rewardFeeReceiver != ZERO_ADDRESS, "rewardFeeReceiver not set");
     require(
@@ -98,6 +102,7 @@ contract RewardManager is Ownable, Versionable, Safe {
     rewardFeeReceiver = _rewardFeeReceiver;
     rewardeeRegistrationFeeInSPEND = _rewardeeRegistrationFeeInSPEND;
     rewardProgramRegistrationFeeInSPEND = _rewardProgramRegistrationFeeInSPEND;
+    versionManager = _versionManager;
     for (uint256 i = 0; i < _eip1271Contracts.length; i++) {
       eip1271Contracts.add(_eip1271Contracts[i]);
     }
@@ -246,8 +251,7 @@ contract RewardManager is Ownable, Versionable, Safe {
       address gasToken,
       address refundReceiver,
       uint256 nonce
-    ) =
-      abi.decode(
+    ) = abi.decode(
         signature,
         (
           address,
@@ -302,12 +306,15 @@ contract RewardManager is Ownable, Versionable, Safe {
     view
     returns (bytes4)
   {
-    (address to, bytes memory encodedTransactionData) =
-      encodeTransactionData(signature);
+    (address to, bytes memory encodedTransactionData) = encodeTransactionData(
+      signature
+    );
     address rewardSafeOwner = getRewardSafeOwner(msg.sender);
 
-    bytes memory contractSignature =
-      _contractSignature(msg.sender, rewardSafeOwner);
+    bytes memory contractSignature = _contractSignature(
+      msg.sender,
+      rewardSafeOwner
+    );
     return
       ((_equalBytes(data, encodedTransactionData) &&
         (to == msg.sender && signatures[keccak256(contractSignature)])) ||
@@ -410,5 +417,9 @@ contract RewardManager is Ownable, Versionable, Safe {
     );
 
     return true;
+  }
+
+  function cardpayVersion() external view returns (string memory) {
+    return VersionManager(versionManager).version();
   }
 }

@@ -24,6 +24,7 @@ const {
   removePrepaidCardInventory,
   setPrepaidCardAsk,
   splitPrepaidCard,
+  setupVersionManager,
 } = require("./utils/helper");
 const AbiCoder = require("web3-eth-abi");
 
@@ -39,6 +40,7 @@ contract("PrepaidCardMarket", (accounts) => {
     gnosisSafeMasterCopy,
     prepaidCardManager,
     prepaidCardMarket,
+    versionManager,
     setPrepaidCardInventoryHandler,
     removePrepaidCardInventoryHandler,
     setPrepaidCardAskHandler,
@@ -73,6 +75,7 @@ contract("PrepaidCardMarket", (accounts) => {
       GnosisSafe
     );
 
+    versionManager = await setupVersionManager(owner);
     prepaidCardManager = await PrepaidCardManager.new();
     await prepaidCardManager.initialize(owner);
     prepaidCardMarket = await PrepaidCardMarket.new();
@@ -89,15 +92,17 @@ contract("PrepaidCardMarket", (accounts) => {
 
     await daicpxdToken.mint(owner, toTokenUnit(100));
 
-    await tokenManager.setup(ZERO_ADDRESS, [
-      daicpxdToken.address,
-      cardcpxdToken.address,
-    ]);
+    await tokenManager.setup(
+      ZERO_ADDRESS,
+      [daicpxdToken.address, cardcpxdToken.address],
+      versionManager.address
+    );
 
     await supplierManager.setup(
       ZERO_ADDRESS,
       gnosisSafeMasterCopy.address,
-      proxyFactory.address
+      proxyFactory.address,
+      versionManager.address
     );
     await prepaidCardManager.setup(
       tokenManager.address,
@@ -110,7 +115,8 @@ contract("PrepaidCardMarket", (accounts) => {
       0,
       100,
       500000,
-      [prepaidCardMarket.address]
+      [prepaidCardMarket.address],
+      versionManager.address
     );
     await prepaidCardManager.addGasPolicy("transfer", false);
     await prepaidCardManager.addGasPolicy("split", true);
@@ -121,13 +127,15 @@ contract("PrepaidCardMarket", (accounts) => {
     await prepaidCardMarket.setup(
       prepaidCardManager.address,
       actionDispatcher.address,
-      provisioner
+      provisioner,
+      versionManager.address
     );
 
     await actionDispatcher.setup(
       tokenManager.address,
       exchange.address,
-      prepaidCardManager.address
+      prepaidCardManager.address,
+      versionManager.address
     );
 
     ({
@@ -140,6 +148,7 @@ contract("PrepaidCardMarket", (accounts) => {
       actionDispatcher,
       tokenManager,
       owner,
+      versionManager,
     }));
 
     depot = await createDepotFromSupplierMgr(supplierManager, issuer);
@@ -1052,16 +1061,14 @@ contract("PrepaidCardMarket", (accounts) => {
 
   describe("versioning", () => {
     it("can get version of contract", async () => {
-      expect(await prepaidCardMarket.cardpayVersion()).to.match(/\d\.\d\.\d/);
-      expect(await setPrepaidCardInventoryHandler.cardpayVersion()).to.match(
-        /\d\.\d\.\d/
+      expect(await prepaidCardMarket.cardpayVersion()).to.equal("1.0.0");
+      expect(await setPrepaidCardInventoryHandler.cardpayVersion()).to.equal(
+        "1.0.0"
       );
-      expect(await removePrepaidCardInventoryHandler.cardpayVersion()).to.match(
-        /\d\.\d\.\d/
+      expect(await removePrepaidCardInventoryHandler.cardpayVersion()).to.equal(
+        "1.0.0"
       );
-      expect(await setPrepaidCardAskHandler.cardpayVersion()).to.match(
-        /\d\.\d\.\d/
-      );
+      expect(await setPrepaidCardAskHandler.cardpayVersion()).to.equal("1.0.0");
     });
   });
 });

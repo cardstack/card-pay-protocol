@@ -5,6 +5,7 @@ import {
   GNOSIS_SAFE_MASTER_COPY,
   GNOSIS_SAFE_FACTORY,
   REWARDEE_REGISTRATION_FEE_IN_SPEND,
+  REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
 } from "../config-utils";
 import { getDeployAddress } from "../util";
 
@@ -39,11 +40,18 @@ export default async function (
         name: "rewardeeRegistrationFeeInSPEND",
         value: REWARDEE_REGISTRATION_FEE_IN_SPEND,
       },
-      // TODO need to deploy new RewardManager that exposes this first
-      // {
-      //   name: "getEip1271Contracts",
-      //   value: [address("RewardPool")],
-      // },
+      {
+        name: "rewardProgramRegistrationFeeInSPEND",
+        value: REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
+      },
+      {
+        name: "getEip1271Contracts",
+        value: [address("RewardPool")],
+      },
+      {
+        name: "versionManager",
+        value: address("VersionManager"),
+      },
     ],
   });
 }

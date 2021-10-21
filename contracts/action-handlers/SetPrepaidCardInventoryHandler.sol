@@ -6,22 +6,26 @@ import "../token/IERC677.sol";
 import "../PrepaidCardManager.sol";
 import "../TokenManager.sol";
 import "../IPrepaidCardMarket.sol";
+import "../VersionManager.sol";
 
 contract SetPrepaidCardInventoryHandler is Ownable, Versionable {
   address public actionDispatcher;
   address public prepaidCardManagerAddress;
   address public tokenManagerAddress;
+  address public versionManager;
 
   event Setup();
 
   function setup(
     address _actionDispatcher,
     address _prepaidCardManager,
-    address _tokenManagerAddress
+    address _tokenManagerAddress,
+    address _versionManager
   ) external onlyOwner returns (bool) {
     actionDispatcher = _actionDispatcher;
     prepaidCardManagerAddress = _prepaidCardManager;
     tokenManagerAddress = _tokenManagerAddress;
+    versionManager = _versionManager;
     emit Setup();
     return true;
   }
@@ -47,8 +51,10 @@ contract SetPrepaidCardInventoryHandler is Ownable, Versionable {
       from == actionDispatcher,
       "can only accept tokens from action dispatcher"
     );
-    (address payable prepaidCard, , bytes memory actionData) =
-      abi.decode(data, (address, uint256, bytes));
+    (address payable prepaidCard, , bytes memory actionData) = abi.decode(
+      data,
+      (address, uint256, bytes)
+    );
     (
       address prepaidCardForInventory,
       address marketAddress,
@@ -56,14 +62,15 @@ contract SetPrepaidCardInventoryHandler is Ownable, Versionable {
     ) = abi.decode(actionData, (address, address, bytes));
     require(marketAddress != address(0), "market address is required");
 
-    PrepaidCardManager prepaidCardMgr =
-      PrepaidCardManager(prepaidCardManagerAddress);
-    address owner =
-      prepaidCardMgr.getPrepaidCardOwner(
-        address(uint160(prepaidCardForInventory))
-      );
-    address issuer =
-      prepaidCardMgr.getPrepaidCardIssuer(prepaidCardForInventory);
+    PrepaidCardManager prepaidCardMgr = PrepaidCardManager(
+      prepaidCardManagerAddress
+    );
+    address owner = prepaidCardMgr.getPrepaidCardOwner(
+      address(uint160(prepaidCardForInventory))
+    );
+    address issuer = prepaidCardMgr.getPrepaidCardIssuer(
+      prepaidCardForInventory
+    );
     require(issuer == owner, "only issuer can set market inventory");
 
     prepaidCardMgr.setPrepaidCardUsed(prepaidCard);
@@ -75,5 +82,9 @@ contract SetPrepaidCardInventoryHandler is Ownable, Versionable {
     );
 
     IPrepaidCardMarket(marketAddress).setItem(issuer, prepaidCardForInventory);
+  }
+
+  function cardpayVersion() external view returns (string memory) {
+    return VersionManager(versionManager).version();
   }
 }
