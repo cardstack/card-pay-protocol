@@ -24,6 +24,7 @@ function patchNetworks() {
 }
 
 function readAddressFile(network) {
+  network = network === "hardhat" ? "localhost" : network;
   const addressesFile = resolve(
     __dirname,
     "..",

@@ -17,14 +17,14 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "Deploy to Hardhat",
+      "name": "Config localhost - protocol",
       "cwd": "${workspaceRoot}",
-      "program": "${workspaceFolder}/scripts/deploy/deploy_to_private_network.js",
+      "program": "${workspaceFolder}/node_modules/.bin/hardhat",
       "console": "integratedTerminal",
       "env": {
         "HARDHAT_NETWORK": "localhost"
       },
-      "args": []
+      "args": ["run", "./scripts/deploy/004_configure_card_protocol.ts"]
     },
     {
       "type": "node",

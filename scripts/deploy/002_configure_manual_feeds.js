@@ -105,9 +105,4 @@ Configuring ${contractId} ${proxy}
   }
 }
 
-if (!["hardhat", "localhost"].includes(network)) {
-  asyncMain(main);
-}
-
-// this is exported so we can also use this logic in the private network deploy
-module.exports = { main };
+asyncMain(main);

@@ -147,6 +147,17 @@ async function main() {
       init: [owner],
     };
   }
+  // only use mock DIA for private networks
+  if (["hardhat", "localhost"].includes(network)) {
+    contracts["CARDOracle"] = {
+      contractName: "ChainlinkFeedAdapter",
+      init: [owner],
+    };
+    contracts["CARDUSDFeed"] = {
+      contractName: "ManualFeed",
+      init: [owner],
+    };
+  }
 
   const addressesFile = `./.openzeppelin/addresses-${network}.json`;
   let skipVerify = process.env.SKIP_VERIFY === "true";
@@ -224,13 +235,15 @@ async function main() {
   }
 
   writeJSONSync(addressesFile, proxyAddresses);
-  console.log("Deployed Contracts:");
+  console.log(`
+Deployed Contracts:`);
   for (let [name, { proxy: address }] of Object.entries(proxyAddresses)) {
     console.log(`  ${name}: ${address}`);
   }
 
   if (reverify.length > 0) {
-    console.log(`Implementation contract verifications:`);
+    console.log(`
+Implementation contract verification commands:`);
     for (let { name, address } of reverify) {
       console.log(
         `env HARDHAT_NETWORK=${network} node scripts/verify.js ${name}@${address}`
