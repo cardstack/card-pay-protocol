@@ -1206,7 +1206,7 @@ describe("Inventory", () => {
       );
     });
 
-    it("should set the tokenMetadataDID to the URI passed if msg.sender is the merchant", async () => {
+    it("should set the tokenMetadataDID to the DID passed if msg.sender is the merchant", async () => {
       const token = await tokenAs(merchantWallet);
       await expect(token.updateTokenMetadataDID(0, "blah blah")).fulfilled;
 
