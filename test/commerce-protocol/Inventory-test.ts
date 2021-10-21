@@ -42,11 +42,11 @@ let metadataHash: string;
 let metadataHashBytes: Bytes;
 
 const tokenURI = "www.example.com";
-const metadataURI = "www.example2.com";
+const metadataDID = "www.example2.com";
 
 type InventoryData = {
   listingURI: string;
-  metadataURI: string;
+  metadataDID: string;
   contentHash: Bytes;
   metadataHash: Bytes;
 };
@@ -132,14 +132,14 @@ describe("Inventory", () => {
 
   async function mint(
     token: Inventory,
-    metadataURI: string,
+    metadataDID: string,
     listingURI: string,
     contentHash: Bytes,
     metadataHash: Bytes
   ) {
     const data: InventoryData = {
       listingURI,
-      metadataURI,
+      metadataDID,
       contentHash,
       metadataHash,
     };
@@ -150,14 +150,14 @@ describe("Inventory", () => {
     token: Inventory,
     creator: string,
     listingURI: string,
-    metadataURI: string,
+    metadataDID: string,
     contentHash: Bytes,
     metadataHash: Bytes,
     sig: EIP712Sig
   ) {
     const data: InventoryData = {
       listingURI,
-      metadataURI,
+      metadataDID,
       contentHash,
       metadataHash,
     };
@@ -222,7 +222,7 @@ describe("Inventory", () => {
 
     await mint(
       asMerchant,
-      metadataURI,
+      metadataDID,
       tokenURI,
       contentHashBytes,
       metadataHashBytes
@@ -331,7 +331,7 @@ describe("Inventory", () => {
       const token = await tokenAs(merchantWallet);
 
       await expect(
-        mint(token, metadataURI, tokenURI, contentHashBytes, metadataHashBytes)
+        mint(token, metadataDID, tokenURI, contentHashBytes, metadataHashBytes)
       ).fulfilled;
 
       const t = await token.tokenByIndex(0);
@@ -341,7 +341,7 @@ describe("Inventory", () => {
       const tokenContentHash = await token.tokenContentHashes(0);
       const metadataContentHash = await token.tokenMetadataHashes(0);
       const savedTokenURI = await token.tokenURI(0);
-      const savedMetadataURI = await token.tokenMetadataURI(0);
+      const savedMetadataDID = await token.tokenMetadataDID(0);
 
       expect(toNumWei(t)).eq(toNumWei(ownerT));
       expect(ownerOf).eq(merchantWallet.address);
@@ -349,7 +349,7 @@ describe("Inventory", () => {
       expect(tokenContentHash).eq(contentHash);
       expect(metadataContentHash).eq(metadataHash);
       expect(savedTokenURI).eq(tokenURI);
-      expect(savedMetadataURI).eq(metadataURI);
+      expect(savedMetadataDID).eq(metadataDID);
     });
 
     it("should revert if an empty content hash is specified", async () => {
@@ -358,7 +358,7 @@ describe("Inventory", () => {
       await expect(
         mint(
           token,
-          metadataURI,
+          metadataDID,
           tokenURI,
           zeroContentHashBytes,
           metadataHashBytes
@@ -370,11 +370,11 @@ describe("Inventory", () => {
       const token = await tokenAs(merchantWallet);
 
       await expect(
-        mint(token, metadataURI, tokenURI, contentHashBytes, metadataHashBytes)
+        mint(token, metadataDID, tokenURI, contentHashBytes, metadataHashBytes)
       ).fulfilled;
 
       await expect(
-        mint(token, metadataURI, tokenURI, contentHashBytes, metadataHashBytes)
+        mint(token, metadataDID, tokenURI, contentHashBytes, metadataHashBytes)
       ).rejectedWith(
         "Inventory: a token has already been created with this content hash"
       );
@@ -386,7 +386,7 @@ describe("Inventory", () => {
       await expect(
         mint(
           token,
-          metadataURI,
+          metadataDID,
           tokenURI,
           contentHashBytes,
           zeroContentHashBytes
@@ -398,11 +398,11 @@ describe("Inventory", () => {
       const token = await tokenAs(merchantWallet);
 
       await expect(
-        mint(token, metadataURI, "", zeroContentHashBytes, metadataHashBytes)
+        mint(token, metadataDID, "", zeroContentHashBytes, metadataHashBytes)
       ).rejectedWith("Inventory: specified uri must be non-empty");
     });
 
-    it("should revert if the metadataURI is empty", async () => {
+    it("should revert if the metadataDID is empty", async () => {
       const token = await tokenAs(merchantWallet);
 
       await expect(
@@ -433,7 +433,7 @@ describe("Inventory", () => {
           token,
           merchantWallet.address,
           tokenURI,
-          metadataURI,
+          metadataDID,
           contentHashBytes,
           metadataHashBytes,
           sig
@@ -442,7 +442,7 @@ describe("Inventory", () => {
 
       const recovered = await token.merchants(0);
       const recoveredTokenURI = await token.tokenURI(0);
-      const recoveredMetadataURI = await token.tokenMetadataURI(0);
+      const recoveredMetadataDID = await token.tokenMetadataDID(0);
       const recoveredContentHash = await token.tokenContentHashes(0);
       const recoveredMetadataHash = await token.tokenMetadataHashes(0);
 
@@ -450,7 +450,7 @@ describe("Inventory", () => {
 
       expect(recovered).to.eq(merchantWallet.address);
       expect(recoveredTokenURI).to.eq(tokenURI);
-      expect(recoveredMetadataURI).to.eq(metadataURI);
+      expect(recoveredMetadataDID).to.eq(metadataDID);
       expect(recoveredContentHash).to.eq(contentHash);
       expect(recoveredMetadataHash).to.eq(metadataHash);
       expect(toNumWei(afterNonce)).to.eq(toNumWei(beforeNonce) + 1);
@@ -472,7 +472,7 @@ describe("Inventory", () => {
           token,
           merchantWallet.address,
           tokenURI,
-          metadataURI,
+          metadataDID,
           contentHashBytes,
           metadataHashBytes,
           sig
@@ -501,7 +501,7 @@ describe("Inventory", () => {
           token,
           merchantWallet.address,
           tokenURI,
-          metadataURI,
+          metadataDID,
           badContentHashBytes,
           metadataHashBytes,
           sig
@@ -529,7 +529,7 @@ describe("Inventory", () => {
           token,
           merchantWallet.address,
           tokenURI,
-          metadataURI,
+          metadataDID,
           contentHashBytes,
           badMetadataHashBytes,
           sig
@@ -553,7 +553,7 @@ describe("Inventory", () => {
           token,
           merchantWallet.address,
           tokenURI,
-          metadataURI,
+          metadataDID,
           contentHashBytes,
           metadataHashBytes,
           { ...sig, deadline: "1" }
@@ -581,7 +581,7 @@ describe("Inventory", () => {
       await deploy();
       const token = await tokenAs(ownerWallet);
       await expect(
-        mint(token, metadataURI, tokenURI, contentHashBytes, metadataHashBytes)
+        mint(token, metadataDID, tokenURI, contentHashBytes, metadataHashBytes)
       ).fulfilled;
     });
 
@@ -635,7 +635,7 @@ describe("Inventory", () => {
       await deploy();
       await mint(
         await tokenAs(merchantWallet),
-        metadataURI,
+        metadataDID,
         "1111",
         otherContentHashBytes,
         metadataHashBytes
@@ -838,7 +838,7 @@ describe("Inventory", () => {
       const token = await tokenAs(merchantWallet);
       await mint(
         token,
-        metadataURI,
+        metadataDID,
         tokenURI,
         contentHashBytes,
         metadataHashBytes
@@ -950,7 +950,7 @@ describe("Inventory", () => {
       await setDefaultLevel(merchantWallet);
       await mint(
         await tokenAs(merchantWallet),
-        metadataURI,
+        metadataDID,
         "1111",
         otherContentHashBytes,
         metadataHashBytes
@@ -988,7 +988,7 @@ describe("Inventory", () => {
       await deploy();
       await mint(
         await tokenAs(merchantWallet),
-        metadataURI,
+        metadataDID,
         "1111",
         otherContentHashBytes,
         metadataHashBytes
@@ -1029,7 +1029,7 @@ describe("Inventory", () => {
       await deploy();
       await mint(
         await tokenAs(merchantWallet),
-        metadataURI,
+        metadataDID,
         "1111",
         otherContentHashBytes,
         metadataHashBytes
@@ -1123,7 +1123,7 @@ describe("Inventory", () => {
 
       await mint(
         token,
-        metadataURI,
+        metadataDID,
         tokenURI,
         otherContentHashBytes,
         metadataHashBytes
@@ -1156,7 +1156,7 @@ describe("Inventory", () => {
     });
   });
 
-  describe("#updateMetadataURI", async () => {
+  describe("#updateMetadataDID", async () => {
     let currencyAddr: string;
 
     beforeEach(async () => {
@@ -1168,7 +1168,7 @@ describe("Inventory", () => {
     it("should revert if the token does not exist", async () => {
       const token = await tokenAs(merchantWallet);
 
-      await expect(token.updateTokenMetadataURI(1, "blah blah")).rejectedWith(
+      await expect(token.updateTokenMetadataDID(1, "blah blah")).rejectedWith(
         "ERC721: operator query for nonexistent token"
       );
     });
@@ -1176,14 +1176,14 @@ describe("Inventory", () => {
     it("should revert if the caller is not the merchant or approved", async () => {
       const token = await tokenAs(otherWallet);
 
-      await expect(token.updateTokenMetadataURI(0, "blah blah")).rejectedWith(
+      await expect(token.updateTokenMetadataDID(0, "blah blah")).rejectedWith(
         "Inventory: Only approved or owner"
       );
     });
 
     it("should revert if the uri is empty string", async () => {
       const token = await tokenAs(merchantWallet);
-      await expect(token.updateTokenMetadataURI(0, "")).rejectedWith(
+      await expect(token.updateTokenMetadataDID(0, "")).rejectedWith(
         "Inventory: specified uri must be non-empty"
       );
     });
@@ -1193,7 +1193,7 @@ describe("Inventory", () => {
 
       await mint(
         token,
-        metadataURI,
+        metadataDID,
         tokenURI,
         otherContentHashBytes,
         metadataHashBytes
@@ -1201,27 +1201,27 @@ describe("Inventory", () => {
 
       await expect(token.burn(1)).fulfilled;
 
-      await expect(token.updateTokenMetadataURI(1, "blah")).rejectedWith(
+      await expect(token.updateTokenMetadataDID(1, "blah")).rejectedWith(
         "ERC721: operator query for nonexistent token"
       );
     });
 
-    it("should set the tokenMetadataURI to the URI passed if msg.sender is the merchant", async () => {
+    it("should set the tokenMetadataDID to the URI passed if msg.sender is the merchant", async () => {
       const token = await tokenAs(merchantWallet);
-      await expect(token.updateTokenMetadataURI(0, "blah blah")).fulfilled;
+      await expect(token.updateTokenMetadataDID(0, "blah blah")).fulfilled;
 
-      const tokenURI = await token.tokenMetadataURI(0);
+      const tokenURI = await token.tokenMetadataDID(0);
       expect(tokenURI).eq("blah blah");
     });
 
-    it("should set the tokenMetadataURI to the URI passed if the msg.sender is approved", async () => {
+    it("should set the tokenMetadataDID to the URI passed if the msg.sender is approved", async () => {
       const token = await tokenAs(merchantWallet);
       await token.approve(otherWallet.address, 0);
 
       const otherToken = await tokenAs(otherWallet);
-      await expect(otherToken.updateTokenMetadataURI(0, "blah blah")).fulfilled;
+      await expect(otherToken.updateTokenMetadataDID(0, "blah blah")).fulfilled;
 
-      const tokenURI = await token.tokenMetadataURI(0);
+      const tokenURI = await token.tokenMetadataDID(0);
       expect(tokenURI).eq("blah blah");
     });
   });
