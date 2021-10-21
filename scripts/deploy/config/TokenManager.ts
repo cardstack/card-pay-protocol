@@ -21,6 +21,10 @@ export default async function (
         name: "getTokens",
         value: PAYABLE_TOKENS,
       },
+      {
+        name: "versionManager",
+        value: address("VersionManager"),
+      },
     ],
   });
 }

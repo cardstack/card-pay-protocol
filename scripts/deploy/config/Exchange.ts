@@ -23,6 +23,10 @@ export default async function (
         value: RATE_DRIFT_PERCENTAGE,
         formatter: (v) => `${(Number(v) / 1000000).toFixed(4)}%`,
       },
+      {
+        name: "versionManager",
+        value: address("VersionManager"),
+      },
     ],
 
     createExchange: {

@@ -24,6 +24,10 @@ export default async function (
         name: "defaultMarketAddress",
         value: address("PrepaidCardMarket"),
       },
+      {
+        name: "versionManager",
+        value: address("VersionManager"),
+      },
     ],
   });
 }

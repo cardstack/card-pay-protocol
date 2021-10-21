@@ -26,6 +26,10 @@ export default async function (
         name: "gnosisProxyFactory",
         value: GNOSIS_SAFE_FACTORY,
       },
+      {
+        name: "versionManager",
+        value: address("VersionManager"),
+      },
     ],
   });
 }

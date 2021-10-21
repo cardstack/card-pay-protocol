@@ -8,6 +8,12 @@ export default async function (
   }
   const minter = address("PayMerchantHandler");
   return Promise.resolve({
+    setup: [
+      {
+        name: "versionManager",
+        value: address("VersionManager"),
+      },
+    ],
     addMinter: {
       [minter]: {
         mapping: "getMinters",

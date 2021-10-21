@@ -52,6 +52,10 @@ export default async function (
       { name: "minimumFaceValue", value: MINIMUM_AMOUNT },
       { name: "maximumFaceValue", value: MAXIMUM_AMOUNT },
       { name: "getContractSigners", value: [address("PrepaidCardMarket")] },
+      {
+        name: "versionManager",
+        value: address("VersionManager"),
+      },
     ],
 
     addGasPolicy: {

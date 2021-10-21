@@ -32,6 +32,10 @@ export default async function (
         name: "tokenManagerAddress",
         value: address("TokenManager"),
       },
+      {
+        name: "versionManager",
+        value: address("VersionManager"),
+      },
     ],
   });
 }

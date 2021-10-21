@@ -2,11 +2,12 @@ const hre = require("hardhat");
 const { existsSync, readJSONSync } = require("node-fs-extra");
 const { resolve } = require("path");
 const { asyncMain, makeFactory } = require("./util");
-const { main: configManualFeeds } = require("./002_configure_manual_feeds.js");
+const { main: configManualFeeds } = require("./002_configure_manual_feeds");
 const {
   main: configPriceOracles,
 } = require("./003_configure_price_oracles.js");
-const { main: configProtocol } = require("./004_configure_card_protocol.js");
+const { main: configProtocol } = require("./004_configure_card_protocol");
+const { main: setVersion } = require("./005_set_protocol_version");
 const { ethers } = hre;
 
 // add not-yet-deployed contracts to object
@@ -145,6 +146,7 @@ async function main() {
   await configManualFeeds(addresses);
   await configPriceOracles(addresses);
   await configureContracts(addresses);
+  await setVersion(addresses);
   let [signer] = await ethers.getSigners();
   console.log(`
 

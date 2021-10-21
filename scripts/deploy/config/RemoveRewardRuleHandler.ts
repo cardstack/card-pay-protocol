@@ -28,6 +28,10 @@ export default async function (
         name: "rewardManagerAddress",
         value: address("RewardManager"),
       },
+      {
+        name: "versionManager",
+        value: address("VersionManager"),
+      },
     ],
   });
 }

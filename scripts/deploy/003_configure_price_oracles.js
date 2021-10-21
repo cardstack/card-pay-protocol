@@ -1,4 +1,4 @@
-const { readJSONSync, existsSync } = require("node-fs-extra");
+const { readAddressFile } = require("./util");
 const retry = require("async-retry");
 
 const hre = require("hardhat");
@@ -12,18 +12,13 @@ async function main(addresses) {
   const ChainlinkOracle = await makeFactory("ChainlinkFeedAdapter");
   const DIAOracle = await makeFactory("DIAOracleAdapter");
 
-  if (addresses == null) {
-    const addressesFile = `./.openzeppelin/addresses-${network}.json`;
-    if (!existsSync(addressesFile)) {
-      throw new Error(`Cannot read from the addresses file ${addressesFile}`);
-    }
-    addresses = readJSONSync(addressesFile);
-  }
+  addresses = addresses || readAddressFile(network);
 
   let diaOracleAddress;
   let chainlinkCARDUSDAddress; // testing only
   let chainlinkDAIUSDAddress;
   let chainlinkETHUSDAddress;
+  let versionManagerAddress = getAddress("VersionManager", addresses);
 
   if (network === "sokol") {
     diaOracleAddress = "0xBA03d4bF8950128a7779C5C1E7899c6E39D29332";
@@ -54,12 +49,14 @@ async function main(addresses) {
 ==================================================
 Configuring DAIOracle ${daiOracleAddress}
   DAI/USD chainlink feed address: ${chainlinkDAIUSDAddress}
-  ETH/USD chainlink feed address: ${chainlinkETHUSDAddress}`);
+  ETH/USD chainlink feed address: ${chainlinkETHUSDAddress}
+  VersionManager address: ${versionManagerAddress}`);
 
       await daiOracle.setup(
         chainlinkDAIUSDAddress,
         chainlinkETHUSDAddress,
-        chainlinkDAIUSDAddress
+        chainlinkDAIUSDAddress,
+        versionManagerAddress
       );
     },
     { retries: 3 }
@@ -74,11 +71,13 @@ Configuring DAIOracle ${daiOracleAddress}
 ==================================================
 Configuring CARDOracle ${cardOracleAddress}
   DIA oracle address: ${diaOracleAddress}
-  DAI/USD chainlink feed address: ${chainlinkDAIUSDAddress}`);
+  DAI/USD chainlink feed address: ${chainlinkDAIUSDAddress}
+  VersionManager address: ${versionManagerAddress}`);
         await cardOracle.setup(
           diaOracleAddress,
           "CARD",
-          chainlinkDAIUSDAddress
+          chainlinkDAIUSDAddress,
+          versionManagerAddress
         );
       },
       { retries: 3 }
@@ -94,12 +93,14 @@ Configuring CARDOracle (for manual feed) ${cardOracleAddress}
   CARD/USD chainlink feed address: ${chainlinkCARDUSDAddress}
   ETH/USD chainlink feed address: ${chainlinkETHUSDAddress}
   DAI/USD chainlink feed address: ${chainlinkDAIUSDAddress}
+  VersionManager address: ${versionManagerAddress}
   `);
 
         await cardManualOracle.setup(
           chainlinkCARDUSDAddress,
           chainlinkETHUSDAddress,
-          chainlinkDAIUSDAddress
+          chainlinkDAIUSDAddress,
+          versionManagerAddress
         );
       },
       { retries: 3 }

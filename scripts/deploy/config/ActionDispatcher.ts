@@ -20,6 +20,10 @@ export default async function (
         name: "prepaidCardManager",
         value: address("PrepaidCardManager"),
       },
+      {
+        name: "versionManager",
+        value: address("VersionManager"),
+      },
     ],
 
     addHandler: {

@@ -25,6 +25,10 @@ export default async function (
         name: "provisioner",
         value: PREPAID_CARD_PROVISIONER,
       },
+      {
+        name: "versionManager",
+        value: address("VersionManager"),
+      },
     ],
   });
 }

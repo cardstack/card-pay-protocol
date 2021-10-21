@@ -39,11 +39,14 @@ export default async function (
         name: "rewardeeRegistrationFeeInSPEND",
         value: REWARDEE_REGISTRATION_FEE_IN_SPEND,
       },
-      // TODO need to deploy new RewardManager that exposes this first
-      // {
-      //   name: "getEip1271Contracts",
-      //   value: [address("RewardPool")],
-      // },
+      {
+        name: "getEip1271Contracts",
+        value: [address("RewardPool")],
+      },
+      {
+        name: "versionManager",
+        value: address("VersionManager"),
+      },
     ],
   });
 }
