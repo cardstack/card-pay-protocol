@@ -42,7 +42,7 @@ let metadataHash: string;
 let metadataHashBytes: Bytes;
 
 const tokenURI = "www.example.com";
-const metadataDID = "www.example2.com";
+const metadataDID = "did:cardstack:abc123";
 
 type InventoryData = {
   listingURI: string;
@@ -399,7 +399,7 @@ describe("Inventory", () => {
 
       await expect(
         mint(token, metadataDID, "", zeroContentHashBytes, metadataHashBytes)
-      ).rejectedWith("Inventory: specified uri must be non-empty");
+      ).rejectedWith("Inventory: specified URI must be non-empty");
     });
 
     it("should revert if the metadataDID is empty", async () => {
@@ -407,7 +407,7 @@ describe("Inventory", () => {
 
       await expect(
         mint(token, "", tokenURI, zeroContentHashBytes, metadataHashBytes)
-      ).rejectedWith("Inventory: specified uri must be non-empty");
+      ).rejectedWith("Inventory: specified DID must be non-empty");
     });
   });
 
@@ -1098,7 +1098,7 @@ describe("Inventory", () => {
     it("should revert if the token does not exist", async () => {
       const token = await tokenAs(merchantWallet);
 
-      await expect(token.updateTokenURI(1, "blah blah")).rejectedWith(
+      await expect(token.updateTokenURI(1, "https://example.com")).rejectedWith(
         "ERC721: operator query for nonexistent token"
       );
     });
@@ -1106,7 +1106,7 @@ describe("Inventory", () => {
     it("should revert if the caller is not the owner of the token and does not have approval", async () => {
       const token = await tokenAs(otherWallet);
 
-      await expect(token.updateTokenURI(0, "blah blah")).rejectedWith(
+      await expect(token.updateTokenURI(0, "https://example.com")).rejectedWith(
         "Inventory: Only approved or owner"
       );
     });
@@ -1114,7 +1114,7 @@ describe("Inventory", () => {
     it("should revert if the uri is empty string", async () => {
       const token = await tokenAs(merchantWallet);
       await expect(token.updateTokenURI(0, "")).rejectedWith(
-        "Inventory: specified uri must be non-empty"
+        "Inventory: specified URI must be non-empty"
       );
     });
 
@@ -1131,17 +1131,17 @@ describe("Inventory", () => {
 
       await expect(token.burn(1)).fulfilled;
 
-      await expect(token.updateTokenURI(1, "blah")).rejectedWith(
+      await expect(token.updateTokenURI(1, "https://exaple.com")).rejectedWith(
         "ERC721: operator query for nonexistent token"
       );
     });
 
     it("should set the tokenURI to the URI passed if the msg.sender is the merchant", async () => {
       const token = await tokenAs(merchantWallet);
-      await expect(token.updateTokenURI(0, "blah blah")).fulfilled;
+      await expect(token.updateTokenURI(0, "https://example.com")).fulfilled;
 
       const tokenURI = await token.tokenURI(0);
-      expect(tokenURI).eq("blah blah");
+      expect(tokenURI).eq("https://example.com");
     });
 
     it("should set the tokenURI to the URI passed if the msg.sender is approved", async () => {
@@ -1149,10 +1149,11 @@ describe("Inventory", () => {
       await token.approve(otherWallet.address, 0);
 
       const otherToken = await tokenAs(otherWallet);
-      await expect(otherToken.updateTokenURI(0, "blah blah")).fulfilled;
+      await expect(otherToken.updateTokenURI(0, "https://example.com"))
+        .fulfilled;
 
       const tokenURI = await token.tokenURI(0);
-      expect(tokenURI).eq("blah blah");
+      expect(tokenURI).eq("https://example.com");
     });
   });
 
@@ -1168,23 +1169,23 @@ describe("Inventory", () => {
     it("should revert if the token does not exist", async () => {
       const token = await tokenAs(merchantWallet);
 
-      await expect(token.updateTokenMetadataDID(1, "blah blah")).rejectedWith(
-        "ERC721: operator query for nonexistent token"
-      );
+      await expect(
+        token.updateTokenMetadataDID(1, "did:cardstack:def456")
+      ).rejectedWith("ERC721: operator query for nonexistent token");
     });
 
     it("should revert if the caller is not the merchant or approved", async () => {
       const token = await tokenAs(otherWallet);
 
-      await expect(token.updateTokenMetadataDID(0, "blah blah")).rejectedWith(
-        "Inventory: Only approved or owner"
-      );
+      await expect(
+        token.updateTokenMetadataDID(0, "did:cardstack:def456")
+      ).rejectedWith("Inventory: Only approved or owner");
     });
 
     it("should revert if the DID is empty string", async () => {
       const token = await tokenAs(merchantWallet);
       await expect(token.updateTokenMetadataDID(0, "")).rejectedWith(
-        "Inventory: specified uri must be non-empty"
+        "Inventory: specified DID must be non-empty"
       );
     });
 
@@ -1201,17 +1202,18 @@ describe("Inventory", () => {
 
       await expect(token.burn(1)).fulfilled;
 
-      await expect(token.updateTokenMetadataDID(1, "blah")).rejectedWith(
-        "ERC721: operator query for nonexistent token"
-      );
+      await expect(
+        token.updateTokenMetadataDID(1, "did:cardstack:def456")
+      ).rejectedWith("ERC721: operator query for nonexistent token");
     });
 
     it("should set the tokenMetadataDID to the DID passed if msg.sender is the merchant", async () => {
       const token = await tokenAs(merchantWallet);
-      await expect(token.updateTokenMetadataDID(0, "blah blah")).fulfilled;
+      await expect(token.updateTokenMetadataDID(0, "did:cardstack:def456"))
+        .fulfilled;
 
       const tokenDID = await token.tokenMetadataDID(0);
-      expect(tokenURI).eq("blah blah");
+      expect(tokenDID).eq("did:cardstack:def456");
     });
 
     it("should set the tokenMetadataDID to the DID passed if the msg.sender is approved", async () => {
@@ -1219,10 +1221,11 @@ describe("Inventory", () => {
       await token.approve(otherWallet.address, 0);
 
       const otherToken = await tokenAs(otherWallet);
-      await expect(otherToken.updateTokenMetadataDID(0, "did:cardstack:def456")).fulfilled;
+      await expect(otherToken.updateTokenMetadataDID(0, "did:cardstack:def456"))
+        .fulfilled;
 
       const tokenDID = await token.tokenMetadataDID(0);
-      expect(tokenURI).eq("blah blah");
+      expect(tokenDID).eq("did:cardstack:def456");
     });
   });
 
