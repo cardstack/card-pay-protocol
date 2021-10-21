@@ -1131,7 +1131,7 @@ describe("Inventory", () => {
 
       await expect(token.burn(1)).fulfilled;
 
-      await expect(token.updateTokenURI(1, "https://exaple.com")).rejectedWith(
+      await expect(token.updateTokenURI(1, "https://example.com")).rejectedWith(
         "ERC721: operator query for nonexistent token"
       );
     });
