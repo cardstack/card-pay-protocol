@@ -30,6 +30,7 @@ const {
   splitPrepaidCard,
   findAccountBeforeAddress,
   findAccountAfterAddress,
+  setupVersionManager,
 } = require("./utils/helper");
 
 const { expect, TOKEN_DETAIL_DATA, toBN } = require("./setup");
@@ -61,6 +62,7 @@ contract("PrepaidCardManager", (accounts) => {
     customerB,
     gasFeeReceiver,
     merchantFeeReceiver,
+    versionManager,
     merchantSafe,
     contractSigner,
     relayer,
@@ -77,6 +79,7 @@ contract("PrepaidCardManager", (accounts) => {
     merchantFeeReceiver = accounts[6];
     contractSigner = accounts[7];
 
+    versionManager = await setupVersionManager(owner);
     proxyFactory = await ProxyFactory.new();
     gnosisSafeMasterCopy = await GnosisSafe.new();
     revenuePool = await RevenuePool.new();
@@ -120,7 +123,8 @@ contract("PrepaidCardManager", (accounts) => {
       prepaidCardManager.address,
       merchantFeeReceiver,
       0,
-      1000
+      1000,
+      versionManager.address
     );
     ({
       payMerchantHandler,
@@ -136,27 +140,31 @@ contract("PrepaidCardManager", (accounts) => {
       prepaidCardMarket: ZERO_ADDRESS,
       exchangeAddress: exchange.address,
       spendAddress: spendToken.address,
+      versionManager,
     }));
     await spendToken.addMinter(payMerchantHandler.address);
-    await tokenManager.setup(ZERO_ADDRESS, [
-      daicpxdToken.address,
-      cardcpxdToken.address,
-    ]);
+    await tokenManager.setup(
+      ZERO_ADDRESS,
+      [daicpxdToken.address, cardcpxdToken.address],
+      versionManager.address
+    );
     await merchantManager.setup(
       actionDispatcher.address,
       gnosisSafeMasterCopy.address,
       proxyFactory.address,
-      ZERO_ADDRESS
+      versionManager.address
     );
     await actionDispatcher.setup(
       tokenManager.address,
       exchange.address,
-      prepaidCardManager.address
+      prepaidCardManager.address,
+      versionManager.address
     );
     await supplierManager.setup(
       ZERO_ADDRESS,
       gnosisSafeMasterCopy.address,
-      proxyFactory.address
+      proxyFactory.address,
+      versionManager.address
     );
     depot = await createDepotFromSupplierMgr(supplierManager, issuer);
 
@@ -178,7 +186,8 @@ contract("PrepaidCardManager", (accounts) => {
         0,
         MINIMUM_AMOUNT,
         MAXIMUM_AMOUNT,
-        [contractSigner]
+        [contractSigner],
+        versionManager.address
       );
       await prepaidCardManager.addGasPolicy("transfer", false);
       await prepaidCardManager.addGasPolicy("split", false);
@@ -209,6 +218,15 @@ contract("PrepaidCardManager", (accounts) => {
       expect(await prepaidCardManager.getContractSigners()).to.deep.equal([
         contractSigner,
       ]);
+    });
+
+    it("can get version of contract", async () => {
+      expect(await prepaidCardManager.cardpayVersion()).to.equal("1.0.0");
+      expect(await payMerchantHandler.cardpayVersion()).to.equal("1.0.0");
+      expect(await splitPrepaidCardHandler.cardpayVersion()).to.equal("1.0.0");
+      expect(await transferPrepaidCardHandler.cardpayVersion()).to.equal(
+        "1.0.0"
+      );
     });
 
     it("rejects when non-owner removes a contract signer", async () => {
@@ -532,7 +550,8 @@ contract("PrepaidCardManager", (accounts) => {
         toTokenUnit(100),
         MINIMUM_AMOUNT,
         MAXIMUM_AMOUNT,
-        []
+        [],
+        versionManager.address
       );
     });
 
@@ -554,7 +573,8 @@ contract("PrepaidCardManager", (accounts) => {
         0, // We are setting this value specifically
         MINIMUM_AMOUNT,
         MAXIMUM_AMOUNT,
-        []
+        [],
+        versionManager.address
       );
     });
 
@@ -733,7 +753,8 @@ contract("PrepaidCardManager", (accounts) => {
         toTokenUnit(100),
         MINIMUM_AMOUNT,
         MAXIMUM_AMOUNT,
-        []
+        [],
+        versionManager.address
       );
 
       let amount = toTokenUnit(5);
@@ -814,7 +835,8 @@ contract("PrepaidCardManager", (accounts) => {
         toTokenUnit(100),
         MINIMUM_AMOUNT,
         MAXIMUM_AMOUNT,
-        []
+        [],
+        versionManager.address
       );
     });
 
@@ -1501,19 +1523,6 @@ contract("PrepaidCardManager", (accounts) => {
         daicpxdToken,
         prepaidCard.address,
         startingPrepaidCardDaicpxdBalance
-      );
-    });
-  });
-
-  describe("versioning", () => {
-    it("can get version of contract", async () => {
-      expect(await prepaidCardManager.cardpayVersion()).to.match(/\d\.\d\.\d/);
-      expect(await payMerchantHandler.cardpayVersion()).to.match(/\d\.\d\.\d/);
-      expect(await splitPrepaidCardHandler.cardpayVersion()).to.match(
-        /\d\.\d\.\d/
-      );
-      expect(await transferPrepaidCardHandler.cardpayVersion()).to.match(
-        /\d\.\d\.\d/
       );
     });
   });

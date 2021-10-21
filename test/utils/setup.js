@@ -17,6 +17,7 @@ const {
   setupExchanges,
   addActionHandlers,
   createDepotFromSupplierMgr,
+  setupVersionManager,
 } = require("./helper");
 
 //constants
@@ -51,6 +52,7 @@ const setupProtocol = async (accounts) => {
     "deploying Gnosis Safe Mastercopy",
     GnosisSafe
   );
+  const versionManager = await setupVersionManager(owner);
   const revenuePool = await RevenuePool.new();
   await revenuePool.initialize(owner);
   const prepaidCardManager = await PrepaidCardManager.new();
@@ -73,20 +75,22 @@ const setupProtocol = async (accounts) => {
   const { daicpxdToken, cardcpxdToken, exchange } = await setupExchanges(owner);
 
   // setup
-  await tokenManager.setup(ZERO_ADDRESS, [
-    daicpxdToken.address,
-    cardcpxdToken.address,
-  ]);
+  await tokenManager.setup(
+    ZERO_ADDRESS,
+    [daicpxdToken.address, cardcpxdToken.address],
+    versionManager.address
+  );
   await supplierManager.setup(
     ZERO_ADDRESS,
     gnosisSafeMasterCopy.address,
-    proxyFactory.address
+    proxyFactory.address,
+    versionManager.address
   );
   await merchantManager.setup(
     actionDispatcher.address,
     gnosisSafeMasterCopy.address,
     proxyFactory.address,
-    ZERO_ADDRESS
+    versionManager.address
   );
   await prepaidCardManager.setup(
     tokenManager.address,
@@ -99,7 +103,8 @@ const setupProtocol = async (accounts) => {
     0,
     100,
     500000,
-    []
+    [],
+    versionManager.address
   );
   await revenuePool.setup(
     exchange.address,
@@ -108,7 +113,8 @@ const setupProtocol = async (accounts) => {
     prepaidCardManager.address,
     merchantFeeReceiver,
     0,
-    1000
+    1000,
+    versionManager.address
   );
   await rewardManager.setup(
     actionDispatcher.address,
@@ -117,9 +123,15 @@ const setupProtocol = async (accounts) => {
     rewardFeeReceiver,
     REWARDEE_REGISTRATION_FEE_IN_SPEND,
     REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
-    [rewardPool.address]
+    [rewardPool.address],
+    versionManager.address
   );
-  await rewardPool.setup(tally, rewardManager.address, tokenManager.address);
+  await rewardPool.setup(
+    tally,
+    rewardManager.address,
+    tokenManager.address,
+    versionManager.address
+  );
 
   await prepaidCardManager.addGasPolicy("transfer", false);
   await prepaidCardManager.addGasPolicy("split", true);
@@ -134,10 +146,11 @@ const setupProtocol = async (accounts) => {
   await actionDispatcher.setup(
     tokenManager.address,
     exchange.address,
-    prepaidCardManager.address
+    prepaidCardManager.address,
+    versionManager.address
   );
 
-  await addActionHandlers({
+  let { payRewardTokensHandler } = await addActionHandlers({
     prepaidCardManager,
     revenuePool,
     actionDispatcher,
@@ -148,6 +161,7 @@ const setupProtocol = async (accounts) => {
     exchangeAddress: exchange.address,
     spendAddress: spendToken.address,
     rewardPool,
+    versionManager,
   });
 
   await daicpxdToken.mint(owner, toTokenUnit(100));
@@ -176,6 +190,8 @@ const setupProtocol = async (accounts) => {
     exchange,
     spendToken,
     rewardPool,
+    payRewardTokensHandler,
+    versionManager,
 
     //tokens
     daicpxdToken,

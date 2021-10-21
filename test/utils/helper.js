@@ -239,8 +239,11 @@ exports.setupVersionManager = async function (owner, version = "1.0.0") {
   return versionManager;
 };
 
-exports.setupExchanges = async function (owner) {
+exports.setupExchanges = async function (owner, versionManager) {
   let daicpxdToken = await ERC677Token.new();
+  let versionManagerAddress = versionManager
+    ? versionManager.address
+    : ZERO_ADDRESS;
   await daicpxdToken.initialize(...TOKEN_DETAIL_DATA, owner);
 
   let cardcpxdToken = await ERC677Token.new();
@@ -248,11 +251,11 @@ exports.setupExchanges = async function (owner) {
 
   let daiFeed = await Feed.new();
   await daiFeed.initialize(owner);
-  await daiFeed.setup("DAI.CPXD", 8, ZERO_ADDRESS);
+  await daiFeed.setup("DAI.CPXD", 8, versionManagerAddress);
   await daiFeed.addRound(100000000, 1618433281, 1618433281);
   let ethFeed = await Feed.new();
   await ethFeed.initialize(owner);
-  await ethFeed.setup("ETH", 8, ZERO_ADDRESS);
+  await ethFeed.setup("ETH", 8, versionManagerAddress);
   await ethFeed.addRound(300000000000, 1618433281, 1618433281);
   let chainlinkOracle = await ChainlinkOracle.new();
   chainlinkOracle.initialize(owner);
@@ -260,7 +263,7 @@ exports.setupExchanges = async function (owner) {
     daiFeed.address,
     ethFeed.address,
     daiFeed.address,
-    ZERO_ADDRESS
+    versionManagerAddress
   );
   let mockDiaOracle = await MockDIAOracle.new();
   await mockDiaOracle.initialize(owner);
@@ -271,12 +274,12 @@ exports.setupExchanges = async function (owner) {
     mockDiaOracle.address,
     "CARD",
     daiFeed.address,
-    ZERO_ADDRESS
+    versionManagerAddress
   );
 
   let exchange = await Exchange.new();
   await exchange.initialize(owner);
-  await exchange.setup(1000000, ZERO_ADDRESS); // this is a 1% rate margin drift
+  await exchange.setup(1000000, versionManagerAddress); // this is a 1% rate margin drift
   await exchange.createExchange("DAI", chainlinkOracle.address);
   await exchange.createExchange("CARD", diaPriceOracle.address);
 

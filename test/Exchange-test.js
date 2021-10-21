@@ -5,7 +5,11 @@ const Exchange = artifacts.require("Exchange");
 const { expect, TOKEN_DETAIL_DATA } = require("./setup");
 const { fromWei } = require("web3").utils;
 
-const { toTokenUnit, setupExchanges } = require("./utils/helper");
+const {
+  toTokenUnit,
+  setupExchanges,
+  setupVersionManager,
+} = require("./utils/helper");
 
 contract("Exchange", (accounts) => {
   let daicpxdToken,
@@ -13,6 +17,7 @@ contract("Exchange", (accounts) => {
     fakeToken,
     daiFeed,
     daiOracle,
+    versionManager,
     cardOracle,
     owner,
     exchange;
@@ -20,8 +25,10 @@ contract("Exchange", (accounts) => {
   before(async () => {
     owner = accounts[0];
 
+    versionManager = await setupVersionManager(owner);
     spendToken = await SPEND.new();
     await spendToken.initialize(owner);
+    await spendToken.setup(versionManager.address);
 
     ({
       daiFeed,
@@ -29,7 +36,7 @@ contract("Exchange", (accounts) => {
       exchange,
       diaPriceOracle: cardOracle,
       chainlinkOracle: daiOracle,
-    } = await setupExchanges(owner));
+    } = await setupExchanges(owner, versionManager));
 
     await daicpxdToken.mint(owner, toTokenUnit(100));
     fakeToken = await ERC677Token.new();
@@ -38,7 +45,8 @@ contract("Exchange", (accounts) => {
   });
 
   it("can get version of contract", async () => {
-    expect(await exchange.cardpayVersion()).to.match(/\d\.\d\.\d/);
+    expect(await exchange.cardpayVersion()).to.equal("1.0.0");
+    expect(await spendToken.cardpayVersion()).to.equal("1.0.0");
   });
 
   describe("exchange rate", () => {

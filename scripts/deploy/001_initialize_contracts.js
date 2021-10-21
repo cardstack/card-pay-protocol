@@ -32,6 +32,10 @@ async function main() {
   // in the solidity file), and an array of the initialize parameters to use
   // when creating the upgradable contract.
   let contracts = {
+    VersionManager: {
+      contractName: "VersionManager",
+      init: [owner],
+    },
     PrepaidCardManager: {
       contractName: "PrepaidCardManager",
       init: [owner],

@@ -39,6 +39,8 @@ contract("RewardPool", function (accounts) {
     tokenManager,
     actionDispatcher,
     gnosisSafeMasterCopy,
+    payRewardTokensHandler,
+    versionManager,
     proxyFactory;
 
   let owner, issuer, prepaidCardOwner, relayer;
@@ -66,6 +68,8 @@ contract("RewardPool", function (accounts) {
         daicpxdToken,
         cardcpxdToken,
         tokenManager,
+        versionManager,
+        payRewardTokensHandler,
       } = await setupProtocol(accounts));
     });
     beforeEach(async function () {
@@ -74,7 +78,8 @@ contract("RewardPool", function (accounts) {
       await rewardPool.setup(
         tally,
         rewardManager.address,
-        tokenManager.address
+        tokenManager.address,
+        versionManager.address
       );
       let rewardFeeReceiver = accounts[5]; //same as in setupProtocol()
       // have to recall setup because reward pool is being created independently of setupProtocol
@@ -85,7 +90,8 @@ contract("RewardPool", function (accounts) {
         rewardFeeReceiver,
         REWARDEE_REGISTRATION_FEE_IN_SPEND,
         REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
-        [rewardPool.address]
+        [rewardPool.address],
+        versionManager.address
       );
       rewardProgramID = randomHex(20);
       otherRewardProgramID = randomHex(20);
@@ -170,13 +176,23 @@ contract("RewardPool", function (accounts) {
     describe("initial reward pool contract", () => {
       it("reverts when tally is set to zero address", async () => {
         await rewardPool
-          .setup(ZERO_ADDRESS, rewardManager.address, tokenManager.address)
+          .setup(
+            ZERO_ADDRESS,
+            rewardManager.address,
+            tokenManager.address,
+            versionManager.address
+          )
           .should.be.rejectedWith(Error, "Tally should not be zero address");
       });
 
       it("reverts when reward manager is set to zero address", async () => {
         await rewardPool
-          .setup(tally, ZERO_ADDRESS, tokenManager.address)
+          .setup(
+            tally,
+            ZERO_ADDRESS,
+            tokenManager.address,
+            versionManager.address
+          )
           .should.be.rejectedWith(
             Error,
             "Reward Manager should not be zero address"
@@ -1720,6 +1736,13 @@ contract("RewardPool", function (accounts) {
           "the prepaid card token balance is correct"
         );
       });
+    });
+  });
+
+  describe("versioning", () => {
+    it("can get version of contract", async () => {
+      expect(await rewardPool.cardpayVersion()).to.equal("1.0.0");
+      expect(await payRewardTokensHandler.cardpayVersion()).to.equal("1.0.0");
     });
   });
 });
