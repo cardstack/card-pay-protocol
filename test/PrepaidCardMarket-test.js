@@ -205,6 +205,7 @@ contract("PrepaidCardMarket", (accounts) => {
         expect(await prepaidCardMarket.getInventory(sku)).to.deep.equal([
           testCard.address,
         ]);
+        expect(await prepaidCardMarket.getQuantity(sku)).to.equal(1);
 
         let skuInfo = await prepaidCardMarket.skus(sku);
         expect(skuInfo.issuer).to.equal(issuer);
