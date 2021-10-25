@@ -272,6 +272,10 @@ contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
     return inventory[sku].enumerate();
   }
 
+  function getQuantity(bytes32 sku) public view returns (uint256) {
+    return inventory[sku].length();
+  }
+
   function contractSignature(address prepaidCard, address newOwner)
     internal
     returns (bytes memory)
