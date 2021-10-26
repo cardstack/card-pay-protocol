@@ -58,9 +58,6 @@ contract RegisterRewardeeHandler is Ownable, Versionable {
     );
     RewardManager rewardManager = RewardManager(rewardManagerAddress);
     address issuingToken = msg.sender;
-    uint256 rewardeeRegistrationFeeInSpend = rewardManager
-      .rewardeeRegistrationFeeInSPEND();
-
     (address payable prepaidCard, , bytes memory actionData) = abi.decode(
       data,
       (address, uint256, bytes)
@@ -68,36 +65,18 @@ contract RegisterRewardeeHandler is Ownable, Versionable {
 
     address rewardProgramID = abi.decode(actionData, (address));
 
-    uint256 rewardeeRegistrationFeeInToken = Exchange(exchangeAddress)
-      .convertFromSpend(issuingToken, rewardeeRegistrationFeeInSpend);
-    require(
-      amount >= rewardeeRegistrationFeeInToken,
-      "Insufficient funds for merchant registration"
-    );
-
-    IERC677(msg.sender).transfer(
-      rewardManager.rewardFeeReceiver(),
-      rewardeeRegistrationFeeInToken
-    );
-
-    uint256 refund = amount.sub(rewardeeRegistrationFeeInToken);
-    if (refund > 0) {
-      IERC677(issuingToken).transfer(prepaidCard, refund);
-    }
-
     address prepaidCardOwner = PrepaidCardManager(prepaidCardManager)
       .getPrepaidCardOwner(prepaidCard);
 
+    RewardManager(rewardManagerAddress).registerRewardee(
+      rewardProgramID,
+      prepaidCardOwner
+    );
     emit RewardeeRegistrationFee(
       prepaidCard,
       issuingToken,
       amount,
-      rewardeeRegistrationFeeInSpend,
       rewardProgramID
-    );
-    RewardManager(rewardManagerAddress).registerRewardee(
-      rewardProgramID,
-      prepaidCardOwner
     );
     return true;
   }

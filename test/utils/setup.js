@@ -136,7 +136,7 @@ const setupProtocol = async (accounts) => {
   await prepaidCardManager.addGasPolicy("transfer", false);
   await prepaidCardManager.addGasPolicy("split", true);
   await prepaidCardManager.addGasPolicy("registerRewardProgram", false);
-  await prepaidCardManager.addGasPolicy("registerRewardee", false);
+  await prepaidCardManager.addGasPolicy("registerRewardee", true);
   await prepaidCardManager.addGasPolicy("lockRewardProgram", true);
   await prepaidCardManager.addGasPolicy("updateRewardProgramAdmin", true);
   await prepaidCardManager.addGasPolicy("addRewardRule", true);
