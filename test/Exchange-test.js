@@ -82,7 +82,7 @@ contract("Exchange", (accounts) => {
     it("rejects when converting from CARD and no CARD exchange has been added", async () => {
       let badExchange = await Exchange.new();
       await badExchange.initialize(owner);
-      await badExchange.createExchange("DAI", daiOracle.address);
+      await badExchange.createExchange("DAI.CPXD", daiOracle.address);
 
       await badExchange
         .convertFromCARD(daicpxdToken.address, toTokenUnit(100))
@@ -92,7 +92,7 @@ contract("Exchange", (accounts) => {
     it("rejects when converting from CARD and no exchange has been added for desired token", async () => {
       let badExchange = await Exchange.new();
       await badExchange.initialize(owner);
-      await badExchange.createExchange("CARD", cardOracle.address);
+      await badExchange.createExchange("CARD.CPXD", cardOracle.address);
 
       await badExchange
         .convertFromCARD(daicpxdToken.address, toTokenUnit(100))
