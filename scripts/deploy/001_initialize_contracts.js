@@ -200,9 +200,6 @@ async function main() {
 
     if (proxyAddresses[contractId]) {
       ({ proxy: proxyAddress } = proxyAddresses[contractId]);
-
-      console.log(proxyAddresses);
-
       console.log(
         `Upgrading ${contractId} (${contractName}@${proxyAddress}) ...`
       );
