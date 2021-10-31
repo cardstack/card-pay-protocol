@@ -1,9 +1,4 @@
-import {
-  getAddress,
-  AddressFile,
-  ContractConfig,
-  BRIDGE_MEDIATOR,
-} from "../config-utils";
+import { getAddress, AddressFile, ContractConfig } from "../../config-utils";
 
 export default async function (
   proxyAddresses: AddressFile
@@ -14,20 +9,20 @@ export default async function (
   return Promise.resolve({
     setup: [
       {
-        name: "tokenManager",
-        value: address("TokenManager"),
+        name: "actionDispatcher",
+        value: address("ActionDispatcher"),
       },
       {
-        name: "supplierManager",
-        value: address("SupplierManager"),
-      },
-      {
-        name: "exchange",
+        name: "exchangeAddress",
         value: address("Exchange"),
       },
       {
-        name: "bridgeMediator",
-        value: BRIDGE_MEDIATOR,
+        name: "tokenManagerAddress",
+        value: address("TokenManager"),
+      },
+      {
+        name: "rewardManagerAddress",
+        value: address("RewardManager"),
       },
       {
         name: "versionManager",

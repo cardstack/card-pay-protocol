@@ -23,6 +23,7 @@ contract Exchange is Ownable, Versionable {
   mapping(bytes32 => ExchangeInfo) public exchanges;
   uint256 public rateDriftPercentage; // decimals 8
   address public versionManager;
+  string public cardTokenSymbol;
 
   /**
    * @dev set up revenue pool
@@ -30,12 +31,14 @@ contract Exchange is Ownable, Versionable {
    * represents the percentage of how much a requested rate lock is allowed to
    * drift from the actual rate
    */
-  function setup(uint256 _rateDriftPercentage, address _versionManager)
-    external
-    onlyOwner
-  {
+  function setup(
+    uint256 _rateDriftPercentage,
+    address _versionManager,
+    string calldata _cardTokenSymbol
+  ) external onlyOwner {
     rateDriftPercentage = _rateDriftPercentage;
     versionManager = _versionManager;
+    cardTokenSymbol = _cardTokenSymbol;
     emit Setup();
   }
 
@@ -177,7 +180,8 @@ contract Exchange is Ownable, Versionable {
     view
     returns (uint256)
   {
-    bytes32 cardKey = keccak256(bytes("CARD.CPXD"));
+    require(bytes(cardTokenSymbol).length > 0, "card token symbol not set");
+    bytes32 cardKey = keccak256(bytes(cardTokenSymbol));
     require(exchanges[cardKey].exists, "no exchange exists for CARD.CPXD");
     require(hasExchange(token), "no exchange exists for token");
 

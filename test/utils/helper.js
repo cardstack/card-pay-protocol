@@ -279,7 +279,7 @@ exports.setupExchanges = async function (owner, versionManager) {
 
   let exchange = await Exchange.new();
   await exchange.initialize(owner);
-  await exchange.setup(1000000, versionManagerAddress); // this is a 1% rate margin drift
+  await exchange.setup(1000000, versionManagerAddress, "CARD.CPXD"); // this is a 1% rate margin drift
   await exchange.createExchange("DAI.CPXD", chainlinkOracle.address);
   await exchange.createExchange("CARD.CPXD", diaPriceOracle.address);
 

@@ -4,7 +4,7 @@ import {
   AddressFile,
   ContractConfig,
   RATE_DRIFT_PERCENTAGE,
-} from "../config-utils";
+} from "../../config-utils";
 
 const {
   utils: { keccak256, toUtf8Bytes },
@@ -26,6 +26,10 @@ export default async function (
       {
         name: "versionManager",
         value: address("VersionManager"),
+      },
+      {
+        name: "cardTokenSymbol",
+        value: "CARD.CPXD",
       },
     ],
 

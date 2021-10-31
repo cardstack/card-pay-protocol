@@ -4,8 +4,8 @@ import {
   ContractConfig,
   MERCHANT_FEE_PERCENTAGE,
   MERCHANT_REGISTRATION_FEE_IN_SPEND,
-} from "../config-utils";
-import { getDeployAddress } from "../util";
+} from "../../config-utils";
+import { getDeployAddress } from "../../util";
 
 export default async function (
   proxyAddresses: AddressFile

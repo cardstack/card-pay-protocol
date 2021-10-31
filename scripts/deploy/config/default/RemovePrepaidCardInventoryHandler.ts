@@ -1,10 +1,4 @@
-import {
-  getAddress,
-  AddressFile,
-  ContractConfig,
-  GNOSIS_SAFE_MASTER_COPY,
-  GNOSIS_SAFE_FACTORY,
-} from "../config-utils";
+import { getAddress, AddressFile, ContractConfig } from "../../config-utils";
 
 export default async function (
   proxyAddresses: AddressFile
@@ -15,16 +9,16 @@ export default async function (
   return Promise.resolve({
     setup: [
       {
-        name: "bridgeUtils",
-        value: address("BridgeUtils"),
+        name: "actionDispatcher",
+        value: address("ActionDispatcher"),
       },
       {
-        name: "gnosisSafe",
-        value: GNOSIS_SAFE_MASTER_COPY,
+        name: "prepaidCardManagerAddress",
+        value: address("PrepaidCardManager"),
       },
       {
-        name: "gnosisProxyFactory",
-        value: GNOSIS_SAFE_FACTORY,
+        name: "tokenManagerAddress",
+        value: address("TokenManager"),
       },
       {
         name: "versionManager",

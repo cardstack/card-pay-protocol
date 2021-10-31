@@ -1,4 +1,6 @@
-import { resolve } from "path";
+import { resolve, basename, join, sep as fileSeparator } from "path";
+import merge from "lodash/merge";
+import { existsSync } from "fs";
 import glob from "glob-promise";
 import dotenv from "dotenv";
 import hre from "hardhat";
@@ -21,23 +23,20 @@ const sendTx = async function (cb) {
 async function main(proxyAddresses: AddressFile) {
   proxyAddresses = proxyAddresses || readAddressFile(network);
 
-  const configs: string[] = await glob(`${__dirname}/config/**/*.ts`);
+  const configFiles: string[] = await glob(`${__dirname}/config/**/*.ts`);
+  const configs = configFiles.map((file) => basename(file));
+
   const deployConfig = new Map(
     await Promise.all(
       configs.map(async (configModule) => {
-        const name = configModule.split("/").pop().replace(".ts", "");
-        const { default: config } = (await import(configModule)) as {
-          default: (proxyAddresses: AddressFile) => Promise<ContractConfig>;
-        };
-        return [name, config] as [
-          string,
-          (proxyAddresses: AddressFile) => Promise<ContractConfig>
-        ];
+        const name = configModule.replace(".ts", "");
+        const config = await getConfig(configModule, proxyAddresses);
+        return [name, config] as [string, ContractConfig];
       })
     )
   );
 
-  for (const [contractId, configRunner] of deployConfig.entries()) {
+  for (const [contractId, config] of deployConfig.entries()) {
     if (!proxyAddresses[contractId]) {
       console.log(`Skipping ${contractId} for network ${network}`);
       continue;
@@ -49,8 +48,6 @@ async function main(proxyAddresses: AddressFile) {
     let contractUnchanged = true;
     console.log(`
 Detecting config changes for ${contractId} (${address})`);
-    const config = await configRunner(proxyAddresses);
-
     for (const [setter, args] of Object.entries(config)) {
       if (Array.isArray(args)) {
         let stateChanged = false;
@@ -136,6 +133,35 @@ Detecting config changes for ${contractId} (${address})`);
   console.log(`
 Completed configurations
 `);
+}
+
+async function getConfig(
+  moduleName: string,
+  proxyAddresses: AddressFile
+): Promise<ContractConfig> {
+  let networkConfigFile = join(__dirname, "config", network, moduleName);
+  let defaultConfigFile = join(__dirname, "config", "default", moduleName);
+  let defaultConfig = existsSync(defaultConfigFile)
+    ? await importConfig(defaultConfigFile, "default", proxyAddresses)
+    : {};
+  let networkConfig = existsSync(networkConfigFile)
+    ? await importConfig(networkConfigFile, network, proxyAddresses)
+    : {};
+  return merge({}, defaultConfig, networkConfig);
+}
+
+async function importConfig(
+  configFile: string,
+  configNetwork: string,
+  proxyAddresses: AddressFile
+): Promise<ContractConfig> {
+  const module = configFile.split(fileSeparator).pop().replace(".ts", "");
+  const { default: config } = (await import(
+    `./config/${configNetwork}/${module}`
+  )) as {
+    default: (proxyAddresses: AddressFile) => Promise<ContractConfig>;
+  };
+  return await config(proxyAddresses);
 }
 
 function printDiff(

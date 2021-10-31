@@ -82,6 +82,7 @@ contract("Exchange", (accounts) => {
     it("rejects when converting from CARD and no CARD exchange has been added", async () => {
       let badExchange = await Exchange.new();
       await badExchange.initialize(owner);
+      await badExchange.setup(1000000, versionManager.address, "CARD.CPXD"); // this is a 1% rate margin drift
       await badExchange.createExchange("DAI.CPXD", daiOracle.address);
 
       await badExchange
@@ -92,6 +93,7 @@ contract("Exchange", (accounts) => {
     it("rejects when converting from CARD and no exchange has been added for desired token", async () => {
       let badExchange = await Exchange.new();
       await badExchange.initialize(owner);
+      await badExchange.setup(1000000, versionManager.address, "CARD.CPXD"); // this is a 1% rate margin drift
       await badExchange.createExchange("CARD.CPXD", cardOracle.address);
 
       await badExchange
