@@ -6,7 +6,7 @@ import {
   GNOSIS_SAFE_FACTORY,
   GAS_FEE_RECEIVER,
   GAS_FEE_CARD_WEI,
-} from "../config-utils";
+} from "../../config-utils";
 
 const MINIMUM_AMOUNT = process.env.MINIMUM_AMOUNT ?? "100"; // minimum face value (in SPEND) for new prepaid card
 const MAXIMUM_AMOUNT = process.env.MAXIMUM_AMOUNT ?? "10000000"; // maximum face value (in SPEND) for new prepaid card

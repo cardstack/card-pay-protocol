@@ -1,4 +1,4 @@
-import { getAddress, AddressFile, ContractConfig } from "../config-utils";
+import { getAddress, AddressFile, ContractConfig } from "../../config-utils";
 
 export default async function (
   proxyAddresses: AddressFile
@@ -13,20 +13,16 @@ export default async function (
         value: address("ActionDispatcher"),
       },
       {
-        name: "prepaidCardManager",
+        name: "prepaidCardManagerAddress",
         value: address("PrepaidCardManager"),
-      },
-      {
-        name: "exchangeAddress",
-        value: address("Exchange"),
       },
       {
         name: "tokenManagerAddress",
         value: address("TokenManager"),
       },
       {
-        name: "rewardManagerAddress",
-        value: address("RewardManager"),
+        name: "defaultMarketAddress",
+        value: address("PrepaidCardMarket"),
       },
       {
         name: "versionManager",

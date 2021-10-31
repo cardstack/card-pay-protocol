@@ -1,4 +1,10 @@
-import { getAddress, AddressFile, ContractConfig } from "../config-utils";
+import {
+  getAddress,
+  AddressFile,
+  ContractConfig,
+  GNOSIS_SAFE_MASTER_COPY,
+  GNOSIS_SAFE_FACTORY,
+} from "../../config-utils";
 
 export default async function (
   proxyAddresses: AddressFile
@@ -13,16 +19,12 @@ export default async function (
         value: address("ActionDispatcher"),
       },
       {
-        name: "prepaidCardManagerAddress",
-        value: address("PrepaidCardManager"),
+        name: "gnosisSafe",
+        value: GNOSIS_SAFE_MASTER_COPY,
       },
       {
-        name: "tokenManagerAddress",
-        value: address("TokenManager"),
-      },
-      {
-        name: "defaultMarketAddress",
-        value: address("PrepaidCardMarket"),
+        name: "gnosisProxyFactory",
+        value: GNOSIS_SAFE_FACTORY,
       },
       {
         name: "versionManager",

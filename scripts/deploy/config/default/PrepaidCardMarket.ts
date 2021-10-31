@@ -1,4 +1,9 @@
-import { getAddress, AddressFile, ContractConfig } from "../config-utils";
+import {
+  getAddress,
+  AddressFile,
+  ContractConfig,
+  PREPAID_CARD_PROVISIONER,
+} from "../../config-utils";
 
 export default async function (
   proxyAddresses: AddressFile
@@ -9,16 +14,16 @@ export default async function (
   return Promise.resolve({
     setup: [
       {
-        name: "actionDispatcher",
-        value: address("ActionDispatcher"),
-      },
-      {
         name: "prepaidCardManagerAddress",
         value: address("PrepaidCardManager"),
       },
       {
-        name: "tokenManagerAddress",
-        value: address("TokenManager"),
+        name: "actionDispatcher",
+        value: address("ActionDispatcher"),
+      },
+      {
+        name: "provisioner",
+        value: PREPAID_CARD_PROVISIONER,
       },
       {
         name: "versionManager",

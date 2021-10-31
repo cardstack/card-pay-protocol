@@ -1,4 +1,9 @@
-import { getAddress, AddressFile, ContractConfig } from "../config-utils";
+import {
+  getAddress,
+  AddressFile,
+  ContractConfig,
+  TALLY,
+} from "../../config-utils";
 
 export default async function (
   proxyAddresses: AddressFile
@@ -9,20 +14,16 @@ export default async function (
   return Promise.resolve({
     setup: [
       {
-        name: "actionDispatcher",
-        value: address("ActionDispatcher"),
+        name: "tally",
+        value: TALLY,
       },
       {
-        name: "exchangeAddress",
-        value: address("Exchange"),
-      },
-      {
-        name: "tokenManagerAddress",
-        value: address("TokenManager"),
-      },
-      {
-        name: "rewardManagerAddress",
+        name: "rewardManager",
         value: address("RewardManager"),
+      },
+      {
+        name: "tokenManager",
+        value: address("TokenManager"),
       },
       {
         name: "versionManager",

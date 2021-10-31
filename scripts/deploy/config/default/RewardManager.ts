@@ -6,8 +6,8 @@ import {
   GNOSIS_SAFE_FACTORY,
   REWARDEE_REGISTRATION_FEE_IN_SPEND,
   REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
-} from "../config-utils";
-import { getDeployAddress } from "../util";
+} from "../../config-utils";
+import { getDeployAddress } from "../../util";
 
 export default async function (
   proxyAddresses: AddressFile

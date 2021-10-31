@@ -1,4 +1,4 @@
-import { getAddress, AddressFile, ContractConfig } from "../config-utils";
+import { getAddress, AddressFile, ContractConfig } from "../../config-utils";
 
 export default async function (
   proxyAddresses: AddressFile

@@ -4,7 +4,7 @@ import {
   AddressFile,
   ContractConfig,
   RATE_DRIFT_PERCENTAGE,
-} from "../config-utils";
+} from "../../config-utils";
 
 const {
   utils: { keccak256, toUtf8Bytes },
