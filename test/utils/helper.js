@@ -244,10 +244,10 @@ exports.setupExchanges = async function (owner, versionManager) {
   let versionManagerAddress = versionManager
     ? versionManager.address
     : ZERO_ADDRESS;
-  await daicpxdToken.initialize(...TOKEN_DETAIL_DATA, owner);
+  await daicpxdToken.initialize("DAI (CPXD)", "DAI.CPXD", 18, owner);
 
   let cardcpxdToken = await ERC677Token.new();
-  await cardcpxdToken.initialize(...TOKEN_DETAIL_DATA, owner);
+  await cardcpxdToken.initialize("CARD (CPXD)", "CARD.CPXD", 18, owner);
 
   let daiFeed = await Feed.new();
   await daiFeed.initialize(owner);
@@ -280,8 +280,8 @@ exports.setupExchanges = async function (owner, versionManager) {
   let exchange = await Exchange.new();
   await exchange.initialize(owner);
   await exchange.setup(1000000, versionManagerAddress); // this is a 1% rate margin drift
-  await exchange.createExchange("DAI", chainlinkOracle.address);
-  await exchange.createExchange("CARD", diaPriceOracle.address);
+  await exchange.createExchange("DAI.CPXD", chainlinkOracle.address);
+  await exchange.createExchange("CARD.CPXD", diaPriceOracle.address);
 
   return {
     exchange,
