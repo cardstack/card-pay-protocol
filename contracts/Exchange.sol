@@ -168,17 +168,17 @@ contract Exchange is Ownable, Versionable {
   }
 
   /**
-   * @dev concert amount from CARD to the specified token
+   * @dev convert amount from CARD.CPXD to the specified token
    * @param token the address of the token you are converting to
-   * @param amount in CARD that you are converting
+   * @param amount in CARD.CPXD that you are converting
    */
   function convertFromCARD(address token, uint256 amount)
     external
     view
     returns (uint256)
   {
-    bytes32 cardKey = keccak256(bytes("CARD"));
-    require(exchanges[cardKey].exists, "no exchange exists for CARD");
+    bytes32 cardKey = keccak256(bytes("CARD.CPXD"));
+    require(exchanges[cardKey].exists, "no exchange exists for CARD.CPXD");
     require(hasExchange(token), "no exchange exists for token");
 
     // convert through USD to specified token
