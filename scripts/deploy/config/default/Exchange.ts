@@ -27,6 +27,10 @@ export default async function (
         name: "versionManager",
         value: address("VersionManager"),
       },
+      {
+        name: "cardTokenSymbol",
+        value: "CARD.CPXD",
+      },
     ],
 
     createExchange: {

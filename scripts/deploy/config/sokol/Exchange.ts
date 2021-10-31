@@ -27,17 +27,21 @@ export default async function (
         name: "versionManager",
         value: address("VersionManager"),
       },
+      {
+        name: "cardTokenSymbol",
+        value: "CARD",
+      },
     ],
 
     createExchange: {
-      "DAI.CPXD": {
+      DAI: {
         mapping: "exchanges",
         value: address("DAIOracle"),
         params: ["{NAME}", "{VALUE}"],
         propertyField: "feed",
         keyTransform: (k) => keccak256(toUtf8Bytes(k.toString())),
       },
-      "CARD.CPXD": {
+      CARD: {
         mapping: "exchanges",
         value: address("CARDOracle"),
         params: ["{NAME}", "{VALUE}"],
