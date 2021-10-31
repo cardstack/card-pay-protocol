@@ -87,10 +87,6 @@
     "proxy": "0x666A439cd8fbcF2cb826720C2E282Bb2c9743D0D",
     "contractName": "SetPrepaidCardAskHandler"
   },
-  "RewardManager": {
-    "proxy": "0x9A89A110238201c12568f3a4a02BE5Ae63284497",
-    "contractName": "RewardManager"
-  },
   "AddRewardRuleHandler": {
     "proxy": "0x9b36e44C9CF5846824D031C2C36Acc233523Aa82",
     "contractName": "AddRewardRuleHandler"
@@ -118,5 +114,25 @@
   "PayRewardTokensHandler": {
     "proxy": "0x51bB036F75D989bC576A50F3d68924ca23e6073d",
     "contractName": "PayRewardTokensHandler"
+  },
+  "VersionManager": {
+    "proxy": "0xBbF3aad37298C997a485E270bD465ec3e6aCD2a7",
+    "contractName": "VersionManager"
+  },
+  "RewardManager": {
+    "proxy": "0xC42a0E9Df2445D5b6918D44091524cDA4c13BbFd",
+    "contractName": "RewardManager"
+  },
+  "Market": {
+    "proxy": "0xbacB9F2F94D9957Ed39eBc10b20AF8Ab4e0C20e6",
+    "contractName": "Market"
+  },
+  "Inventory": {
+    "proxy": "0xAd02eD619f234c4eb252b8b3636522fA24F7F6A8",
+    "contractName": "Inventory"
+  },
+  "LevelRegistrar": {
+    "proxy": "0x330e167945eb4EC0CB3a28D63533789aba62610B",
+    "contractName": "LevelRegistrar"
   }
 }
