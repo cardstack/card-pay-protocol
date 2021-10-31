@@ -140,7 +140,7 @@ async function getConfig(
   proxyAddresses: AddressFile
 ): Promise<ContractConfig> {
   let networkConfigFile = join(__dirname, "config", network, moduleName);
-  let defaultConfigFile = join(__dirname, "config", network, moduleName);
+  let defaultConfigFile = join(__dirname, "config", "default", moduleName);
   let defaultConfig = existsSync(defaultConfigFile)
     ? await importConfig(defaultConfigFile, "default", proxyAddresses)
     : {};

@@ -17,6 +17,19 @@
     {
       "type": "node",
       "request": "launch",
+      "name": "Deploy to localhost",
+      "cwd": "${workspaceRoot}",
+      "program": "${workspaceFolder}/node_modules/.bin/hardhat",
+      "console": "integratedTerminal",
+      "env": {
+        "HARDHAT_NETWORK": "localhost",
+        "SKIP_VERIFY": "true"
+      },
+      "args": ["run", "./scripts/deploy/001_initialize_contracts.js"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
       "name": "Config localhost - protocol",
       "cwd": "${workspaceRoot}",
       "program": "${workspaceFolder}/node_modules/.bin/hardhat",
