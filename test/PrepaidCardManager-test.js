@@ -978,25 +978,15 @@ contract("PrepaidCardManager", (accounts) => {
 
     it("a prepaid card cannot be split after it is transferred", async () => {
       await daicpxdToken.mint(depot.address, toTokenUnit(3));
-      let {
-        prepaidCards: [prepaidCard],
-      } = await createPrepaidCards(
-        depot,
+      let prepaidCard = await createPrepaidCardAndTransfer(
         prepaidCardManager,
-        daicpxdToken,
-        issuer,
         relayer,
-        [toTokenUnit(2)]
-      );
-
-      await transferOwner(
-        prepaidCardManager,
-        prepaidCard,
+        depot,
         issuer,
-        customer,
-        relayer
+        daicpxdToken,
+        toTokenUnit(2),
+        customer
       );
-
       let amounts = [1, 1].map((amount) => toTokenUnit(amount).toString());
       await splitPrepaidCard(
         prepaidCardManager,
