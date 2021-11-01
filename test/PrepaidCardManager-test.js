@@ -914,7 +914,39 @@ contract("PrepaidCardManager", (accounts) => {
     });
   });
 
-  describe("split prepaid card", () => {
+  describe.only("split prepaid card", () => {
+    before(async () => {
+      // Setup card manager contract
+      await prepaidCardManager.setup(
+        tokenManager.address,
+        supplierManager.address,
+        exchange.address,
+        gnosisSafeMasterCopy.address,
+        proxyFactory.address,
+        actionDispatcher.address,
+        gasFeeReceiver,
+        0,
+        MINIMUM_AMOUNT,
+        MAXIMUM_AMOUNT,
+        [contractSigner],
+        versionManager.address
+      );
+      await prepaidCardManager.addGasPolicy("transfer", false);
+      await prepaidCardManager.addGasPolicy("split", false);
+    });
+
+    beforeEach(async () => {
+      await daicpxdToken.mint(depot.address, walletAmount);
+      let amounts = [1, 2, 5].map((amount) => toTokenUnit(amount));
+      ({ prepaidCards } = await createPrepaidCards(
+        depot,
+        prepaidCardManager,
+        daicpxdToken,
+        issuer,
+        relayer,
+        amounts
+      ));
+    });
     it("can split a card (from 1 prepaid card with 2 tokens to 2 cards with 1 token each)", async () => {
       let amounts = [1, 1].map((amount) => toTokenUnit(amount).toString());
       let safeTx = await splitPrepaidCard(
