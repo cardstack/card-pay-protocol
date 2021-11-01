@@ -79,8 +79,12 @@
     "proxy": "0xd570Ed8b313Fe6aEEA4064bd1713b5Cc6d41D3C5",
     "contractName": "DIAOracleAdapter"
   },
+  "VersionManager": {
+    "proxy": "0xd900133f96F85939335ADb9786ea9f2e07Bdf8c0",
+    "contractName": "VersionManager"
+  },
   "RewardManager": {
-    "proxy": "0x44aB7b82F18694cF4431F41E67C0f05AAaCAC74D",
+    "proxy": "0x3B6bedcA6EC78fCd33aFeB385B192056de639403",
     "contractName": "RewardManager"
   },
   "AddRewardRuleHandler": {
@@ -110,5 +114,17 @@
   "PayRewardTokensHandler": {
     "proxy": "0x90e8C108AbCF667cDdE92ECbba0078f56DeDb2c8",
     "contractName": "PayRewardTokensHandler"
+  },
+  "Market": {
+    "proxy": "0x8C17417408a3A925d1c2EbCADc0F5f98Ca9B6Fce",
+    "contractName": "Market"
+  },
+  "Inventory": {
+    "proxy": "0xD7B8562A39F8AFcDB375C32a5605417B50A6ed9c",
+    "contractName": "Inventory"
+  },
+  "LevelRegistrar": {
+    "proxy": "0xCC5DD03Bf98db8d8eeFf32F9422cF029Aaff2244",
+    "contractName": "LevelRegistrar"
   }
 }
