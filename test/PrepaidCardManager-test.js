@@ -1627,7 +1627,7 @@ contract("PrepaidCardManager", (accounts) => {
 
     // These tests are stateful (ugh), so the prepaidCards[2] balance is now 4
     // daicpxd due to the payment of 1 token made in the previous test
-    it.only("can not send more funds to a merchant than the balance of the prepaid card", async () => {
+    it("can not send more funds to a merchant than the balance of the prepaid card", async () => {
       let startingPrepaidCardDaicpxdBalance = await getBalance(
         daicpxdToken,
         prepaidCard.address
