@@ -346,11 +346,6 @@ contract("PrepaidCardManager", (accounts) => {
         });
     });
 
-    // Note that these prepaid cards are used in the subsequent tests:
-    //   prepaidCards[0] = 1 daicpxd,
-    //   prepaidCards[1] = 2 daicpxd,
-    //   prepaidCards[2] = 5 daicpxd
-    // TODO refactor our tests to be less stateful
     it("should create multi Prepaid Card (1 daicpxd 2 daicpxd 5 daicpxd) ", async () => {
       let amounts = [1, 2, 5].map((amount) => toTokenUnit(amount));
       let paymentActual;
@@ -1173,8 +1168,6 @@ contract("PrepaidCardManager", (accounts) => {
         from: relayer,
       });
     });
-    // Warning this test is stateful, all the other tests rely on this prepaid
-    // card being transferred to a customer
     it("can transfer a card to a customer", async () => {
       let startingDaiBalance = await getBalance(
         daicpxdToken,
@@ -1197,8 +1190,6 @@ contract("PrepaidCardManager", (accounts) => {
       );
     });
 
-    // These tests are stateful (ugh), so the transfer that happened in the
-    // previous test counts against the transfer that is attempted in this test
     it("can not re-transfer a prepaid card that has already been transferred once", async () => {
       let otherCustomer = accounts[9];
       let startingDaiBalance = await getBalance(
@@ -1538,8 +1529,6 @@ contract("PrepaidCardManager", (accounts) => {
       );
     });
 
-    // These tests are stateful (ugh), so the prepaidCards[2] balance is now 4
-    // daicpxd due to the payment of 1 token made in the previous test
     it("can not send more funds to a merchant than the balance of the prepaid card", async () => {
       let startingPrepaidCardDaicpxdBalance = await getBalance(
         daicpxdToken,
