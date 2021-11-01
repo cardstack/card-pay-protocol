@@ -241,11 +241,27 @@ contract("PrepaidCardManager", (accounts) => {
     });
   });
 
-  describe("create prepaid card", () => {
+  describe.only("create prepaid card", () => {
     let walletAmount;
 
-    before(() => {
+    before(async () => {
       walletAmount = toTokenUnit(1000);
+      await prepaidCardManager.setup(
+        tokenManager.address,
+        supplierManager.address,
+        exchange.address,
+        gnosisSafeMasterCopy.address,
+        proxyFactory.address,
+        actionDispatcher.address,
+        gasFeeReceiver,
+        0,
+        MINIMUM_AMOUNT,
+        MAXIMUM_AMOUNT,
+        [contractSigner],
+        versionManager.address
+      );
+      await prepaidCardManager.addGasPolicy("transfer", false);
+      await prepaidCardManager.addGasPolicy("split", false);
     });
 
     beforeEach(async () => {
