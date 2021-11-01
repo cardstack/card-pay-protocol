@@ -243,11 +243,10 @@ contract("PrepaidCardManager", (accounts) => {
     });
   });
 
-  describe.only("create prepaid card", () => {
+  describe("create prepaid card", () => {
     let walletAmount;
 
     before(async () => {
-      walletAmount = toTokenUnit(1000);
       await prepaidCardManager.setup(
         tokenManager.address,
         supplierManager.address,
