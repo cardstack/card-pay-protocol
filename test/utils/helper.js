@@ -1910,6 +1910,18 @@ exports.getPoolBalanceByRewardProgram = async function (
   return rewardPool.rewardBalance(rewardProgramID, token.address);
 };
 
+exports.burnDepotTokens = async function (depot, token, owner, relayer) {
+  let balance = await token.balanceOf(depot.address);
+  let data = token.contract.methods.burn(balance).encodeABI();
+
+  let safeTxData = {
+    to: token.address,
+    data,
+  };
+
+  await signAndSendSafeTransaction(safeTxData, owner, depot, relayer);
+};
+
 exports.toTokenUnit = toTokenUnit;
 exports.encodeCreateCardsData = encodeCreateCardsData;
 exports.packExecutionData = packExecutionData;

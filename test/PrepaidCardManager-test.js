@@ -33,6 +33,7 @@ const {
   setupVersionManager,
   createPrepaidCardAndTransfer,
   registerMerchant,
+  burnDepotTokens,
 } = require("./utils/helper");
 
 const { expect, TOKEN_DETAIL_DATA, toBN } = require("./setup");
@@ -271,17 +272,7 @@ contract("PrepaidCardManager", (accounts) => {
     });
 
     afterEach(async () => {
-      // burn all token in depot wallet
-      let balance = await daicpxdToken.balanceOf(depot.address);
-      let data = daicpxdToken.contract.methods.burn(balance).encodeABI();
-
-      let safeTxData = {
-        to: daicpxdToken.address,
-        data,
-      };
-
-      await signAndSendSafeTransaction(safeTxData, issuer, depot, relayer);
-
+      await burnDepotTokens(depot, daicpxdToken, issuer, relayer);
       // burn all token in relayer wallet
       await daicpxdToken.burn(await daicpxdToken.balanceOf(relayer), {
         from: relayer,
@@ -596,17 +587,7 @@ contract("PrepaidCardManager", (accounts) => {
     });
 
     afterEach(async () => {
-      // burn all token in depot wallet
-      let balance = await daicpxdToken.balanceOf(depot.address);
-      let data = daicpxdToken.contract.methods.burn(balance).encodeABI();
-
-      let safeTxData = {
-        to: daicpxdToken.address,
-        data,
-      };
-
-      await signAndSendSafeTransaction(safeTxData, issuer, depot, relayer);
-
+      await burnDepotTokens(depot, daicpxdToken, issuer, relayer);
       // burn all token in relayer wallet
       await daicpxdToken.burn(await daicpxdToken.balanceOf(relayer), {
         from: relayer,
@@ -949,17 +930,7 @@ contract("PrepaidCardManager", (accounts) => {
     });
 
     afterEach(async () => {
-      // burn all token in depot wallet
-      let balance = await daicpxdToken.balanceOf(depot.address);
-      let data = daicpxdToken.contract.methods.burn(balance).encodeABI();
-
-      let safeTxData = {
-        to: daicpxdToken.address,
-        data,
-      };
-
-      await signAndSendSafeTransaction(safeTxData, issuer, depot, relayer);
-
+      await burnDepotTokens(depot, daicpxdToken, issuer, relayer);
       // burn all token in relayer wallet
       await daicpxdToken.burn(await daicpxdToken.balanceOf(relayer), {
         from: relayer,
@@ -1206,17 +1177,7 @@ contract("PrepaidCardManager", (accounts) => {
     });
 
     afterEach(async () => {
-      // burn all token in depot wallet
-      let balance = await daicpxdToken.balanceOf(depot.address);
-      let data = daicpxdToken.contract.methods.burn(balance).encodeABI();
-
-      let safeTxData = {
-        to: daicpxdToken.address,
-        data,
-      };
-
-      await signAndSendSafeTransaction(safeTxData, issuer, depot, relayer);
-
+      await burnDepotTokens(depot, daicpxdToken, issuer, relayer);
       // burn all token in relayer wallet
       await daicpxdToken.burn(await daicpxdToken.balanceOf(relayer), {
         from: relayer,
@@ -1367,7 +1328,7 @@ contract("PrepaidCardManager", (accounts) => {
     });
   });
 
-  describe.only("use prepaid card for payment", () => {
+  describe("use prepaid card for payment", () => {
     let prepaidCard;
 
     before(async () => {
@@ -1385,16 +1346,6 @@ contract("PrepaidCardManager", (accounts) => {
         [contractSigner],
         versionManager.address
       );
-      // await revenuePool.setup(
-      //   exchange.address,
-      //   merchantManager.address,
-      //   actionDispatcher.address,
-      //   prepaidCardManager.address,
-      //   merchantFeeReceiver,
-      //   0,
-      //   1000,
-      //   versionManager.address
-      // );
       await prepaidCardManager.addGasPolicy("transfer", false);
       await prepaidCardManager.addGasPolicy("split", false);
 
@@ -1436,20 +1387,8 @@ contract("PrepaidCardManager", (accounts) => {
       merchantSafe = merchantCreation[0]["merchantSafe"];
     });
 
-    beforeEach(async () => {});
-
     after(async () => {
-      // burn all token in depot wallet
-      let balance = await daicpxdToken.balanceOf(depot.address);
-      let data = daicpxdToken.contract.methods.burn(balance).encodeABI();
-
-      let safeTxData = {
-        to: daicpxdToken.address,
-        data,
-      };
-
-      await signAndSendSafeTransaction(safeTxData, issuer, depot, relayer);
-
+      await burnDepotTokens(depot, daicpxdToken, issuer, relayer);
       // burn all token in relayer wallet
       await daicpxdToken.burn(await daicpxdToken.balanceOf(relayer), {
         from: relayer,
