@@ -67,7 +67,8 @@ contract("PrepaidCardManager", (accounts) => {
     contractSigner,
     relayer,
     depot,
-    prepaidCards = [];
+    prepaidCards = [],
+    walletAmount;
 
   before(async () => {
     owner = accounts[0];
@@ -78,6 +79,7 @@ contract("PrepaidCardManager", (accounts) => {
     gasFeeReceiver = accounts[5];
     merchantFeeReceiver = accounts[6];
     contractSigner = accounts[7];
+    walletAmount = toTokenUnit(1000);
 
     versionManager = await setupVersionManager(owner);
     proxyFactory = await ProxyFactory.new();
