@@ -1499,22 +1499,14 @@ contract("PrepaidCardManager", (accounts) => {
     });
 
     it("can sign with address lexigraphically before prepaid card manager contract address", async () => {
-      let {
-        prepaidCards: [prepaidCardA],
-      } = await createPrepaidCards(
-        depot,
+      let prepaidCardA = await createPrepaidCardAndTransfer(
         prepaidCardManager,
-        daicpxdToken,
-        issuer,
         relayer,
-        [toTokenUnit(1)]
-      );
-      await transferOwner(
-        prepaidCardManager,
-        prepaidCardA,
+        depot,
         issuer,
-        customerA,
-        relayer
+        daicpxdToken,
+        toTokenUnit(1),
+        customerA
       );
 
       let startingPrepaidCardDaicpxdBalance = await getBalance(
@@ -1546,22 +1538,14 @@ contract("PrepaidCardManager", (accounts) => {
     });
 
     it("can sign with address lexigraphically after prepaid card manager contract address", async () => {
-      let {
-        prepaidCards: [prepaidCardB],
-      } = await createPrepaidCards(
-        depot,
+      let prepaidCardB = await createPrepaidCardAndTransfer(
         prepaidCardManager,
-        daicpxdToken,
-        issuer,
         relayer,
-        [toTokenUnit(1)]
-      );
-      await transferOwner(
-        prepaidCardManager,
-        prepaidCardB,
+        depot,
         issuer,
-        customerB,
-        relayer
+        daicpxdToken,
+        toTokenUnit(5),
+        customerB
       );
 
       let startingPrepaidCardDaicpxdBalance = await getBalance(
