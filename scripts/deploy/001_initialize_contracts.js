@@ -243,7 +243,7 @@ Deployed Contracts:`);
 Implementation contract verification commands:`);
     for (let { name, address } of reverify) {
       console.log(
-        `env HARDHAT_NETWORK=${network} node scripts/verify.js ${name}@${address}`
+        `env HARDHAT_NETWORK=${network} CONTRACT=${name}@${address} hardhat run scripts/verify.js`
       );
     }
   }
