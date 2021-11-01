@@ -12,9 +12,9 @@ contract DIAOracleAdapter is Ownable, Versionable, IPriceOracle {
   using SafeMath for uint256;
 
   uint8 internal constant DECIMALS = 8;
-  address internal oracle;
-  string internal tokenSymbol;
-  address internal daiUsdFeed;
+  address public oracle;
+  string public tokenSymbol;
+  address public daiUsdFeed;
   address public versionManager;
 
   event DAIOracleSetup(

@@ -9,9 +9,9 @@ import "../VersionManager.sol";
 
 contract ChainlinkFeedAdapter is Ownable, Versionable, IPriceOracle {
   using SafeMath for uint256;
-  address internal tokenUsdFeed;
-  address internal ethUsdFeed;
-  address internal daiUsdFeed;
+  address public tokenUsdFeed;
+  address public ethUsdFeed;
+  address public daiUsdFeed;
   address public versionManager;
 
   event ChainlinkFeedSetup(
