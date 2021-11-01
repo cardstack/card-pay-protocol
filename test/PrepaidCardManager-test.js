@@ -945,6 +945,25 @@ contract("PrepaidCardManager", (accounts) => {
         amounts
       ));
     });
+
+    afterEach(async () => {
+      // burn all token in depot wallet
+      let balance = await daicpxdToken.balanceOf(depot.address);
+      let data = daicpxdToken.contract.methods.burn(balance).encodeABI();
+
+      let safeTxData = {
+        to: daicpxdToken.address,
+        data,
+      };
+
+      await signAndSendSafeTransaction(safeTxData, issuer, depot, relayer);
+
+      // burn all token in relayer wallet
+      await daicpxdToken.burn(await daicpxdToken.balanceOf(relayer), {
+        from: relayer,
+      });
+    });
+
     it("can split a card (from 1 prepaid card with 2 tokens to 2 cards with 1 token each)", async () => {
       let amounts = [1, 1].map((amount) => toTokenUnit(amount).toString());
       let safeTx = await splitPrepaidCard(
