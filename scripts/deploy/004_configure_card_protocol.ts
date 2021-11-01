@@ -4,7 +4,8 @@ import { existsSync } from "fs";
 import glob from "glob-promise";
 import dotenv from "dotenv";
 import hre from "hardhat";
-import isEqual from "lodash/isEqual";
+import lodashIsEqual from "lodash/isEqual";
+import difference from "lodash/difference";
 import retry from "async-retry";
 import { makeFactory, patchNetworks, asyncMain, readAddressFile } from "./util";
 import { AddressFile, ContractConfig, Formatter, Value } from "./config-utils";
@@ -133,6 +134,15 @@ Detecting config changes for ${contractId} (${address})`);
   console.log(`
 Completed configurations
 `);
+}
+
+function isEqual(val1, val2): boolean {
+  if (Array.isArray(val1) && Array.isArray(val2)) {
+    return (
+      difference(val1, val2).length === 0 && difference(val2, val1).length === 0
+    );
+  }
+  return lodashIsEqual(val1, val2);
 }
 
 async function getConfig(
