@@ -26,8 +26,8 @@ contract RewardManager is Ownable, Versionable, Safe {
     address oldOwner,
     address newOwner
   );
-  event RewardRuleAdded(address rewardProgramID, string ruleDID);
-  event RewardRuleRemoved(address rewardProgramID, string ruleDID);
+  event RewardRuleAdded(address rewardProgramID, bytes blob);
+  event RewardRuleRemoved(address rewardProgramID);
   event RewardeeRegistered(
     address rewardProgramID,
     address rewardee,
@@ -37,11 +37,6 @@ contract RewardManager is Ownable, Versionable, Safe {
   struct RewardProgram {
     address admin;
     bool locked;
-  }
-
-  struct Rule {
-    string tallyRuleDID;
-    string benefitDID;
   }
 
   address internal constant ZERO_ADDRESS = address(0);
@@ -60,7 +55,7 @@ contract RewardManager is Ownable, Versionable, Safe {
   mapping(address => address) public rewardProgramAdmins; //reward program id <> reward program admins
   mapping(address => RewardProgram) public rewardPrograms; //reward program ids
   mapping(address => EnumerableSet.AddressSet) internal rewardSafes; //reward program id <> reward safes
-  mapping(address => mapping(string => Rule)) public rule; //reward program id <> rule did <> Rule
+  mapping(address => bytes32) public rule; //reward program id <> bytes32
   mapping(address => bool) public rewardProgramLocked; //reward program id <> locked
   mapping(bytes32 => bool) internal signatures;
   address public versionManager;
@@ -147,20 +142,11 @@ contract RewardManager is Ownable, Versionable, Safe {
 
   function addRewardRule(
     address rewardProgramID,
-    string calldata ruleDID,
-    string calldata tallyRuleDID,
-    string calldata benefitDID
+    bytes calldata blob
   ) external onlyHandlers {
-    rule[rewardProgramID][ruleDID] = Rule(tallyRuleDID, benefitDID);
-    emit RewardRuleAdded(rewardProgramID, ruleDID);
-  }
-
-  function removeRewardRule(address rewardProgramID, string calldata ruleDID)
-    external
-    onlyHandlers
-  {
-    delete rule[rewardProgramID][ruleDID];
-    emit RewardRuleRemoved(rewardProgramID, ruleDID);
+    require(rule[rewardProgramID] == 0, "reward rule has been assigned");
+    rule[rewardProgramID]=keccak256(abi.encodePacked(blob));
+    emit RewardRuleAdded(rewardProgramID, blob);
   }
 
   function lockRewardProgram(address rewardProgramID) external onlyHandlers {
@@ -328,28 +314,28 @@ contract RewardManager is Ownable, Versionable, Safe {
         : bytes4(0);
   }
 
-  function hasRule(address rewardProgramID, string calldata ruleDID)
-    external
-    view
-    returns (bool)
-  {
-    if (_equalRule(rule[rewardProgramID][ruleDID], Rule("", ""))) {
-      return false;
-    } else {
-      return true;
-    }
-  }
+  // function hasRule(address rewardProgramID, string calldata ruleDID)
+  //   external
+  //   view
+  //   returns (bool)
+  // {
+  //   if (_equalRule(rule[rewardProgramID][ruleDID], Rule("", ""))) {
+  //     return false;
+  //   } else {
+  //     return true;
+  //   }
+  // }
 
-  function _equalRule(Rule memory rule1, Rule memory rule2)
-    internal
-    pure
-    returns (bool)
-  {
-    // Used to check if the Rule Struct has all default values
-    return
-      (keccak256(abi.encodePacked(rule1.tallyRuleDID, rule1.benefitDID))) ==
-      keccak256(abi.encodePacked(rule2.tallyRuleDID, rule2.benefitDID));
-  }
+  // function _equalRule(Rule memory rule1, Rule memory rule2)
+  //   internal
+  //   pure
+  //   returns (bool)
+  // {
+  //   // Used to check if the Rule Struct has all default values
+  //   return
+  //     (keccak256(abi.encodePacked(rule1.tallyRuleDID, rule1.benefitDID))) ==
+  //     keccak256(abi.encodePacked(rule2.tallyRuleDID, rule2.benefitDID));
+  // }
 
   function _createSalt(address rewardProgramID, address prepaidCardOwner)
     internal
