@@ -14,9 +14,7 @@ contract AddRewardRuleHandler is Ownable, Versionable {
   event RewardRuleAdded(
     address prepaidCard,
     address rewardProgramID,
-    string ruleDID,
-    string tallyRuleDID,
-    string benefitRuleDID
+    bytes blob
   );
 
   address public actionDispatcher;
@@ -64,15 +62,12 @@ contract AddRewardRuleHandler is Ownable, Versionable {
 
     (
       address rewardProgramID,
-      string memory ruleDID,
-      string memory tallyRuleDID,
-      string memory benefitDID
-    ) = abi.decode(actionData, (address, string, string, string));
+      bytes memory blob
+    ) = abi.decode(actionData, (address, bytes));
 
     address prepaidCardOwner = PrepaidCardManager(prepaidCardManager)
       .getPrepaidCardOwner(prepaidCard);
 
-    //replacement for onlyAdmin
     require(
       RewardManager(rewardManagerAddress).rewardProgramAdmins(
         rewardProgramID
@@ -81,16 +76,12 @@ contract AddRewardRuleHandler is Ownable, Versionable {
     );
     RewardManager(rewardManagerAddress).addRewardRule(
       rewardProgramID,
-      ruleDID,
-      tallyRuleDID,
-      benefitDID
+      blob
     );
     emit RewardRuleAdded(
       prepaidCard,
       rewardProgramID,
-      ruleDID,
-      tallyRuleDID,
-      benefitDID
+      blob
     );
     return true;
   }
