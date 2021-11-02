@@ -1063,32 +1063,31 @@ contract("RewardManager", (accounts) => {
       );
     });
     it("register rewardee for reward program", async () => {
-      let startingPrepaidCardDaicpxdBalance = await getBalance(
+      let previousPrepaidCardBalanceDai = await getBalance(
         daicpxdToken,
         prepaidCard.address
       );
-      let startingRewardFeeReceiverDaicpxdBalance = await getBalance(
-        daicpxdToken,
-        rewardFeeReceiver
-      );
-      await registerRewardee(
+      const txn = await registerRewardee(
         prepaidCardManager,
         prepaidCard,
         relayer,
         prepaidCardOwner,
-        REWARDEE_REGISTRATION_FEE_IN_SPEND,
+        0,
         undefined,
         rewardProgramID
       );
-      await shouldBeSameBalance(
-        daicpxdToken,
-        prepaidCard.address,
-        startingPrepaidCardDaicpxdBalance.sub(toTokenUnit(5))
+      const { gasFee, success } = await checkGnosisExecution(
+        txn,
+        prepaidCard.address
       );
-      await shouldBeSameBalance(
+      const prepaidCardBalanceDai = await getBalance(
         daicpxdToken,
-        rewardFeeReceiver,
-        startingRewardFeeReceiverDaicpxdBalance.add(toTokenUnit(5))
+        prepaidCard.address
+      );
+      assert(success, "gnosis execution succesfull");
+      assert(
+        previousPrepaidCardBalanceDai.sub(gasFee).eq(prepaidCardBalanceDai),
+        "the prepaid card token balance is correct"
       );
     });
 
@@ -1142,7 +1141,7 @@ contract("RewardManager", (accounts) => {
         prepaidCard,
         relayer,
         prepaidCardOwner,
-        REWARDEE_REGISTRATION_FEE_IN_SPEND,
+        0,
         undefined,
         rewardProgramID
       );
@@ -1160,50 +1159,10 @@ contract("RewardManager", (accounts) => {
         otherPrepaidCard,
         relayer,
         prepaidCardOwner,
-        REWARDEE_REGISTRATION_FEE_IN_SPEND,
+        0,
         undefined,
         rewardProgramID
       ).should.be.rejectedWith(Error, "safe transaction was reverted");
-    });
-    it("reverts when rewardee doesn't have enough in their prepaid card for the rewardee registration fee amount", async () => {
-      await registerRewardee(
-        prepaidCardManager,
-        prepaidCard,
-        relayer,
-        prepaidCardOwner,
-        REWARDEE_REGISTRATION_FEE_IN_SPEND - 1,
-        undefined,
-        rewardProgramID
-      ).should.be.rejectedWith(Error, "safe transaction was reverted");
-    });
-    it("refunds the prepaid card if the rewardee pays more than the registration fee", async () => {
-      let startingPrepaidCardDaicpxdBalance = await getBalance(
-        daicpxdToken,
-        prepaidCard.address
-      );
-      let startingRewardFeeReceiverDaicpxdBalance = await getBalance(
-        daicpxdToken,
-        rewardFeeReceiver
-      );
-      await registerRewardee(
-        prepaidCardManager,
-        prepaidCard,
-        relayer,
-        prepaidCardOwner,
-        REWARDEE_REGISTRATION_FEE_IN_SPEND + 1,
-        undefined,
-        rewardProgramID
-      );
-      await shouldBeSameBalance(
-        daicpxdToken,
-        prepaidCard.address,
-        startingPrepaidCardDaicpxdBalance.sub(toTokenUnit(5))
-      );
-      await shouldBeSameBalance(
-        daicpxdToken,
-        rewardFeeReceiver,
-        startingRewardFeeReceiverDaicpxdBalance.add(toTokenUnit(5))
-      );
     });
   });
 
