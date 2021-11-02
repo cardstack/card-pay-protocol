@@ -1241,22 +1241,18 @@ exports.registerRewardee = async function (
   prepaidCard,
   relayer,
   prepaidCardOwner,
-  spendAmount,
   usdRate,
   rewardProgramID
 ) {
   if (usdRate == null) {
     usdRate = 100000000;
   }
-  if (spendAmount > 0) {
-    throw new Error("Spend amount should be 0");
-  }
   let issuingToken = await getIssuingToken(prepaidCardManager, prepaidCard);
   const actionName = "registerRewardee";
   const actionData = AbiCoder.encodeParameters(["address"], [rewardProgramID]);
   let data = await prepaidCardManager.getSendData(
     prepaidCard.address,
-    spendAmount,
+    0, //do not need to send spend amount
     usdRate,
     actionName,
     actionData
@@ -1279,7 +1275,7 @@ exports.registerRewardee = async function (
 
   return await prepaidCardManager.send(
     prepaidCard.address,
-    spendAmount,
+    0, // do not need to send spend amount
     usdRate,
     DEFAULT_GAS_PRICE,
     BLOCK_GAS_LIMIT,

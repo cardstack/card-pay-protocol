@@ -1046,7 +1046,6 @@ contract("RewardManager", (accounts) => {
         prepaidCard,
         relayer,
         prepaidCardOwner,
-        0,
         undefined,
         rewardProgramID
       );
@@ -1115,7 +1114,6 @@ contract("RewardManager", (accounts) => {
         prepaidCard,
         relayer,
         prepaidCardOwner,
-        0,
         undefined,
         rewardProgramID
       );
@@ -1133,7 +1131,6 @@ contract("RewardManager", (accounts) => {
         otherPrepaidCard,
         relayer,
         prepaidCardOwner,
-        0,
         undefined,
         rewardProgramID
       ).should.be.rejectedWith(Error, "safe transaction was reverted");
@@ -1172,7 +1169,6 @@ contract("RewardManager", (accounts) => {
         prepaidCard,
         relayer,
         prepaidCardOwner,
-        0,
         undefined,
         rewardProgramID
       );
@@ -1204,7 +1200,6 @@ contract("RewardManager", (accounts) => {
         prepaidCard,
         relayer,
         prepaidCardOwner,
-        0,
         undefined,
         rewardProgramID
       );
@@ -1233,7 +1228,6 @@ contract("RewardManager", (accounts) => {
         prepaidCard,
         relayer,
         prepaidCardOwner,
-        0,
         undefined,
         rewardProgramID
       );
@@ -1261,7 +1255,6 @@ contract("RewardManager", (accounts) => {
         prepaidCard,
         relayer,
         prepaidCardOwner,
-        0,
         undefined,
         rewardProgramID
       );
@@ -1303,7 +1296,6 @@ contract("RewardManager", (accounts) => {
         prepaidCard,
         relayer,
         prepaidCardOwner,
-        0,
         undefined,
         rewardProgramID
       );
@@ -1352,7 +1344,6 @@ contract("RewardManager", (accounts) => {
         prepaidCard,
         relayer,
         prepaidCardOwnerA,
-        0,
         undefined,
         rewardProgramID
       );
@@ -1392,7 +1383,6 @@ contract("RewardManager", (accounts) => {
         prepaidCard,
         relayer,
         prepaidCardOwnerB,
-        0,
         undefined,
         rewardProgramID
       );
