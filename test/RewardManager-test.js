@@ -1198,7 +1198,7 @@ contract("RewardManager", (accounts) => {
         prepaidCard,
         relayer,
         prepaidCardOwner,
-        REWARDEE_REGISTRATION_FEE_IN_SPEND,
+        0,
         undefined,
         rewardProgramID
       );
@@ -1230,7 +1230,7 @@ contract("RewardManager", (accounts) => {
         prepaidCard,
         relayer,
         prepaidCardOwner,
-        REWARDEE_REGISTRATION_FEE_IN_SPEND,
+        0,
         undefined,
         rewardProgramID
       );
@@ -1287,7 +1287,7 @@ contract("RewardManager", (accounts) => {
         prepaidCard,
         relayer,
         prepaidCardOwner,
-        REWARDEE_REGISTRATION_FEE_IN_SPEND,
+        0,
         undefined,
         rewardProgramID
       );
@@ -1329,7 +1329,7 @@ contract("RewardManager", (accounts) => {
         prepaidCard,
         relayer,
         prepaidCardOwner,
-        REWARDEE_REGISTRATION_FEE_IN_SPEND,
+        0,
         undefined,
         rewardProgramID
       );
@@ -1378,7 +1378,7 @@ contract("RewardManager", (accounts) => {
         prepaidCard,
         relayer,
         prepaidCardOwnerA,
-        REWARDEE_REGISTRATION_FEE_IN_SPEND,
+        0,
         undefined,
         rewardProgramID
       );
@@ -1418,7 +1418,7 @@ contract("RewardManager", (accounts) => {
         prepaidCard,
         relayer,
         prepaidCardOwnerB,
-        REWARDEE_REGISTRATION_FEE_IN_SPEND,
+        0,
         undefined,
         rewardProgramID
       );
