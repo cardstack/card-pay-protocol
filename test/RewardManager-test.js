@@ -42,7 +42,6 @@ const {
 
 const AbiCoder = require("web3-eth-abi");
 
-const REWARDEE_REGISTRATION_FEE_IN_SPEND = 500;
 const REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND = 500;
 const tallyRuleDID = "did:cardstack:1tdnHDwr8Z4Z7sHGceo2kArC9a5a297f45ef5491";
 const benefitDID = "did:cardstack:1b1kyKHhwKF5BT3w4p8w5AGc12ada71be496beea";
@@ -190,7 +189,6 @@ contract("RewardManager", (accounts) => {
       gnosisSafeMasterCopy.address,
       proxyFactory.address,
       rewardFeeReceiver,
-      REWARDEE_REGISTRATION_FEE_IN_SPEND,
       REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
       [rewardPool.address],
       versionManager.address
@@ -250,7 +248,6 @@ contract("RewardManager", (accounts) => {
         gnosisSafeMasterCopy.address,
         proxyFactory.address,
         rewardFeeReceiver,
-        REWARDEE_REGISTRATION_FEE_IN_SPEND,
         REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
         [rewardPool.address],
         versionManager.address
@@ -264,29 +261,11 @@ contract("RewardManager", (accounts) => {
           gnosisSafeMasterCopy.address,
           proxyFactory.address,
           ZERO_ADDRESS,
-          REWARDEE_REGISTRATION_FEE_IN_SPEND,
           REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
           [rewardPool.address],
           versionManager.address
         )
         .should.be.rejectedWith(Error, "rewardFeeReceiver not set");
-    });
-    it("reverts when rewardeeRegistrationFeeInSPEND is not set", async () => {
-      await rewardManager
-        .setup(
-          actionDispatcher.address,
-          gnosisSafeMasterCopy.address,
-          proxyFactory.address,
-          rewardFeeReceiver,
-          0,
-          REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
-          [rewardPool.address],
-          versionManager.address
-        )
-        .should.be.rejectedWith(
-          Error,
-          "rewardeeRegistrationFeeInSPEND is not set"
-        );
     });
 
     it("reverts when rewardProgramRegistrationFeeInSPEND is not set", async () => {
@@ -296,7 +275,6 @@ contract("RewardManager", (accounts) => {
           gnosisSafeMasterCopy.address,
           proxyFactory.address,
           rewardFeeReceiver,
-          REWARDEE_REGISTRATION_FEE_IN_SPEND,
           0,
           [rewardPool.address],
           versionManager.address
@@ -313,7 +291,6 @@ contract("RewardManager", (accounts) => {
           gnosisSafeMasterCopy.address,
           proxyFactory.address,
           rewardFeeReceiver,
-          REWARDEE_REGISTRATION_FEE_IN_SPEND,
           REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
           [rewardPool.address],
           versionManager.address,
@@ -1259,7 +1236,7 @@ contract("RewardManager", (accounts) => {
         prepaidCard,
         relayer,
         prepaidCardOwner,
-        REWARDEE_REGISTRATION_FEE_IN_SPEND,
+        0,
         undefined,
         rewardProgramID
       );

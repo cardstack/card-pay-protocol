@@ -21,7 +21,6 @@ const {
 } = require("./helper");
 
 //constants
-const REWARDEE_REGISTRATION_FEE_IN_SPEND = 500;
 const REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND = 500;
 
 const utils = require("./general");
@@ -121,7 +120,6 @@ const setupProtocol = async (accounts) => {
     gnosisSafeMasterCopy.address,
     proxyFactory.address,
     rewardFeeReceiver,
-    REWARDEE_REGISTRATION_FEE_IN_SPEND,
     REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
     [rewardPool.address],
     versionManager.address
