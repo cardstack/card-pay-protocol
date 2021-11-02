@@ -136,17 +136,11 @@ contract RewardManager is Ownable, Versionable, Safe {
 
   function addRewardRule(
     address rewardProgramID,
-    bytes calldata blob,
+    string calldata ruleDID,
+    string calldata tallyRuleDID,
+    string calldata benefitDID
   ) external onlyHandlers {
-
-    emit RewardRuleAdded(rewardProgramID, ruleDID);
-  }
-
-  function updateRewardRule(
-    address rewardProgramID,
-    bytes calldata blob,
-  ) external onlyHandlers {
-
+    rule[rewardProgramID][ruleDID] = Rule(tallyRuleDID, benefitDID);
     emit RewardRuleAdded(rewardProgramID, ruleDID);
   }
 
