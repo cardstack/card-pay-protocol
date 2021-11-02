@@ -47,6 +47,10 @@ export default async function (
         name: "versionManager",
         value: address("VersionManager"),
       },
+      {
+        name: "governanceAdmin",
+        value: GOVERNANCE_ADMIN,
+      },
     ],
   });
 }
