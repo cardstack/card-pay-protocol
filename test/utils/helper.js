@@ -34,7 +34,6 @@ const PayRewardTokensHandler = artifacts.require("PayRewardTokensHandler");
 const VersionManager = artifacts.require("VersionManager");
 
 const { toBN } = require("web3-utils");
-const { TOKEN_DETAIL_DATA } = require("../setup");
 const eventABIs = require("./constant/eventABIs");
 const {
   getParamsFromEvent,
