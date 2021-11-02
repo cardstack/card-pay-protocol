@@ -303,9 +303,6 @@ contract("RewardManager", (accounts) => {
         rewardFeeReceiver
       );
       expect(
-        (await rewardManager.rewardeeRegistrationFeeInSPEND()).toString()
-      ).to.equal("500");
-      expect(
         (await rewardManager.rewardProgramRegistrationFeeInSPEND()).toString()
       ).to.equal("500");
       expect((await rewardManager.actionDispatcher()).toString()).to.equal(
