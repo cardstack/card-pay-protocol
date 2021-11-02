@@ -314,29 +314,6 @@ contract RewardManager is Ownable, Versionable, Safe {
         : bytes4(0);
   }
 
-  // function hasRule(address rewardProgramID, string calldata ruleDID)
-  //   external
-  //   view
-  //   returns (bool)
-  // {
-  //   if (_equalRule(rule[rewardProgramID][ruleDID], Rule("", ""))) {
-  //     return false;
-  //   } else {
-  //     return true;
-  //   }
-  // }
-
-  // function _equalRule(Rule memory rule1, Rule memory rule2)
-  //   internal
-  //   pure
-  //   returns (bool)
-  // {
-  //   // Used to check if the Rule Struct has all default values
-  //   return
-  //     (keccak256(abi.encodePacked(rule1.tallyRuleDID, rule1.benefitDID))) ==
-  //     keccak256(abi.encodePacked(rule2.tallyRuleDID, rule2.benefitDID));
-  // }
-
   function _createSalt(address rewardProgramID, address prepaidCardOwner)
     internal
     pure
