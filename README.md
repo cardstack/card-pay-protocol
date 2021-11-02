@@ -217,7 +217,6 @@ Determine the address that you are using to perform the deployment (usually we u
     - `MERCHANT_FEE_RECEIVER` This is the address that will receive the merchant fees (presumably a gnosis safe on layer 2)
     - `REWARD_FEE_RECIEVER` This is the address that will receive the reward registration fees (presumably a gnosis safe on layer 2)
     - `REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND` This is the registration fee that `rewardProgramAdmins` must pay to register a reward program.
-    - `REWARDEE_REGISTRATION_FEE_IN_SPEND` This is the registration fee that `rewardees` must pay to register to become a rewardee of a reward program.
 
     The contract addresses that are created are saved in a `./openzeppelin/addresses-{network}.json` file.
 
