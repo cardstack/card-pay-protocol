@@ -122,6 +122,7 @@ contract RewardPool is Initializable, Versionable, Ownable {
 
     require(msg.sender == payee, "Can only be claimed by payee");
     require(valid(leaf, proof), "Proof is invalid");
+    require(claimed(leaf) == false, "Reward has already been claimed");
 
 
     address rewardSafeOwner = RewardManager(rewardManager).getRewardSafeOwner(
@@ -134,10 +135,6 @@ contract RewardPool is Initializable, Versionable, Ownable {
       ),
       "can only withdraw for safe registered on reward program"
     );
-
-    require(rewardsClaimed[paymentCycleNumber][rewardProgramID][payableToken][
-      rewardSafeOwner
-    ] != true, "Proof has already been claimed");
 
     require(
       IERC677(payableToken).balanceOf(address(this)) >= amount,
