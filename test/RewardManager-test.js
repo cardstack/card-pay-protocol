@@ -253,8 +253,8 @@ contract("RewardManager", (accounts) => {
         rewardFeeReceiver,
         REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
         [rewardPool.address],
-        versionManager.address,
-        governanceAdmin
+        governanceAdmin,
+        versionManager.address
       );
     });
 
@@ -267,8 +267,8 @@ contract("RewardManager", (accounts) => {
           ZERO_ADDRESS,
           REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
           [rewardPool.address],
-          versionManager.address,
-          governanceAdmin
+          governanceAdmin,
+          versionManager.address
         )
         .should.be.rejectedWith(Error, "rewardFeeReceiver not set");
     });

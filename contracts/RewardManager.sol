@@ -77,6 +77,7 @@ contract RewardManager is Ownable, Versionable, Safe {
     require(msg.sender == governanceAdmin, "caller is not governance admin");
     _;
   }
+
   function initialize(address owner) public initializer {
     _nonce = 0;
     Ownable.initialize(owner);
@@ -127,7 +128,10 @@ contract RewardManager is Ownable, Versionable, Safe {
     emit RewardProgramCreated(rewardProgramID, admin);
   }
 
-  function removeRewardProgram(address rewardProgramID) external onlyGovernanceAdmin {
+  function removeRewardProgram(address rewardProgramID)
+    external
+    onlyGovernanceAdmin
+  {
     rewardProgramIDs.remove(rewardProgramID);
     delete rewardProgramAdmins[rewardProgramID];
     emit RewardProgramRemoved(rewardProgramID);
