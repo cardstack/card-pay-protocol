@@ -34,7 +34,6 @@ const PayRewardTokensHandler = artifacts.require("PayRewardTokensHandler");
 const VersionManager = artifacts.require("VersionManager");
 
 const { toBN } = require("web3-utils");
-const { TOKEN_DETAIL_DATA } = require("../setup");
 const eventABIs = require("./constant/eventABIs");
 const {
   getParamsFromEvent,
@@ -1908,6 +1907,18 @@ exports.getPoolBalanceByRewardProgram = async function (
   token
 ) {
   return rewardPool.rewardBalance(rewardProgramID, token.address);
+};
+
+exports.burnDepotTokens = async function (depot, token, owner, relayer) {
+  let balance = await token.balanceOf(depot.address);
+  let data = token.contract.methods.burn(balance).encodeABI();
+
+  let safeTxData = {
+    to: token.address,
+    data,
+  };
+
+  await signAndSendSafeTransaction(safeTxData, owner, depot, relayer);
 };
 
 exports.toTokenUnit = toTokenUnit;

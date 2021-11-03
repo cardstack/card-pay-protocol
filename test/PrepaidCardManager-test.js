@@ -31,6 +31,9 @@ const {
   findAccountBeforeAddress,
   findAccountAfterAddress,
   setupVersionManager,
+  createPrepaidCardAndTransfer,
+  registerMerchant,
+  burnDepotTokens,
 } = require("./utils/helper");
 
 const { expect, TOKEN_DETAIL_DATA, toBN } = require("./setup");
@@ -67,7 +70,8 @@ contract("PrepaidCardManager", (accounts) => {
     contractSigner,
     relayer,
     depot,
-    prepaidCards = [];
+    prepaidCards = [],
+    walletAmount;
 
   before(async () => {
     owner = accounts[0];
@@ -78,6 +82,7 @@ contract("PrepaidCardManager", (accounts) => {
     gasFeeReceiver = accounts[5];
     merchantFeeReceiver = accounts[6];
     contractSigner = accounts[7];
+    walletAmount = toTokenUnit(1000);
 
     versionManager = await setupVersionManager(owner);
     proxyFactory = await ProxyFactory.new();
@@ -242,10 +247,23 @@ contract("PrepaidCardManager", (accounts) => {
   });
 
   describe("create prepaid card", () => {
-    let walletAmount;
-
-    before(() => {
-      walletAmount = toTokenUnit(1000);
+    before(async () => {
+      await prepaidCardManager.setup(
+        tokenManager.address,
+        supplierManager.address,
+        exchange.address,
+        gnosisSafeMasterCopy.address,
+        proxyFactory.address,
+        actionDispatcher.address,
+        gasFeeReceiver,
+        0,
+        MINIMUM_AMOUNT,
+        MAXIMUM_AMOUNT,
+        [contractSigner],
+        versionManager.address
+      );
+      await prepaidCardManager.addGasPolicy("transfer", false);
+      await prepaidCardManager.addGasPolicy("split", false);
     });
 
     beforeEach(async () => {
@@ -254,17 +272,7 @@ contract("PrepaidCardManager", (accounts) => {
     });
 
     afterEach(async () => {
-      // burn all token in depot wallet
-      let balance = await daicpxdToken.balanceOf(depot.address);
-      let data = daicpxdToken.contract.methods.burn(balance).encodeABI();
-
-      let safeTxData = {
-        to: daicpxdToken.address,
-        data,
-      };
-
-      await signAndSendSafeTransaction(safeTxData, issuer, depot, relayer);
-
+      await burnDepotTokens(depot, daicpxdToken, issuer, relayer);
       // burn all token in relayer wallet
       await daicpxdToken.burn(await daicpxdToken.balanceOf(relayer), {
         from: relayer,
@@ -338,11 +346,6 @@ contract("PrepaidCardManager", (accounts) => {
         });
     });
 
-    // Note that these prepaid cards are used in the subsequent tests:
-    //   prepaidCards[0] = 1 daicpxd,
-    //   prepaidCards[1] = 2 daicpxd,
-    //   prepaidCards[2] = 5 daicpxd
-    // TODO refactor our tests to be less stateful
     it("should create multi Prepaid Card (1 daicpxd 2 daicpxd 5 daicpxd) ", async () => {
       let amounts = [1, 2, 5].map((amount) => toTokenUnit(amount));
       let paymentActual;
@@ -579,17 +582,7 @@ contract("PrepaidCardManager", (accounts) => {
     });
 
     afterEach(async () => {
-      // burn all token in depot wallet
-      let balance = await daicpxdToken.balanceOf(depot.address);
-      let data = daicpxdToken.contract.methods.burn(balance).encodeABI();
-
-      let safeTxData = {
-        to: daicpxdToken.address,
-        data,
-      };
-
-      await signAndSendSafeTransaction(safeTxData, issuer, depot, relayer);
-
+      await burnDepotTokens(depot, daicpxdToken, issuer, relayer);
       // burn all token in relayer wallet
       await daicpxdToken.burn(await daicpxdToken.balanceOf(relayer), {
         from: relayer,
@@ -898,6 +891,47 @@ contract("PrepaidCardManager", (accounts) => {
   });
 
   describe("split prepaid card", () => {
+    before(async () => {
+      // Setup card manager contract
+      await prepaidCardManager.setup(
+        tokenManager.address,
+        supplierManager.address,
+        exchange.address,
+        gnosisSafeMasterCopy.address,
+        proxyFactory.address,
+        actionDispatcher.address,
+        gasFeeReceiver,
+        0,
+        MINIMUM_AMOUNT,
+        MAXIMUM_AMOUNT,
+        [contractSigner],
+        versionManager.address
+      );
+      await prepaidCardManager.addGasPolicy("transfer", false);
+      await prepaidCardManager.addGasPolicy("split", false);
+    });
+
+    beforeEach(async () => {
+      await daicpxdToken.mint(depot.address, walletAmount);
+      let amounts = [1, 2, 5].map((amount) => toTokenUnit(amount));
+      ({ prepaidCards } = await createPrepaidCards(
+        depot,
+        prepaidCardManager,
+        daicpxdToken,
+        issuer,
+        relayer,
+        amounts
+      ));
+    });
+
+    afterEach(async () => {
+      await burnDepotTokens(depot, daicpxdToken, issuer, relayer);
+      // burn all token in relayer wallet
+      await daicpxdToken.burn(await daicpxdToken.balanceOf(relayer), {
+        from: relayer,
+      });
+    });
+
     it("can split a card (from 1 prepaid card with 2 tokens to 2 cards with 1 token each)", async () => {
       let amounts = [1, 1].map((amount) => toTokenUnit(amount).toString());
       let safeTx = await splitPrepaidCard(
@@ -939,25 +973,15 @@ contract("PrepaidCardManager", (accounts) => {
 
     it("a prepaid card cannot be split after it is transferred", async () => {
       await daicpxdToken.mint(depot.address, toTokenUnit(3));
-      let {
-        prepaidCards: [prepaidCard],
-      } = await createPrepaidCards(
-        depot,
+      let prepaidCard = await createPrepaidCardAndTransfer(
         prepaidCardManager,
-        daicpxdToken,
-        issuer,
         relayer,
-        [toTokenUnit(2)]
-      );
-
-      await transferOwner(
-        prepaidCardManager,
-        prepaidCard,
+        depot,
         issuer,
-        customer,
-        relayer
+        daicpxdToken,
+        toTokenUnit(2),
+        customer
       );
-
       let amounts = [1, 1].map((amount) => toTokenUnit(amount).toString());
       await splitPrepaidCard(
         prepaidCardManager,
@@ -1106,11 +1130,44 @@ contract("PrepaidCardManager", (accounts) => {
   describe("transfer a prepaid card", () => {
     let prepaidCard;
     before(async () => {
-      prepaidCard = prepaidCards[2];
+      await prepaidCardManager.setup(
+        tokenManager.address,
+        supplierManager.address,
+        exchange.address,
+        gnosisSafeMasterCopy.address,
+        proxyFactory.address,
+        actionDispatcher.address,
+        gasFeeReceiver,
+        0,
+        MINIMUM_AMOUNT,
+        MAXIMUM_AMOUNT,
+        [contractSigner],
+        versionManager.address
+      );
+      await prepaidCardManager.addGasPolicy("transfer", false);
+      await prepaidCardManager.addGasPolicy("split", false);
     });
 
-    // Warning this test is stateful, all the other tests rely on this prepaid
-    // card being transferred to a customer
+    beforeEach(async () => {
+      await daicpxdToken.mint(depot.address, walletAmount);
+      ({ prepaidCards } = await createPrepaidCards(
+        depot,
+        prepaidCardManager,
+        daicpxdToken,
+        issuer,
+        relayer,
+        [toTokenUnit(2)]
+      ));
+      prepaidCard = prepaidCards[0];
+    });
+
+    afterEach(async () => {
+      await burnDepotTokens(depot, daicpxdToken, issuer, relayer);
+      // burn all token in relayer wallet
+      await daicpxdToken.burn(await daicpxdToken.balanceOf(relayer), {
+        from: relayer,
+      });
+    });
     it("can transfer a card to a customer", async () => {
       let startingDaiBalance = await getBalance(
         daicpxdToken,
@@ -1133,10 +1190,25 @@ contract("PrepaidCardManager", (accounts) => {
       );
     });
 
-    // These tests are stateful (ugh), so the transfer that happened in the
-    // previous test counts against the transfer that is attempted in this test
     it("can not re-transfer a prepaid card that has already been transferred once", async () => {
       let otherCustomer = accounts[9];
+      let startingDaiBalance = await getBalance(
+        daicpxdToken,
+        prepaidCard.address
+      );
+      await transferOwner(
+        prepaidCardManager,
+        prepaidCard,
+        issuer,
+        customer,
+        relayer
+      );
+      await prepaidCard.isOwner(customer).should.eventually.become(true);
+      await shouldBeSameBalance(
+        daicpxdToken,
+        prepaidCard.address,
+        startingDaiBalance
+      );
       await transferOwner(
         prepaidCardManager,
         prepaidCard,
@@ -1241,26 +1313,53 @@ contract("PrepaidCardManager", (accounts) => {
     let prepaidCard;
 
     before(async () => {
-      prepaidCard = prepaidCards[2];
-      await daicpxdToken.mint(depot.address, toTokenUnit(100));
-      let {
-        prepaidCards: [merchantPrepaidCard],
-      } = await createPrepaidCards(
-        depot,
-        prepaidCardManager,
-        daicpxdToken,
-        issuer,
-        relayer,
-        [toTokenUnit(10)]
+      await prepaidCardManager.setup(
+        tokenManager.address,
+        supplierManager.address,
+        exchange.address,
+        gnosisSafeMasterCopy.address,
+        proxyFactory.address,
+        actionDispatcher.address,
+        gasFeeReceiver,
+        0,
+        MINIMUM_AMOUNT,
+        MAXIMUM_AMOUNT,
+        [contractSigner],
+        versionManager.address
       );
-      await transferOwner(
+      await prepaidCardManager.addGasPolicy("transfer", false);
+      await prepaidCardManager.addGasPolicy("split", false);
+
+      await daicpxdToken.mint(depot.address, toTokenUnit(100));
+
+      prepaidCard = await createPrepaidCardAndTransfer(
+        prepaidCardManager,
+        relayer,
+        depot,
+        issuer,
+        daicpxdToken,
+        toTokenUnit(5),
+        customer
+      );
+
+      let merchantPrepaidCard = await createPrepaidCardAndTransfer(
+        prepaidCardManager,
+        relayer,
+        depot,
+        issuer,
+        daicpxdToken,
+        toTokenUnit(10),
+        merchant
+      );
+      const merchantTx = await registerMerchant(
         prepaidCardManager,
         merchantPrepaidCard,
-        issuer,
+        relayer,
         merchant,
-        relayer
+        1000,
+        undefined,
+        "did:cardstack:another-merchant-safe"
       );
-      let merchantTx = await merchantManager.registerMerchant(merchant, "");
       let merchantCreation = await getParamsFromEvent(
         merchantTx,
         eventABIs.MERCHANT_CREATION,
@@ -1270,17 +1369,7 @@ contract("PrepaidCardManager", (accounts) => {
     });
 
     after(async () => {
-      // burn all token in depot wallet
-      let balance = await daicpxdToken.balanceOf(depot.address);
-      let data = daicpxdToken.contract.methods.burn(balance).encodeABI();
-
-      let safeTxData = {
-        to: daicpxdToken.address,
-        data,
-      };
-
-      await signAndSendSafeTransaction(safeTxData, issuer, depot, relayer);
-
+      await burnDepotTokens(depot, daicpxdToken, issuer, relayer);
       // burn all token in relayer wallet
       await daicpxdToken.burn(await daicpxdToken.balanceOf(relayer), {
         from: relayer,
@@ -1330,22 +1419,14 @@ contract("PrepaidCardManager", (accounts) => {
     });
 
     it("can sign with address lexigraphically before prepaid card manager contract address", async () => {
-      let {
-        prepaidCards: [prepaidCardA],
-      } = await createPrepaidCards(
-        depot,
+      let prepaidCardA = await createPrepaidCardAndTransfer(
         prepaidCardManager,
-        daicpxdToken,
-        issuer,
         relayer,
-        [toTokenUnit(1)]
-      );
-      await transferOwner(
-        prepaidCardManager,
-        prepaidCardA,
+        depot,
         issuer,
-        customerA,
-        relayer
+        daicpxdToken,
+        toTokenUnit(1),
+        customerA
       );
 
       let startingPrepaidCardDaicpxdBalance = await getBalance(
@@ -1377,22 +1458,14 @@ contract("PrepaidCardManager", (accounts) => {
     });
 
     it("can sign with address lexigraphically after prepaid card manager contract address", async () => {
-      let {
-        prepaidCards: [prepaidCardB],
-      } = await createPrepaidCards(
-        depot,
+      let prepaidCardB = await createPrepaidCardAndTransfer(
         prepaidCardManager,
-        daicpxdToken,
-        issuer,
         relayer,
-        [toTokenUnit(1)]
-      );
-      await transferOwner(
-        prepaidCardManager,
-        prepaidCardB,
+        depot,
         issuer,
-        customerB,
-        relayer
+        daicpxdToken,
+        toTokenUnit(5),
+        customerB
       );
 
       let startingPrepaidCardDaicpxdBalance = await getBalance(
@@ -1456,8 +1529,6 @@ contract("PrepaidCardManager", (accounts) => {
       );
     });
 
-    // These tests are stateful (ugh), so the prepaidCards[2] balance is now 4
-    // daicpxd due to the payment of 1 token made in the previous test
     it("can not send more funds to a merchant than the balance of the prepaid card", async () => {
       let startingPrepaidCardDaicpxdBalance = await getBalance(
         daicpxdToken,
