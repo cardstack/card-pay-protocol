@@ -95,7 +95,7 @@ contract RewardPool is Initializable, Versionable, Ownable {
   function valid(
     bytes memory leaf,
     bytes32[] memory proof
-  ) internal view returns (bool) {
+  ) public view returns (bool) {
     (address _rewardProgramID,
     address _payableToken,
     address _payee,
@@ -105,7 +105,7 @@ contract RewardPool is Initializable, Versionable, Ownable {
     return proof.verify(root, keccak256(leaf));
   }
 
-  function claimed(bytes memory leaf) internal view returns (bool) {
+  function claimed(bytes memory leaf) public view returns (bool) {
     (address rewardProgramID,
     address payableToken,
     address payee,
