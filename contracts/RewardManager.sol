@@ -89,8 +89,8 @@ contract RewardManager is Ownable, Versionable, Safe {
     address payable _rewardFeeReceiver,
     uint256 _rewardProgramRegistrationFeeInSPEND,
     address[] calldata _eip1271Contracts,
-    address _governanceAdmin
-    address _versionManager,
+    address _governanceAdmin,
+    address _versionManager
   ) external onlyOwner {
     require(_rewardFeeReceiver != ZERO_ADDRESS, "rewardFeeReceiver not set");
     require(
