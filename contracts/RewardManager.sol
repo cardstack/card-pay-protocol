@@ -51,7 +51,6 @@ contract RewardManager is Ownable, Versionable, Safe {
   uint256 internal _nonce;
 
   address public actionDispatcher;
-  uint256 public rewardeeRegistrationFeeInSPEND;
   uint256 public rewardProgramRegistrationFeeInSPEND;
   address payable public rewardFeeReceiver; // will receive receive all fees
 
@@ -83,16 +82,11 @@ contract RewardManager is Ownable, Versionable, Safe {
     address _gsMasterCopy,
     address _gsProxyFactory,
     address payable _rewardFeeReceiver,
-    uint256 _rewardeeRegistrationFeeInSPEND,
     uint256 _rewardProgramRegistrationFeeInSPEND,
     address[] calldata _eip1271Contracts,
     address _versionManager
   ) external onlyOwner {
     require(_rewardFeeReceiver != ZERO_ADDRESS, "rewardFeeReceiver not set");
-    require(
-      _rewardeeRegistrationFeeInSPEND > 0,
-      "rewardeeRegistrationFeeInSPEND is not set"
-    );
     require(
       _rewardProgramRegistrationFeeInSPEND > 0,
       "rewardProgramRegistrationFeeInSPEND is not set"
@@ -100,7 +94,6 @@ contract RewardManager is Ownable, Versionable, Safe {
     actionDispatcher = _actionDispatcher;
     Safe.setup(_gsMasterCopy, _gsProxyFactory);
     rewardFeeReceiver = _rewardFeeReceiver;
-    rewardeeRegistrationFeeInSPEND = _rewardeeRegistrationFeeInSPEND;
     rewardProgramRegistrationFeeInSPEND = _rewardProgramRegistrationFeeInSPEND;
     versionManager = _versionManager;
     for (uint256 i = 0; i < _eip1271Contracts.length; i++) {

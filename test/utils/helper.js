@@ -1241,7 +1241,6 @@ exports.registerRewardee = async function (
   prepaidCard,
   relayer,
   prepaidCardOwner,
-  spendAmount,
   usdRate,
   rewardProgramID
 ) {
@@ -1253,19 +1252,20 @@ exports.registerRewardee = async function (
   const actionData = AbiCoder.encodeParameters(["address"], [rewardProgramID]);
   let data = await prepaidCardManager.getSendData(
     prepaidCard.address,
-    spendAmount,
+    0, //do not need to send spend amount
     usdRate,
     actionName,
     actionData
   );
+
   let signature = await signSafeTransaction(
     issuingToken.address,
     0,
     data,
     0,
+    BLOCK_GAS_LIMIT,
     0,
-    0,
-    0,
+    DEFAULT_GAS_PRICE,
     issuingToken.address,
     ZERO_ADDRESS,
     await prepaidCard.nonce(),
@@ -1275,10 +1275,10 @@ exports.registerRewardee = async function (
 
   return await prepaidCardManager.send(
     prepaidCard.address,
-    spendAmount,
+    0, // do not need to send spend amount
     usdRate,
-    0,
-    0,
+    DEFAULT_GAS_PRICE,
+    BLOCK_GAS_LIMIT,
     0,
     actionName,
     actionData,

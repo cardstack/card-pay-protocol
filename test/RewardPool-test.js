@@ -29,7 +29,6 @@ const {
 const AbiCoder = require("web3-eth-abi");
 
 const REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND = 500;
-const REWARDEE_REGISTRATION_FEE_IN_SPEND = 500;
 
 contract("RewardPool", function (accounts) {
   let daicpxdToken, cardcpxdToken;
@@ -88,7 +87,6 @@ contract("RewardPool", function (accounts) {
         gnosisSafeMasterCopy.address,
         proxyFactory.address,
         rewardFeeReceiver,
-        REWARDEE_REGISTRATION_FEE_IN_SPEND,
         REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
         [rewardPool.address],
         versionManager.address
@@ -620,7 +618,6 @@ contract("RewardPool", function (accounts) {
           rewardeePrepaidCard,
           relayer,
           payee,
-          REWARDEE_REGISTRATION_FEE_IN_SPEND,
           undefined,
           rewardProgramID
         );
@@ -723,7 +720,6 @@ contract("RewardPool", function (accounts) {
           rewardeePrepaidCard,
           relayer,
           aPayee,
-          REWARDEE_REGISTRATION_FEE_IN_SPEND,
           undefined,
           otherRewardProgramID
         );
@@ -987,7 +983,6 @@ contract("RewardPool", function (accounts) {
           somePrepaidCard,
           relayer,
           aPayee,
-          REWARDEE_REGISTRATION_FEE_IN_SPEND,
           undefined,
           rewardProgramID
         );
@@ -1038,7 +1033,6 @@ contract("RewardPool", function (accounts) {
           somePrepaidCard,
           relayer,
           rewardee,
-          REWARDEE_REGISTRATION_FEE_IN_SPEND,
           undefined,
           rewardProgramID
         );
@@ -1101,7 +1095,6 @@ contract("RewardPool", function (accounts) {
           somePrepaidCard,
           relayer,
           rewardee,
-          REWARDEE_REGISTRATION_FEE_IN_SPEND,
           undefined,
           otherRewardProgramID
         );
@@ -1471,7 +1464,6 @@ contract("RewardPool", function (accounts) {
           rewardeePrepaidCard,
           relayer,
           payee,
-          REWARDEE_REGISTRATION_FEE_IN_SPEND,
           undefined,
           rewardProgramID
         );

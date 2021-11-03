@@ -21,7 +21,6 @@ const {
 } = require("./helper");
 
 //constants
-const REWARDEE_REGISTRATION_FEE_IN_SPEND = 500;
 const REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND = 500;
 
 const utils = require("./general");
@@ -121,7 +120,6 @@ const setupProtocol = async (accounts) => {
     gnosisSafeMasterCopy.address,
     proxyFactory.address,
     rewardFeeReceiver,
-    REWARDEE_REGISTRATION_FEE_IN_SPEND,
     REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
     [rewardPool.address],
     versionManager.address
@@ -136,7 +134,7 @@ const setupProtocol = async (accounts) => {
   await prepaidCardManager.addGasPolicy("transfer", false);
   await prepaidCardManager.addGasPolicy("split", true);
   await prepaidCardManager.addGasPolicy("registerRewardProgram", false);
-  await prepaidCardManager.addGasPolicy("registerRewardee", false);
+  await prepaidCardManager.addGasPolicy("registerRewardee", true);
   await prepaidCardManager.addGasPolicy("lockRewardProgram", true);
   await prepaidCardManager.addGasPolicy("updateRewardProgramAdmin", true);
   await prepaidCardManager.addGasPolicy("addRewardRule", true);

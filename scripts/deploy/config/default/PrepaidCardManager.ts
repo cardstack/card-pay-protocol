@@ -91,7 +91,7 @@ export default async function (
       },
       registerRewardee: {
         mapping: "gasPoliciesV2",
-        value: false,
+        value: true,
         params: ["{NAME}", "{VALUE}"],
       },
       lockRewardProgram: {
