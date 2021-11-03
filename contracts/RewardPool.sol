@@ -96,23 +96,19 @@ contract RewardPool is Initializable, Versionable, Ownable {
     bytes memory leaf,
     bytes32[] memory proof
   ) public view returns (bool) {
-    (address _rewardProgramID,
-    address _payableToken,
-    address _payee,
-    uint256 tokenType,
-    uint256 _amountOrID,
-    uint256 paymentCycleNumber) = abi.decode(leaf, (address, address, address, uint256, uint256, uint256));
+    (uint256 paymentCycleNumber,
+    bytes memory _) = abi.decode(leaf, (uint256, bytes));
     bytes32 root = bytes32(payeeRoots[paymentCycleNumber]);
     return proof.verify(root, keccak256(leaf));
   }
 
   function claimed(bytes memory leaf) public view returns (bool) {
-    (address rewardProgramID,
+    (
+    uint256 paymentCycleNumber,
+    address rewardProgramID,
     address payableToken,
     address payee,
-    uint256 _tokenType,
-    uint256 _amountOrID,
-    uint256 paymentCycleNumber) = abi.decode(leaf, (address, address, address, uint256, uint256, uint256));
+    bytes memory _) = abi.decode(leaf, (uint256, address, address, address, bytes));
     return rewardsClaimed[paymentCycleNumber][rewardProgramID][payableToken][payee];
   }
 
@@ -168,12 +164,13 @@ contract RewardPool is Initializable, Versionable, Ownable {
     bytes32[] calldata proof
   ) external returns (bool) {
 
-    (address rewardProgramID,
+    (
+    uint256 paymentCycleNumber,
+    address rewardProgramID,
     address payableToken,
     address payee,
     uint256 tokenType,
-    uint256 amountOrId,
-    uint256 paymentCycleNumber) = abi.decode(leaf, (address, address, address, uint256, uint256, uint256));
+    uint256 amountOrId) = abi.decode(leaf, (uint256, address, address, address, uint256, uint256));
 
     require(msg.sender == payee, "Can only be claimed by payee");
     require(valid(leaf, proof), "Proof is invalid");
