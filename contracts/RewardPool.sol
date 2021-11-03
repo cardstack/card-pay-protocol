@@ -99,8 +99,9 @@ contract RewardPool is Initializable, Versionable, Ownable {
     (address _rewardProgramID,
     address _payableToken,
     address _payee,
-    uint256 _amount,
-    uint256 paymentCycleNumber) = abi.decode(leaf, (address, address, address, uint256, uint256));
+    uint256 tokenType,
+    uint256 _amountOrID,
+    uint256 paymentCycleNumber) = abi.decode(leaf, (address, address, address, uint256, uint256, uint256));
     bytes32 root = bytes32(payeeRoots[paymentCycleNumber]);
     return proof.verify(root, keccak256(leaf));
   }
@@ -109,38 +110,19 @@ contract RewardPool is Initializable, Versionable, Ownable {
     (address rewardProgramID,
     address payableToken,
     address payee,
-    uint256 _amount,
-    uint256 paymentCycleNumber) = abi.decode(leaf, (address, address, address, uint256, uint256));
+    uint256 _tokenType,
+    uint256 _amountOrID,
+    uint256 paymentCycleNumber) = abi.decode(leaf, (address, address, address, uint256, uint256, uint256));
     return rewardsClaimed[paymentCycleNumber][rewardProgramID][payableToken][payee];
   }
 
-  function claim(
-    bytes calldata leaf,
-    bytes32[] calldata proof
-  ) external returns (bool) {
-
-    (address rewardProgramID,
+  function claim_erc677(
+    address rewardProgramID,
     address payableToken,
-    address payee,
-    uint256 amount,
-    uint256 paymentCycleNumber) = abi.decode(leaf, (address, address, address, uint256, uint256));
-
-    require(msg.sender == payee, "Can only be claimed by payee");
-    require(valid(leaf, proof), "Proof is invalid");
-    require(claimed(leaf) == false, "Reward has already been claimed");
-
-
-    address rewardSafeOwner = RewardManager(rewardManager).getRewardSafeOwner(
-      msg.sender
-    );
-    require(
-      RewardManager(rewardManager).isValidRewardSafe(
-        msg.sender,
-        rewardProgramID
-      ),
-      "can only withdraw for safe registered on reward program"
-    );
-
+    address rewardSafeOwner,
+    uint256 paymentCycleNumber,
+    uint256 amount
+  ) internal returns (bool) {
     require(
       IERC677(payableToken).balanceOf(address(this)) >= amount,
       "Reward pool has insufficient balance"
@@ -167,6 +149,67 @@ contract RewardPool is Initializable, Versionable, Ownable {
       amount
     );
     return true;
+  }
+
+
+  function claim_erc721(
+    address rewardProgramID,
+    address payableToken,
+    address rewardSafeOwner,
+    uint256 paymentCycleNumber,
+    uint256 tokenID
+  ) internal returns (bool) {
+    // Check if token ID is valid, that approvals are correct etc
+    return false;
+  }
+
+  function claim(
+    bytes calldata leaf,
+    bytes32[] calldata proof
+  ) external returns (bool) {
+
+    (address rewardProgramID,
+    address payableToken,
+    address payee,
+    uint256 tokenType,
+    uint256 amountOrId,
+    uint256 paymentCycleNumber) = abi.decode(leaf, (address, address, address, uint256, uint256, uint256));
+
+    require(msg.sender == payee, "Can only be claimed by payee");
+    require(valid(leaf, proof), "Proof is invalid");
+    require(claimed(leaf) == false, "Reward has already been claimed");
+
+
+    address rewardSafeOwner = RewardManager(rewardManager).getRewardSafeOwner(
+      msg.sender
+    );
+    require(
+      RewardManager(rewardManager).isValidRewardSafe(
+        msg.sender,
+        rewardProgramID
+      ),
+      "can only withdraw for safe registered on reward program"
+    );
+
+    if (tokenType == 1) {
+      return claim_erc677(
+        rewardProgramID,
+        payableToken,
+        rewardSafeOwner,
+        paymentCycleNumber,
+        amountOrId
+      );
+    } else if (tokenType == 2) {
+      return claim_erc721(
+        rewardProgramID,
+        payableToken,
+        rewardSafeOwner,
+        paymentCycleNumber,
+        amountOrId
+      );
+    } else {
+      return false;
+    }
   }
 
   function onTokenTransfer(
