@@ -96,32 +96,34 @@ contract RewardPool is Initializable, Versionable, Ownable {
     bytes memory leaf,
     bytes32[] memory proof
   ) internal view returns (bool) {
-    bytes32[] memory leaf_data = splitIntoBytes32(leaf, 5);
-    uint256 paymentCycleNumber = uint256(leaf_data[4]);
+    (address _rewardProgramID,
+    address _payableToken,
+    address _payee,
+    uint256 _amount,
+    uint256 paymentCycleNumber) = abi.decode(leaf, (address, address, address, uint256, uint256));
     bytes32 root = bytes32(payeeRoots[paymentCycleNumber]);
     return proof.verify(root, keccak256(leaf));
   }
 
   function claimed(bytes memory leaf) internal view returns (bool) {
-    bytes32[] memory leaf_data = splitIntoBytes32(leaf, 5);
-    uint256 paymentCycleNumber = uint256(leaf_data[4]);
-    address rewardProgramID = address(uint160(uint256(leaf_data[0])));
-    address payableToken = address(uint160(uint256(leaf_data[1])));
-    address rewardee = address(uint160(uint256(leaf_data[2])));
-    return rewardsClaimed[paymentCycleNumber][rewardProgramID][payableToken][rewardee];
+    (address rewardProgramID,
+    address payableToken,
+    address payee,
+    uint256 _amount,
+    uint256 paymentCycleNumber) = abi.decode(leaf, (address, address, address, uint256, uint256));
+    return rewardsClaimed[paymentCycleNumber][rewardProgramID][payableToken][payee];
   }
 
   function claim(
     bytes calldata leaf,
     bytes32[] calldata proof
   ) external returns (bool) {
-    bytes32[] memory leaf_data = splitIntoBytes32(leaf, 5);
 
-    address rewardProgramID = address(uint160(uint256(leaf_data[0])));
-    address payableToken = address(uint160(uint256(leaf_data[1])));
-    address payee = address(uint160(uint256(leaf_data[2])));
-    uint256 amount = uint256(leaf_data[3]);
-    uint256 paymentCycleNumber = uint256(leaf_data[4]);
+    (address rewardProgramID,
+    address payableToken,
+    address payee,
+    uint256 amount,
+    uint256 paymentCycleNumber) = abi.decode(leaf, (address, address, address, uint256, uint256));
 
     require(msg.sender == payee, "Can only be claimed by payee");
     require(valid(leaf, proof), "Proof is invalid");
@@ -203,29 +205,6 @@ contract RewardPool is Initializable, Versionable, Ownable {
     currentPaymentCycleStartBlock = block.number.add(1);
 
     return true;
-  }
-
-  function splitIntoBytes32(bytes memory byteArray, uint256 numBytes32)
-    internal
-    pure
-    returns (bytes32[] memory bytes32Array)
-  {
-    require(byteArray.length.div(32) <= 50, "Bytearray provided is too big");
-    require(
-      byteArray.length % 32 == 0 && byteArray.length >= numBytes32.mul(32),
-      "Bytearray provided has wrong shape"
-    );
-
-    bytes32Array = new bytes32[](numBytes32);
-    bytes32 _bytes32;
-    for (uint256 k = 32; k <= byteArray.length; k = k.add(32)) {
-      assembly {
-        _bytes32 := mload(add(byteArray, k))
-      }
-      if (k <= numBytes32 * 32) {
-        bytes32Array[k.sub(32).div(32)] = _bytes32;
-      } 
-    }
   }
 
   function cardpayVersion() external view returns (string memory) {
