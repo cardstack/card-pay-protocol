@@ -33,7 +33,6 @@ const PayRewardTokensHandler = artifacts.require("PayRewardTokensHandler");
 const VersionManager = artifacts.require("VersionManager");
 
 const { toBN } = require("web3-utils");
-const { randomHex } = require("web3-utils");
 const eventABIs = require("./constant/eventABIs");
 const {
   getParamsFromEvent,

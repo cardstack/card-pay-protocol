@@ -515,7 +515,7 @@ contract("RewardManager", (accounts) => {
         rewardProgramID
       );
     });
-    it("can remove existing reward program", async () => {
+    it("can remove existing reward program by governance admin", async () => {
       await rewardManager.removeRewardProgram(rewardProgramID, {
         from: governanceAdmin,
       });
@@ -572,6 +572,7 @@ contract("RewardManager", (accounts) => {
         soliditySha3({ t: "bytes", v: blob })
       );
     });
+
     it("cannot add rule once it has been set in reward program", async () => {
       const prepaidCardPreviousBalanceDai = await getBalance(
         daicpxdToken,
@@ -687,6 +688,66 @@ contract("RewardManager", (accounts) => {
           )
         )
         .should.be.rejectedWith(Error, "calling token is unaccepted");
+    });
+    it("can update rule in reward program by governanceAdmin", async () => {
+      let blob = encodeBlob();
+      expect(await rewardManager.rule(rewardProgramID), ZERO_ADDRESS);
+      await addRewardRule(
+        prepaidCardManager,
+        prepaidCard,
+        relayer,
+        prepaidCardOwner,
+        0,
+        undefined,
+        rewardProgramID,
+        blob
+      );
+      expect(
+        await rewardManager.rule(rewardProgramID),
+        soliditySha3({ t: "bytes", v: blob })
+      );
+      let newBlob = encodeBlob();
+      await rewardManager.updateRewardRule(rewardProgramID, newBlob, {
+        from: governanceAdmin,
+      });
+      expect(
+        await rewardManager.rule(rewardProgramID),
+        soliditySha3({ t: "bytes", v: newBlob })
+      );
+    });
+    it("can remove rule by setting to 0x reward program by governanceAdmin", async () => {
+      let blob = encodeBlob();
+      await addRewardRule(
+        prepaidCardManager,
+        prepaidCard,
+        relayer,
+        prepaidCardOwner,
+        0,
+        undefined,
+        rewardProgramID,
+        blob
+      );
+      expect(
+        await rewardManager.rule(rewardProgramID),
+        soliditySha3({ t: "bytes", v: blob })
+      );
+      let zeroBytes = "0x";
+      await rewardManager.updateRewardRule(rewardProgramID, zeroBytes, {
+        from: governanceAdmin,
+      });
+      expect(
+        await rewardManager.rule(rewardProgramID),
+        soliditySha3({ t: "bytes", v: zeroBytes })
+      );
+      expect(await rewardManager.rule(rewardProgramID), ZERO_ADDRESS); // bytes data defaults to ZERO_ADDRESS
+    });
+    it("cannot update rule in if not governanceAdmin", async () => {
+      let newBlob = encodeBlob();
+      await rewardManager
+        .updateRewardRule(rewardProgramID, newBlob, {
+          from: owner,
+        })
+        .should.be.rejectedWith(Error, "caller is not governance admin");
     });
     it("can lock reward program", async () => {
       const prepaidCardPreviousBalanceDai = await getBalance(

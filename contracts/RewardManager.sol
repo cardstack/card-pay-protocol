@@ -27,6 +27,7 @@ contract RewardManager is Ownable, Versionable, Safe {
     address newOwner
   );
   event RewardRuleAdded(address rewardProgramID, bytes blob);
+  event RewardRuleUpdated(address rewardProgramID, bytes blob);
   event RewardRuleRemoved(address rewardProgramID);
   event RewardeeRegistered(
     address rewardProgramID,
@@ -141,6 +142,14 @@ contract RewardManager is Ownable, Versionable, Safe {
     require(rule[rewardProgramID] == 0, "reward rule has been assigned");
     rule[rewardProgramID] = keccak256(abi.encodePacked(blob));
     emit RewardRuleAdded(rewardProgramID, blob);
+  }
+
+  function updateRewardRule(address rewardProgramID, bytes calldata newBlob)
+    external
+    onlyGovernanceAdmin
+  {
+    rule[rewardProgramID] = keccak256(abi.encodePacked(newBlob));
+    emit RewardRuleUpdated(rewardProgramID, newBlob);
   }
 
   function lockRewardProgram(address rewardProgramID) external onlyHandlers {
