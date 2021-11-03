@@ -89,8 +89,8 @@ contract("RewardPool", function (accounts) {
         rewardFeeReceiver,
         REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
         [rewardPool.address],
-        versionManager.address,
-        governanceAdmin
+        governanceAdmin,
+        versionManager.address
       );
       rewardProgramID = randomHex(20);
       otherRewardProgramID = randomHex(20);

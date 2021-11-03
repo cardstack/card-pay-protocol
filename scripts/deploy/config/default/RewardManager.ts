@@ -45,12 +45,12 @@ export default async function (
         value: [address("RewardPool")],
       },
       {
-        name: "versionManager",
-        value: address("VersionManager"),
-      },
-      {
         name: "governanceAdmin",
         value: GOVERNANCE_ADMIN,
+      },
+      {
+        name: "versionManager",
+        value: address("VersionManager"),
       },
     ],
   });
