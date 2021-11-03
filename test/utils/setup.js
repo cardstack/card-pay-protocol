@@ -38,13 +38,20 @@ const setupRoles = function (accounts) {
     merchantFeeReceiver: accounts[5],
     rewardFeeReceiver: accounts[6],
     otherPrepaidCardOwner: accounts[7],
+    governanceAdmin: accounts[8],
   };
 };
 
 // this is bad but I use as placeholder because it greedily loads all contracts
 const setupProtocol = async (accounts) => {
-  const { owner, issuer, merchantFeeReceiver, rewardFeeReceiver, tally } =
-    setupRoles(accounts);
+  const {
+    owner,
+    issuer,
+    merchantFeeReceiver,
+    rewardFeeReceiver,
+    tally,
+    governanceAdmin,
+  } = setupRoles(accounts);
 
   const proxyFactory = await ProxyFactory.new();
   const gnosisSafeMasterCopy = await utils.deployContract(
@@ -122,7 +129,8 @@ const setupProtocol = async (accounts) => {
     rewardFeeReceiver,
     REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
     [rewardPool.address],
-    versionManager.address
+    versionManager.address,
+    governanceAdmin
   );
   await rewardPool.setup(
     tally,

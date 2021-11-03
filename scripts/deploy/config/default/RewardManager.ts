@@ -5,6 +5,7 @@ import {
   GNOSIS_SAFE_MASTER_COPY,
   GNOSIS_SAFE_FACTORY,
   REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
+  GOVERNANCE_ADMIN,
 } from "../../config-utils";
 import { getDeployAddress } from "../../util";
 
@@ -42,6 +43,10 @@ export default async function (
       {
         name: "getEip1271Contracts",
         value: [address("RewardPool")],
+      },
+      {
+        name: "governanceAdmin",
+        value: GOVERNANCE_ADMIN,
       },
       {
         name: "versionManager",

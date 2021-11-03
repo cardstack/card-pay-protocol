@@ -81,7 +81,8 @@ contract("RewardManager", (accounts) => {
     otherPrepaidCardOwner,
     tally,
     prepaidCardOwnerA,
-    prepaidCardOwnerB;
+    prepaidCardOwnerB,
+    governanceAdmin;
   // safes
   let depot;
   // reward roles
@@ -98,6 +99,7 @@ contract("RewardManager", (accounts) => {
     rewardFeeReceiver = accounts[6];
     otherPrepaidCardOwner = accounts[7];
     tally = accounts[8];
+    governanceAdmin = accounts[9];
 
     // deploy
     proxyFactory = await ProxyFactory.new();
@@ -191,6 +193,7 @@ contract("RewardManager", (accounts) => {
       rewardFeeReceiver,
       REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
       [rewardPool.address],
+      governanceAdmin,
       versionManager.address
     );
 
@@ -250,6 +253,7 @@ contract("RewardManager", (accounts) => {
         rewardFeeReceiver,
         REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
         [rewardPool.address],
+        governanceAdmin,
         versionManager.address
       );
     });
@@ -263,6 +267,7 @@ contract("RewardManager", (accounts) => {
           ZERO_ADDRESS,
           REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
           [rewardPool.address],
+          governanceAdmin,
           versionManager.address
         )
         .should.be.rejectedWith(Error, "rewardFeeReceiver not set");
@@ -277,7 +282,8 @@ contract("RewardManager", (accounts) => {
           rewardFeeReceiver,
           0,
           [rewardPool.address],
-          versionManager.address
+          versionManager.address,
+          governanceAdmin
         )
         .should.be.rejectedWith(
           Error,
@@ -294,6 +300,7 @@ contract("RewardManager", (accounts) => {
           REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
           [rewardPool.address],
           versionManager.address,
+          governanceAdmin,
           { from: issuer }
         )
         .should.be.rejectedWith(Error, "Ownable: caller is not the owner");
@@ -302,6 +309,7 @@ contract("RewardManager", (accounts) => {
       expect(await rewardManager.rewardFeeReceiver()).to.equal(
         rewardFeeReceiver
       );
+      expect(await rewardManager.governanceAdmin()).to.equal(governanceAdmin);
       expect(
         (await rewardManager.rewardProgramRegistrationFeeInSPEND()).toString()
       ).to.equal("500");
@@ -511,7 +519,7 @@ contract("RewardManager", (accounts) => {
     });
     it("can remove existing reward program", async () => {
       await rewardManager.removeRewardProgram(rewardProgramID, {
-        from: owner,
+        from: governanceAdmin,
       });
       expect(await rewardManager.isRewardProgram(rewardProgramID)).to.equal(
         false
@@ -520,10 +528,13 @@ contract("RewardManager", (accounts) => {
         await rewardManager.rewardProgramAdmins.call(rewardProgramID)
       ).to.equal(ZERO_ADDRESS);
     });
-    it("cannot remove existing reward program if not owner", async () => {
+    it("cannot remove existing reward program if not governance admin", async () => {
       await rewardManager
         .removeRewardProgram(rewardProgramID, { from: rewardProgramAdmin })
-        .should.be.rejectedWith("Ownable: caller is not the owner");
+        .should.be.rejectedWith("caller is not governance admin");
+      await rewardManager
+        .removeRewardProgram(rewardProgramID, { from: owner })
+        .should.be.rejectedWith("caller is not governance admin");
     });
     it("can add rule in reward program", async () => {
       const prepaidCardPreviousBalanceDai = await getBalance(
