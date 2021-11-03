@@ -42,7 +42,7 @@ contract("RewardPool", function (accounts) {
     versionManager,
     proxyFactory;
 
-  let owner, issuer, prepaidCardOwner, relayer;
+  let owner, issuer, prepaidCardOwner, relayer, governanceAdmin;
 
   let depot, rewardSafe;
   let rewardProgramID, otherRewardProgramID;
@@ -52,7 +52,7 @@ contract("RewardPool", function (accounts) {
   describe("Reward Pool", function () {
     let prepaidCard;
     before(async () => {
-      ({ owner, tally, issuer, prepaidCardOwner, relayer } =
+      ({ owner, tally, issuer, prepaidCardOwner, relayer, governanceAdmin } =
         setupRoles(accounts));
 
       // do not run this fixture inside a beforeEach
@@ -89,7 +89,8 @@ contract("RewardPool", function (accounts) {
         rewardFeeReceiver,
         REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
         [rewardPool.address],
-        versionManager.address
+        versionManager.address,
+        governanceAdmin
       );
       rewardProgramID = randomHex(20);
       otherRewardProgramID = randomHex(20);

@@ -53,6 +53,7 @@ contract RewardManager is Ownable, Versionable, Safe {
   address public actionDispatcher;
   uint256 public rewardProgramRegistrationFeeInSPEND;
   address payable public rewardFeeReceiver; // will receive receive all fees
+  address public governanceAdmin; // eoa with governance powers
 
   EnumerableSet.AddressSet rewardProgramIDs;
   EnumerableSet.AddressSet eip1271Contracts;
@@ -72,6 +73,10 @@ contract RewardManager is Ownable, Versionable, Safe {
     _;
   }
 
+  modifier onlyGovernanceAdmin() {
+    require(msg.sender == governanceAdmin, "caller is not governance admin");
+    _;
+  }
   function initialize(address owner) public initializer {
     _nonce = 0;
     Ownable.initialize(owner);
@@ -84,7 +89,8 @@ contract RewardManager is Ownable, Versionable, Safe {
     address payable _rewardFeeReceiver,
     uint256 _rewardProgramRegistrationFeeInSPEND,
     address[] calldata _eip1271Contracts,
-    address _versionManager
+    address _versionManager,
+    address _governanceAdmin
   ) external onlyOwner {
     require(_rewardFeeReceiver != ZERO_ADDRESS, "rewardFeeReceiver not set");
     require(
@@ -96,6 +102,7 @@ contract RewardManager is Ownable, Versionable, Safe {
     rewardFeeReceiver = _rewardFeeReceiver;
     rewardProgramRegistrationFeeInSPEND = _rewardProgramRegistrationFeeInSPEND;
     versionManager = _versionManager;
+    governanceAdmin = _governanceAdmin;
     for (uint256 i = 0; i < _eip1271Contracts.length; i++) {
       eip1271Contracts.add(_eip1271Contracts[i]);
     }
@@ -120,7 +127,7 @@ contract RewardManager is Ownable, Versionable, Safe {
     emit RewardProgramCreated(rewardProgramID, admin);
   }
 
-  function removeRewardProgram(address rewardProgramID) external onlyOwner {
+  function removeRewardProgram(address rewardProgramID) external onlyGovernanceAdmin {
     rewardProgramIDs.remove(rewardProgramID);
     delete rewardProgramAdmins[rewardProgramID];
     emit RewardProgramRemoved(rewardProgramID);
