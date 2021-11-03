@@ -525,6 +525,9 @@ contract("RewardManager", (accounts) => {
       expect(
         await rewardManager.rewardProgramAdmins.call(rewardProgramID)
       ).to.equal(ZERO_ADDRESS);
+      expect(
+        await rewardManager.rewardProgramLocked.call(rewardProgramID)
+      ).to.equal(false);
     });
     it("cannot remove existing reward program if not governance admin", async () => {
       await rewardManager
@@ -691,7 +694,7 @@ contract("RewardManager", (accounts) => {
         prepaidCard.address
       );
       expect(
-        (await rewardManager.rewardPrograms.call(rewardProgramID)).locked
+        await rewardManager.rewardProgramLocked.call(rewardProgramID)
       ).to.equal(false);
       let txn = await lockRewardProgram(
         prepaidCardManager,
@@ -716,8 +719,37 @@ contract("RewardManager", (accounts) => {
         "the prepaid card token balance is correct"
       );
       expect(
-        (await rewardManager.rewardPrograms.call(rewardProgramID)).locked
+        await rewardManager.rewardProgramLocked.call(rewardProgramID)
       ).to.equal(true);
+    });
+    it("can unlock reward program", async () => {
+      expect(
+        await rewardManager.rewardProgramLocked.call(rewardProgramID)
+      ).to.equal(false);
+      await lockRewardProgram(
+        prepaidCardManager,
+        prepaidCard,
+        relayer,
+        prepaidCardOwner,
+        0,
+        undefined,
+        rewardProgramID
+      );
+      expect(
+        await rewardManager.rewardProgramLocked.call(rewardProgramID)
+      ).to.equal(true);
+      await lockRewardProgram(
+        prepaidCardManager,
+        prepaidCard,
+        relayer,
+        prepaidCardOwner,
+        0,
+        undefined,
+        rewardProgramID
+      );
+      expect(
+        await rewardManager.rewardProgramLocked.call(rewardProgramID)
+      ).to.equal(false);
     });
     it("cannot lock reward program if not admin", async () => {
       otherPrepaidCard = await createPrepaidCardAndTransfer(

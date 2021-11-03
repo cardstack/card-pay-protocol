@@ -34,11 +34,6 @@ contract RewardManager is Ownable, Versionable, Safe {
     address rewardSafe
   );
 
-  struct RewardProgram {
-    address admin;
-    bool locked;
-  }
-
   address internal constant ZERO_ADDRESS = address(0);
   bytes4 internal constant EIP1271_MAGIC_VALUE = 0x20c13b0b;
   bytes4 internal constant SWAP_OWNER = 0xe318b52b; //swapOwner(address,address,address)
@@ -52,10 +47,9 @@ contract RewardManager is Ownable, Versionable, Safe {
 
   EnumerableSet.AddressSet rewardProgramIDs;
   EnumerableSet.AddressSet eip1271Contracts;
-  mapping(address => address) public rewardProgramAdmins; //reward program id <> reward program admins
-  mapping(address => RewardProgram) public rewardPrograms; //reward program ids
   mapping(address => EnumerableSet.AddressSet) internal rewardSafes; //reward program id <> reward safes
   mapping(address => bytes32) public rule; //reward program id <> bytes32
+  mapping(address => address) public rewardProgramAdmins; //reward program id <> reward program admins
   mapping(address => bool) public rewardProgramLocked; //reward program id <> locked
   mapping(bytes32 => bool) internal signatures;
   address public versionManager;
@@ -119,7 +113,6 @@ contract RewardManager is Ownable, Versionable, Safe {
     );
     rewardProgramIDs.add(rewardProgramID);
     rewardProgramAdmins[rewardProgramID] = admin;
-    rewardPrograms[rewardProgramID] = RewardProgram(admin, false);
     emit RewardProgramCreated(rewardProgramID, admin);
   }
 
@@ -129,6 +122,7 @@ contract RewardManager is Ownable, Versionable, Safe {
   {
     rewardProgramIDs.remove(rewardProgramID);
     delete rewardProgramAdmins[rewardProgramID];
+    delete rewardProgramLocked[rewardProgramID]; // equivalent to false
     emit RewardProgramRemoved(rewardProgramID);
   }
 
@@ -140,17 +134,19 @@ contract RewardManager is Ownable, Versionable, Safe {
     emit RewardProgramAdminUpdated(rewardProgramID, newAdmin);
   }
 
-  function addRewardRule(
-    address rewardProgramID,
-    bytes calldata blob
-  ) external onlyHandlers {
+  function addRewardRule(address rewardProgramID, bytes calldata blob)
+    external
+    onlyHandlers
+  {
     require(rule[rewardProgramID] == 0, "reward rule has been assigned");
-    rule[rewardProgramID]=keccak256(abi.encodePacked(blob));
+    rule[rewardProgramID] = keccak256(abi.encodePacked(blob));
     emit RewardRuleAdded(rewardProgramID, blob);
   }
 
   function lockRewardProgram(address rewardProgramID) external onlyHandlers {
-    rewardPrograms[rewardProgramID].locked = true;
+    rewardProgramLocked[rewardProgramID] = !rewardProgramLocked[
+      rewardProgramID
+    ];
     emit RewardProgramLocked(rewardProgramID);
   }
 
