@@ -1379,6 +1379,85 @@ const transferRewardSafe = async function (
   );
 };
 
+const withdrawFromRewardSafe = async function (
+  rewardManager,
+  rewardSafe,
+  tokenAddress,
+  value,
+  relayer,
+  gasToken
+) {
+  const rewardSafeEOA = (await rewardSafe.getOwners())[1];
+  let token = await ERC677Token.at(tokenAddress);
+  let transfer = token.contract.methods.transfer(rewardSafeEOA, value);
+
+  let transferData = transfer.encodeABI();
+  let gasEstimate = await transfer.estimateGas({ from: rewardSafe.address });
+
+  const nonce = await rewardSafe.nonce();
+
+  const fullSignatureInnerExec = await rewardEIP1271Signature(
+    tokenAddress,
+    0,
+    transferData,
+    0,
+    gasEstimate,
+    0,
+    DEFAULT_GAS_PRICE,
+    gasToken.address,
+    rewardSafe.address,
+    nonce.add(toBN("1")),
+    rewardSafeEOA,
+    rewardSafe,
+    rewardManager
+  );
+
+  let payload = rewardManager.contract.methods
+    .withdrawFromRewardSafe(
+      tokenAddress,
+      value,
+      gasEstimate,
+      0,
+      DEFAULT_GAS_PRICE,
+      gasToken.address,
+      fullSignatureInnerExec
+    )
+    .encodeABI();
+
+  const fullSignature = await rewardEIP1271Signature(
+    rewardManager.address,
+    0,
+    payload,
+    0,
+    0,
+    0,
+    0,
+    gasToken.address,
+    rewardSafe.address,
+    nonce,
+    rewardSafeEOA,
+    rewardSafe,
+    rewardManager
+  );
+
+  let safeTxData = {
+    to: rewardManager.address,
+    data: payload,
+    operation: 0,
+    txGasEstimate: 0,
+    gasPrice: 0,
+    txGasToken: gasToken.address,
+    refundReceive: rewardSafe.address,
+  };
+
+  return await sendSafeTransaction(
+    safeTxData,
+    rewardSafe,
+    relayer,
+    fullSignature
+  );
+};
+
 exports.swapOwner = async function (
   rewardManager,
   rewardSafe,
@@ -1928,3 +2007,4 @@ exports.signAndSendSafeTransaction = signAndSendSafeTransaction;
 exports.transferOwner = transferOwner;
 exports.createPrepaidCards = createPrepaidCards;
 exports.transferRewardSafe = transferRewardSafe;
+exports.withdrawFromRewardSafe = withdrawFromRewardSafe;

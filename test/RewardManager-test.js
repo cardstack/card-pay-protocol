@@ -13,9 +13,13 @@ const RewardPool = artifacts.require("RewardPool");
 
 const { randomHex } = require("web3-utils");
 const { assert, expect, TOKEN_DETAIL_DATA } = require("./setup");
-const utils = require("./utils/general");
-const { ZERO_ADDRESS } = utils;
-const { getParamsFromEvent, checkGnosisExecution } = require("./utils/general");
+
+const {
+  checkGnosisExecution,
+  deployContract,
+  getParamsFromEvent,
+  ZERO_ADDRESS,
+} = require("./utils/general");
 const eventABIs = require("./utils/constant/eventABIs");
 
 const {
@@ -38,6 +42,7 @@ const {
   findAccountAfterAddress,
   findAccountBeforeAddress,
   setupVersionManager,
+  withdrawFromRewardSafe,
 } = require("./utils/helper");
 
 const AbiCoder = require("web3-eth-abi");
@@ -103,7 +108,7 @@ contract("RewardManager", (accounts) => {
 
     // deploy
     proxyFactory = await ProxyFactory.new();
-    gnosisSafeMasterCopy = await utils.deployContract(
+    gnosisSafeMasterCopy = await deployContract(
       "deploying Gnosis Safe Mastercopy",
       GnosisSafe
     );
@@ -1417,6 +1422,81 @@ contract("RewardManager", (accounts) => {
       owners = await rewardSafe.getOwners();
       expect(owners.length).to.equal(2);
       expect(owners[1]).to.equal(otherPrepaidCardOwner);
+    });
+  });
+
+  describe("withdraw from reward safe", () => {
+    let prepaidCard, rewardSafe;
+
+    beforeEach(async () => {
+      rewardProgramID = randomHex(20);
+      prepaidCard = await createPrepaidCardAndTransfer(
+        prepaidCardManager,
+        relayer,
+        depot,
+        issuer,
+        daicpxdToken,
+        toTokenUnit(10 + 1),
+        prepaidCardOwner
+      );
+      await registerRewardProgram(
+        prepaidCardManager,
+        prepaidCard,
+        relayer,
+        prepaidCardOwner,
+        REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
+        undefined,
+        rewardProgramAdmin,
+        rewardProgramID
+      );
+      let tx = await registerRewardee(
+        prepaidCardManager,
+        prepaidCard,
+        relayer,
+        prepaidCardOwner,
+        undefined,
+        rewardProgramID
+      );
+
+      let rewardSafeCreation = await getParamsFromEvent(
+        tx,
+        eventABIs.REWARDEE_REGISTERED,
+        rewardManager.address
+      );
+      rewardSafe = await GnosisSafe.at(rewardSafeCreation[0].rewardSafe);
+
+      await daicpxdToken.mint(rewardSafe.address, toTokenUnit(100));
+    });
+
+    it("can withdraw from reward safe", async () => {
+      let owners = await rewardSafe.getOwners();
+      expect(owners.length).to.equal(2);
+      expect(owners[1]).to.equal(prepaidCardOwner);
+      expect(
+        await daicpxdToken.balanceOf(rewardSafe.address)
+      ).to.be.bignumber.equal(toTokenUnit(100));
+      expect(
+        await daicpxdToken.balanceOf(prepaidCardOwner)
+      ).to.be.bignumber.equal(toTokenUnit(0));
+
+      let result = await withdrawFromRewardSafe(
+        rewardManager,
+        rewardSafe,
+        daicpxdToken.address,
+        toTokenUnit(50),
+        relayer,
+        daicpxdToken
+      );
+
+      expect(result.executionResult.success).to.be.ok;
+
+      expect(
+        await daicpxdToken.balanceOf(rewardSafe.address)
+      ).to.be.bignumber.equal(toTokenUnit(50));
+
+      expect(
+        await daicpxdToken.balanceOf(prepaidCardOwner)
+      ).to.be.bignumber.equal(toTokenUnit(50));
     });
   });
 

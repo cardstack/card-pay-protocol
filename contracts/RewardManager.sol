@@ -26,6 +26,7 @@ contract RewardManager is Ownable, Versionable, Safe {
     address oldOwner,
     address newOwner
   );
+  event RewardSafeWithdrawal(address rewardSafe, address token, uint256 value);
   event RewardRuleAdded(address rewardProgramID, string ruleDID);
   event RewardRuleRemoved(address rewardProgramID, string ruleDID);
   event RewardeeRegistered(
@@ -47,6 +48,7 @@ contract RewardManager is Ownable, Versionable, Safe {
   address internal constant ZERO_ADDRESS = address(0);
   bytes4 internal constant EIP1271_MAGIC_VALUE = 0x20c13b0b;
   bytes4 internal constant SWAP_OWNER = 0xe318b52b; //swapOwner(address,address,address)
+  bytes4 internal constant TRANSFER = 0xa9059cbb; //transfer(address,uint256)
   string internal constant REWARD_PREFIX = "safe.rewards.cardstack";
   uint256 internal _nonce;
 
@@ -197,7 +199,7 @@ contract RewardManager is Ownable, Versionable, Safe {
     execTransaction(
       msg.sender,
       0,
-      getTransferRewardSafeData(msg.sender, newOwner),
+      abi.encodeWithSelector(SWAP_OWNER, address(this), oldOwner, newOwner),
       safeTxGas,
       baseGas,
       gasPrice,
@@ -209,6 +211,34 @@ contract RewardManager is Ownable, Versionable, Safe {
     emit RewardSafeTransferred(msg.sender, oldOwner, newOwner);
   }
 
+  function withdrawFromRewardSafe(
+    address token,
+    uint256 value,
+    uint256 safeTxGas,
+    uint256 baseGas,
+    uint256 gasPrice,
+    address gasToken,
+    bytes calldata signature
+  ) external {
+    address rewardSafeOwner = getRewardSafeOwner(msg.sender);
+    bytes memory conSignature = contractSignature(msg.sender, rewardSafeOwner);
+    signatures[keccak256(conSignature)] = true;
+
+    execTransaction(
+      token,
+      0,
+      abi.encodeWithSelector(TRANSFER, rewardSafeOwner, value),
+      safeTxGas,
+      baseGas,
+      gasPrice,
+      gasToken,
+      signature,
+      msg.sender
+    );
+    signatures[keccak256(conSignature)] = false;
+    emit RewardSafeWithdrawal(msg.sender, token, value);
+  }
+
   function getRewardSafeOwner(address payable rewardSafe)
     public
     view
@@ -217,15 +247,6 @@ contract RewardManager is Ownable, Versionable, Safe {
     address[] memory owners = GnosisSafe(rewardSafe).getOwners();
     require(owners.length == 2, "unexpected number of owners for reward safe");
     return owners[0] == address(this) ? owners[1] : owners[0];
-  }
-
-  function getTransferRewardSafeData(
-    address payable rewardSafe,
-    address newOwner
-  ) public view returns (bytes memory) {
-    address oldOwner = getRewardSafeOwner(rewardSafe);
-    return
-      abi.encodeWithSelector(SWAP_OWNER, address(this), oldOwner, newOwner);
   }
 
   function isRewardProgram(address rewardProgramID) public view returns (bool) {
@@ -293,18 +314,23 @@ contract RewardManager is Ownable, Versionable, Safe {
   // - facilitate the use of nested gnosis execution, we do it st any gnosis function calls (.e.g SWAP_OWNER) can only be executed on the reward manager contract itself
   // - reward safe has two owners, the eoa and the reward manager contract
   //
-  // conditions:
-  // (_equalBytes(data, encodedTransactionData) && (to == msg.sender && signatures[keccak256(contractSignature)]))
-  // - allows gnosis exec of a gnosis function call, .e.g. SWAP_OWNER to the reward safe
-  // - signatures is a state variable that needs to be switched on in the reward manager contract function to execute the inner safe transaction. This prevents the direct interaction with the safe.
-  // - _equalBytes checks that the data verifying part of the eip1271 signature to make sure that the user is not trying to exploit this callback, for example, if they pass in a different nonce or different payload
+  // One of these three conditions must be true for the signature to be valid:
+  // 1. isAllowedGnosisExecution =
+  //    _equalBytes(data, encodedTransactionData) &&
+  //    signatures[keccak256(contractSignature)] &&
+  //    isAllowedGnosisRecipient(to);
   //
-  // (to == address(this))
-  // - allows gnosis exec of reward safe to call any function on reward manager
+  //    - allows gnosis exec of a gnosis function call, .e.g. SWAP_OWNER to the reward safe
+  //    - signatures is a state variable that needs to be switched on in the reward manager contract function to execute the inner safe transaction. This prevents the direct interaction with the safe.
+  //    - _equalBytes checks that the data verifying part of the eip1271 signature to make sure that the user is not trying to exploit this callback, for example, if they pass in a different nonce or different payload
+  //    - isAllowedGnosisRecipient checks if the recipient of the message is the same as the sender, or alternatively if the message is to an allowed token contract
   //
-  // (eip1271Contracts.contains(to))
-  // - allows gnosis exec of reward safe to call any function on federated contracts
-  // - essentially, we can lock all reward safe transactions by unfederating a contract
+  // 2. (to == address(this))
+  //    - allows gnosis exec of reward safe to call any function on reward manager
+  //
+  // 3. (eip1271Contracts.contains(to))
+  //    - allows gnosis exec of reward safe to call any function on federated contracts
+  //    - essentially, we can lock all reward safe transactions by unfederating a contract
   function isValidSignature(bytes memory data, bytes memory signature)
     public
     view
@@ -319,13 +345,25 @@ contract RewardManager is Ownable, Versionable, Safe {
       msg.sender,
       rewardSafeOwner
     );
+
+    bool isAllowedGnosisExecution = _equalBytes(data, encodedTransactionData) &&
+      signatures[keccak256(contractSignature)] &&
+      isAllowedGnosisRecipient(to);
+
+    bytes4 result = isAllowedGnosisExecution ||
+      (to == address(this)) ||
+      eip1271Contracts.contains(to)
+      ? EIP1271_MAGIC_VALUE
+      : bytes4(0);
+
+    return result;
+  }
+
+  function isAllowedGnosisRecipient(address to) private view returns (bool) {
     return
-      ((_equalBytes(data, encodedTransactionData) &&
-        (to == msg.sender && signatures[keccak256(contractSignature)])) ||
-        (to == address(this)) ||
-        (eip1271Contracts.contains(to)))
-        ? EIP1271_MAGIC_VALUE
-        : bytes4(0);
+      (to == msg.sender) ||
+      TokenManager(ActionDispatcher(actionDispatcher).tokenManager())
+        .isValidToken(to);
   }
 
   function hasRule(address rewardProgramID, string calldata ruleDID)
