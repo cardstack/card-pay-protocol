@@ -314,23 +314,8 @@ contract RewardManager is Ownable, Versionable, Safe {
   // - facilitate the use of nested gnosis execution, we do it st any gnosis function calls (.e.g SWAP_OWNER) can only be executed on the reward manager contract itself
   // - reward safe has two owners, the eoa and the reward manager contract
   //
-  // One of these three conditions must be true for the signature to be valid:
-  // 1. isAllowedGnosisExecution =
-  //    _equalBytes(data, encodedTransactionData) &&
-  //    signatures[keccak256(contractSignature)] &&
-  //    isAllowedGnosisRecipient(to);
+  // See inline comments for signature validity logic
   //
-  //    - allows gnosis exec of a gnosis function call, .e.g. SWAP_OWNER to the reward safe
-  //    - signatures is a state variable that needs to be switched on in the reward manager contract function to execute the inner safe transaction. This prevents the direct interaction with the safe.
-  //    - _equalBytes checks that the data verifying part of the eip1271 signature to make sure that the user is not trying to exploit this callback, for example, if they pass in a different nonce or different payload
-  //    - isAllowedGnosisRecipient checks if the recipient of the message is the same as the sender, or alternatively if the message is to an allowed token contract
-  //
-  // 2. (to == address(this))
-  //    - allows gnosis exec of reward safe to call any function on reward manager
-  //
-  // 3. (eip1271Contracts.contains(to))
-  //    - allows gnosis exec of reward safe to call any function on federated contracts
-  //    - essentially, we can lock all reward safe transactions by unfederating a contract
   function isValidSignature(bytes memory data, bytes memory signature)
     public
     view
@@ -346,17 +331,36 @@ contract RewardManager is Ownable, Versionable, Safe {
       rewardSafeOwner
     );
 
-    bool isAllowedGnosisExecution = _equalBytes(data, encodedTransactionData) &&
-      signatures[keccak256(contractSignature)] &&
-      isAllowedGnosisRecipient(to);
+    // Signature must always match
+    require(
+      _equalBytes(data, encodedTransactionData),
+      "Signature data mismatch"
+    );
 
-    bytes4 result = isAllowedGnosisExecution ||
-      (to == address(this)) ||
-      eip1271Contracts.contains(to)
-      ? EIP1271_MAGIC_VALUE
-      : bytes4(0);
+    // One of these three conditions must be true for the signature to be valid:
 
-    return result;
+    // 1. allows gnosis exec of reward safe to call any function on reward manager
+    if (to == address(this)) {
+      return EIP1271_MAGIC_VALUE;
+    }
+
+    // 2. allows gnosis exec of reward safe to call any function on federated contracts
+    //    essentially, we can lock all reward safe transactions by unfederating a contract
+    if (eip1271Contracts.contains(to)) {
+      return EIP1271_MAGIC_VALUE;
+    }
+
+    // 3. allows gnosis exec of a gnosis function call, .e.g. SWAP_OWNER to the reward safe
+    //    signatures is a state variable that needs to be switched on in the reward manager contract function to execute the inner safe transaction. This prevents the direct interaction with the safe.
+    //    _equalBytes checks that the data verifying part of the eip1271 signature to make sure that the user is not trying to exploit this callback, for example, if they pass in a different nonce or different payload
+    //    isAllowedGnosisRecipient checks if the recipient of the message is the same as the sender, or alternatively if the message is to an allowed token contract
+    if (
+      signatures[keccak256(contractSignature)] && isAllowedGnosisRecipient(to)
+    ) {
+      return EIP1271_MAGIC_VALUE;
+    }
+
+    return bytes4(0);
   }
 
   function isAllowedGnosisRecipient(address to) private view returns (bool) {

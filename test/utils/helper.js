@@ -135,13 +135,13 @@ async function getIssuingToken(prepaidCardManager, prepaidCard) {
   return await ERC677Token.at(details.issueToken);
 }
 
-const sendSafeTransaction = async (
+async function sendSafeTransaction(
   safeTxData,
   gnosisSafe,
   relayer,
   signature,
   options = null
-) => {
+) {
   let packData = packExecutionData(safeTxData);
   let safeTxArr = Object.keys(packData).map((key) => packData[key]);
   let nonce = await gnosisSafe.nonce();
@@ -163,7 +163,7 @@ const sendSafeTransaction = async (
     safeTx,
     executionResult: checkGnosisExecution(safeTx, gnosisSafe.address),
   };
-};
+}
 
 async function signAndSendSafeTransaction(
   safeTxData,
