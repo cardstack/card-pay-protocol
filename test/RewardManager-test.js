@@ -1479,7 +1479,7 @@ contract("RewardManager", (accounts) => {
         await daicpxdToken.balanceOf(prepaidCardOwner)
       ).to.be.bignumber.equal(toTokenUnit(0));
 
-      let result = await withdrawFromRewardSafe(
+      let { safeTx } = await withdrawFromRewardSafe(
         rewardManager,
         rewardSafe,
         daicpxdToken.address,
@@ -1488,7 +1488,18 @@ contract("RewardManager", (accounts) => {
         daicpxdToken
       );
 
-      expect(result.executionResult.success).to.be.ok;
+      let params = await getParamsFromEvent(
+        safeTx,
+        eventABIs.REWARD_SAFE_WITHDRAWAL,
+        rewardManager.address
+      );
+
+      expect(params.length).to.equal(1);
+      expect(params[0]).to.deep.include({
+        rewardSafe: rewardSafe.address,
+        token: daicpxdToken.address,
+        value: toTokenUnit(50).toString(),
+      });
 
       expect(
         await daicpxdToken.balanceOf(rewardSafe.address)
