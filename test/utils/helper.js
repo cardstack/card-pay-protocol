@@ -1383,13 +1383,14 @@ const withdrawFromRewardSafe = async function (
   rewardManager,
   rewardSafe,
   tokenAddress,
+  to,
   value,
   relayer,
   gasToken
 ) {
   const rewardSafeEOA = (await rewardSafe.getOwners())[1];
   let token = await ERC677Token.at(tokenAddress);
-  let transfer = token.contract.methods.transfer(rewardSafeEOA, value);
+  let transfer = token.contract.methods.transfer(to, value);
 
   let transferData = transfer.encodeABI();
   let gasEstimate = await transfer.estimateGas({ from: rewardSafe.address });

@@ -1466,12 +1466,13 @@ contract("RewardManager", (accounts) => {
       rewardSafe = await GnosisSafe.at(rewardSafeCreation[0].rewardSafe);
 
       await daicpxdToken.mint(rewardSafe.address, toTokenUnit(100));
-    });
 
-    it("can withdraw from reward safe", async () => {
       let owners = await rewardSafe.getOwners();
       expect(owners.length).to.equal(2);
       expect(owners[1]).to.equal(prepaidCardOwner);
+    });
+
+    it("can withdraw from reward safe", async () => {
       expect(
         await daicpxdToken.balanceOf(rewardSafe.address)
       ).to.be.bignumber.equal(toTokenUnit(100));
@@ -1483,6 +1484,7 @@ contract("RewardManager", (accounts) => {
         rewardManager,
         rewardSafe,
         daicpxdToken.address,
+        prepaidCardOwner,
         toTokenUnit(50),
         relayer,
         daicpxdToken
@@ -1508,6 +1510,49 @@ contract("RewardManager", (accounts) => {
       expect(
         await daicpxdToken.balanceOf(prepaidCardOwner)
       ).to.be.bignumber.equal(toTokenUnit(50));
+    });
+
+    it("cannot withdraw invalid token", async function () {
+      await fakeDaicpxdToken.mint(rewardSafe.address, toTokenUnit(100));
+      expect(
+        await fakeDaicpxdToken.balanceOf(rewardSafe.address)
+      ).to.be.bignumber.equal(toTokenUnit(100));
+
+      expect(
+        (
+          await withdrawFromRewardSafe(
+            rewardManager,
+            rewardSafe,
+            fakeDaicpxdToken.address,
+            prepaidCardOwner,
+            toTokenUnit(50),
+            relayer,
+            daicpxdToken
+          )
+        ).executionResult.success
+      ).to.equal(false);
+      expect(
+        await fakeDaicpxdToken.balanceOf(rewardSafe.address)
+      ).to.be.bignumber.equal(toTokenUnit(100));
+    });
+
+    it("cannot withdraw to different address", async function () {
+      expect(
+        (
+          await withdrawFromRewardSafe(
+            rewardManager,
+            rewardSafe,
+            daicpxdToken.address,
+            otherPrepaidCardOwner,
+            toTokenUnit(50),
+            relayer,
+            daicpxdToken
+          )
+        ).executionResult.success
+      ).to.equal(false);
+      expect(
+        await daicpxdToken.balanceOf(rewardSafe.address)
+      ).to.be.bignumber.equal(toTokenUnit(100));
     });
   });
 
