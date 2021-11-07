@@ -537,6 +537,129 @@ contract("RewardManager", (accounts) => {
         .removeRewardProgram(rewardProgramID, { from: owner })
         .should.be.rejectedWith("caller is not governance admin");
     });
+    it("cannot add reward rule if reward program removed", async () => {
+      const blob = encodeBlob();
+      await addRewardRule(
+        prepaidCardManager,
+        prepaidCard,
+        relayer,
+        prepaidCardOwner,
+        0,
+        undefined,
+        rewardProgramID,
+        blob
+      );
+      expect(await rewardManager.rule(rewardProgramID), blob);
+      await rewardManager.removeRewardProgram(rewardProgramID, {
+        from: governanceAdmin,
+      });
+      await addRewardRule(
+        prepaidCardManager,
+        prepaidCard,
+        relayer,
+        prepaidCardOwner,
+        0,
+        undefined,
+        rewardProgramID,
+        encodeBlob()
+      ).should.be.rejectedWith(Error, "safe transaction was reverted");
+      expect(await rewardManager.rule(rewardProgramID), ZERO_ADDRESS);
+    });
+    it("cannot update admin if reward program removed", async () => {
+      expect(
+        await rewardManager.rewardProgramAdmins(rewardProgramID),
+        prepaidCardOwner
+      );
+      await rewardManager.removeRewardProgram(rewardProgramID, {
+        from: governanceAdmin,
+      });
+      await updateRewardProgramAdmin(
+        prepaidCardManager,
+        prepaidCard,
+        relayer,
+        prepaidCardOwner,
+        0,
+        undefined,
+        rewardProgramID,
+        rewardProgramAdmin
+      ).should.be.rejectedWith(Error, "safe transaction was reverted");
+      expect(
+        await rewardManager.rewardProgramAdmins(rewardProgramID),
+        ZERO_ADDRESS
+      );
+    });
+    it("cannot register rewardee if reward program removed", async () => {
+      await rewardManager.removeRewardProgram(rewardProgramID, {
+        from: governanceAdmin,
+      });
+      await registerRewardee(
+        prepaidCardManager,
+        prepaidCard,
+        relayer,
+        prepaidCardOwner,
+        undefined,
+        rewardProgramID
+      ).should.be.rejectedWith(Error, "safe transaction was reverted");
+    });
+    it("cannot lock reward program if reward program removed", async () => {
+      await lockRewardProgram(
+        prepaidCardManager,
+        prepaidCard,
+        relayer,
+        prepaidCardOwner,
+        0,
+        undefined,
+        rewardProgramID
+      );
+      expect(
+        await rewardManager.rewardProgramLocked.call(rewardProgramID)
+      ).to.equal(true);
+      await rewardManager.removeRewardProgram(rewardProgramID, {
+        from: governanceAdmin,
+      });
+      await lockRewardProgram(
+        prepaidCardManager,
+        prepaidCard,
+        relayer,
+        prepaidCardOwner,
+        0,
+        undefined,
+        rewardProgramID
+      ).should.be.rejectedWith(Error, "safe transaction was reverted");
+      expect(
+        await rewardManager.rewardProgramLocked.call(rewardProgramID)
+      ).to.equal(false);
+    });
+    it("can transfer reward safe if reward program removed", async () => {
+      let tx = await registerRewardee(
+        prepaidCardManager,
+        prepaidCard,
+        relayer,
+        prepaidCardOwner,
+        undefined,
+        rewardProgramID
+      );
+      let rewardSafeCreation = await getParamsFromEvent(
+        tx,
+        eventABIs.REWARDEE_REGISTERED,
+        rewardManager.address
+      );
+      let rewardSafe = await GnosisSafe.at(rewardSafeCreation[0].rewardSafe);
+      await rewardManager.removeRewardProgram(rewardProgramID, {
+        from: governanceAdmin,
+      });
+      await transferRewardSafe(
+        rewardManager,
+        rewardSafe,
+        prepaidCardOwner,
+        otherPrepaidCardOwner,
+        relayer,
+        daicpxdToken
+      );
+      owners = await rewardSafe.getOwners();
+      expect(owners.length).to.equal(2);
+      expect(owners[1]).to.equal(otherPrepaidCardOwner);
+    });
     it("can add rule in reward program", async () => {
       const prepaidCardPreviousBalanceDai = await getBalance(
         daicpxdToken,
@@ -573,7 +696,7 @@ contract("RewardManager", (accounts) => {
       );
     });
 
-    it("cannot add rule once it has been set in reward program", async () => {
+    it("can update rule once it has been set in reward program", async () => {
       const prepaidCardPreviousBalanceDai = await getBalance(
         daicpxdToken,
         prepaidCard.address
@@ -607,6 +730,7 @@ contract("RewardManager", (accounts) => {
         await rewardManager.rule(rewardProgramID),
         soliditySha3({ t: "bytes", v: blob })
       );
+      const newBlob = encodeBlob();
       await addRewardRule(
         prepaidCardManager,
         prepaidCard,
@@ -615,8 +739,12 @@ contract("RewardManager", (accounts) => {
         0,
         undefined,
         rewardProgramID,
-        encodeBlob()
-      ).should.be.rejectedWith(Error, "safe transaction was reverted");
+        newBlob
+      );
+      expect(
+        await rewardManager.rule(rewardProgramID),
+        soliditySha3({ t: "bytes", v: newBlob })
+      );
     });
     it("cannot add rule reward program if not admin", async () => {
       otherPrepaidCard = await createPrepaidCardAndTransfer(
@@ -688,66 +816,6 @@ contract("RewardManager", (accounts) => {
           )
         )
         .should.be.rejectedWith(Error, "calling token is unaccepted");
-    });
-    it("can update rule in reward program by governanceAdmin", async () => {
-      let blob = encodeBlob();
-      expect(await rewardManager.rule(rewardProgramID), ZERO_ADDRESS);
-      await addRewardRule(
-        prepaidCardManager,
-        prepaidCard,
-        relayer,
-        prepaidCardOwner,
-        0,
-        undefined,
-        rewardProgramID,
-        blob
-      );
-      expect(
-        await rewardManager.rule(rewardProgramID),
-        soliditySha3({ t: "bytes", v: blob })
-      );
-      let newBlob = encodeBlob();
-      await rewardManager.updateRewardRule(rewardProgramID, newBlob, {
-        from: governanceAdmin,
-      });
-      expect(
-        await rewardManager.rule(rewardProgramID),
-        soliditySha3({ t: "bytes", v: newBlob })
-      );
-    });
-    it("can remove rule by setting to 0x reward program by governanceAdmin", async () => {
-      let blob = encodeBlob();
-      await addRewardRule(
-        prepaidCardManager,
-        prepaidCard,
-        relayer,
-        prepaidCardOwner,
-        0,
-        undefined,
-        rewardProgramID,
-        blob
-      );
-      expect(
-        await rewardManager.rule(rewardProgramID),
-        soliditySha3({ t: "bytes", v: blob })
-      );
-      let zeroBytes = "0x";
-      await rewardManager.updateRewardRule(rewardProgramID, zeroBytes, {
-        from: governanceAdmin,
-      });
-      expect(
-        await rewardManager.rule(rewardProgramID),
-        soliditySha3({ t: "bytes", v: zeroBytes })
-      );
-      expect(await rewardManager.rule(rewardProgramID), ZERO_ADDRESS); // bytes data defaults to ZERO_ADDRESS
-    });
-    it("cannot update rule in if not governanceAdmin", async () => {
-      let newBlob = encodeBlob();
-      await rewardManager
-        .updateRewardRule(rewardProgramID, newBlob, {
-          from: owner,
-        })
-        .should.be.rejectedWith(Error, "caller is not governance admin");
     });
     it("can lock reward program", async () => {
       const prepaidCardPreviousBalanceDai = await getBalance(
@@ -823,7 +891,7 @@ contract("RewardManager", (accounts) => {
         otherPrepaidCardOwner
       );
       expect(
-        (await rewardManager.rewardPrograms.call(rewardProgramID)).locked
+        await rewardManager.rewardProgramLocked.call(rewardProgramID)
       ).to.equal(false);
       await lockRewardProgram(
         prepaidCardManager,
