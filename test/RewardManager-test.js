@@ -656,7 +656,7 @@ contract("RewardManager", (accounts) => {
         relayer,
         daicpxdToken
       );
-      owners = await rewardSafe.getOwners();
+      let owners = await rewardSafe.getOwners();
       expect(owners.length).to.equal(2);
       expect(owners[1]).to.equal(otherPrepaidCardOwner);
     });
