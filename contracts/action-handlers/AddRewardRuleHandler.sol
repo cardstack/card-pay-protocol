@@ -65,6 +65,11 @@ contract AddRewardRuleHandler is Ownable, Versionable {
       bytes memory blob
     ) = abi.decode(actionData, (address, bytes));
 
+    require(
+      RewardManager(rewardManagerAddress).isRewardProgram(rewardProgramID),
+      "reward program does not exist"
+    );
+
     address prepaidCardOwner = PrepaidCardManager(prepaidCardManager)
       .getPrepaidCardOwner(prepaidCard);
 

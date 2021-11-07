@@ -11,10 +11,7 @@ import "../VersionManager.sol";
 contract RegisterRewardeeHandler is Ownable, Versionable {
   using SafeMath for uint256;
   event Setup();
-  event RewardeeRegistered(
-    address prepaidCard,
-    address rewardProgramID
-  );
+  event RewardeeRegistered(address prepaidCard, address rewardProgramID);
   address public actionDispatcher;
   address public prepaidCardManager;
   address public exchangeAddress;
@@ -60,6 +57,10 @@ contract RegisterRewardeeHandler is Ownable, Versionable {
 
     address rewardProgramID = abi.decode(actionData, (address));
 
+    require(
+      RewardManager(rewardManagerAddress).isRewardProgram(rewardProgramID),
+      "reward program does not exist"
+    );
     address prepaidCardOwner = PrepaidCardManager(prepaidCardManager)
       .getPrepaidCardOwner(prepaidCard);
 
@@ -67,10 +68,7 @@ contract RegisterRewardeeHandler is Ownable, Versionable {
       rewardProgramID,
       prepaidCardOwner
     );
-    emit RewardeeRegistered(
-      prepaidCard,
-      rewardProgramID
-    );
+    emit RewardeeRegistered(prepaidCard, rewardProgramID);
     return true;
   }
 
