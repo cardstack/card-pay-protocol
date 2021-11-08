@@ -26,7 +26,7 @@ export default async function (
       },
       {
         name: "snapThreshold",
-        value: 1000000,
+        value: 1000000, // +/-1% threshold
         formatter: (v) => `${(Number(v) / 100000000).toFixed(4)}%`,
       },
       {
