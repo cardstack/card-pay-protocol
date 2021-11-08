@@ -1,4 +1,9 @@
-import { getAddress, AddressFile, ContractConfig } from "../../config-utils";
+import {
+  getAddress,
+  AddressFile,
+  ContractConfig,
+  DAI_USD_RATE_SNAP_THRESHOLD,
+} from "../../config-utils";
 import {
   chainlinkDAIUSDAddress,
   chainlinkETHUSDAddress,
@@ -30,7 +35,7 @@ export default async function (
       },
       {
         name: "snapThreshold",
-        value: 1000000, // +/-1% threshold
+        value: DAI_USD_RATE_SNAP_THRESHOLD,
         formatter: (v) => `${(Number(v) / 100000000).toFixed(4)}%`,
       },
       {
