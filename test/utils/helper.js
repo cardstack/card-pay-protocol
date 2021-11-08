@@ -262,6 +262,8 @@ exports.setupExchanges = async function (owner, versionManager) {
     daiFeed.address,
     ethFeed.address,
     daiFeed.address,
+    false,
+    0,
     versionManagerAddress
   );
   let mockDiaOracle = await MockDIAOracle.new();

@@ -25,6 +25,15 @@ export default async function (
         value: chainlinkDAIUSDAddress,
       },
       {
+        name: "canSnapToUSD",
+        value: true,
+      },
+      {
+        name: "snapThreshold",
+        value: 1000000,
+        formatter: (v) => `${(Number(v) / 100000000).toFixed(4)}%`,
+      },
+      {
         name: "versionManager",
         value: address("VersionManager"),
       },
