@@ -109,10 +109,6 @@ async function main() {
       contractName: "RegisterRewardeeHandler",
       init: [owner],
     },
-    RemoveRewardRuleHandler: {
-      contractName: "RemoveRewardRuleHandler",
-      init: [owner],
-    },
     UpdateRewardProgramAdminHandler: {
       contractName: "UpdateRewardProgramAdminHandler",
       init: [owner],
