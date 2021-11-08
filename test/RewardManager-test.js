@@ -11,7 +11,7 @@ const MerchantManager = artifacts.require("MerchantManager");
 const ERC677Token = artifacts.require("ERC677Token.sol");
 const RewardPool = artifacts.require("RewardPool");
 
-const { randomHex } = require("web3-utils");
+const { randomHex, soliditySha3 } = require("web3-utils");
 const { assert, expect, TOKEN_DETAIL_DATA } = require("./setup");
 
 const {
@@ -36,7 +36,6 @@ const {
   swapOwner,
   swapOwnerWithFullSignature,
   addRewardRule,
-  removeRewardRule,
   updateRewardProgramAdmin,
   createPrepaidCardAndTransfer,
   findAccountAfterAddress,
@@ -48,9 +47,10 @@ const {
 const AbiCoder = require("web3-eth-abi");
 
 const REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND = 500;
-const tallyRuleDID = "did:cardstack:1tdnHDwr8Z4Z7sHGceo2kArC9a5a297f45ef5491";
-const benefitDID = "did:cardstack:1b1kyKHhwKF5BT3w4p8w5AGc12ada71be496beea";
-const ruleDID = "did:cardstack:1r4r2PZpazPtbcKU3yR6BTUwf1c425ad7fd6f9ee";
+
+const encodeBlob = function (n = 100) {
+  return randomHex(n);
+};
 
 contract("RewardManager", (accounts) => {
   //main contracts
@@ -68,7 +68,6 @@ contract("RewardManager", (accounts) => {
     registerRewardProgramHandler,
     lockRewardProgramHandler,
     addRewardRuleHandler,
-    removeRewardRuleHandler,
     updateRewardProgramAdminHandler;
 
   // tokens
@@ -223,7 +222,6 @@ contract("RewardManager", (accounts) => {
       registerRewardProgramHandler,
       lockRewardProgramHandler,
       addRewardRuleHandler,
-      removeRewardRuleHandler,
       updateRewardProgramAdminHandler,
     } = await addActionHandlers({
       prepaidCardManager,
@@ -522,7 +520,7 @@ contract("RewardManager", (accounts) => {
         rewardProgramID
       );
     });
-    it("can remove existing reward program", async () => {
+    it("can remove existing reward program by governance admin", async () => {
       await rewardManager.removeRewardProgram(rewardProgramID, {
         from: governanceAdmin,
       });
@@ -532,6 +530,9 @@ contract("RewardManager", (accounts) => {
       expect(
         await rewardManager.rewardProgramAdmins.call(rewardProgramID)
       ).to.equal(ZERO_ADDRESS);
+      expect(
+        await rewardManager.rewardProgramLocked.call(rewardProgramID)
+      ).to.equal(false);
     });
     it("cannot remove existing reward program if not governance admin", async () => {
       await rewardManager
@@ -541,14 +542,134 @@ contract("RewardManager", (accounts) => {
         .removeRewardProgram(rewardProgramID, { from: owner })
         .should.be.rejectedWith("caller is not governance admin");
     });
+    it("cannot add reward rule if reward program removed", async () => {
+      const blob = encodeBlob();
+      await addRewardRule(
+        prepaidCardManager,
+        prepaidCard,
+        relayer,
+        prepaidCardOwner,
+        0,
+        undefined,
+        rewardProgramID,
+        blob
+      );
+      expect(await rewardManager.rule(rewardProgramID)).to.equal(blob);
+      await rewardManager.removeRewardProgram(rewardProgramID, {
+        from: governanceAdmin,
+      });
+      await addRewardRule(
+        prepaidCardManager,
+        prepaidCard,
+        relayer,
+        prepaidCardOwner,
+        0,
+        undefined,
+        rewardProgramID,
+        encodeBlob()
+      ).should.be.rejectedWith(Error, "safe transaction was reverted");
+      expect(await rewardManager.rule(rewardProgramID)).to.equal(null);
+    });
+    it("cannot update admin if reward program removed", async () => {
+      expect(await rewardManager.rewardProgramAdmins(rewardProgramID)).to.equal(
+        prepaidCardOwner
+      );
+      await rewardManager.removeRewardProgram(rewardProgramID, {
+        from: governanceAdmin,
+      });
+      await updateRewardProgramAdmin(
+        prepaidCardManager,
+        prepaidCard,
+        relayer,
+        prepaidCardOwner,
+        0,
+        undefined,
+        rewardProgramID,
+        rewardProgramAdmin
+      ).should.be.rejectedWith(Error, "safe transaction was reverted");
+      expect(await rewardManager.rewardProgramAdmins(rewardProgramID)).to.equal(
+        ZERO_ADDRESS
+      );
+    });
+    it("cannot register rewardee if reward program removed", async () => {
+      await rewardManager.removeRewardProgram(rewardProgramID, {
+        from: governanceAdmin,
+      });
+      await registerRewardee(
+        prepaidCardManager,
+        prepaidCard,
+        relayer,
+        prepaidCardOwner,
+        undefined,
+        rewardProgramID
+      ).should.be.rejectedWith(Error, "safe transaction was reverted");
+    });
+    it("cannot lock reward program if reward program removed", async () => {
+      await lockRewardProgram(
+        prepaidCardManager,
+        prepaidCard,
+        relayer,
+        prepaidCardOwner,
+        0,
+        undefined,
+        rewardProgramID
+      );
+      expect(
+        await rewardManager.rewardProgramLocked.call(rewardProgramID)
+      ).to.equal(true);
+      await rewardManager.removeRewardProgram(rewardProgramID, {
+        from: governanceAdmin,
+      });
+      await lockRewardProgram(
+        prepaidCardManager,
+        prepaidCard,
+        relayer,
+        prepaidCardOwner,
+        0,
+        undefined,
+        rewardProgramID
+      ).should.be.rejectedWith(Error, "safe transaction was reverted");
+      expect(
+        await rewardManager.rewardProgramLocked.call(rewardProgramID)
+      ).to.equal(false);
+    });
+    it("can transfer reward safe if reward program removed", async () => {
+      let tx = await registerRewardee(
+        prepaidCardManager,
+        prepaidCard,
+        relayer,
+        prepaidCardOwner,
+        undefined,
+        rewardProgramID
+      );
+      let rewardSafeCreation = await getParamsFromEvent(
+        tx,
+        eventABIs.REWARDEE_REGISTERED,
+        rewardManager.address
+      );
+      let rewardSafe = await GnosisSafe.at(rewardSafeCreation[0].rewardSafe);
+      await rewardManager.removeRewardProgram(rewardProgramID, {
+        from: governanceAdmin,
+      });
+      await transferRewardSafe(
+        rewardManager,
+        rewardSafe,
+        prepaidCardOwner,
+        otherPrepaidCardOwner,
+        relayer,
+        daicpxdToken
+      );
+      let owners = await rewardSafe.getOwners();
+      expect(owners.length).to.equal(2);
+      expect(owners[1]).to.equal(otherPrepaidCardOwner);
+    });
     it("can add rule in reward program", async () => {
       const prepaidCardPreviousBalanceDai = await getBalance(
         daicpxdToken,
         prepaidCard.address
       );
-      expect(await rewardManager.hasRule(rewardProgramID, ruleDID)).to.equal(
-        false
-      );
+      let blob = encodeBlob();
+      expect(await rewardManager.rule(rewardProgramID)).to.equal(null);
       const txn = await addRewardRule(
         prepaidCardManager,
         prepaidCard,
@@ -557,9 +678,7 @@ contract("RewardManager", (accounts) => {
         0,
         undefined,
         rewardProgramID,
-        ruleDID,
-        tallyRuleDID,
-        benefitDID
+        blob
       );
       const { gasFee, success } = checkGnosisExecution(
         txn,
@@ -574,9 +693,52 @@ contract("RewardManager", (accounts) => {
         prepaidCardPreviousBalanceDai.sub(gasFee).eq(prepaidCardBalanceDai),
         "the prepaid card token balance is correct"
       );
-      expect(await rewardManager.hasRule(rewardProgramID, ruleDID)).to.equal(
-        true
+      expect(await rewardManager.rule(rewardProgramID)).to.equal(blob);
+    });
+
+    it("can update rule once it has been set in reward program", async () => {
+      const prepaidCardPreviousBalanceDai = await getBalance(
+        daicpxdToken,
+        prepaidCard.address
       );
+      let blob = encodeBlob();
+      expect(await rewardManager.rule(rewardProgramID)).to.equal(null);
+      const txn = await addRewardRule(
+        prepaidCardManager,
+        prepaidCard,
+        relayer,
+        prepaidCardOwner,
+        0,
+        undefined,
+        rewardProgramID,
+        blob
+      );
+      const { gasFee, success } = checkGnosisExecution(
+        txn,
+        prepaidCard.address
+      );
+      const prepaidCardBalanceDai = await getBalance(
+        daicpxdToken,
+        prepaidCard.address
+      );
+      assert(success, "gnosis execution succesfull");
+      assert(
+        prepaidCardPreviousBalanceDai.sub(gasFee).eq(prepaidCardBalanceDai),
+        "the prepaid card token balance is correct"
+      );
+      expect(await rewardManager.rule(rewardProgramID)).to.equal(blob);
+      const newBlob = encodeBlob();
+      await addRewardRule(
+        prepaidCardManager,
+        prepaidCard,
+        relayer,
+        prepaidCardOwner,
+        0,
+        undefined,
+        rewardProgramID,
+        newBlob
+      );
+      expect(await rewardManager.rule(rewardProgramID)).to.equal(newBlob);
     });
     it("cannot add rule reward program if not admin", async () => {
       otherPrepaidCard = await createPrepaidCardAndTransfer(
@@ -596,14 +758,12 @@ contract("RewardManager", (accounts) => {
         0,
         undefined,
         rewardProgramID,
-        ruleDID,
-        tallyRuleDID,
-        benefitDID
+        encodeBlob()
       ).should.be.rejectedWith(Error, "safe transaction was reverted");
     });
     it("does not allow non-action handler to call addRewardRule", async () => {
       await rewardManager
-        .addRewardRule(rewardProgramID, ruleDID, tallyRuleDID, benefitDID)
+        .addRewardRule(rewardProgramID, encodeBlob())
         .should.be.rejectedWith(
           Error,
           "caller is not a registered action handler"
@@ -620,8 +780,8 @@ contract("RewardManager", (accounts) => {
               prepaidCard.address,
               0, // doesn't matter what this is
               AbiCoder.encodeParameters(
-                ["address", "string", "string", "string"],
-                [rewardProgramID, ruleDID, tallyRuleDID, benefitDID]
+                ["address", "bytes"],
+                [rewardProgramID, encodeBlob()]
               ),
             ]
           )
@@ -643,174 +803,8 @@ contract("RewardManager", (accounts) => {
               prepaidCard.address,
               0, //doesn't matter what this is
               AbiCoder.encodeParameters(
-                ["address", "string", "string", "string"],
-                [rewardProgramID, ruleDID, tallyRuleDID, benefitDID]
-              ),
-            ]
-          )
-        )
-        .should.be.rejectedWith(Error, "calling token is unaccepted");
-    });
-    it("can remove reward rule", async () => {
-      await addRewardRule(
-        prepaidCardManager,
-        prepaidCard,
-        relayer,
-        prepaidCardOwner,
-        0,
-        undefined,
-        rewardProgramID,
-        ruleDID,
-        tallyRuleDID,
-        benefitDID
-      );
-      const prepaidCardPreviousBalanceDai = await getBalance(
-        daicpxdToken,
-        prepaidCard.address
-      );
-      expect(await rewardManager.hasRule(rewardProgramID, ruleDID)).to.equal(
-        true
-      );
-      const txn = await removeRewardRule(
-        prepaidCardManager,
-        prepaidCard,
-        relayer,
-        prepaidCardOwner,
-        0,
-        undefined,
-        rewardProgramID,
-        ruleDID
-      );
-      const { gasFee, success } = checkGnosisExecution(
-        txn,
-        prepaidCard.address
-      );
-      const prepaidCardBalanceDai = await getBalance(
-        daicpxdToken,
-        prepaidCard.address
-      );
-      assert(success, "gnosis execution succesfull");
-      assert(
-        prepaidCardPreviousBalanceDai.sub(gasFee).eq(prepaidCardBalanceDai),
-        "the prepaid card token balance is correct"
-      );
-      expect(await rewardManager.hasRule(rewardProgramID, ruleDID)).to.equal(
-        false
-      );
-    });
-    it("cannot remove reward rule if not admin", async () => {
-      await addRewardRule(
-        prepaidCardManager,
-        prepaidCard,
-        relayer,
-        prepaidCardOwner,
-        0,
-        undefined,
-        rewardProgramID,
-        ruleDID,
-        tallyRuleDID,
-        benefitDID
-      );
-      otherPrepaidCard = await createPrepaidCardAndTransfer(
-        prepaidCardManager,
-        relayer,
-        depot,
-        issuer,
-        daicpxdToken,
-        toTokenUnit(5 + 1),
-        otherPrepaidCardOwner
-      );
-      await removeRewardRule(
-        prepaidCardManager,
-        otherPrepaidCard,
-        relayer,
-        otherPrepaidCardOwner,
-        0,
-        undefined,
-        rewardProgramID,
-        ruleDID
-      ).should.be.rejectedWith(Error, "safe transaction was reverted");
-    });
-    it("does not allow non-action handler to call removeRewardRule", async () => {
-      await addRewardRule(
-        prepaidCardManager,
-        prepaidCard,
-        relayer,
-        prepaidCardOwner,
-        0,
-        undefined,
-        rewardProgramID,
-        ruleDID,
-        tallyRuleDID,
-        benefitDID
-      );
-      await rewardManager
-        .removeRewardRule(rewardProgramID, ruleDID)
-        .should.be.rejectedWith(
-          Error,
-          "caller is not a registered action handler"
-        );
-    });
-    it("does not allow non-action handler to call transfer on removeRewardRule", async () => {
-      await addRewardRule(
-        prepaidCardManager,
-        prepaidCard,
-        relayer,
-        prepaidCardOwner,
-        0,
-        undefined,
-        rewardProgramID,
-        ruleDID,
-        tallyRuleDID,
-        benefitDID
-      );
-      await daicpxdToken
-        .transferAndCall(
-          removeRewardRuleHandler.address,
-          toTokenUnit(0),
-          AbiCoder.encodeParameters(
-            ["address", "uint256", "bytes"],
-            [
-              prepaidCard.address,
-              0, // doesn't matter what this is
-              AbiCoder.encodeParameters(
-                ["address", "string"],
-                [rewardProgramID, ruleDID]
-              ),
-            ]
-          )
-        )
-        .should.be.rejectedWith(
-          Error,
-          "can only accept tokens from action dispatcher"
-        );
-    });
-
-    it("does not allow non-CPXD token to call removeRewardRule", async () => {
-      await addRewardRule(
-        prepaidCardManager,
-        prepaidCard,
-        relayer,
-        prepaidCardOwner,
-        0,
-        undefined,
-        rewardProgramID,
-        ruleDID,
-        tallyRuleDID,
-        benefitDID
-      );
-      await fakeDaicpxdToken
-        .transferAndCall(
-          removeRewardRuleHandler.address,
-          toTokenUnit(0),
-          AbiCoder.encodeParameters(
-            ["address", "uint256", "bytes"],
-            [
-              prepaidCard.address,
-              0, //doesn't matter what this is
-              AbiCoder.encodeParameters(
-                ["address", "string"],
-                [rewardProgramID, ruleDID]
+                ["address", "bytes"],
+                [rewardProgramID, encodeBlob()]
               ),
             ]
           )
@@ -823,7 +817,7 @@ contract("RewardManager", (accounts) => {
         prepaidCard.address
       );
       expect(
-        (await rewardManager.rewardPrograms.call(rewardProgramID)).locked
+        await rewardManager.rewardProgramLocked.call(rewardProgramID)
       ).to.equal(false);
       let txn = await lockRewardProgram(
         prepaidCardManager,
@@ -848,8 +842,37 @@ contract("RewardManager", (accounts) => {
         "the prepaid card token balance is correct"
       );
       expect(
-        (await rewardManager.rewardPrograms.call(rewardProgramID)).locked
+        await rewardManager.rewardProgramLocked.call(rewardProgramID)
       ).to.equal(true);
+    });
+    it("can unlock reward program", async () => {
+      expect(
+        await rewardManager.rewardProgramLocked.call(rewardProgramID)
+      ).to.equal(false);
+      await lockRewardProgram(
+        prepaidCardManager,
+        prepaidCard,
+        relayer,
+        prepaidCardOwner,
+        0,
+        undefined,
+        rewardProgramID
+      );
+      expect(
+        await rewardManager.rewardProgramLocked.call(rewardProgramID)
+      ).to.equal(true);
+      await lockRewardProgram(
+        prepaidCardManager,
+        prepaidCard,
+        relayer,
+        prepaidCardOwner,
+        0,
+        undefined,
+        rewardProgramID
+      );
+      expect(
+        await rewardManager.rewardProgramLocked.call(rewardProgramID)
+      ).to.equal(false);
     });
     it("cannot lock reward program if not admin", async () => {
       otherPrepaidCard = await createPrepaidCardAndTransfer(
@@ -862,7 +885,7 @@ contract("RewardManager", (accounts) => {
         otherPrepaidCardOwner
       );
       expect(
-        (await rewardManager.rewardPrograms.call(rewardProgramID)).locked
+        await rewardManager.rewardProgramLocked.call(rewardProgramID)
       ).to.equal(false);
       await lockRewardProgram(
         prepaidCardManager,
@@ -1565,7 +1588,6 @@ contract("RewardManager", (accounts) => {
       );
       expect(await lockRewardProgramHandler.cardpayVersion()).to.equal("1.0.0");
       expect(await addRewardRuleHandler.cardpayVersion()).to.equal("1.0.0");
-      expect(await removeRewardRuleHandler.cardpayVersion()).to.equal("1.0.0");
       expect(await updateRewardProgramAdminHandler.cardpayVersion()).to.equal(
         "1.0.0"
       );

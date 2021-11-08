@@ -26,24 +26,13 @@ contract RewardManager is Ownable, Versionable, Safe {
     address oldOwner,
     address newOwner
   );
+  event RewardRuleAdded(address rewardProgramID, bytes blob);
   event RewardSafeWithdrawal(address rewardSafe, address token, uint256 value);
-  event RewardRuleAdded(address rewardProgramID, string ruleDID);
-  event RewardRuleRemoved(address rewardProgramID, string ruleDID);
   event RewardeeRegistered(
     address rewardProgramID,
     address rewardee,
     address rewardSafe
   );
-
-  struct RewardProgram {
-    address admin;
-    bool locked;
-  }
-
-  struct Rule {
-    string tallyRuleDID;
-    string benefitDID;
-  }
 
   address internal constant ZERO_ADDRESS = address(0);
   bytes4 internal constant EIP1271_MAGIC_VALUE = 0x20c13b0b;
@@ -59,10 +48,9 @@ contract RewardManager is Ownable, Versionable, Safe {
 
   EnumerableSet.AddressSet rewardProgramIDs;
   EnumerableSet.AddressSet eip1271Contracts;
-  mapping(address => address) public rewardProgramAdmins; //reward program id <> reward program admins
-  mapping(address => RewardProgram) public rewardPrograms; //reward program ids
   mapping(address => EnumerableSet.AddressSet) internal rewardSafes; //reward program id <> reward safes
-  mapping(address => mapping(string => Rule)) public rule; //reward program id <> rule did <> Rule
+  mapping(address => bytes) public rule; //reward program id <> bytes32
+  mapping(address => address) public rewardProgramAdmins; //reward program id <> reward program admins
   mapping(address => bool) public rewardProgramLocked; //reward program id <> locked
   mapping(bytes32 => bool) internal signatures;
   address public versionManager;
@@ -126,7 +114,6 @@ contract RewardManager is Ownable, Versionable, Safe {
     );
     rewardProgramIDs.add(rewardProgramID);
     rewardProgramAdmins[rewardProgramID] = admin;
-    rewardPrograms[rewardProgramID] = RewardProgram(admin, false);
     emit RewardProgramCreated(rewardProgramID, admin);
   }
 
@@ -136,6 +123,8 @@ contract RewardManager is Ownable, Versionable, Safe {
   {
     rewardProgramIDs.remove(rewardProgramID);
     delete rewardProgramAdmins[rewardProgramID];
+    delete rewardProgramLocked[rewardProgramID]; // equivalent to false
+    delete rule[rewardProgramID]; // equivalent to false
     emit RewardProgramRemoved(rewardProgramID);
   }
 
@@ -147,26 +136,18 @@ contract RewardManager is Ownable, Versionable, Safe {
     emit RewardProgramAdminUpdated(rewardProgramID, newAdmin);
   }
 
-  function addRewardRule(
-    address rewardProgramID,
-    string calldata ruleDID,
-    string calldata tallyRuleDID,
-    string calldata benefitDID
-  ) external onlyHandlers {
-    rule[rewardProgramID][ruleDID] = Rule(tallyRuleDID, benefitDID);
-    emit RewardRuleAdded(rewardProgramID, ruleDID);
-  }
-
-  function removeRewardRule(address rewardProgramID, string calldata ruleDID)
+  function addRewardRule(address rewardProgramID, bytes calldata blob)
     external
     onlyHandlers
   {
-    delete rule[rewardProgramID][ruleDID];
-    emit RewardRuleRemoved(rewardProgramID, ruleDID);
+    rule[rewardProgramID] = blob;
+    emit RewardRuleAdded(rewardProgramID, blob);
   }
 
   function lockRewardProgram(address rewardProgramID) external onlyHandlers {
-    rewardPrograms[rewardProgramID].locked = true;
+    rewardProgramLocked[rewardProgramID] = !rewardProgramLocked[
+      rewardProgramID
+    ];
     emit RewardProgramLocked(rewardProgramID);
   }
 
@@ -368,29 +349,6 @@ contract RewardManager is Ownable, Versionable, Safe {
       (to == msg.sender) ||
       TokenManager(ActionDispatcher(actionDispatcher).tokenManager())
         .isValidToken(to);
-  }
-
-  function hasRule(address rewardProgramID, string calldata ruleDID)
-    external
-    view
-    returns (bool)
-  {
-    if (_equalRule(rule[rewardProgramID][ruleDID], Rule("", ""))) {
-      return false;
-    } else {
-      return true;
-    }
-  }
-
-  function _equalRule(Rule memory rule1, Rule memory rule2)
-    internal
-    pure
-    returns (bool)
-  {
-    // Used to check if the Rule Struct has all default values
-    return
-      (keccak256(abi.encodePacked(rule1.tallyRuleDID, rule1.benefitDID))) ==
-      keccak256(abi.encodePacked(rule2.tallyRuleDID, rule2.benefitDID));
   }
 
   function _createSalt(address rewardProgramID, address prepaidCardOwner)
