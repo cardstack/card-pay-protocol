@@ -48,7 +48,7 @@ contract RewardManager is Ownable, Versionable, Safe {
   EnumerableSet.AddressSet rewardProgramIDs;
   EnumerableSet.AddressSet eip1271Contracts;
   mapping(address => EnumerableSet.AddressSet) internal rewardSafes; //reward program id <> reward safes
-  mapping(address => bytes32) public rule; //reward program id <> bytes32
+  mapping(address => bytes) public rule; //reward program id <> bytes32
   mapping(address => address) public rewardProgramAdmins; //reward program id <> reward program admins
   mapping(address => bool) public rewardProgramLocked; //reward program id <> locked
   mapping(bytes32 => bool) internal signatures;
@@ -139,7 +139,7 @@ contract RewardManager is Ownable, Versionable, Safe {
     external
     onlyHandlers
   {
-    rule[rewardProgramID] = keccak256(abi.encodePacked(blob));
+    rule[rewardProgramID] = blob;
     emit RewardRuleAdded(rewardProgramID, blob);
   }
 
