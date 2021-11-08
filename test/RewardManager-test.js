@@ -128,16 +128,39 @@ contract("RewardManager", (accounts) => {
     merchantManager = await MerchantManager.new();
     await merchantManager.initialize(owner);
     rewardManager = await RewardManager.new();
+
+    let first10Accounts = accounts.slice(10);
+
+    // Sometimes by chance the RM contract gets a really low or high address, I think it
+    // depends on the current seed of the running test. If that happens, deploy a new
+    // one until we get a middle enough address that one of our addresses is lexigraphically
+    // before it and one after it at least
+    //
+    // This is pretty horrible but if we need to test differences in address ordering I think
+    // it's necessary.
+    while (
+      // every account is after the RM address
+      first10Accounts.every(
+        (a) => a.toLowerCase() > rewardManager.address.toLowerCase()
+      ) ||
+      // every account is before the RM address
+      first10Accounts.every(
+        (a) => a.toLowerCase() < rewardManager.address.toLowerCase()
+      )
+    ) {
+      rewardManager = await RewardManager.new();
+    }
+
     await rewardManager.initialize(owner);
     rewardPool = await RewardPool.new();
     await rewardPool.initialize(owner);
 
     prepaidCardOwnerA = findAccountAfterAddress(
-      accounts.slice(10),
+      first10Accounts,
       rewardManager.address
     );
     prepaidCardOwnerB = findAccountBeforeAddress(
-      accounts.slice(10),
+      first10Accounts,
       rewardManager.address
     );
     ({ daicpxdToken, cardcpxdToken, exchange } = await setupExchanges(owner));
@@ -1220,6 +1243,11 @@ contract("RewardManager", (accounts) => {
       let owners = await rewardSafe.getOwners();
       expect(owners.length).to.equal(2);
       expect(owners[1]).to.equal(prepaidCardOwner);
+
+      expect(
+        await rewardManager.ownedRewardSafes(prepaidCardOwner, rewardProgramID)
+      ).to.equal(rewardSafe.address);
+
       await transferRewardSafe(
         rewardManager,
         rewardSafe,
@@ -1231,6 +1259,16 @@ contract("RewardManager", (accounts) => {
       owners = await rewardSafe.getOwners();
       expect(owners.length).to.equal(2);
       expect(owners[1]).to.equal(otherPrepaidCardOwner);
+
+      expect(
+        await rewardManager.ownedRewardSafes(prepaidCardOwner, rewardProgramID)
+      ).to.equal(ZERO_ADDRESS);
+      expect(
+        await rewardManager.ownedRewardSafes(
+          otherPrepaidCardOwner,
+          rewardProgramID
+        )
+      ).to.equal(rewardSafe.address);
     });
 
     it("cannot transfer reward safe with swap owner directly to safe", async () => {
@@ -1445,6 +1483,57 @@ contract("RewardManager", (accounts) => {
       owners = await rewardSafe.getOwners();
       expect(owners.length).to.equal(2);
       expect(owners[1]).to.equal(otherPrepaidCardOwner);
+    });
+    it("can issue a new reward safe to a rewardee after they transferred their old reward safe", async () => {
+      let tx = await registerRewardee(
+        prepaidCardManager,
+        prepaidCard,
+        relayer,
+        prepaidCardOwner,
+        undefined,
+        rewardProgramID
+      );
+      let rewardSafeCreation = await getParamsFromEvent(
+        tx,
+        eventABIs.REWARDEE_REGISTERED,
+        rewardManager.address
+      );
+      let rewardSafe = await GnosisSafe.at(rewardSafeCreation[0].rewardSafe);
+      let owners = await rewardSafe.getOwners();
+      expect(owners.length).to.equal(2);
+      expect(owners[1]).to.equal(prepaidCardOwner);
+      await transferRewardSafe(
+        rewardManager,
+        rewardSafe,
+        prepaidCardOwner,
+        otherPrepaidCardOwner,
+        relayer,
+        daicpxdToken
+      );
+      owners = await rewardSafe.getOwners();
+      expect(owners.length).to.equal(2);
+      expect(owners[1]).to.equal(otherPrepaidCardOwner);
+
+      let tx2 = await registerRewardee(
+        prepaidCardManager,
+        prepaidCard,
+        relayer,
+        prepaidCardOwner,
+        undefined,
+        rewardProgramID
+      );
+      let rewardSafeCreation2 = await getParamsFromEvent(
+        tx2,
+        eventABIs.REWARDEE_REGISTERED,
+        rewardManager.address
+      );
+      let rewardSafe2 = await GnosisSafe.at(rewardSafeCreation2[0].rewardSafe);
+      let owners2 = await rewardSafe2.getOwners();
+
+      expect(owners2.length).to.equal(2);
+      expect(owners2[1]).to.equal(prepaidCardOwner);
+
+      expect(rewardSafe2.address).to.not.equal(rewardSafe.address);
     });
   });
 

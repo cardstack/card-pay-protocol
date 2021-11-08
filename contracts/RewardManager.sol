@@ -38,7 +38,6 @@ contract RewardManager is Ownable, Versionable, Safe {
   bytes4 internal constant EIP1271_MAGIC_VALUE = 0x20c13b0b;
   bytes4 internal constant SWAP_OWNER = 0xe318b52b; //swapOwner(address,address,address)
   bytes4 internal constant TRANSFER = 0xa9059cbb; //transfer(address,uint256)
-  string internal constant REWARD_PREFIX = "safe.rewards.cardstack";
   uint256 internal _nonce;
 
   address public actionDispatcher;
@@ -52,6 +51,8 @@ contract RewardManager is Ownable, Versionable, Safe {
   mapping(address => bytes) public rule; //reward program id <> bytes32
   mapping(address => address) public rewardProgramAdmins; //reward program id <> reward program admins
   mapping(address => bool) public rewardProgramLocked; //reward program id <> locked
+  mapping(address => mapping(address => address)) public ownedRewardSafes; // EOA <> reward program id <> reward safe address
+  mapping(address => address) public rewardProgramsForRewardSafes; // reward safe <> reward program id
   mapping(bytes32 => bool) internal signatures;
   address public versionManager;
 
@@ -159,9 +160,13 @@ contract RewardManager is Ownable, Versionable, Safe {
     address[] memory owners = new address[](2);
     owners[0] = address(this);
     owners[1] = prepaidCardOwner;
-    uint256 salt = _createSalt(rewardProgramID, prepaidCardOwner);
-    address rewardSafe = create2Safe(owners, 2, salt);
+
+    address existingSafe = ownedRewardSafes[prepaidCardOwner][rewardProgramID];
+    require(existingSafe == address(0), "rewardee already registered");
+    address rewardSafe = createSafe(owners, 2);
     rewardSafes[rewardProgramID].add(rewardSafe);
+    ownedRewardSafes[prepaidCardOwner][rewardProgramID] = rewardSafe;
+    rewardProgramsForRewardSafes[rewardSafe] = rewardProgramID;
     emit RewardeeRegistered(rewardProgramID, prepaidCardOwner, rewardSafe);
     return rewardSafe;
   }
@@ -176,6 +181,10 @@ contract RewardManager is Ownable, Versionable, Safe {
   ) external {
     address oldOwner = getRewardSafeOwner(msg.sender);
     bytes memory conSignature = contractSignature(msg.sender, oldOwner);
+    address rewardProgramID = rewardProgramsForRewardSafes[msg.sender];
+    assert(ownedRewardSafes[oldOwner][rewardProgramID] == msg.sender);
+    ownedRewardSafes[oldOwner][rewardProgramID] = address(0);
+
     signatures[keccak256(conSignature)] = true;
     execTransaction(
       msg.sender,
@@ -189,6 +198,9 @@ contract RewardManager is Ownable, Versionable, Safe {
       msg.sender
     );
     signatures[keccak256(conSignature)] = false;
+
+    ownedRewardSafes[newOwner][rewardProgramID] = msg.sender;
+
     emit RewardSafeTransferred(msg.sender, oldOwner, newOwner);
   }
 
@@ -349,19 +361,6 @@ contract RewardManager is Ownable, Versionable, Safe {
       (to == msg.sender) ||
       TokenManager(ActionDispatcher(actionDispatcher).tokenManager())
         .isValidToken(to);
-  }
-
-  function _createSalt(address rewardProgramID, address prepaidCardOwner)
-    internal
-    pure
-    returns (uint256)
-  {
-    return
-      uint256(
-        keccak256(
-          abi.encodePacked(REWARD_PREFIX, rewardProgramID, prepaidCardOwner)
-        )
-      );
   }
 
   function _equalBytes(bytes memory bytesArr1, bytes memory bytesArr2)
