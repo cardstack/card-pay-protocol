@@ -115,6 +115,10 @@ The `RewardManager` contract is responsible for creating the gnosis safes that a
 1. The `rewardee` or the owner of the prepaid card that executed the `registerRewardee` action.
 2. The `RewardManager` contract itself.
 
+Withdraw is only possible to the EOA owner of the reward safe, using the `withdrawFromRewardSafe` action with a wrapped gnosis signature, the inner signature being for the `token.transfer(to, value)` call, and the outer signature being for the `withdrawFromRewardSafe` function.
+
+Only approved tokens can be withdrawn from the reward safe.
+
 ## Prerequisites
 The following prerequisites are required for this project:
 - NodeJS ver 14+
