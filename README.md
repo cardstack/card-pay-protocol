@@ -79,11 +79,6 @@ The gas policy is set to "true"; the prepaid card will pay for gas in it's issui
 The `AddRewardRuleHandler` is a contract that handles the `addRewardRule` action. This contract will call the `RewardManager` to add a rule to a reward program. 
 The gas policy is set to "true"; the prepaid card will pay for gas in it's issuing token. 
 
-### RemoveRewardRuleHandler
-The `RemoveRewardRuleHandler` is a contract that handles the `removeRewardRule` action. This contract will call the `RewardManager` to remove a rule from a reward program. 
-The gas policy is set to "true"; the prepaid card will pay for gas in it's issuing token. 
-
-
 ### PayRewardTokensHandler
 The `PayRewardTokensHandler` is a contract that handles the `payRewardTokens` action. This contract will send token transfers to fill up pool for a particular reward program. 
 The gas policy is set to "true"; the prepaid card will pay for gas in it's issuing token. 
