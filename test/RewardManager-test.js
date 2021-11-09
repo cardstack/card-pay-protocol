@@ -231,7 +231,6 @@ contract("RewardManager", (accounts) => {
     await prepaidCardManager.addGasPolicy("lockRewardProgram", true);
     await prepaidCardManager.addGasPolicy("updateRewardProgramAdmin", true);
     await prepaidCardManager.addGasPolicy("addRewardRule", true);
-    await prepaidCardManager.addGasPolicy("removeRewardRule", true);
 
     await actionDispatcher.setup(
       tokenManager.address,
