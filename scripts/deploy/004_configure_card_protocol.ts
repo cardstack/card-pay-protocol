@@ -117,6 +117,7 @@ Detecting config changes for ${contractId} (${address})`);
               )
             )
           ) {
+            contractUnchanged = false;
             const params = replaceParams(paramsTemplate, key, value);
             printDiff(currentValue, value, property, formatter, key);
             printSend(contractId, setter, params);
