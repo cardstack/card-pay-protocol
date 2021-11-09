@@ -11,7 +11,7 @@ const MerchantManager = artifacts.require("MerchantManager");
 const ERC677Token = artifacts.require("ERC677Token.sol");
 const RewardPool = artifacts.require("RewardPool");
 
-const { randomHex, soliditySha3 } = require("web3-utils");
+const { randomHex } = require("web3-utils");
 const { assert, expect, TOKEN_DETAIL_DATA } = require("./setup");
 
 const {
