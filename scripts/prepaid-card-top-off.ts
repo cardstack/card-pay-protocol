@@ -32,6 +32,11 @@ async function main() {
   const ERC677 = await makeFactory("ERC677Token");
 
   let prepaidCards = await market.getInventory(sku);
+  if (prepaidCards.length === 0) {
+    console.log(`No prepaid card inventory for SKU ${sku}`);
+    process.exit(0);
+  }
+
   let { faceValue, issuingToken } = await market.getSkuInfo(sku);
   let token = await ERC677.attach(issuingToken);
   let symbol = await token.symbol();
@@ -79,7 +84,7 @@ async function topOffPrepaidCards(
         `Progress ${index + 1} of ${prepaidCards.length} (${Math.round(
           ((index + 1) / prepaidCards.length) * 100
         )}%)
-          Prepaid card ${prepaidCard}, has balance of ${formatUnits(
+    Prepaid card ${prepaidCard}, has balance of ${formatUnits(
           balance
         )} ${symbol}. Top off amount is ${formatUnits(topOffAmount)} ${symbol}`
       );
@@ -90,7 +95,7 @@ async function topOffPrepaidCards(
       } catch (err) {
         console.error(err);
         console.error(
-          `  Top off attempt for ${prepaidCard} failed, will try again`
+          `Top off attempt for ${prepaidCard} failed, will try again`
         );
         failedTransfers.push(prepaidCard);
       }
