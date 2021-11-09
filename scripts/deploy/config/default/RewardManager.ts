@@ -41,7 +41,7 @@ export default async function (
         value: REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
       },
       {
-        name: "eip1271Contracts",
+        name: "getEip1271Contracts",
         value: [address("RewardPool")],
       },
       {
