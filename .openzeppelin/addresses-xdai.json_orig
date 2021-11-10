@@ -102,25 +102,5 @@
   "LevelRegistrar": {
     "proxy": "0xCC5DD03Bf98db8d8eeFf32F9422cF029Aaff2244",
     "contractName": "LevelRegistrar"
-  },
-  "RewardManager": {
-    "proxy": "0xF104705A77a30493E1FD3909440F96f72E32eCD4",
-    "contractName": "RewardManager"
-  },
-  "AddRewardRuleHandler": {
-    "proxy": "0x186d3214Af4b4025A1A8eb9E284b7e49bE0c5179",
-    "contractName": "AddRewardRuleHandler"
-  },
-  "LockRewardProgramHandler": {
-    "proxy": "0xE67fd76F8293F330C25649762A65DC9296091c6e",
-    "contractName": "LockRewardProgramHandler"
-  },
-  "RegisterRewardeeHandler": {
-    "proxy": "0x058916D70f00507E07dAB3C0A1101A62706a2F70",
-    "contractName": "RegisterRewardeeHandler"
-  },
-  "UpdateRewardProgramAdminHandler": {
-    "proxy": "0xB2C5F67cAa1aEf617a73D29BdDc9ABb84576dC9F",
-    "contractName": "UpdateRewardProgramAdminHandler"
   }
 }
