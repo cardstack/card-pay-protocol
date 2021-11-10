@@ -153,7 +153,6 @@ contract RewardPool is Initializable, Versionable, Ownable, ReentrancyGuard {
 
 
   function claimSpecificERC721(bytes memory leaf, address rewardProgramID, address rewardSafeOwner, bytes memory transferDetails) internal {
-      // Type 2: specific ERC721 with a token ID
       (
         address payableToken,
         uint256 tokenId
@@ -214,9 +213,8 @@ contract RewardPool is Initializable, Versionable, Ownable, ReentrancyGuard {
       ),
       "can only withdraw for safe registered on reward program"
     );
-    if (tokenType == 0) {
-    }
-    else if (tokenType == 1) {
+
+    if (tokenType == 1) {
       // Type 1: ERC667 fungible tokens
       claimERC667(leaf, rewardProgramID, rewardSafeOwner, transferDetails, partialClaimAllowed);
       return true;
