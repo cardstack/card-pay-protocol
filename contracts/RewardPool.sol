@@ -13,6 +13,7 @@ import "./RewardManager.sol";
 import "./TokenManager.sol";
 import "./VersionManager.sol";
 
+
 contract RewardPool is Initializable, Versionable, Ownable {
   using SafeMath for uint256;
   using MerkleProof for bytes32[];
@@ -36,6 +37,12 @@ contract RewardPool is Initializable, Versionable, Ownable {
     address sender,
     address tokenAddress,
     uint256 amount
+  );
+  event RewardTokensExtracted(
+    address rewardProgramID,
+    address token,
+    uint256 amount,
+    address rewardProgramAdmin
   );
 
   address internal constant ZERO_ADDRESS = address(0);
@@ -151,6 +158,30 @@ contract RewardPool is Initializable, Versionable, Ownable {
       amount
     );
     return true;
+  }
+
+  function extractTokens(
+    address rewardProgramID,
+    address token,
+    uint256 amount
+  ) external returns (bool) {
+    address rewardProgramAdmin = RewardManager(rewardManager).getRewardProgramAdmin(
+      rewardProgramID
+    );
+    require(
+      GnosisSafe(msg.sender).getOwners()[1] == rewardProgramAdmin,
+      "owner of safe is not reward program admin"
+    );
+    rewardBalance[rewardProgramID][token] = rewardBalance[rewardProgramID][
+      token
+    ].sub(amount);
+    IERC677(token).transfer(msg.sender, amount);
+    emit RewardTokensExtracted(
+      rewardProgramID,
+      token,
+      amount,
+      rewardProgramAdmin
+    );
   }
 
   function onTokenTransfer(

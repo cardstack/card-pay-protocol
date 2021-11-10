@@ -25,6 +25,7 @@ const {
   claimReward,
   mintWalletAndRefillPool,
   payRewardTokens,
+  extractRewardTokens,
 } = require("./utils/helper");
 const AbiCoder = require("web3-eth-abi");
 
@@ -1727,6 +1728,88 @@ contract("RewardPool", function (accounts) {
             .sub(gasFee)
             .eq(prepaidCardBalanceDai),
           "the prepaid card token balance is correct"
+        );
+      });
+    });
+
+    describe.only("extractRewardTokens", function () {
+      let rewardSafe;
+      beforeEach(async function () {
+        ({
+          prepaidCardManager,
+          rewardManager,
+          depot,
+          daicpxdToken,
+          cardcpxdToken,
+          tokenManager,
+          rewardPool,
+          relayer,
+        } = await setupProtocol(accounts));
+        await cardcpxdToken.mint(prepaidCardOwner, toTokenUnit(100));
+        let prepaidCard = await createPrepaidCardAndTransfer(
+          prepaidCardManager,
+          relayer,
+          depot,
+          issuer,
+          daicpxdToken,
+          toTokenUnit(10 + 1),
+          prepaidCardOwner
+        );
+        await registerRewardProgram(
+          prepaidCardManager,
+          prepaidCard,
+          relayer,
+          prepaidCardOwner,
+          REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
+          undefined,
+          prepaidCardOwner,
+          rewardProgramID
+        );
+        await cardcpxdToken.transferAndCall(
+          rewardPool.address,
+          toTokenUnit(50),
+          AbiCoder.encodeParameters(["address"], [rewardProgramID]),
+          { from: prepaidCardOwner }
+        );
+        let tx = await registerRewardee(
+          prepaidCardManager,
+          prepaidCard,
+          relayer,
+          prepaidCardOwner,
+          undefined,
+          rewardProgramID
+        );
+        rewardSafe = await getRewardSafeFromEventLog(tx, rewardManager.address);
+      });
+
+      it("extract using any safe owned by the reward program admin", async function () {
+        const {
+          executionResult: { gasFee },
+        } = await extractRewardTokens(
+          rewardManager,
+          rewardPool,
+          relayer,
+          rewardSafe,
+          prepaidCardOwner,
+          rewardProgramID,
+          cardcpxdToken,
+          toTokenUnit(10)
+        );
+        let rewardSafeBalance = await getBalance(
+          cardcpxdToken,
+          rewardSafe.address
+        );
+        assert(
+          rewardSafeBalance.eq(toTokenUnit(10).sub(gasFee)),
+          "reward safe balance is correct"
+        );
+        let rewardPoolBalance = await rewardPool.rewardBalance(
+          rewardProgramID,
+          cardcpxdToken.address
+        );
+        assert(
+          rewardPoolBalance.eq(toTokenUnit(50).sub(toTokenUnit(10))),
+          "reward pool balance is correct"
         );
       });
     });
