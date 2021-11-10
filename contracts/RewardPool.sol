@@ -120,8 +120,9 @@ contract RewardPool is Initializable, Versionable, Ownable, ReentrancyGuard {
         uint256 amount
       ) = abi.decode(transferDetails, (address, uint256));
       // If the sender is willing to accept a partial claim and there isn't enough to cover the entire claim,
-      // then we can only claim the amount that is available _unless_ there is nothing left
-      if (partialClaimAllowed && amount < rewardBalance[rewardProgramID][payableToken] && rewardBalance[rewardProgramID][payableToken] > 0) {
+      // then we can only claim the amount that is available _unless_ there is nothing left   
+      if (partialClaimAllowed && rewardBalance[rewardProgramID][payableToken] < amount && rewardBalance[rewardProgramID][payableToken] > 0) {
+        console.log("partial claim");
         amount = rewardBalance[rewardProgramID][payableToken];
       }
       require(
