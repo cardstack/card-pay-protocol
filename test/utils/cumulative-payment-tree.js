@@ -22,45 +22,8 @@ const _ = require("lodash");
 
 class CumulativePaymentTree extends MerkleTree {
   constructor(paymentList) {
-    let filteredPaymentList = paymentList.filter(
-      (payment) => payment.payee && payment.amount && payment.token
-    );
-    const o = {};
-    let reducedPaymentList = filteredPaymentList.reduce(function (r, e) {
-      const key = e.rewardProgramID + "|" + e.token + "|" + e.payee;
-      if (!o[key]) {
-        o[key] = e;
-        r.push(o[key]);
-      } else {
-        o[key].amount = o[key].amount.add(e.amount); //using bn
-      }
-      return r;
-    }, []);
-
-    super(reducedPaymentList);
-    this.paymentNodes = reducedPaymentList;
-  }
-
-  amountForPayee(rewardProgramID, payee, token) {
-    let payment = _.find(this.paymentNodes, { rewardProgramID, payee, token });
-    if (!payment) {
-      return 0;
-    }
-
-    return payment.amount;
-  }
-
-  hexProofForPayee(rewardProgramID, payee, token, paymentCycle) {
-    let leaf = _.find(this.paymentNodes, { rewardProgramID, payee, token });
-
-    // find a better way to check this
-    if (!leaf) {
-      return bufferToHex(zeros(32));
-    }
-    return this.getHexProof(leaf, [
-      paymentCycle,
-      this.amountForPayee(rewardProgramID, payee, token),
-    ]);
+    super(paymentList);
+    this.paymentNodes = paymentList;
   }
 }
 

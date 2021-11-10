@@ -4,6 +4,8 @@ import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contract-upgradeable/contracts/math/SafeMath.sol";
 import "@openzeppelin/contract-upgradeable/contracts/cryptography/MerkleProof.sol";
 import "@openzeppelin/contract-upgradeable/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contract-upgradeable/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/contract-upgradeable/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 
@@ -13,7 +15,7 @@ import "./RewardManager.sol";
 import "./TokenManager.sol";
 import "./VersionManager.sol";
 
-contract RewardPool is Initializable, Versionable, Ownable {
+contract RewardPool is Initializable, Versionable, Ownable, ReentrancyGuard {
   using SafeMath for uint256;
   using MerkleProof for bytes32[];
 
@@ -45,9 +47,8 @@ contract RewardPool is Initializable, Versionable, Ownable {
   address public rewardManager;
   address public tokenManager;
 
-  mapping(uint256 => mapping(address => mapping(address => mapping(address => bool))))
-    public rewardsClaimed; //payment cycle <> rewardProgramID <> token <> rewardee
-  mapping(uint256 => bytes32) payeeRoots;
+  mapping(bytes32 => bool) private rewardsClaimed; //payment cycle <> rewardProgramID <> token <> rewardee
+  mapping(uint256 => bytes32) private payeeRoots;
   mapping(address => mapping(address => uint256)) public rewardBalance;
   address public versionManager;
 
@@ -96,83 +97,105 @@ contract RewardPool is Initializable, Versionable, Ownable {
     bytes memory leaf,
     bytes32[] memory proof
   ) public view returns (bool) {
-    (uint256 paymentCycleNumber,
-    bytes memory _) = abi.decode(leaf, (uint256, bytes));
+        (
+      address rewardProgramID,
+      uint256 paymentCycleNumber,
+      uint256 startBlock,
+      uint256 endBlock,
+      uint256 tokenType,
+      address payee,
+      bytes memory transferDetails
+    ) = abi.decode(leaf, (address, uint256, uint256, uint256, uint256, address, bytes));
     bytes32 root = bytes32(payeeRoots[paymentCycleNumber]);
     return proof.verify(root, keccak256(leaf));
   }
 
   function claimed(bytes memory leaf) public view returns (bool) {
-    (
-    uint256 paymentCycleNumber,
-    address rewardProgramID,
-    address payableToken,
-    address payee,
-    bytes memory _) = abi.decode(leaf, (uint256, address, address, address, bytes));
-    return rewardsClaimed[paymentCycleNumber][rewardProgramID][payableToken][payee];
+    return rewardsClaimed[keccak256(leaf)];
   }
 
-  function claim_erc677(
-    address rewardProgramID,
-    address payableToken,
-    address rewardSafeOwner,
-    uint256 paymentCycleNumber,
-    uint256 amount
-  ) internal returns (bool) {
-    require(
-      IERC677(payableToken).balanceOf(address(this)) >= amount,
-      "Reward pool has insufficient balance"
-    );
-    require(
-      rewardBalance[rewardProgramID][payableToken] >= amount,
-      "Reward program has insufficient balance inside reward pool"
-    );
+  function claimERC667(bytes memory leaf, address rewardProgramID, address rewardSafeOwner, bytes memory transferDetails, bool partialClaimAllowed) internal {
+      (
+        address payableToken,
+        uint256 amount
+      ) = abi.decode(transferDetails, (address, uint256));
+      // If the sender is willing to accept a partial claim and there isn't enough to cover the entire claim,
+      // then we can only claim the amount that is available _unless_ there is nothing left
+      if (partialClaimAllowed && amount < rewardBalance[rewardProgramID][payableToken] && rewardBalance[rewardProgramID][payableToken] > 0) {
+        amount = rewardBalance[rewardProgramID][payableToken];
+      }
+      require(
+        IERC677(payableToken).balanceOf(address(this)) >= amount,
+        "Reward pool has insufficient balance"
+      );
+      require(
+        rewardBalance[rewardProgramID][payableToken] >= amount,
+        //|| (partialClaimAllowed && rewardBalance[rewardProgramID][payableToken] > 0),
+        "Reward program has insufficient balance inside reward pool"
+      );
 
-    rewardsClaimed[paymentCycleNumber][rewardProgramID][payableToken][
-      rewardSafeOwner
-    ] = true;
+      rewardsClaimed[keccak256(leaf)] = true;
 
-    rewardBalance[rewardProgramID][payableToken] = rewardBalance[
-      rewardProgramID
-    ][payableToken].sub(amount);
-    IERC677(payableToken).transfer(msg.sender, amount);
+      rewardBalance[rewardProgramID][payableToken] = rewardBalance[
+        rewardProgramID
+      ][payableToken].sub(amount);
+      IERC677(payableToken).transfer(msg.sender, amount);
 
-    emit RewardeeClaim(
-      rewardProgramID,
-      rewardSafeOwner,
-      msg.sender,
-      payableToken,
-      amount
-    );
-    return true;
+      emit RewardeeClaim(
+        rewardProgramID,
+        rewardSafeOwner,
+        msg.sender,
+        payableToken,
+        amount
+      );
   }
 
 
-  function claim_erc721(
-    address rewardProgramID,
-    address payableToken,
-    address rewardSafeOwner,
-    uint256 paymentCycleNumber,
-    uint256 tokenID
-  ) internal returns (bool) {
-    // Check if token ID is valid, that approvals are correct etc
-    return false;
+  function claimSpecificERC721(bytes memory leaf, address rewardProgramID, address rewardSafeOwner, bytes memory transferDetails) internal {
+      // Type 2: specific ERC721 with a token ID
+      (
+        address payableToken,
+        uint256 tokenId
+      ) = abi.decode(transferDetails, (address, uint256));
+
+      // Is this OK? Or is there a risk because a merkle leaf can transfer any token
+      require(
+        IERC721(payableToken).getApproved(tokenId) == address(this),
+        "Reward pool is not approved for this transfer"
+      );
+
+      rewardsClaimed[keccak256(leaf)] = true;
+
+      IERC721(payableToken).safeTransferFrom(IERC721(payableToken).ownerOf(tokenId), msg.sender, tokenId);
+
+      emit RewardeeClaim(
+        rewardProgramID,
+        rewardSafeOwner,
+        msg.sender,
+        payableToken,
+        1 // token ID?
+      );
   }
 
   function claim(
     bytes calldata leaf,
-    bytes32[] calldata proof
-  ) external returns (bool) {
+    bytes32[] calldata proof,
+    bool partialClaimAllowed
+  ) external nonReentrant() returns (bool) {
 
-    (
-    uint256 paymentCycleNumber,
-    address rewardProgramID,
-    address payableToken,
-    address payee,
-    uint256 tokenType,
-    uint256 amountOrId) = abi.decode(leaf, (uint256, address, address, address, uint256, uint256));
+      (
+      address rewardProgramID,
+      uint256 paymentCycleNumber,
+      uint256 startBlock,
+      uint256 endBlock,
+      uint256 tokenType,
+      address payee,
+      bytes memory transferDetails
+    ) = abi.decode(leaf, (address, uint256, uint256, uint256, uint256, address, bytes));
 
-    require(msg.sender == payee, "Can only be claimed by payee");
+    require(tokenType > 0, "Non-claimable proof, use valid(leaf, proof) to check validity");
+    require(block.number >= startBlock, "Can only be claimed on or after the start block");
+    require(block.number < endBlock, "Can only be claimed before end block");
     require(valid(leaf, proof), "Proof is invalid");
     require(claimed(leaf) == false, "Reward has already been claimed");
 
@@ -180,6 +203,9 @@ contract RewardPool is Initializable, Versionable, Ownable {
     address rewardSafeOwner = RewardManager(rewardManager).getRewardSafeOwner(
       msg.sender
     );
+
+    require(rewardSafeOwner == payee, "Can only be claimed by payee");
+
     require(
       RewardManager(rewardManager).isValidRewardSafe(
         msg.sender,
@@ -187,23 +213,19 @@ contract RewardPool is Initializable, Versionable, Ownable {
       ),
       "can only withdraw for safe registered on reward program"
     );
-
-    if (tokenType == 1) {
-      return claim_erc677(
-        rewardProgramID,
-        payableToken,
-        rewardSafeOwner,
-        paymentCycleNumber,
-        amountOrId
-      );
+    if (tokenType == 0) {
+    }
+    else if (tokenType == 1) {
+      // Type 1: ERC667 fungible tokens
+      claimERC667(leaf, rewardProgramID, rewardSafeOwner, transferDetails, partialClaimAllowed);
+      return true;
     } else if (tokenType == 2) {
-      return claim_erc721(
-        rewardProgramID,
-        payableToken,
-        rewardSafeOwner,
-        paymentCycleNumber,
-        amountOrId
-      );
+       // Type 2: ERC721 NFTs with specific IDs
+      claimSpecificERC721(leaf, rewardProgramID, rewardSafeOwner, transferDetails);
+      return true;
+    } else if (tokenType == 3) {
+      // Type 3: ERC721 with no token ID
+      return false;
     } else {
       return false;
     }
