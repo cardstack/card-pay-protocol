@@ -122,7 +122,6 @@ contract RewardPool is Initializable, Versionable, Ownable, ReentrancyGuard {
       // If the sender is willing to accept a partial claim and there isn't enough to cover the entire claim,
       // then we can only claim the amount that is available _unless_ there is nothing left   
       if (partialClaimAllowed && rewardBalance[rewardProgramID][payableToken] < amount && rewardBalance[rewardProgramID][payableToken] > 0) {
-        console.log("partial claim");
         amount = rewardBalance[rewardProgramID][payableToken];
       }
       require(
@@ -147,32 +146,6 @@ contract RewardPool is Initializable, Versionable, Ownable, ReentrancyGuard {
         msg.sender,
         payableToken,
         amount
-      );
-  }
-
-
-  function claimSpecificERC721(bytes memory leaf, address rewardProgramID, address rewardSafeOwner, bytes memory transferDetails) internal {
-      (
-        address payableToken,
-        uint256 tokenId
-      ) = abi.decode(transferDetails, (address, uint256));
-
-      // Is this OK? Or is there a risk because a merkle leaf can transfer any token
-      require(
-        IERC721(payableToken).getApproved(tokenId) == address(this),
-        "Reward pool is not approved for this transfer"
-      );
-
-      rewardsClaimed[keccak256(leaf)] = true;
-
-      IERC721(payableToken).safeTransferFrom(IERC721(payableToken).ownerOf(tokenId), msg.sender, tokenId);
- 
-      emit RewardeeClaim(
-        rewardProgramID,
-        rewardSafeOwner,
-        msg.sender,
-        payableToken,
-        1 // token ID?
       );
   }
 
@@ -219,8 +192,7 @@ contract RewardPool is Initializable, Versionable, Ownable, ReentrancyGuard {
       return true;
     } else if (tokenType == 2) {
        // Type 2: ERC721 NFTs with specific IDs
-      claimSpecificERC721(leaf, rewardProgramID, rewardSafeOwner, transferDetails);
-      return true;
+      return false;
     } else if (tokenType == 3) {
       // Type 3: ERC721 with no token ID
       return false;
