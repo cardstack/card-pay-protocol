@@ -1647,7 +1647,7 @@ contract("RewardManager", (accounts) => {
       ).to.be.bignumber.equal(toTokenUnit(100));
     });
 
-    it("cannot withdraw to different address", async function () {
+    it("can withdraw to different address than the reward safe owner", async function () {
       expect(
         (
           await withdrawFromRewardSafe(
@@ -1660,10 +1660,13 @@ contract("RewardManager", (accounts) => {
             daicpxdToken
           )
         ).executionResult.success
-      ).to.equal(false);
+      ).to.equal(true);
       expect(
         await daicpxdToken.balanceOf(rewardSafe.address)
-      ).to.be.bignumber.equal(toTokenUnit(100));
+      ).to.be.bignumber.equal(toTokenUnit(50));
+      expect(
+        await daicpxdToken.balanceOf(otherPrepaidCardOwner)
+      ).to.be.bignumber.equal(toTokenUnit(50));
     });
   });
 

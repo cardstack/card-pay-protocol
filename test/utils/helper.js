@@ -1388,6 +1388,7 @@ const withdrawFromRewardSafe = async function (
   let payload = rewardManager.contract.methods
     .withdrawFromRewardSafe(
       tokenAddress,
+      to,
       value,
       gasEstimate,
       0,
