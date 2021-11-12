@@ -95,9 +95,7 @@ export default {
         {
           command: "test",
           params: {
-            testFiles: [
-              "/Users/tintinthong/Documents/GitHub/card-protocol-xdai/test/RewardPool-test.js",
-            ],
+            testFiles: [""],
           }, //.e.g ["./test/RewardManger-test.js"]
         },
       ],
