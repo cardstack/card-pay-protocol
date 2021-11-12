@@ -242,14 +242,6 @@ contract RewardManager is Ownable, Versionable, Safe {
     return owners[0] == address(this) ? owners[1] : owners[0];
   }
 
-  function getRewardProgramAdmin(address rewardProgramID)
-    public
-    view
-    returns (address)
-  {
-    return rewardProgramAdmins[rewardProgramID];
-  }
-
   function isRewardProgram(address rewardProgramID) public view returns (bool) {
     return rewardProgramIDs.contains(rewardProgramID);
   }
