@@ -6,12 +6,15 @@ const _ = require("lodash");
 const ERC677Token = artifacts.require("ERC677Token.sol");
 
 const RewardPool = artifacts.require("RewardPool.sol");
+const GnosisSafe = artifacts.require("GnosisSafe");
 
 const {
   ZERO_ADDRESS,
   getRewardSafeFromEventLog,
   checkGnosisExecution,
+  getParamsFromEvent,
 } = require("./utils/general");
+const eventABIs = require("./utils/constant/eventABIs");
 const { setupProtocol, setupRoles } = require("./utils/setup");
 const { randomHex, BN } = require("web3-utils");
 const {
@@ -26,6 +29,8 @@ const {
   mintWalletAndRefillPool,
   payRewardTokens,
   recoverUnclaimedRewardTokens,
+  registerMerchant,
+  signAndSendSafeTransaction,
 } = require("./utils/helper");
 const AbiCoder = require("web3-eth-abi");
 
@@ -41,7 +46,8 @@ contract("RewardPool", function (accounts) {
     gnosisSafeMasterCopy,
     payRewardTokensHandler,
     versionManager,
-    proxyFactory;
+    proxyFactory,
+    merchantManager;
 
   let owner, issuer, prepaidCardOwner, relayer, governanceAdmin;
 
@@ -68,6 +74,7 @@ contract("RewardPool", function (accounts) {
         daicpxdToken,
         cardcpxdToken,
         tokenManager,
+        merchantManager,
         versionManager,
         payRewardTokensHandler,
       } = await setupProtocol(accounts));
@@ -1732,10 +1739,11 @@ contract("RewardPool", function (accounts) {
       });
     });
 
-    describe.only("recoverUnclaimedRewardTokens", function () {
-      let rewardSafe;
+    describe("recoverUnclaimedRewardTokens", function () {
+      let rewardSafe, amountTokensAdded;
       beforeEach(async function () {
         await cardcpxdToken.mint(prepaidCardOwner, toTokenUnit(100));
+        amountTokensAdded = toTokenUnit(50);
         let prepaidCard = await createPrepaidCardAndTransfer(
           prepaidCardManager,
           relayer,
@@ -1747,7 +1755,7 @@ contract("RewardPool", function (accounts) {
         );
         await cardcpxdToken.transferAndCall(
           rewardPool.address,
-          toTokenUnit(50),
+          amountTokensAdded,
           AbiCoder.encodeParameters(["address"], [rewardProgramID]),
           { from: prepaidCardOwner }
         );
@@ -1762,7 +1770,7 @@ contract("RewardPool", function (accounts) {
         rewardSafe = await getRewardSafeFromEventLog(tx, rewardManager.address);
       });
 
-      it("extract using any safe owned by the reward program admin", async function () {
+      it("recover reward tokens using any safe owned by the reward program admin", async function () {
         const {
           executionResult: { gasFee },
         } = await recoverUnclaimedRewardTokens(
@@ -1773,14 +1781,14 @@ contract("RewardPool", function (accounts) {
           prepaidCardOwner,
           rewardProgramID,
           cardcpxdToken,
-          toTokenUnit(10)
+          amountTokensAdded
         );
         let rewardSafeBalance = await getBalance(
           cardcpxdToken,
           rewardSafe.address
         );
         assert(
-          rewardSafeBalance.eq(toTokenUnit(10).sub(gasFee)),
+          rewardSafeBalance.eq(amountTokensAdded.sub(gasFee)),
           "reward safe balance is correct"
         );
         let rewardPoolBalance = await rewardPool.rewardBalance(
@@ -1788,12 +1796,46 @@ contract("RewardPool", function (accounts) {
           cardcpxdToken.address
         );
         assert(
-          rewardPoolBalance.eq(toTokenUnit(50).sub(toTokenUnit(10))),
+          rewardPoolBalance.eq(toTokenUnit(0)),
           "reward pool balance is correct"
         );
       });
 
-      it("cannot extract if insufficient funds in reward program", async function () {
+      it("cannot recover if owner of safe is not reward program admin", async function () {
+        let prepaidCard = await createPrepaidCardAndTransfer(
+          prepaidCardManager,
+          relayer,
+          depot,
+          issuer,
+          daicpxdToken,
+          toTokenUnit(10 + 1),
+          owner
+        );
+        let tx = await registerRewardee(
+          prepaidCardManager,
+          prepaidCard,
+          relayer,
+          owner,
+          undefined,
+          rewardProgramID
+        );
+        rewardSafe = await getRewardSafeFromEventLog(tx, rewardManager.address);
+        await recoverUnclaimedRewardTokens(
+          rewardManager,
+          rewardPool,
+          relayer,
+          rewardSafe,
+          owner,
+          rewardProgramID,
+          cardcpxdToken,
+          amountTokensAdded
+        ).should.be.rejectedWith(
+          Error,
+          "owner of safe is not reward program admin"
+        );
+      });
+
+      it("cannot recover if insufficient funds in reward program", async function () {
         await recoverUnclaimedRewardTokens(
           rewardManager,
           rewardPool,
@@ -1802,8 +1844,78 @@ contract("RewardPool", function (accounts) {
           prepaidCardOwner,
           rewardProgramID,
           cardcpxdToken,
-          toTokenUnit(60)
+          amountTokensAdded.add(toTokenUnit(10))
         ).should.be.rejectedWith(Error, "not enough tokens to withdraw");
+      });
+      it("can recover to merchant safe", async function () {
+        let merchant = prepaidCardOwner;
+        let merchantPrepaidCard = await createPrepaidCardAndTransfer(
+          prepaidCardManager,
+          relayer,
+          depot,
+          issuer,
+          daicpxdToken,
+          toTokenUnit(10 + 1),
+          merchant
+        );
+
+        let merchantTx = await registerMerchant(
+          prepaidCardManager,
+          merchantPrepaidCard,
+          relayer,
+          merchant,
+          1000,
+          undefined,
+          "did:cardstack:56d6fc54-d399-443b-8778-d7e4512d3a49"
+        );
+        let merchantCreation = await getParamsFromEvent(
+          merchantTx,
+          eventABIs.MERCHANT_CREATION,
+          merchantManager.address
+        );
+        let merchantSafe = merchantCreation[0]["merchantSafe"];
+        let recoverTokens = rewardPool.contract.methods.recoverTokens(
+          rewardProgramID,
+          cardcpxdToken.address,
+          amountTokensAdded
+        );
+        let payload = recoverTokens.encodeABI();
+        let gasEstimate = await recoverTokens.estimateGas({
+          from: merchantSafe,
+        });
+        let safeTxData = {
+          to: rewardPool.address,
+          data: payload,
+          txGasEstimate: gasEstimate,
+          gasPrice: 1000000000,
+          txGasToken: cardcpxdToken.address,
+          refundReceive: relayer,
+        };
+
+        let merchantSafeContract = await GnosisSafe.at(merchantSafe);
+
+        let {
+          executionResult: { gasFee },
+        } = await signAndSendSafeTransaction(
+          safeTxData,
+          merchant,
+          merchantSafeContract,
+          relayer
+        );
+
+        let merchantSafeBalance = await getBalance(cardcpxdToken, merchantSafe);
+        assert(
+          merchantSafeBalance.eq(amountTokensAdded.sub(gasFee)),
+          "reward safe balance is correct"
+        );
+        let rewardPoolBalance = await rewardPool.rewardBalance(
+          rewardProgramID,
+          cardcpxdToken.address
+        );
+        assert(
+          rewardPoolBalance.eq(toTokenUnit(0)),
+          "reward pool balance is correct"
+        );
       });
     });
   });

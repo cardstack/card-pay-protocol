@@ -94,7 +94,11 @@ export default {
       tasks: [
         {
           command: "test",
-          params: { testFiles: [] }, //.e.g ["./test/RewardManger-test.js"]
+          params: {
+            testFiles: [
+              "/Users/tintinthong/Documents/GitHub/card-protocol-xdai/test/RewardPool-test.js",
+            ],
+          }, //.e.g ["./test/RewardManger-test.js"]
         },
       ],
       files: ["./test"],

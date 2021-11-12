@@ -169,11 +169,9 @@ contract RewardPool is Initializable, Versionable, Ownable {
       .rewardProgramAdmins(rewardProgramID);
     require(rewardProgramAdmin != ZERO_ADDRESS);
     require(
-      GnosisSafe(msg.sender).getOwners()[1] == rewardProgramAdmin,
+      _getEOAOwner(msg.sender) == rewardProgramAdmin,
       "owner of safe is not reward program admin"
     );
-    // we recover to generic safe now. due attention in safe manager refactor
-    // also this assumes an order in owner array
     require(
       rewardBalance[rewardProgramID][token] >= amount,
       "not enough tokens to withdraw"
@@ -188,6 +186,18 @@ contract RewardPool is Initializable, Versionable, Ownable {
       amount,
       rewardProgramAdmin
     );
+  }
+
+  // lazy implementation of getting eoa owner of safe that has 1 or 2 owners
+  // think this is a use-case to handle during safe manager refactor
+  function _getEOAOwner(address safe) internal returns (address) {
+    address[] memory ownerArr = GnosisSafe(msg.sender).getOwners();
+    address eoaOwner;
+    if (ownerArr.length == 2) {
+      return ownerArr[1];
+    } else {
+      return ownerArr[0];
+    }
   }
 
   function onTokenTransfer(
