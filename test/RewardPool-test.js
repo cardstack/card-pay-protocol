@@ -1735,16 +1735,6 @@ contract("RewardPool", function (accounts) {
     describe.only("extractRewardTokens", function () {
       let rewardSafe;
       beforeEach(async function () {
-        ({
-          prepaidCardManager,
-          rewardManager,
-          depot,
-          daicpxdToken,
-          cardcpxdToken,
-          tokenManager,
-          rewardPool,
-          relayer,
-        } = await setupProtocol(accounts));
         await cardcpxdToken.mint(prepaidCardOwner, toTokenUnit(100));
         let prepaidCard = await createPrepaidCardAndTransfer(
           prepaidCardManager,
@@ -1754,16 +1744,6 @@ contract("RewardPool", function (accounts) {
           daicpxdToken,
           toTokenUnit(10 + 1),
           prepaidCardOwner
-        );
-        await registerRewardProgram(
-          prepaidCardManager,
-          prepaidCard,
-          relayer,
-          prepaidCardOwner,
-          REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
-          undefined,
-          prepaidCardOwner,
-          rewardProgramID
         );
         await cardcpxdToken.transferAndCall(
           rewardPool.address,
@@ -1811,6 +1791,19 @@ contract("RewardPool", function (accounts) {
           rewardPoolBalance.eq(toTokenUnit(50).sub(toTokenUnit(10))),
           "reward pool balance is correct"
         );
+      });
+
+      it("cannot extract if insufficient funds in reward program", async function () {
+        await extractRewardTokens(
+          rewardManager,
+          rewardPool,
+          relayer,
+          rewardSafe,
+          prepaidCardOwner,
+          rewardProgramID,
+          cardcpxdToken,
+          toTokenUnit(60)
+        ).should.be.rejectedWith(Error, "not enough tokens to withdraw");
       });
     });
   });

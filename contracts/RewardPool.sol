@@ -165,12 +165,16 @@ contract RewardPool is Initializable, Versionable, Ownable {
     address token,
     uint256 amount
   ) external returns (bool) {
-    address rewardProgramAdmin = RewardManager(rewardManager).getRewardProgramAdmin(
-      rewardProgramID
-    );
+    address rewardProgramAdmin = RewardManager(rewardManager)
+      .rewardProgramAdmins(rewardProgramID);
+    require(rewardProgramAdmin != ZERO_ADDRESS);
     require(
       GnosisSafe(msg.sender).getOwners()[1] == rewardProgramAdmin,
       "owner of safe is not reward program admin"
+    );
+    require(
+      rewardBalance[rewardProgramID][token] >= amount,
+      "not enough tokens to withdraw"
     );
     rewardBalance[rewardProgramID][token] = rewardBalance[rewardProgramID][
       token
