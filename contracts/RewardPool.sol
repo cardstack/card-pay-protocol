@@ -38,7 +38,7 @@ contract RewardPool is Initializable, Versionable, Ownable {
     address tokenAddress,
     uint256 amount
   );
-  event RewardTokensExtracted(
+  event RewardTokensRecovered(
     address rewardProgramID,
     address token,
     uint256 amount,
@@ -180,7 +180,7 @@ contract RewardPool is Initializable, Versionable, Ownable {
       token
     ].sub(amount);
     IERC677(token).transfer(msg.sender, amount);
-    emit RewardTokensExtracted(
+    emit RewardTokensRecovered(
       rewardProgramID,
       token,
       amount,
