@@ -1649,94 +1649,77 @@ contract("RewardPool", function (accounts) {
           )
           .should.be.rejectedWith(Error, "calling token is unaccepted");
       });
-      // it("reward pool can be refilled using a prepaid card", async function () {
-      //   ({
-      //     prepaidCardManager,
-      //     rewardManager,
-      //     depot,
-      //     daicpxdToken,
-      //     cardcpxdToken,
-      //     tokenManager,
-      //     rewardPool,
-      //   } = await setupProtocol(accounts));
-      //   const rewardPoolPreviousBalanceDai = await getBalance(
-      //     daicpxdToken,
-      //     rewardPool.address
-      //   );
-      //   prepaidCard = await createPrepaidCardAndTransfer(
-      //     prepaidCardManager,
-      //     relayer,
-      //     depot,
-      //     issuer,
-      //     daicpxdToken,
-      //     toTokenUnit(10 + 1),
-      //     prepaidCardOwner
-      //   );
-      //   const prepaidCardPreviousBalanceDai = await getBalance(
-      //     daicpxdToken,
-      //     prepaidCard.address
-      //   );
+      it("reward pool can be refilled using a prepaid card", async function () {
+        await payRewardTokensHandler.setup(
+          actionDispatcher.address,
+          tokenManager.address,
+          rewardPool.address,
+          versionManager.address
+        );
+        const rewardPoolPreviousBalanceDai = await getBalance(
+          daicpxdToken,
+          rewardPool.address
+        );
+        prepaidCard = await createPrepaidCardAndTransfer(
+          prepaidCardManager,
+          relayer,
+          depot,
+          issuer,
+          daicpxdToken,
+          toTokenUnit(10 + 1),
+          prepaidCardOwner
+        );
+        const prepaidCardPreviousBalanceDai = await getBalance(
+          daicpxdToken,
+          prepaidCard.address
+        );
+        let txn = await payRewardTokens(
+          prepaidCardManager,
+          prepaidCard,
+          relayer,
+          prepaidCardOwner,
+          500,
+          undefined,
+          rewardProgramID
+        );
+        const { gasFee, success } = checkGnosisExecution(
+          txn,
+          prepaidCard.address
+        );
+        assert(success, "gnosis execution succesfull");
+        const rewardPoolBalanceDai = await getBalance(
+          daicpxdToken,
+          rewardPool.address
+        );
 
-      //   await registerRewardProgram(
-      //     prepaidCardManager,
-      //     prepaidCard,
-      //     relayer,
-      //     prepaidCardOwner,
-      //     REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
-      //     undefined,
-      //     prepaidCardOwner,
-      //     rewardProgramID
-      //   );
-      //   let txn = await payRewardTokens(
-      //     prepaidCardManager,
-      //     prepaidCard,
-      //     relayer,
-      //     prepaidCardOwner,
-      //     500,
-      //     undefined,
-      //     rewardProgramID
-      //   );
-      //   const { gasFee, success } = checkGnosisExecution(
-      //     txn,
-      //     prepaidCard.address
-      //   );
-      //   assert(success, "gnosis execution succesfull");
-      //   const rewardPoolBalanceDai = await getBalance(
-      //     daicpxdToken,
-      //     rewardPool.address
-      //   );
-
-      //   const rewardPoolBalanceCardByRewardProgram =
-      //     await getPoolBalanceByRewardProgram(
-      //       rewardProgramID,
-      //       rewardPool,
-      //       daicpxdToken
-      //     );
-      //   const prepaidCardBalanceDai = await getBalance(
-      //     daicpxdToken,
-      //     prepaidCard.address
-      //   );
-      //   assert(
-      //     rewardPoolPreviousBalanceDai
-      //       .add(rewardPoolBalanceDai)
-      //       .eq(new BN("5000000000000000000")),
-      //     "the reward pool balance is correct"
-      //   );
-      //   assert(
-      //     rewardPoolBalanceCardByRewardProgram.eq(
-      //       new BN("5000000000000000000")
-      //     ),
-      //     "the reward pool balance is correct"
-      //   );
-      //   assert(
-      //     prepaidCardPreviousBalanceDai
-      //       .sub(new BN("5000000000000000000"))
-      //       .sub(new BN("5000000000000000000"))
-      //       .sub(gasFee)
-      //       .eq(prepaidCardBalanceDai),
-      //     "the prepaid card token balance is correct"
-      //   );
-      // });
+        const rewardPoolBalanceDaiByRewardProgram =
+          await getPoolBalanceByRewardProgram(
+            rewardProgramID,
+            rewardPool,
+            daicpxdToken
+          );
+        const prepaidCardBalanceDai = await getBalance(
+          daicpxdToken,
+          prepaidCard.address
+        );
+        assert(
+          rewardPoolPreviousBalanceDai
+            .add(rewardPoolBalanceDai)
+            .eq(new BN("5000000000000000000")),
+          "the reward pool balance is correct"
+        );
+        assert(
+          rewardPoolBalanceDaiByRewardProgram.eq(new BN("5000000000000000000")),
+          "the reward pool balance is correct"
+        );
+        assert(
+          prepaidCardPreviousBalanceDai
+            .sub(new BN("5000000000000000000"))
+            .sub(gasFee)
+            .eq(prepaidCardBalanceDai),
+          "the prepaid card token balance is correct"
+        );
+      });
     });
 
     describe("recoverUnclaimedRewardTokens", function () {
