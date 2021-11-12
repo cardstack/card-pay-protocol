@@ -115,7 +115,7 @@ contract RewardPool is Initializable, Versionable, Ownable, ReentrancyGuard {
     address rewardProgramID,
     address rewardSafeOwner,
     bytes memory transferDetails,
-    bool partialClaimAllowed
+    bool acceptPartialClaim
   ) internal {
     (address payableToken, uint256 amount) = abi.decode(
       transferDetails,
@@ -126,7 +126,7 @@ contract RewardPool is Initializable, Versionable, Ownable, ReentrancyGuard {
     require(rewardProgramBalance > 0, "Reward program balance is empty");
     // If the sender is willing to accept a partial claim and there isn't enough to cover the entire claim,
     // then we can only claim the amount that is available _unless_ there is nothing left
-    if (partialClaimAllowed && rewardProgramBalance < amount) {
+    if (acceptPartialClaim && rewardProgramBalance < amount) {
       amount = rewardProgramBalance;
     }
     require(
@@ -157,7 +157,7 @@ contract RewardPool is Initializable, Versionable, Ownable, ReentrancyGuard {
   function claim(
     bytes calldata leaf,
     bytes32[] calldata proof,
-    bool partialClaimAllowed
+    bool acceptPartialClaim
   ) external nonReentrant returns (bool) {
     (
       address rewardProgramID,
@@ -205,7 +205,7 @@ contract RewardPool is Initializable, Versionable, Ownable, ReentrancyGuard {
         rewardProgramID,
         rewardSafeOwner,
         transferDetails,
-        partialClaimAllowed
+        acceptPartialClaim
       );
       return true;
     } else if (tokenType == 2) {
