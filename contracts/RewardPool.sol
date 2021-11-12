@@ -47,9 +47,9 @@ contract RewardPool is Initializable, Versionable, Ownable, ReentrancyGuard {
   address public rewardManager;
   address public tokenManager;
 
-  mapping(bytes32 => bool) private rewardsClaimed; //payment cycle <> rewardProgramID <> token <> rewardee
-  mapping(uint256 => bytes32) private payeeRoots;
-  mapping(address => mapping(address => uint256)) public rewardBalance;
+  mapping(bytes32 => bool) private rewardsClaimed; // hash of leaf node -> claimed status
+  mapping(uint256 => bytes32) private payeeRoots; // payment cycle -> merkle root
+  mapping(address => mapping(address => uint256)) public rewardBalance; // reward program ID -> token -> balance
   address public versionManager;
 
   modifier onlyTally() {
