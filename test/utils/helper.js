@@ -1829,6 +1829,52 @@ exports.claimReward = async function (
   return await sendSafeTransaction(safeTxData, rewardSafe, relayer, signature);
 };
 
+exports.recoverUnclaimedRewardTokens = async function (
+  rewardManager,
+  rewardPool,
+  relayer,
+  rewardSafe,
+  rewardSafeOwner,
+  rewardProgramID,
+  token,
+  amount
+) {
+  let recoverTokens = rewardPool.contract.methods.recoverTokens(
+    rewardProgramID,
+    token.address,
+    amount
+  );
+
+  let payload = recoverTokens.encodeABI();
+  let gasEstimate = await recoverTokens.estimateGas({
+    from: rewardSafe.address,
+  });
+
+  let safeTxData = {
+    to: rewardPool.address,
+    data: payload,
+    txGasEstimate: gasEstimate,
+    gasPrice: DEFAULT_GAS_PRICE,
+    txGasToken: token.address,
+    refundReceive: relayer,
+  };
+
+  const nonce = await rewardSafe.nonce();
+
+  let packData = packExecutionData(safeTxData);
+  let safeTxArr = Object.keys(packData).map((key) => packData[key]);
+
+  let signature = await rewardEIP1271Signature(
+    ...safeTxArr,
+    nonce,
+    rewardSafeOwner,
+    rewardSafe,
+    rewardManager
+  );
+
+  return await sendSafeTransaction(safeTxData, rewardSafe, relayer, signature);
+};
+
 exports.mintWalletAndRefillPool = async function (
   rewardToken,
   rewardPool,

@@ -48,7 +48,7 @@ contract RewardManager is Ownable, Versionable, Safe {
   EnumerableSet.AddressSet rewardProgramIDs;
   EnumerableSet.AddressSet eip1271Contracts;
   mapping(address => EnumerableSet.AddressSet) internal rewardSafes; //reward program id <> reward safes
-  mapping(address => bytes) public rule; //reward program id <> bytes32
+  mapping(address => bytes) public rule; //reward program id <> bytes
   mapping(address => address) public rewardProgramAdmins; //reward program id <> reward program admins
   mapping(address => bool) public rewardProgramLocked; //reward program id <> locked
   mapping(address => mapping(address => address)) public ownedRewardSafes; // EOA <> reward program id <> reward safe address
