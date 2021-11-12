@@ -121,29 +121,28 @@ contract RewardPool is Initializable, Versionable, Ownable, ReentrancyGuard {
       transferDetails,
       (address, uint256)
     );
+    uint256 rewardProgramBalance = rewardBalance[rewardProgramID][payableToken];
+
+    require(rewardProgramBalance > 0, "Reward program balance is empty");
     // If the sender is willing to accept a partial claim and there isn't enough to cover the entire claim,
     // then we can only claim the amount that is available _unless_ there is nothing left
-    if (
-      partialClaimAllowed &&
-      rewardBalance[rewardProgramID][payableToken] < amount &&
-      rewardBalance[rewardProgramID][payableToken] > 0
-    ) {
-      amount = rewardBalance[rewardProgramID][payableToken];
+    if (partialClaimAllowed && rewardProgramBalance < amount) {
+      amount = rewardProgramBalance;
     }
     require(
       IERC677(payableToken).balanceOf(address(this)) >= amount,
       "Reward pool has insufficient balance"
     );
     require(
-      rewardBalance[rewardProgramID][payableToken] >= amount,
+      rewardProgramBalance >= amount,
       "Reward program has insufficient balance inside reward pool"
     );
 
     rewardsClaimed[keccak256(leaf)] = true;
 
-    rewardBalance[rewardProgramID][payableToken] = rewardBalance[
-      rewardProgramID
-    ][payableToken].sub(amount);
+    rewardBalance[rewardProgramID][payableToken] = rewardProgramBalance.sub(
+      amount
+    );
     IERC677(payableToken).transfer(msg.sender, amount);
 
     emit RewardeeClaim(
