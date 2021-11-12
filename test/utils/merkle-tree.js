@@ -149,28 +149,32 @@ class MerkleTree {
   }
 
   getLeaf(node) {
-    return AbiCoder.encodeParameters(["address", "uint256", "uint256", "uint256", "uint256", "address", "bytes"],
+    return AbiCoder.encodeParameters(
+      [
+        "address",
+        "uint256",
+        "uint256",
+        "uint256",
+        "uint256",
+        "address",
+        "bytes",
+      ],
       [
         node["rewardProgramID"],
         node["paymentCycleNumber"],
-          node["startBlock"],
-          node["endBlock"],
-          node["tokenType"],
-          node["payee"],
-          AbiCoder.encodeParameters(["address", "uint256"], [
-              node["token"],
-              node["amount"]]
-          )]
-       );
+        node["startBlock"],
+        node["endBlock"],
+        node["tokenType"],
+        node["payee"],
+        AbiCoder.encodeParameters(
+          ["address", "uint256"],
+          [node["token"], node["amount"]]
+        ),
+      ]
+    );
   }
   sha3(node) {
-    return Buffer.from(
-      hexToBytes(
-        soliditySha3(
-          this.getLeaf(node)
-        )
-      )
-    );
+    return Buffer.from(hexToBytes(soliditySha3(this.getLeaf(node))));
   }
 }
 

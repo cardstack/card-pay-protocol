@@ -406,11 +406,11 @@ contract("RewardPool", function (accounts) {
           paymentCycle
         );
         root = merkleTree.getHexRoot();
-        rewardPool.submitPayeeMerkleRoot.estimateGas(root, { from: tally }).then(
-          function(gas) {
+        rewardPool.submitPayeeMerkleRoot
+          .estimateGas(root, { from: tally })
+          .then(function (gas) {
             console.log(gas);
-          }
-        )
+          });
         await rewardPool.submitPayeeMerkleRoot(root, { from: tally });
       });
 
@@ -691,10 +691,7 @@ contract("RewardPool", function (accounts) {
           cardcpxdToken,
           rewardPool.address
         );
-        let hasClaimed = await rewardPool.claimed(
-          leaf,
-          { from: payee }
-        );
+        let hasClaimed = await rewardPool.claimed(leaf, { from: payee });
         assert(hasClaimed, "the payee has claimed");
         assert(
           rewardSafeBalance.eq(
@@ -766,7 +763,7 @@ contract("RewardPool", function (accounts) {
           "can only withdraw for safe registered on reward program"
         );
       });
-   
+
       it("non-payee cannot claim from pool", async function () {
         let aPayee = accounts[1];
         let somePrepaidCard = await createPrepaidCardAndTransfer(
@@ -791,7 +788,7 @@ contract("RewardPool", function (accounts) {
           tx,
           rewardManager.address
         );
-        
+
         await claimReward(
           rewardManager,
           rewardPool,
@@ -995,7 +992,7 @@ contract("RewardPool", function (accounts) {
           toTokenUnit(10 + 1),
           rewardee
         );
-        
+
         const tx = await registerRewardee(
           prepaidCardManager,
           somePrepaidCard,
@@ -1028,14 +1025,18 @@ contract("RewardPool", function (accounts) {
         let updatedPayments = [];
         for (var i = 0; i < payments.length; i++) {
           let payment = Object.assign({}, payments[i]);
-          payment['paymentCycleNumber'] += 1;
+          payment["paymentCycleNumber"] += 1;
           updatedPayments.push(payment);
         }
         let updatedMerkleTree = new CumulativePaymentTree(updatedPayments);
         let updatedRoot = updatedMerkleTree.getHexRoot();
 
-        let updatedProof = updatedMerkleTree.getProof(updatedPayments[payeeIndex]);
-        let updatedLeaf = updatedMerkleTree.getLeaf(updatedPayments[payeeIndex]);
+        let updatedProof = updatedMerkleTree.getProof(
+          updatedPayments[payeeIndex]
+        );
+        let updatedLeaf = updatedMerkleTree.getLeaf(
+          updatedPayments[payeeIndex]
+        );
 
         await advanceBlock(web3);
 
@@ -1066,13 +1067,12 @@ contract("RewardPool", function (accounts) {
           cardcpxdToken,
           rewardPool.address
         );
-        
-        let claimed = await rewardPool.claimed(
-          leaf, proof
-        );
+
+        let claimed = await rewardPool.claimed(leaf, proof);
 
         let updatedClaimed = await rewardPool.claimed(
-          updatedLeaf, updatedProof
+          updatedLeaf,
+          updatedProof
         );
         assert(
           rewardSafeBalance.eq(
@@ -1092,7 +1092,7 @@ contract("RewardPool", function (accounts) {
         let updatedPayments = [];
         for (var i = 0; i < payments.length; i++) {
           let payment = Object.assign({}, payments[i]);
-          payment['paymentCycleNumber'] += 1;
+          payment["paymentCycleNumber"] += 1;
           updatedPayments.push(payment);
         }
         let updatedPaymentAmount = updatedPayments[payeeIndex].amount;
@@ -1103,9 +1103,13 @@ contract("RewardPool", function (accounts) {
 
         let paymentCycle = await rewardPool.numPaymentCycles();
         paymentCycle = paymentCycle.toNumber();
-        let updatedProof = updatedMerkleTree.getProof(updatedPayments[payeeIndex]);
-        let updatedLeaf = updatedMerkleTree.getLeaf(updatedPayments[payeeIndex]);
-   
+        let updatedProof = updatedMerkleTree.getProof(
+          updatedPayments[payeeIndex]
+        );
+        let updatedLeaf = updatedMerkleTree.getLeaf(
+          updatedPayments[payeeIndex]
+        );
+
         await rewardPool.submitPayeeMerkleRoot(updatedRoot, { from: tally });
 
         const {
@@ -1130,12 +1134,11 @@ contract("RewardPool", function (accounts) {
           rewardPool.address
         );
 
-        let claimed = await rewardPool.claimed(
-          leaf, proof
-        );
+        let claimed = await rewardPool.claimed(leaf, proof);
 
         let updatedClaimed = await rewardPool.claimed(
-          updatedLeaf, updatedProof
+          updatedLeaf,
+          updatedProof
         );
 
         assert(
@@ -1145,7 +1148,9 @@ contract("RewardPool", function (accounts) {
           "the reward safe balance is correct"
         );
         assert(
-          rewardPoolBalance.eq(rewardPoolPreviousBalance.sub(updatedPaymentAmount)),
+          rewardPoolBalance.eq(
+            rewardPoolPreviousBalance.sub(updatedPaymentAmount)
+          ),
           "the pool balance is correct"
         );
         assert(!claimed, "the original proof has not been claimed");
@@ -1156,7 +1161,7 @@ contract("RewardPool", function (accounts) {
         let updatedPayments = [];
         for (var i = 0; i < payments.length; i++) {
           let payment = Object.assign({}, payments[i]);
-          payment['paymentCycleNumber'] += 1;
+          payment["paymentCycleNumber"] += 1;
           updatedPayments.push(payment);
         }
         let updatedPaymentAmount = updatedPayments[payeeIndex].amount;
@@ -1167,9 +1172,13 @@ contract("RewardPool", function (accounts) {
 
         let paymentCycle = await rewardPool.numPaymentCycles();
         paymentCycle = paymentCycle.toNumber();
-        
-        let updatedProof = updatedMerkleTree.getProof(updatedPayments[payeeIndex]);
-        let updatedLeaf = updatedMerkleTree.getLeaf(updatedPayments[payeeIndex]);
+
+        let updatedProof = updatedMerkleTree.getProof(
+          updatedPayments[payeeIndex]
+        );
+        let updatedLeaf = updatedMerkleTree.getLeaf(
+          updatedPayments[payeeIndex]
+        );
 
         await rewardPool.submitPayeeMerkleRoot(updatedRoot, { from: tally });
 
@@ -1214,14 +1223,14 @@ contract("RewardPool", function (accounts) {
           rewardPool,
           relayer,
           rewardSafe,
-          payee,          
+          payee,
           cardcpxdToken,
           updatedLeaf,
           updatedProof
         );
         rewardSafeBalance = await getBalance(cardcpxdToken, rewardSafe.address);
         rewardPoolBalance = await getBalance(cardcpxdToken, rewardPool.address);
-        
+
         assert(
           rewardSafeBalance.eq(
             rewardSafePreviousBalance
@@ -1234,7 +1243,9 @@ contract("RewardPool", function (accounts) {
         );
         assert(
           rewardPoolBalance.eq(
-            rewardPoolPreviousBalance.sub(paymentAmount).sub(updatedPaymentAmount)
+            rewardPoolPreviousBalance
+              .sub(paymentAmount)
+              .sub(updatedPaymentAmount)
           ),
           "the pool balance is correct"
         );

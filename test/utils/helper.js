@@ -1794,18 +1794,12 @@ exports.claimReward = async function (
   relayer,
   rewardSafe,
   rewardSafeOwner,
-  rewardProgramID,
   token,
-  claimAmount,
-  proof
+  leaf,
+  proof,
+  partial = false
 ) {
-  let claimReward = rewardPool.contract.methods.claim(
-    rewardProgramID,
-    token.address,
-    claimAmount,
-    proof
-  );
-
+  let claimReward = rewardPool.contract.methods.claim(leaf, proof, partial);
   let payload = claimReward.encodeABI();
   let gasEstimate = await claimReward.estimateGas({ from: rewardSafe.address });
 
