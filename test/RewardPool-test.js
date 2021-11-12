@@ -1770,7 +1770,7 @@ contract("RewardPool", function (accounts) {
         rewardSafe = await getRewardSafeFromEventLog(tx, rewardManager.address);
       });
 
-      it("recover reward tokens using any safe owned by the reward program admin", async function () {
+      it("recover unclaimed reward tokens using reward safe owned reward program admin", async function () {
         const {
           executionResult: { gasFee },
         } = await recoverUnclaimedRewardTokens(
@@ -1847,7 +1847,7 @@ contract("RewardPool", function (accounts) {
           amountTokensAdded.add(toTokenUnit(10))
         ).should.be.rejectedWith(Error, "not enough tokens to withdraw");
       });
-      it("can recover to merchant safe", async function () {
+      it("recover unclaimed reward tokens using merchant safe owned reward program admin", async function () {
         let merchant = prepaidCardOwner;
         let merchantPrepaidCard = await createPrepaidCardAndTransfer(
           prepaidCardManager,
@@ -1858,7 +1858,6 @@ contract("RewardPool", function (accounts) {
           toTokenUnit(10 + 1),
           merchant
         );
-
         let merchantTx = await registerMerchant(
           prepaidCardManager,
           merchantPrepaidCard,
@@ -1891,9 +1890,7 @@ contract("RewardPool", function (accounts) {
           txGasToken: cardcpxdToken.address,
           refundReceive: relayer,
         };
-
         let merchantSafeContract = await GnosisSafe.at(merchantSafe);
-
         let {
           executionResult: { gasFee },
         } = await signAndSendSafeTransaction(
@@ -1902,7 +1899,6 @@ contract("RewardPool", function (accounts) {
           merchantSafeContract,
           relayer
         );
-
         let merchantSafeBalance = await getBalance(cardcpxdToken, merchantSafe);
         assert(
           merchantSafeBalance.eq(amountTokensAdded.sub(gasFee)),
