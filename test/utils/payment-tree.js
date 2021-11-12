@@ -1,5 +1,4 @@
 const MerkleTree = require("./merkle-tree");
-const _ = require("lodash");
 const AbiCoder = require("web3-eth-abi");
 
 class PaymentTree extends MerkleTree {

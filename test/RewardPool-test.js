@@ -384,6 +384,7 @@ contract("RewardPool", function (accounts) {
       let paymentAmount;
       let merkleTree;
       let root;
+      let leaf;
       let rewardeePrepaidCard;
       let rewardSafePreviousBalance, rewardPoolPreviousBalance;
 
@@ -623,7 +624,6 @@ contract("RewardPool", function (accounts) {
         );
         let payeeIndex = 6;
         let rewardee = payments[payeeIndex].payee;
-        let paymentAmount = payments[payeeIndex].amount;
         let proof = merkleTree.getProof(payments[payeeIndex]);
         let leaf = merkleTree.getLeaf(payments[payeeIndex]);
 
@@ -680,7 +680,6 @@ contract("RewardPool", function (accounts) {
         );
         let payeeIndex = 6;
         let rewardee = payments[payeeIndex].payee;
-        let paymentAmount = payments[payeeIndex].amount;
         let proof = merkleTree.getProof(payments[payeeIndex]);
         let leaf = merkleTree.getLeaf(payments[payeeIndex]);
 
@@ -741,7 +740,6 @@ contract("RewardPool", function (accounts) {
         );
         let payeeIndex = 6;
         let rewardee = payments[payeeIndex].payee;
-        let paymentAmount = payments[payeeIndex].amount;
         let proof = merkleTree.getProof(payments[payeeIndex]);
         let leaf = merkleTree.getLeaf(payments[payeeIndex]);
 
@@ -802,8 +800,6 @@ contract("RewardPool", function (accounts) {
 
         await advanceBlock(web3);
 
-        let paymentCycle = await rewardPool.numPaymentCycles();
-        paymentCycle = paymentCycle.toNumber();
         await rewardPool.submitPayeeMerkleRoot(updatedRoot, { from: tally });
 
         let claimAmount = payments[payeeIndex].amount;
@@ -863,8 +859,6 @@ contract("RewardPool", function (accounts) {
 
         await advanceBlock(web3);
 
-        let paymentCycle = await rewardPool.numPaymentCycles();
-        paymentCycle = paymentCycle.toNumber();
         let updatedProof = updatedMerkleTree.getProof(
           updatedPayments[payeeIndex]
         );
@@ -931,9 +925,6 @@ contract("RewardPool", function (accounts) {
         let updatedRoot = updatedMerkleTree.getHexRoot();
 
         await advanceBlock(web3);
-
-        let paymentCycle = await rewardPool.numPaymentCycles();
-        paymentCycle = paymentCycle.toNumber();
 
         let updatedProof = updatedMerkleTree.getProof(
           updatedPayments[payeeIndex]
