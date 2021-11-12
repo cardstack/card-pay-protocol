@@ -4,7 +4,6 @@ const {
   setLengthLeft,
   keccak256,
 } = require("ethereumjs-util");
-const AbiCoder = require("web3-eth-abi");
 const { soliditySha3, hexToBytes } = require("web3-utils");
 
 class MerkleTree {
@@ -148,31 +147,6 @@ class MerkleTree {
     return Buffer.concat([...args].sort(Buffer.compare));
   }
 
-  getLeaf(node) {
-    return AbiCoder.encodeParameters(
-      [
-        "address",
-        "uint256",
-        "uint256",
-        "uint256",
-        "uint256",
-        "address",
-        "bytes",
-      ],
-      [
-        node["rewardProgramID"],
-        node["paymentCycleNumber"],
-        node["startBlock"],
-        node["endBlock"],
-        node["tokenType"],
-        node["payee"],
-        AbiCoder.encodeParameters(
-          ["address", "uint256"],
-          [node["token"], node["amount"]]
-        ),
-      ]
-    );
-  }
   sha3(node) {
     return Buffer.from(hexToBytes(soliditySha3(this.getLeaf(node))));
   }

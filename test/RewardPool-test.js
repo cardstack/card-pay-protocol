@@ -1,4 +1,4 @@
-const CumulativePaymentTree = require("./utils/cumulative-payment-tree");
+const PaymentTree = require("./utils/payment-tree");
 
 const { assert, expect, TOKEN_DETAIL_DATA } = require("./setup");
 const _ = require("lodash");
@@ -245,7 +245,7 @@ contract("RewardPool", function (accounts) {
         previousPaymentCycleNumber = await rewardPool.numPaymentCycles();
       });
       it("starts a new payment cycle after the payee merkle root is submitted", async function () {
-        let merkleTree = new CumulativePaymentTree(payments);
+        let merkleTree = new PaymentTree(payments);
         let root = merkleTree.getHexRoot();
         let paymentCycleNumber = await rewardPool.numPaymentCycles();
         assert.equal(
@@ -300,7 +300,7 @@ contract("RewardPool", function (accounts) {
       });
 
       it("allows a new merkle root to be submitted in a block after the previous payment cycle has ended", async function () {
-        let merkleTree = new CumulativePaymentTree(payments);
+        let merkleTree = new PaymentTree(payments);
         let root = merkleTree.getHexRoot();
         await rewardPool.submitPayeeMerkleRoot(root, { from: tally });
 
@@ -308,7 +308,7 @@ contract("RewardPool", function (accounts) {
         updatedPayments[0].amount = updatedPayments[0].amount.add(
           toTokenUnit(10)
         );
-        let updatedMerkleTree = new CumulativePaymentTree(updatedPayments);
+        let updatedMerkleTree = new PaymentTree(updatedPayments);
         let updatedRoot = updatedMerkleTree.getHexRoot();
 
         await advanceBlock(web3);
@@ -327,7 +327,7 @@ contract("RewardPool", function (accounts) {
       });
 
       it("does not allow 2 merkle roots to be submitted in the same block after the previous payment cycle has ended", async function () {
-        let merkleTree = new CumulativePaymentTree(payments);
+        let merkleTree = new PaymentTree(payments);
         let root = merkleTree.getHexRoot();
         await rewardPool.submitPayeeMerkleRoot(root, { from: tally });
 
@@ -335,7 +335,7 @@ contract("RewardPool", function (accounts) {
         updatedPayments[0].amount = updatedPayments[0].amount.add(
           toTokenUnit(10)
         );
-        let updatedMerkleTree = new CumulativePaymentTree(updatedPayments);
+        let updatedMerkleTree = new PaymentTree(updatedPayments);
         let updatedRoot = updatedMerkleTree.getHexRoot();
 
         await rewardPool
@@ -354,7 +354,7 @@ contract("RewardPool", function (accounts) {
       });
 
       it("does not allow non-tally to submit merkle root", async function () {
-        let merkleTree = new CumulativePaymentTree(payments);
+        let merkleTree = new PaymentTree(payments);
         let root = merkleTree.getHexRoot();
 
         await rewardPool
@@ -398,7 +398,7 @@ contract("RewardPool", function (accounts) {
         );
         paymentCycle = await rewardPool.numPaymentCycles();
         paymentCycle = paymentCycle.toNumber();
-        merkleTree = new CumulativePaymentTree(payments);
+        merkleTree = new PaymentTree(payments);
         proof = merkleTree.hexProofForPayee(
           rewardProgramID,
           payee,
@@ -490,7 +490,7 @@ contract("RewardPool", function (accounts) {
         let updatedPayments = payments.slice();
         let updatedPaymentAmount = toTokenUnit(20);
         updatedPayments[payeeIndex].amount = updatedPaymentAmount;
-        let updatedMerkleTree = new CumulativePaymentTree(updatedPayments);
+        let updatedMerkleTree = new PaymentTree(updatedPayments);
         let updatedRoot = updatedMerkleTree.getHexRoot();
 
         await advanceBlock(web3);
@@ -541,7 +541,7 @@ contract("RewardPool", function (accounts) {
           token: cardcpxdToken.address,
           amount: toTokenUnit(0),
         });
-        let updatedMerkleTree = new CumulativePaymentTree(updatedPayments);
+        let updatedMerkleTree = new PaymentTree(updatedPayments);
         let updatedRoot = updatedMerkleTree.getHexRoot();
 
         await advanceBlock(web3);
@@ -579,7 +579,7 @@ contract("RewardPool", function (accounts) {
           token: cardcpxdToken.address,
           amount: toTokenUnit(8),
         });
-        let updatedMerkleTree = new CumulativePaymentTree(updatedPayments);
+        let updatedMerkleTree = new PaymentTree(updatedPayments);
         let updatedRoot = updatedMerkleTree.getHexRoot();
 
         await advanceBlock(web3);
@@ -625,7 +625,7 @@ contract("RewardPool", function (accounts) {
       beforeEach(async function () {
         payee = payments[payeeIndex].payee;
         paymentAmount = payments[payeeIndex].amount;
-        merkleTree = new CumulativePaymentTree(payments);
+        merkleTree = new PaymentTree(payments);
         root = merkleTree.getHexRoot();
         rewardPoolBalance = toTokenUnit(100);
         await mintWalletAndRefillPool(
@@ -1028,7 +1028,7 @@ contract("RewardPool", function (accounts) {
           payment["paymentCycleNumber"] += 1;
           updatedPayments.push(payment);
         }
-        let updatedMerkleTree = new CumulativePaymentTree(updatedPayments);
+        let updatedMerkleTree = new PaymentTree(updatedPayments);
         let updatedRoot = updatedMerkleTree.getHexRoot();
 
         let updatedProof = updatedMerkleTree.getProof(
@@ -1096,7 +1096,7 @@ contract("RewardPool", function (accounts) {
           updatedPayments.push(payment);
         }
         let updatedPaymentAmount = updatedPayments[payeeIndex].amount;
-        let updatedMerkleTree = new CumulativePaymentTree(updatedPayments);
+        let updatedMerkleTree = new PaymentTree(updatedPayments);
         let updatedRoot = updatedMerkleTree.getHexRoot();
 
         await advanceBlock(web3);
@@ -1165,7 +1165,7 @@ contract("RewardPool", function (accounts) {
           updatedPayments.push(payment);
         }
         let updatedPaymentAmount = updatedPayments[payeeIndex].amount;
-        let updatedMerkleTree = new CumulativePaymentTree(updatedPayments);
+        let updatedMerkleTree = new PaymentTree(updatedPayments);
         let updatedRoot = updatedMerkleTree.getHexRoot();
 
         await advanceBlock(web3);
@@ -1305,7 +1305,7 @@ contract("RewardPool", function (accounts) {
         );
         await daicpxdToken.mint(rewardPool.address, rewardPoolBalance);
 
-        merkleTree = new CumulativePaymentTree(payments);
+        merkleTree = new PaymentTree(payments);
         root = merkleTree.getHexRoot();
 
         paymentCycle = await rewardPool.numPaymentCycles();
