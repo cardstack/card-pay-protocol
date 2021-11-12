@@ -160,7 +160,7 @@ contract RewardPool is Initializable, Versionable, Ownable {
     return true;
   }
 
-  function extractTokens(
+  function recoverTokens(
     address rewardProgramID,
     address token,
     uint256 amount

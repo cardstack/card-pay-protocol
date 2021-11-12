@@ -25,7 +25,7 @@ const {
   claimReward,
   mintWalletAndRefillPool,
   payRewardTokens,
-  extractRewardTokens,
+  recoverUnclaimedRewardTokens,
 } = require("./utils/helper");
 const AbiCoder = require("web3-eth-abi");
 
@@ -1732,7 +1732,7 @@ contract("RewardPool", function (accounts) {
       });
     });
 
-    describe.only("extractRewardTokens", function () {
+    describe.only("recoverUnclaimedRewardTokens", function () {
       let rewardSafe;
       beforeEach(async function () {
         await cardcpxdToken.mint(prepaidCardOwner, toTokenUnit(100));
@@ -1765,7 +1765,7 @@ contract("RewardPool", function (accounts) {
       it("extract using any safe owned by the reward program admin", async function () {
         const {
           executionResult: { gasFee },
-        } = await extractRewardTokens(
+        } = await recoverUnclaimedRewardTokens(
           rewardManager,
           rewardPool,
           relayer,
@@ -1794,7 +1794,7 @@ contract("RewardPool", function (accounts) {
       });
 
       it("cannot extract if insufficient funds in reward program", async function () {
-        await extractRewardTokens(
+        await recoverUnclaimedRewardTokens(
           rewardManager,
           rewardPool,
           relayer,

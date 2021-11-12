@@ -1829,7 +1829,7 @@ exports.claimReward = async function (
   return await sendSafeTransaction(safeTxData, rewardSafe, relayer, signature);
 };
 
-exports.extractRewardTokens = async function (
+exports.recoverUnclaimedRewardTokens = async function (
   rewardManager,
   rewardPool,
   relayer,
@@ -1839,14 +1839,14 @@ exports.extractRewardTokens = async function (
   token,
   amount
 ) {
-  let extractTokens = rewardPool.contract.methods.extractTokens(
+  let recoverTokens = rewardPool.contract.methods.recoverTokens(
     rewardProgramID,
     token.address,
     amount
   );
 
-  let payload = extractTokens.encodeABI();
-  let gasEstimate = await extractTokens.estimateGas({
+  let payload = recoverTokens.encodeABI();
+  let gasEstimate = await recoverTokens.estimateGas({
     from: rewardSafe.address,
   });
 
