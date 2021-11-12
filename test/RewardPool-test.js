@@ -375,242 +375,7 @@ contract("RewardPool", function (accounts) {
       });
     });
 
-    describe("balanceForProof", function () {
-      let rewardPoolBalance;
-      let paymentCycle;
-      let payeeIndex = 0;
-      let payee;
-      let paymentAmount;
-      let merkleTree;
-      let root;
-      let proof;
-
-      beforeEach(async function () {
-        payee = payments[payeeIndex].payee;
-        rewardPoolBalance = toTokenUnit(100);
-        paymentAmount = payments[payeeIndex].amount;
-        await mintWalletAndRefillPool(
-          cardcpxdToken,
-          rewardPool,
-          prepaidCardOwner,
-          rewardPoolBalance,
-          rewardProgramID
-        );
-        paymentCycle = await rewardPool.numPaymentCycles();
-        paymentCycle = paymentCycle.toNumber();
-        merkleTree = new PaymentTree(payments);
-        proof = merkleTree.hexProofForPayee(
-          rewardProgramID,
-          payee,
-          cardcpxdToken.address,
-          paymentCycle
-        );
-        root = merkleTree.getHexRoot();
-        rewardPool.submitPayeeMerkleRoot
-          .estimateGas(root, { from: tally })
-          .then(function (gas) {
-            console.log(gas);
-          });
-        await rewardPool.submitPayeeMerkleRoot(root, { from: tally });
-      });
-
-      it("payee can get their available balance in the payment pool from their proof", async function () {
-        let balance = await rewardPool.balanceForProof(
-          rewardProgramID,
-          cardcpxdToken.address,
-          proof,
-          { from: payee }
-        );
-        assert(balance.eq(paymentAmount), "the balance is correct");
-      });
-
-      it("non-payee can get the available balance in the payment pool for an address and proof", async function () {
-        let balance = await rewardPool.balanceForProofWithAddress(
-          rewardProgramID,
-          cardcpxdToken.address,
-          payee,
-          proof
-        );
-        assert(balance.eq(paymentAmount), "the balance is correct");
-      });
-
-      it("an invalid proof/address pair returns a balance of 0 in the payment pool", async function () {
-        let differentPayee = payments[4].payee;
-        let differentUsersProof = merkleTree.hexProofForPayee(
-          rewardProgramID,
-          differentPayee,
-          cardcpxdToken.address,
-          paymentCycle
-        );
-        let balance = await rewardPool.balanceForProofWithAddress(
-          rewardProgramID,
-          cardcpxdToken.address,
-          payee,
-          differentUsersProof
-        );
-        assert.equal(Number(balance), 0, "the balance is correct");
-      });
-
-      it("garbage proof data returns a balance of 0 in payment pool", async function () {
-        const randomProof = web3.utils.randomHex(32 * 5);
-        let balance = await rewardPool.balanceForProofWithAddress(
-          rewardProgramID,
-          cardcpxdToken.address,
-          payee,
-          randomProof
-        );
-        assert.equal(Number(balance), 0, "the balance is correct");
-      });
-
-      it("proof that is not the correct size returns revert", async function () {
-        const randomProof = web3.utils.randomHex(31 * 5);
-        await rewardPool
-          .balanceForProofWithAddress(
-            rewardProgramID,
-            cardcpxdToken.address,
-            payee,
-            randomProof
-          )
-          .should.be.rejectedWith(Error, "Bytearray provided has wrong shape");
-      });
-
-      it("proof that is too big returns revert", async function () {
-        const randomProof = web3.utils.randomHex(51 * 32);
-        await rewardPool
-          .balanceForProofWithAddress(
-            rewardProgramID,
-            cardcpxdToken.address,
-            payee,
-            randomProof
-          )
-          .should.be.rejectedWith(Error, "Bytearray provided is too big");
-      });
-
-      it("can handle balance for proofs from different payment cycles", async function () {
-        let updatedPayments = payments.slice();
-        let updatedPaymentAmount = toTokenUnit(20);
-        updatedPayments[payeeIndex].amount = updatedPaymentAmount;
-        let updatedMerkleTree = new PaymentTree(updatedPayments);
-        let updatedRoot = updatedMerkleTree.getHexRoot();
-
-        await advanceBlock(web3);
-
-        let paymentCycle = await rewardPool.numPaymentCycles();
-        paymentCycle = paymentCycle.toNumber();
-        let updatedProof = updatedMerkleTree.hexProofForPayee(
-          rewardProgramID,
-          payee,
-          cardcpxdToken.address,
-          paymentCycle
-        );
-        await rewardPool.submitPayeeMerkleRoot(updatedRoot, { from: tally });
-
-        let balance = await rewardPool.balanceForProof(
-          rewardProgramID,
-          cardcpxdToken.address,
-          updatedProof,
-          {
-            from: payee,
-          }
-        );
-        assert(
-          balance.eq(updatedPaymentAmount),
-          "the balance is correct for the updated proof"
-        );
-
-        balance = await rewardPool.balanceForProof(
-          rewardProgramID,
-          cardcpxdToken.address,
-          proof,
-          {
-            from: payee,
-          }
-        );
-        assert(
-          balance.eq(paymentAmount),
-          "the balance is correct for the original proof"
-        );
-      });
-
-      it("balance of payee that has 0 tokens in payment list returns 0 balance in payment pool", async function () {
-        let aPayee = accounts[1];
-        let updatedPayments = payments.slice();
-        updatedPayments.push({
-          rewardProgramID,
-          payee: aPayee,
-          token: cardcpxdToken.address,
-          amount: toTokenUnit(0),
-        });
-        let updatedMerkleTree = new PaymentTree(updatedPayments);
-        let updatedRoot = updatedMerkleTree.getHexRoot();
-
-        await advanceBlock(web3);
-
-        let paymentCycle = await rewardPool.numPaymentCycles();
-        paymentCycle = paymentCycle.toNumber();
-        let updatedProof = updatedMerkleTree.hexProofForPayee(
-          rewardProgramID,
-          aPayee,
-          cardcpxdToken.address,
-          paymentCycle
-        );
-        await rewardPool.submitPayeeMerkleRoot(updatedRoot, { from: tally });
-
-        let balance = await rewardPool.balanceForProof(
-          rewardProgramID,
-          cardcpxdToken.address,
-          updatedProof,
-          {
-            from: aPayee,
-          }
-        );
-        assert.equal(
-          Number(balance),
-          0,
-          "the balance is correct for the updated proof"
-        );
-      });
-
-      it("balance of proof for payee that has mulitple entries in the payment list returns the sum of all their amounts in the payment pool", async function () {
-        let updatedPayments = payments.slice();
-        updatedPayments.push({
-          rewardProgramID,
-          payee,
-          token: cardcpxdToken.address,
-          amount: toTokenUnit(8),
-        });
-        let updatedMerkleTree = new PaymentTree(updatedPayments);
-        let updatedRoot = updatedMerkleTree.getHexRoot();
-
-        await advanceBlock(web3);
-
-        let paymentCycle = await rewardPool.numPaymentCycles();
-        paymentCycle = paymentCycle.toNumber();
-        let updatedProof = updatedMerkleTree.hexProofForPayee(
-          rewardProgramID,
-          payee,
-          cardcpxdToken.address,
-          paymentCycle
-        );
-        await rewardPool.submitPayeeMerkleRoot(updatedRoot, { from: tally });
-
-        let balance = await rewardPool.balanceForProof(
-          rewardProgramID,
-          cardcpxdToken.address,
-          updatedProof,
-          {
-            from: payee,
-          }
-        );
-        assert.equal(
-          Number(balance),
-          toTokenUnit(18),
-          "the balance is correct for the updated proof"
-        );
-      });
-    });
-
-    describe.only("claim", function () {
+    describe("claim", function () {
       let rewardPoolBalance;
       let paymentCycle;
       let proof;
@@ -899,10 +664,7 @@ contract("RewardPool", function (accounts) {
           cardcpxdToken,
           leaf,
           proof
-        ).should.be.rejectedWith(
-          Error,
-          "Reward program has insufficient balance inside reward pool"
-        );
+        ).should.be.rejectedWith(Error, "Reward program balance is empty");
       });
 
       it("payee can claim the remaining tokens from a pool when the reward program does not have enough tokens in the pool and the user does want to allow partial claims", async function () {
@@ -1266,23 +1028,26 @@ contract("RewardPool", function (accounts) {
         rewardSafePreviousBalanceDai;
 
       beforeEach(async function () {
+        let currentBlockNumber = await web3.eth.getBlockNumber();
         payee = accounts[11];
         payments = [
           {
-            rewardProgramID,
-            payee,
+            paymentCycleNumber: 1,
+            startBlock: currentBlockNumber,
+            endBlock: currentBlockNumber + 10000,
+            rewardProgramID: rewardProgramID,
+            payee: payee,
+            tokenType: 1,
             token: daicpxdToken.address,
             amount: toTokenUnit(10),
           },
           {
-            rewardProgramID,
-            payee,
-            token: daicpxdToken.address,
-            amount: toTokenUnit(12),
-          },
-          {
-            rewardProgramID,
-            payee,
+            paymentCycleNumber: 1,
+            startBlock: currentBlockNumber,
+            endBlock: currentBlockNumber + 10000,
+            rewardProgramID: rewardProgramID,
+            payee: payee,
+            tokenType: 1,
             token: cardcpxdToken.address,
             amount: toTokenUnit(100),
           },
@@ -1351,19 +1116,11 @@ contract("RewardPool", function (accounts) {
 
       it("claim from two different tokens", async () => {
         const cardAmount = toTokenUnit(100);
-        const daiAmount = toTokenUnit(10).add(toTokenUnit(12));
-        const cardProof = merkleTree.hexProofForPayee(
-          rewardProgramID,
-          payee,
-          cardcpxdToken.address,
-          paymentCycle
-        );
-        const daiProof = merkleTree.hexProofForPayee(
-          rewardProgramID,
-          payee,
-          daicpxdToken.address,
-          paymentCycle
-        );
+        const daiAmount = toTokenUnit(10);
+        const cardProof = merkleTree.getProof(payments[1]);
+        const cardLeaf = merkleTree.getLeaf(payments[1]);
+        const daiProof = merkleTree.getProof(payments[0]);
+        const daiLeaf = merkleTree.getLeaf(payments[0]);
 
         const {
           executionResult: { gasFee: gasFeeCardClaim },
@@ -1373,9 +1130,8 @@ contract("RewardPool", function (accounts) {
           relayer,
           rewardSafe,
           payee,
-          rewardProgramID,
           cardcpxdToken,
-          cardAmount,
+          cardLeaf,
           cardProof
         );
 
@@ -1387,9 +1143,8 @@ contract("RewardPool", function (accounts) {
           relayer,
           rewardSafe,
           payee,
-          rewardProgramID,
           daicpxdToken,
-          daiAmount,
+          daiLeaf,
           daiProof
         );
 
