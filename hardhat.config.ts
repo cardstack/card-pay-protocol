@@ -95,7 +95,7 @@ export default {
         {
           command: "test",
           params: {
-            testFiles: [""],
+            testFiles: [],
           }, //.e.g ["./test/RewardManger-test.js"]
         },
       ],
