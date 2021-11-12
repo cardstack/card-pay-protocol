@@ -98,13 +98,13 @@ contract RewardPool is Initializable, Versionable, Ownable, ReentrancyGuard {
     bytes32[] memory proof
   ) public view returns (bool) {
         (
-      address rewardProgramID,           // solhint-disable-line no-unused-vars
+      /* address rewardProgramID */,
       uint256 paymentCycleNumber,
-      uint256 startBlock,                // solhint-disable-line no-unused-vars
-      uint256 endBlock,                  // solhint-disable-line no-unused-vars
-      uint256 tokenType,                 // solhint-disable-line no-unused-vars
-      address payee,                     // solhint-disable-line no-unused-vars
-      bytes memory transferDetails       // solhint-disable-line no-unused-vars
+      /* uint256 startBlock */,
+      /* uint256 endBlock */,
+      /* uint256 tokenType */,
+      /* address payee */,
+      /* bytes memory transferDetails */
     ) = abi.decode(leaf, (address, uint256, uint256, uint256, uint256, address, bytes));
     bytes32 root = bytes32(payeeRoots[paymentCycleNumber]);
     return proof.verify(root, keccak256(leaf));
@@ -157,7 +157,7 @@ contract RewardPool is Initializable, Versionable, Ownable, ReentrancyGuard {
 
       (
       address rewardProgramID,
-      uint256 paymentCycleNumber, // solhint-disable-line no-unused-vars
+      /* uint256 paymentCycleNumber */,
       uint256 startBlock,
       uint256 endBlock,
       uint256 tokenType,
