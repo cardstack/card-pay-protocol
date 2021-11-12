@@ -664,7 +664,10 @@ contract("RewardPool", function (accounts) {
           cardcpxdToken,
           leaf,
           proof
-        ).should.be.rejectedWith(Error, "Reward program balance is empty");
+        ).should.be.rejectedWith(
+          Error,
+          "Reward program has insufficient balance inside reward pool"
+        );
       });
 
       it("payee can claim the remaining tokens from a pool when the reward program does not have enough tokens in the pool and the user does want to allow partial claims", async function () {
@@ -711,7 +714,15 @@ contract("RewardPool", function (accounts) {
           tx,
           rewardManager.address
         );
-        await claimReward(
+
+        let rewardSafePreviousBalance = await getBalance(
+          cardcpxdToken,
+          someRewardSafe.address
+        );
+
+        const {
+          executionResult: { gasFee },
+        } = await claimReward(
           rewardManager,
           rewardPool,
           relayer,
@@ -721,9 +732,18 @@ contract("RewardPool", function (accounts) {
           leaf,
           proof,
           true
-        ).should.not.be.rejectedWith(
-          Error,
-          "Reward program has insufficient balance inside reward pool"
+        ).should.not.be.rejectedWith(Error, "Reward program balance is empty");
+
+        let rewardSafeBalance = await getBalance(
+          cardcpxdToken,
+          someRewardSafe.address
+        );
+
+        assert(
+          rewardSafeBalance.eq(
+            rewardSafePreviousBalance.add(toTokenUnit(5)).sub(gasFee)
+          ),
+          "the reward safe balance is correct"
         );
       });
 
@@ -775,10 +795,7 @@ contract("RewardPool", function (accounts) {
           leaf,
           proof,
           true
-        ).should.be.rejectedWith(
-          Error,
-          "Reward program has insufficient balance inside reward pool"
-        );
+        ).should.be.rejectedWith(Error, "Reward program balance is empty");
       });
 
       it("payee can claim their allotted amount from an older proof", async function () {
