@@ -171,7 +171,7 @@ contract RewardPool is Initializable, Versionable, Ownable {
     require(
       GnosisSafe(msg.sender).getOwners()[1] == rewardProgramAdmin,
       "owner of safe is not reward program admin"
-    ); // we recover to merchant safe only, but due change in safe manager refactor
+    ); // we recover to generic safe now. due attention in safe manager refactor
     require(
       rewardBalance[rewardProgramID][token] >= amount,
       "not enough tokens to withdraw"
