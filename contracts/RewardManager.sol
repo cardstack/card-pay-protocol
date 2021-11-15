@@ -206,6 +206,7 @@ contract RewardManager is Ownable, Versionable, Safe {
 
   function withdrawFromRewardSafe(
     address token,
+    address to,
     uint256 value,
     uint256 safeTxGas,
     uint256 baseGas,
@@ -220,7 +221,7 @@ contract RewardManager is Ownable, Versionable, Safe {
     execTransaction(
       token,
       0,
-      abi.encodeWithSelector(TRANSFER, rewardSafeOwner, value),
+      abi.encodeWithSelector(TRANSFER, to, value),
       safeTxGas,
       baseGas,
       gasPrice,
