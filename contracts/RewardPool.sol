@@ -98,12 +98,24 @@ contract RewardPool is Initializable, Versionable, Ownable, ReentrancyGuard {
     view
     returns (bool)
   {
-    (, uint256 paymentCycleNumber, , , , , ) = abi.decode(
-      leaf,
-      (address, uint256, uint256, uint256, uint256, address, bytes)
-    );
-    bytes32 root = bytes32(payeeRoots[paymentCycleNumber]);
-    return proof.verify(root, keccak256(leaf));
+    (
+      ,
+      uint256 paymentCycleNumber,
+      uint256 startBlock,
+      uint256 endBlock,
+      ,
+      ,
+
+    ) = abi.decode(
+        leaf,
+        (address, uint256, uint256, uint256, uint256, address, bytes)
+      );
+    if (block.number >= startBlock && block.number < endBlock) {
+      bytes32 root = bytes32(payeeRoots[paymentCycleNumber]);
+      return proof.verify(root, keccak256(leaf));
+    } else {
+      return false;
+    }
   }
 
   function claimed(bytes memory leaf) public view returns (bool) {
@@ -208,12 +220,6 @@ contract RewardPool is Initializable, Versionable, Ownable, ReentrancyGuard {
         acceptPartialClaim
       );
       return true;
-    } else if (tokenType == 2) {
-      // Type 2: ERC721 NFTs with specific IDs
-      return false;
-    } else if (tokenType == 3) {
-      // Type 3: ERC721 with no token ID
-      return false;
     } else {
       return false;
     }

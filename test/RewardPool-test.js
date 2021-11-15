@@ -1022,6 +1022,183 @@ contract("RewardPool", function (accounts) {
       });
     });
 
+    describe("verify", function () {
+      let rewardPoolBalance;
+      let paymentCycle;
+      let proof;
+      let payeeIndex = 0;
+      let payee;
+      let payments;
+      let merkleTree;
+      let root;
+      let leaf;
+      let rewardeePrepaidCard;
+      let rewardSafePreviousBalance, rewardPoolPreviousBalance;
+
+      beforeEach(async function () {
+        let currentBlockNumber = await web3.eth.getBlockNumber();
+        payments = [
+          {
+            paymentCycleNumber: 1,
+            startBlock: currentBlockNumber,
+            endBlock: currentBlockNumber + 10000,
+            rewardProgramID: rewardProgramID,
+            payee: accounts[1],
+            tokenType: 0, // Token type of 0 means that this is not a token
+            data: "I am important data",
+          },
+          {
+            paymentCycleNumber: 1,
+            startBlock: currentBlockNumber,
+            endBlock: currentBlockNumber + 10000,
+            rewardProgramID: rewardProgramID,
+            payee: accounts[2],
+            token: cardcpxdToken.address,
+            tokenType: 1,
+            amount: toTokenUnit(10),
+          },
+          {
+            paymentCycleNumber: 1,
+            startBlock: currentBlockNumber + 1000,
+            endBlock: currentBlockNumber + 10000,
+            rewardProgramID: rewardProgramID,
+            payee: accounts[1],
+            tokenType: 0, // Token type of 0 means that this is not a token
+            data: "I am not valid yet",
+          },
+          {
+            paymentCycleNumber: 1,
+            startBlock: currentBlockNumber - 1,
+            endBlock: currentBlockNumber - 1,
+            rewardProgramID: rewardProgramID,
+            payee: accounts[1],
+            tokenType: 0, // Token type of 0 means that this is not a token
+            data: "I am expired",
+          },
+        ];
+        payee = payments[payeeIndex].payee;
+        paymentAmount = payments[payeeIndex].amount;
+        merkleTree = new PaymentTree(payments);
+        root = merkleTree.getHexRoot();
+        rewardPoolBalance = toTokenUnit(100);
+        await mintWalletAndRefillPool(
+          cardcpxdToken,
+          rewardPool,
+          prepaidCardOwner,
+          rewardPoolBalance,
+          rewardProgramID
+        );
+        paymentCycle = await rewardPool.numPaymentCycles();
+        paymentCycle = paymentCycle.toNumber();
+        leaf = merkleTree.getLeaf(payments[payeeIndex]);
+        proof = merkleTree.getProof(payments[payeeIndex]);
+        await rewardPool.submitPayeeMerkleRoot(root, { from: tally });
+        rewardeePrepaidCard = await createPrepaidCardAndTransfer(
+          prepaidCardManager,
+          relayer,
+          depot,
+          issuer,
+          daicpxdToken,
+          toTokenUnit(10 + 1),
+          payee
+        );
+        const tx = await registerRewardee(
+          prepaidCardManager,
+          rewardeePrepaidCard,
+          relayer,
+          payee,
+          undefined,
+          rewardProgramID
+        );
+        rewardSafe = await getRewardSafeFromEventLog(tx, rewardManager.address);
+
+        rewardSafePreviousBalance = await getBalance(
+          cardcpxdToken,
+          rewardSafe.address
+        );
+        rewardPoolPreviousBalance = await getBalance(
+          cardcpxdToken,
+          rewardPool.address
+        );
+      });
+      it("payee cannot claim if the node is non-claimable (only verifiable)", async function () {
+        await claimReward(
+          rewardManager,
+          rewardPool,
+          relayer,
+          rewardSafe,
+          payee,
+          cardcpxdToken,
+          leaf,
+          proof
+        ).should.be.rejectedWith(
+          Error,
+          "Non-claimable proof, use valid(leaf, proof) to check validity"
+        );
+
+        let claimed = await rewardPool.claimed(leaf, { from: payee });
+
+        rewardSafeBalance = await getBalance(cardcpxdToken, rewardSafe.address);
+        rewardPoolBalance = await getBalance(cardcpxdToken, rewardPool.address);
+        assert(
+          rewardSafeBalance.eq(rewardSafePreviousBalance),
+          "the reward safe balance is not changed"
+        );
+        assert(
+          rewardPoolBalance.eq(rewardPoolPreviousBalance),
+          "the pool balance is not changed"
+        );
+        assert(!claimed, "the original proof has not been claimed");
+      });
+
+      it("payee can validate their data", async function () {
+        let valid = await rewardPool.valid(leaf, proof, { from: payee });
+        let claimed = await rewardPool.claimed(leaf, { from: payee });
+        assert(valid, "the data can be validated");
+        assert(
+          !claimed,
+          "the data is not marked as claimed when checking for valid status"
+        );
+      });
+
+      it("Anyone can validate a users data", async function () {
+        let valid = await rewardPool.valid(leaf, proof, {
+          from: payments[1].payee,
+        });
+        assert(valid, "the data can be validated");
+      });
+
+      it("Altering the leaf data makes it invalid", async function () {
+        let payment = Object.assign({}, payments[payeeIndex]);
+        payment["data"] = "Haha, secretly changed my data";
+        let fakeLeaf = merkleTree.getLeaf(payment);
+        let valid = await rewardPool.valid(fakeLeaf, proof, {
+          from: payments[payeeIndex].payee,
+        });
+        assert(!valid, "Altering the data stops the valid check from working");
+      });
+
+      it("Validity checking tests the block number is on or after the first allowed", async function () {
+        let earlyPayment = payments[2];
+        let earlyLeaf = merkleTree.getLeaf(earlyPayment);
+        let proof = merkleTree.getProof(earlyPayment);
+        let valid = await rewardPool.valid(earlyLeaf, proof, {
+          from: earlyPayment.payee,
+        });
+        assert(!valid, "Should be invalid if the valid range is in the future");
+      });
+
+      it("Validity checking tests the block number is before the last allowed", async function () {
+        let latePayment = payments[3];
+        let invalidLeaf = merkleTree.getLeaf(latePayment);
+        let proof = merkleTree.getProof(latePayment);
+        let valid = await rewardPool.valid(invalidLeaf, proof, {
+          from: latePayment.payee,
+        });
+        assert(!valid, "Should be invalid if it has expired");
+      });
+    });
+
     describe("multi-token support", () => {
       let rewardPoolBalance;
       let paymentCycle;
