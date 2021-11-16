@@ -8,6 +8,19 @@ class PaymentTree extends MerkleTree {
   }
 
   getLeaf(node) {
+    let transferData = null;
+    if (node["tokenType"] == 0) {
+      transferData = AbiCoder.encodeParameters(
+        ["string"],
+        [node["data"].toString()]
+      );
+    } else if (node["tokenType"] == 1) {
+      transferData = AbiCoder.encodeParameters(
+        ["address", "uint256"],
+        [node["token"], node["amount"]]
+      );
+    }
+
     return AbiCoder.encodeParameters(
       [
         "address",
@@ -25,10 +38,7 @@ class PaymentTree extends MerkleTree {
         node["endBlock"],
         node["tokenType"],
         node["payee"],
-        AbiCoder.encodeParameters(
-          ["address", "uint256"],
-          [node["token"], node["amount"]]
-        ),
+        transferData,
       ]
     );
   }
