@@ -99,13 +99,13 @@ contract RewardPool is Initializable, Versionable, Ownable, ReentrancyGuard {
     returns (bool)
   {
     (
-      ,
+      address rewardProgramID,
       uint256 paymentCycleNumber,
       uint256 startBlock,
       uint256 endBlock,
-      ,
-      ,
-
+      uint256 tokenType,
+      address payee,
+      bytes memory transferDetails
     ) = abi.decode(
         leaf,
         (address, uint256, uint256, uint256, uint256, address, bytes)
@@ -173,7 +173,7 @@ contract RewardPool is Initializable, Versionable, Ownable, ReentrancyGuard {
   ) external nonReentrant returns (bool) {
     (
       address rewardProgramID,
-      ,
+      uint256 paymentCycleNumber,
       uint256 startBlock,
       uint256 endBlock,
       uint256 tokenType,
