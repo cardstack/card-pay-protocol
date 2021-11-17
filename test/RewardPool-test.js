@@ -49,6 +49,7 @@ contract("RewardPool", function (accounts) {
   let tally;
   let rewardPool;
   let payments;
+  let otherPayments;
   describe("Reward Pool", function () {
     let prepaidCard;
     before(async () => {
@@ -172,6 +173,18 @@ contract("RewardPool", function (accounts) {
           paymentCycleNumber: 1,
           startBlock: currentBlockNumber,
           endBlock: currentBlockNumber + 10000,
+          rewardProgramID: rewardProgramID,
+          payee: accounts[18],
+          token: cardcpxdToken.address,
+          tokenType: 1,
+          amount: toTokenUnit(101), // this amount is used to test logic when the payment pool doesn't have sufficient funds
+        },
+      ];
+      otherPayments = [
+        {
+          paymentCycleNumber: 1,
+          startBlock: currentBlockNumber,
+          endBlock: currentBlockNumber + 10000,
           rewardProgramID: otherRewardProgramID,
           payee: accounts[16],
           token: cardcpxdToken.address,
@@ -187,16 +200,6 @@ contract("RewardPool", function (accounts) {
           token: cardcpxdToken.address,
           tokenType: 1,
           amount: toTokenUnit(9),
-        },
-        {
-          paymentCycleNumber: 1,
-          startBlock: currentBlockNumber,
-          endBlock: currentBlockNumber + 10000,
-          rewardProgramID: rewardProgramID,
-          payee: accounts[18],
-          token: cardcpxdToken.address,
-          tokenType: 1,
-          amount: toTokenUnit(101), // this amount is used to test logic when the payment pool doesn't have sufficient funds
         },
       ];
     });
@@ -240,117 +243,83 @@ contract("RewardPool", function (accounts) {
     });
 
     describe("submitPayeeMerkleRoot", function () {
-      let previousPaymentCycleNumber;
-      beforeEach(async function () {
-        previousPaymentCycleNumber = await rewardPool.numPaymentCycles();
-      });
-      it("starts a new payment cycle after the payee merkle root is submitted", async function () {
+      it("supports submitting a new merkle root for a payment cycle", async function () {
         let merkleTree = new PaymentTree(payments);
         let root = merkleTree.getHexRoot();
-        let paymentCycleNumber = await rewardPool.numPaymentCycles();
-        assert.equal(
-          paymentCycleNumber.toNumber(),
-          previousPaymentCycleNumber.toNumber(),
-          "the payment cycle number is correct"
+        let paymentCycleNumber = 1;
+        let txn = await rewardPool.submitPayeeMerkleRoot(
+          rewardProgramID,
+          paymentCycleNumber,
+          root,
+          {
+            from: tally,
+          }
         );
 
-        let txn = await rewardPool.submitPayeeMerkleRoot(root, {
-          from: tally,
-        });
-        let currentBlockNumber = await web3.eth.getBlockNumber();
-        paymentCycleNumber = await rewardPool.numPaymentCycles();
-        assert.equal(
-          paymentCycleNumber.toNumber(),
-          previousPaymentCycleNumber.add(new BN(1)).toNumber(),
-          "the payment cycle number is correct"
-        );
         assert.equal(
           txn.logs.length,
-          2,
+          1,
           "the correct number of events were fired"
         );
 
-        const eventsFired = txn.logs.map(({ event }) => event);
-        const paymentCycleEvent = _.find(txn.logs, {
-          event: "PaymentCycleEnded",
+        const merkleRootSubmissionEvent = _.find(txn.logs, {
+          event: "MerkleRootSubmission",
         });
 
-        assert(
-          _.isEqual(
-            _.sortBy(eventsFired),
-            _.sortBy(["PaymentCycleEnded", "MerkleRootSubmission"])
-          )
-        );
         assert.equal(
-          paymentCycleEvent.args.paymentCycle.toNumber(),
-          previousPaymentCycleNumber.toNumber(),
+          merkleRootSubmissionEvent.args.paymentCycle.toNumber(),
+          paymentCycleNumber,
           "the payment cycle number is correct"
         );
 
         assert.equal(
-          Number(paymentCycleEvent.args.startBlock),
-          0,
-          "the payment cycle start block is correct"
-        );
-        assert.equal(
-          Number(paymentCycleEvent.args.endBlock),
-          currentBlockNumber,
-          "the payment cycle end block is correct"
+          merkleRootSubmissionEvent.args.rewardProgramID.toLowerCase(),
+          rewardProgramID.toLowerCase(),
+          "the reward program ID is correct"
         );
       });
 
-      it("allows a new merkle root to be submitted in a block after the previous payment cycle has ended", async function () {
+      it("allows a multiple merkle roots for the same reward program to be submitted", async function () {
         let merkleTree = new PaymentTree(payments);
         let root = merkleTree.getHexRoot();
-        await rewardPool.submitPayeeMerkleRoot(root, { from: tally });
-
-        let updatedPayments = payments.slice();
-        updatedPayments[0].amount = updatedPayments[0].amount.add(
-          toTokenUnit(10)
-        );
-        let updatedMerkleTree = new PaymentTree(updatedPayments);
-        let updatedRoot = updatedMerkleTree.getHexRoot();
-
-        await advanceBlock(web3);
-
-        await rewardPool.submitPayeeMerkleRoot(updatedRoot, {
+        await rewardPool.submitPayeeMerkleRoot(rewardProgramID, 1, root, {
           from: tally,
         });
 
-        let paymentCycleNumber = await rewardPool.numPaymentCycles();
-
-        assert.equal(
-          paymentCycleNumber.toNumber(),
-          previousPaymentCycleNumber.add(new BN(2)).toNumber(),
-          "the payment cycle number is correct"
-        );
+        // This should not throw any errors
+        await rewardPool.submitPayeeMerkleRoot(rewardProgramID, 2, root, {
+          from: tally,
+        });
       });
 
-      it("does not allow 2 merkle roots to be submitted in the same block after the previous payment cycle has ended", async function () {
+      it("allows a multiple merkle roots for different reward programs to be submitted with the same payment cycle number", async function () {
         let merkleTree = new PaymentTree(payments);
         let root = merkleTree.getHexRoot();
-        await rewardPool.submitPayeeMerkleRoot(root, { from: tally });
+        await rewardPool.submitPayeeMerkleRoot(rewardProgramID, 1, root, {
+          from: tally,
+        });
 
-        let updatedPayments = payments.slice();
-        updatedPayments[0].amount = updatedPayments[0].amount.add(
-          toTokenUnit(10)
-        );
-        let updatedMerkleTree = new PaymentTree(updatedPayments);
-        let updatedRoot = updatedMerkleTree.getHexRoot();
+        // This should not throw any errors
+        await rewardPool.submitPayeeMerkleRoot(otherRewardProgramID, 1, root, {
+          from: tally,
+        });
+      });
+
+      it("does not allow a root to be submitted twice for the same reward program and cycle", async function () {
+        let merkleTree = new PaymentTree(payments);
+        let root = merkleTree.getHexRoot();
+        await rewardPool.submitPayeeMerkleRoot(rewardProgramID, 1, root, {
+          from: tally,
+        });
 
         await rewardPool
-          .submitPayeeMerkleRoot(updatedRoot, { from: tally })
+          .submitPayeeMerkleRoot(rewardProgramID, 1, root, {
+            from: tally,
+          })
           .should.be.rejectedWith(
             Error,
-            "Cannot start new payment cycle before currentPaymentCycleStartBlock"
+            "Payee root already submitted for this program & cycle"
           );
-        let paymentCycleNumber = await rewardPool.numPaymentCycles();
-
-        assert.equal(
-          paymentCycleNumber.toNumber(),
-          previousPaymentCycleNumber.add(new BN(1)).toNumber(),
-          "the payment cycle number is correct"
-        );
       });
 
       it("does not allow non-tally to submit merkle root", async function () {
@@ -358,26 +327,19 @@ contract("RewardPool", function (accounts) {
         let root = merkleTree.getHexRoot();
 
         await rewardPool
-          .submitPayeeMerkleRoot(root, { from: accounts[11] })
+          .submitPayeeMerkleRoot(rewardProgramID, 1, root, {
+            from: accounts[11],
+          })
           .should.be.rejectedWith(Error, "Caller is not tally");
 
         await rewardPool
-          .submitPayeeMerkleRoot(root, { from: owner })
+          .submitPayeeMerkleRoot(rewardProgramID, 1, root, { from: owner })
           .should.be.rejectedWith(Error, "Caller is not tally");
-
-        let paymentCycleNumber = await rewardPool.numPaymentCycles();
-
-        assert.equal(
-          paymentCycleNumber.toNumber(),
-          previousPaymentCycleNumber.toNumber(),
-          "the payment cycle number is correct"
-        );
       });
     });
 
     describe("claim", function () {
       let rewardPoolBalance;
-      let paymentCycle;
       let proof;
       let payeeIndex = 0;
       let payee;
@@ -401,11 +363,26 @@ contract("RewardPool", function (accounts) {
           rewardPoolBalance,
           rewardProgramID
         );
-        paymentCycle = await rewardPool.numPaymentCycles();
-        paymentCycle = paymentCycle.toNumber();
         leaf = merkleTree.getLeaf(payments[payeeIndex]);
         proof = merkleTree.getProof(payments[payeeIndex]);
-        await rewardPool.submitPayeeMerkleRoot(root, { from: tally });
+        await rewardPool.submitPayeeMerkleRoot(
+          rewardProgramID,
+          payments[0]["paymentCycleNumber"],
+          root,
+          {
+            from: tally,
+          }
+        );
+        otherMerkleTree = new PaymentTree(otherPayments);
+        otherRoot = otherMerkleTree.getHexRoot();
+        await rewardPool.submitPayeeMerkleRoot(
+          otherPayments[0]["rewardProgramID"],
+          otherPayments[0]["paymentCycleNumber"],
+          otherRoot,
+          {
+            from: tally,
+          }
+        );
         rewardeePrepaidCard = await createPrepaidCardAndTransfer(
           prepaidCardManager,
           relayer,
@@ -568,7 +545,7 @@ contract("RewardPool", function (accounts) {
       });
 
       it("payee cannot claim their allotted tokens from the pool when the pool does not have enough tokens", async function () {
-        let payeeIndex = 7;
+        let payeeIndex = 5;
         let rewardee = payments[payeeIndex].payee;
         let paymentAmountAbove100 = payments[payeeIndex].amount;
         let proof = merkleTree.getProof(payments[payeeIndex]);
@@ -622,10 +599,10 @@ contract("RewardPool", function (accounts) {
           prepaidCardOwner,
           otherRewardProgramID
         );
-        let payeeIndex = 6;
-        let rewardee = payments[payeeIndex].payee;
-        let proof = merkleTree.getProof(payments[payeeIndex]);
-        let leaf = merkleTree.getLeaf(payments[payeeIndex]);
+        let payeeIndex = 1;
+        let rewardee = otherPayments[payeeIndex].payee;
+        let proof = otherMerkleTree.getProof(otherPayments[payeeIndex]);
+        let leaf = otherMerkleTree.getLeaf(otherPayments[payeeIndex]);
 
         let somePrepaidCard = await createPrepaidCardAndTransfer(
           prepaidCardManager,
@@ -681,10 +658,10 @@ contract("RewardPool", function (accounts) {
           prepaidCardOwner,
           otherRewardProgramID
         );
-        let payeeIndex = 6;
-        let rewardee = payments[payeeIndex].payee;
-        let proof = merkleTree.getProof(payments[payeeIndex]);
-        let leaf = merkleTree.getLeaf(payments[payeeIndex]);
+        let payeeIndex = 1;
+        let rewardee = otherPayments[payeeIndex].payee;
+        let proof = otherMerkleTree.getProof(otherPayments[payeeIndex]);
+        let leaf = otherMerkleTree.getLeaf(otherPayments[payeeIndex]);
 
         let somePrepaidCard = await createPrepaidCardAndTransfer(
           prepaidCardManager,
@@ -758,10 +735,10 @@ contract("RewardPool", function (accounts) {
           prepaidCardOwner,
           otherRewardProgramID
         );
-        let payeeIndex = 6;
-        let rewardee = payments[payeeIndex].payee;
-        let proof = merkleTree.getProof(payments[payeeIndex]);
-        let leaf = merkleTree.getLeaf(payments[payeeIndex]);
+        let payeeIndex = 1;
+        let rewardee = otherPayments[payeeIndex].payee;
+        let proof = otherMerkleTree.getProof(otherPayments[payeeIndex]);
+        let leaf = otherMerkleTree.getLeaf(otherPayments[payeeIndex]);
 
         let somePrepaidCard = await createPrepaidCardAndTransfer(
           prepaidCardManager,
@@ -817,7 +794,12 @@ contract("RewardPool", function (accounts) {
 
         await advanceBlock(web3);
 
-        await rewardPool.submitPayeeMerkleRoot(updatedRoot, { from: tally });
+        await rewardPool.submitPayeeMerkleRoot(
+          updatedPayments[0]["rewardProgramID"],
+          updatedPayments[0]["paymentCycleNumber"],
+          updatedRoot,
+          { from: tally }
+        );
 
         let claimAmount = payments[payeeIndex].amount;
 
@@ -883,7 +865,12 @@ contract("RewardPool", function (accounts) {
           updatedPayments[payeeIndex]
         );
 
-        await rewardPool.submitPayeeMerkleRoot(updatedRoot, { from: tally });
+        await rewardPool.submitPayeeMerkleRoot(
+          updatedPayments[0]["rewardProgramID"],
+          updatedPayments[0]["paymentCycleNumber"],
+          updatedRoot,
+          { from: tally }
+        );
 
         const {
           executionResult: { gasFee },
@@ -950,7 +937,12 @@ contract("RewardPool", function (accounts) {
           updatedPayments[payeeIndex]
         );
 
-        await rewardPool.submitPayeeMerkleRoot(updatedRoot, { from: tally });
+        await rewardPool.submitPayeeMerkleRoot(
+          updatedPayments[0]["rewardProgramID"],
+          updatedPayments[0]["paymentCycleNumber"],
+          updatedRoot,
+          { from: tally }
+        );
 
         const {
           executionResult: { gasFee: gasFeeClaimFromOlderProof },
@@ -1092,7 +1084,12 @@ contract("RewardPool", function (accounts) {
         paymentCycle = paymentCycle.toNumber();
         leaf = merkleTree.getLeaf(payments[payeeIndex]);
         proof = merkleTree.getProof(payments[payeeIndex]);
-        await rewardPool.submitPayeeMerkleRoot(root, { from: tally });
+        await rewardPool.submitPayeeMerkleRoot(
+          payments[0]["rewardProgramID"],
+          payments[0]["paymentCycleNumber"],
+          updatedRoot,
+          { from: tally }
+        );
         rewardeePrepaidCard = await createPrepaidCardAndTransfer(
           prepaidCardManager,
           relayer,
@@ -1260,7 +1257,12 @@ contract("RewardPool", function (accounts) {
 
         paymentCycle = await rewardPool.numPaymentCycles();
         paymentCycle = paymentCycle.toNumber();
-        await rewardPool.submitPayeeMerkleRoot(root, { from: tally });
+        await rewardPool.submitPayeeMerkleRoot(
+          payments[0]["rewardProgramID"],
+          payments[0]["paymentCycleNumber"],
+          updatedRoot,
+          { from: tally }
+        );
 
         rewardeePrepaidCard = await createPrepaidCardAndTransfer(
           prepaidCardManager,
