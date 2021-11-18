@@ -1085,7 +1085,6 @@ contract("RewardPool", function (accounts) {
           },
         ];
         payee = payments[payeeIndex].payee;
-        paymentAmount = payments[payeeIndex].amount;
         merkleTree = new PaymentTree(payments);
         root = merkleTree.getHexRoot();
         rewardPoolBalance = toTokenUnit(100);
@@ -1146,7 +1145,10 @@ contract("RewardPool", function (accounts) {
 
         let claimed = await rewardPool.claimed(leaf, { from: payee });
 
-        rewardSafeBalance = await getBalance(cardcpxdToken, rewardSafe.address);
+        let rewardSafeBalance = await getBalance(
+          cardcpxdToken,
+          rewardSafe.address
+        );
         rewardPoolBalance = await getBalance(cardcpxdToken, rewardPool.address);
         assert(
           rewardSafeBalance.eq(rewardSafePreviousBalance),
