@@ -318,8 +318,9 @@ const checkGnosisExecution = (safeTx, safeAddress) => {
     eventABIs.EXECUTION_FAILURE,
     safeAddress
   );
+
   return executionFailed.length > 0
-    ? { success: false, gasFee: new BN(executionSucceeded[0].payment) }
+    ? { success: false, gasFee: new BN(executionFailed[0].payment) }
     : { success: true, gasFee: new BN(executionSucceeded[0].payment) };
 };
 

@@ -21,6 +21,15 @@ export default async function (
         value: address("DAIUSDFeed"),
       },
       {
+        name: "canSnapToUSD",
+        value: false,
+      },
+      {
+        name: "snapThreshold",
+        value: 0,
+        formatter: (v) => `${(Number(v) / 100000000).toFixed(4)}%`,
+      },
+      {
         name: "versionManager",
         value: address("VersionManager"),
       },

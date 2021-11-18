@@ -18,23 +18,21 @@ contract Safe {
     internal
     returns (address)
   {
-    bytes memory data =
-      abi.encodeWithSelector(
-        SETUP,
-        safeOwners,
-        threshold,
-        ZERO_ADDRESS,
-        "",
-        ZERO_ADDRESS,
-        ZERO_ADDRESS,
-        0,
-        ZERO_ADDRESS
-      );
+    bytes memory data = abi.encodeWithSelector(
+      SETUP,
+      safeOwners,
+      threshold,
+      ZERO_ADDRESS,
+      "",
+      ZERO_ADDRESS,
+      ZERO_ADDRESS,
+      0,
+      ZERO_ADDRESS
+    );
 
-    address safe =
-      address(
-        GnosisSafeProxyFactory(gnosisProxyFactory).createProxy(gnosisSafe, data)
-      );
+    address safe = address(
+      GnosisSafeProxyFactory(gnosisProxyFactory).createProxy(gnosisSafe, data)
+    );
 
     require(safe != ZERO_ADDRESS, "Create a Safe failed");
 
@@ -46,28 +44,6 @@ contract Safe {
     ownerArr[0] = owner;
 
     return createSafe(ownerArr, 1);
-  }
-
-  function create2Safe(address [] memory safeOwners, uint256 threshold, uint256 nonce) internal returns (address){
-    bytes memory data =
-      abi.encodeWithSelector(
-        SETUP,
-        safeOwners,
-        threshold,
-        ZERO_ADDRESS,
-        "",
-        ZERO_ADDRESS,
-        ZERO_ADDRESS,
-        0,
-        ZERO_ADDRESS
-      );
-    address safe =
-      address(
-        GnosisSafeProxyFactory(gnosisProxyFactory).createProxyWithNonce(gnosisSafe, data, nonce)
-      );
-
-    require(safe != ZERO_ADDRESS, "Create a Safe failed");
-    return safe;
   }
 
   uint256[50] private ____gap;

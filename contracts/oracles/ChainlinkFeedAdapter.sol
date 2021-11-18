@@ -13,6 +13,8 @@ contract ChainlinkFeedAdapter is Ownable, Versionable, IPriceOracle {
   address public ethUsdFeed;
   address public daiUsdFeed;
   address public versionManager;
+  bool public canSnapToUSD;
+  uint256 public snapThreshold;
 
   event ChainlinkFeedSetup(
     address tokenUsdFeed,
@@ -24,6 +26,8 @@ contract ChainlinkFeedAdapter is Ownable, Versionable, IPriceOracle {
     address _tokenUsdFeed,
     address _ethUsdFeed,
     address _daiUsdFeed,
+    bool _canSnapToUSD,
+    uint256 _snapThreshold, // this is a percentage expressed as a numerator of 10 ^ decimals() as the denominator
     address _versionManager
   ) external onlyOwner {
     require(
@@ -41,11 +45,13 @@ contract ChainlinkFeedAdapter is Ownable, Versionable, IPriceOracle {
     tokenUsdFeed = _tokenUsdFeed;
     ethUsdFeed = _ethUsdFeed;
     daiUsdFeed = _daiUsdFeed;
+    canSnapToUSD = _canSnapToUSD;
+    snapThreshold = _snapThreshold;
     versionManager = _versionManager;
     emit ChainlinkFeedSetup(_tokenUsdFeed, _ethUsdFeed, _daiUsdFeed);
   }
 
-  function decimals() external view returns (uint8) {
+  function decimals() public view returns (uint8) {
     return AggregatorV3Interface(tokenUsdFeed).decimals();
   }
 
@@ -53,13 +59,33 @@ contract ChainlinkFeedAdapter is Ownable, Versionable, IPriceOracle {
     return AggregatorV3Interface(tokenUsdFeed).description();
   }
 
-  function usdPrice() external view returns (uint256 price, uint256 updatedAt) {
+  function usdDelta() public view returns (uint256) {
+    (, int256 _price, , , ) = AggregatorV3Interface(tokenUsdFeed)
+      .latestRoundData();
+    uint256 currentUsdPrice = uint256(_price);
+    uint256 _oneDollar = oneDollar();
+    return
+      currentUsdPrice >= _oneDollar
+        ? currentUsdPrice.sub(_oneDollar)
+        : _oneDollar.sub(currentUsdPrice);
+  }
+
+  function isSnappedToUSD() public view returns (bool) {
+    if (!canSnapToUSD) return false;
+    return usdDelta() <= snapThreshold;
+  }
+
+  function usdPrice() public view returns (uint256 price, uint256 updatedAt) {
     require(tokenUsdFeed != address(0), "feed address is not specified");
     (, int256 _price, , uint256 _updatedAt, ) = AggregatorV3Interface(
       tokenUsdFeed
     ).latestRoundData();
     updatedAt = _updatedAt;
-    price = uint256(_price);
+    if (isSnappedToUSD()) {
+      price = oneDollar();
+    } else {
+      price = uint256(_price);
+    }
   }
 
   function ethPrice() external view returns (uint256 price, uint256 updatedAt) {
@@ -71,14 +97,13 @@ contract ChainlinkFeedAdapter is Ownable, Versionable, IPriceOracle {
     AggregatorV3Interface ethUsd = AggregatorV3Interface(ethUsdFeed);
     uint8 tokenUsdDecimals = tokenUsd.decimals();
 
-    (, int256 tokenUsdPrice, , uint256 _updatedAt, ) = tokenUsd
-      .latestRoundData();
+    (uint256 usdTokenPrice, uint256 _updatedAt) = usdPrice();
     (, int256 ethUsdPrice, , , ) = ethUsd.latestRoundData();
     // a quirk about exponents is that the result will be calculated in the type
     // of the base, so in order to prevent overflows you should use a base of
     // uint256
     uint256 ten = 10;
-    price = (uint256(tokenUsdPrice).mul(ten**tokenUsdDecimals)).div(
+    price = ((usdTokenPrice).mul(ten**tokenUsdDecimals)).div(
       uint256(ethUsdPrice)
     );
     updatedAt = _updatedAt;
@@ -102,6 +127,8 @@ contract ChainlinkFeedAdapter is Ownable, Versionable, IPriceOracle {
     AggregatorV3Interface tokenUsd = AggregatorV3Interface(tokenUsdFeed);
     uint8 tokenUsdDecimals = tokenUsd.decimals();
 
+    // In this case we are converting thru USD to get the DAI rate for this token,
+    // use the live rate, not the snapped rate.
     (, int256 tokenUsdPrice, , uint256 _updatedAt, ) = tokenUsd
       .latestRoundData();
     (, int256 daiUsdPrice, , , ) = daiUsd.latestRoundData();
@@ -109,6 +136,14 @@ contract ChainlinkFeedAdapter is Ownable, Versionable, IPriceOracle {
       uint256(daiUsdPrice)
     );
     updatedAt = _updatedAt;
+  }
+
+  function oneDollar() internal view returns (uint256) {
+    // a quirk about exponents is that the result will be calculated in the type
+    // of the base, so in order to prevent overflows you should use a base of
+    // uint256
+    uint256 ten = 10;
+    return ten**decimals();
   }
 
   function cardpayVersion() external view returns (string memory) {

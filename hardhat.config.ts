@@ -66,7 +66,7 @@ export default {
     sokol: {
       url: "https://sokol.poa.network",
       chainId: 77,
-      gasPrice: 1000000000,
+      gasPrice: 20000000000, // 20 gwei
       derivationPath: "m/44'/60'/0'/0/1",
     },
 
@@ -74,7 +74,7 @@ export default {
       url: "https://rpc.xdaichain.com/",
       chainId: 100,
       derivationPath: "m/44'/60'/0'/0/2",
-      gasPrice: 1000000000,
+      gasPrice: 20000000000, // 20 gwei
     },
   },
   contractSizer: {
@@ -94,7 +94,9 @@ export default {
       tasks: [
         {
           command: "test",
-          params: { testFiles: [] }, //.e.g ["./test/RewardManger-test.js"]
+          params: {
+            testFiles: [],
+          }, //.e.g ["./test/RewardManger-test.js"]
         },
       ],
       files: ["./test"],

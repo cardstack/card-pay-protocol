@@ -58,6 +58,10 @@ contract LockRewardProgramHandler is Ownable, Versionable {
     address rewardProgramID = abi.decode(actionData, (address));
     address prepaidCardOwner = PrepaidCardManager(prepaidCardManager)
       .getPrepaidCardOwner(prepaidCard);
+    require(
+      RewardManager(rewardManagerAddress).isRewardProgram(rewardProgramID),
+      "reward program does not exist"
+    );
 
     require(
       RewardManager(rewardManagerAddress).rewardProgramAdmins(

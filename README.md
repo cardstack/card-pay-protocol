@@ -79,11 +79,6 @@ The gas policy is set to "true"; the prepaid card will pay for gas in it's issui
 The `AddRewardRuleHandler` is a contract that handles the `addRewardRule` action. This contract will call the `RewardManager` to add a rule to a reward program. 
 The gas policy is set to "true"; the prepaid card will pay for gas in it's issuing token. 
 
-### RemoveRewardRuleHandler
-The `RemoveRewardRuleHandler` is a contract that handles the `removeRewardRule` action. This contract will call the `RewardManager` to remove a rule from a reward program. 
-The gas policy is set to "true"; the prepaid card will pay for gas in it's issuing token. 
-
-
 ### PayRewardTokensHandler
 The `PayRewardTokensHandler` is a contract that handles the `payRewardTokens` action. This contract will send token transfers to fill up pool for a particular reward program. 
 The gas policy is set to "true"; the prepaid card will pay for gas in it's issuing token. 
@@ -114,6 +109,10 @@ The `RewardManager` contract enables a `rewardProgramAdmin` to create and manage
 The `RewardManager` contract is responsible for creating the gnosis safes that are considered as *Reward Cards*. These safes are used to redeem assets/rewards or levels; a person cannot get rewards if he doesn't have a *Reward Card*. *Reward Cards* are one-to-one with reward programs, therefore, an account can own more than one *Reward Card*. These safes are created as a result of the `registerRewardee` action. This safe is created with 2 owners:
 1. The `rewardee` or the owner of the prepaid card that executed the `registerRewardee` action.
 2. The `RewardManager` contract itself.
+
+Withdraw is only possible to the EOA owner of the reward safe, using the `withdrawFromRewardSafe` action with a wrapped gnosis signature, the inner signature being for the `token.transfer(to, value)` call, and the outer signature being for the `withdrawFromRewardSafe` function.
+
+Only approved tokens can be withdrawn from the reward safe.
 
 ## Prerequisites
 The following prerequisites are required for this project:

@@ -30,6 +30,19 @@
     {
       "type": "node",
       "request": "launch",
+      "name": "Run top-off",
+      "cwd": "${workspaceRoot}",
+      "program": "${workspaceFolder}/node_modules/.bin/hardhat",
+      "console": "integratedTerminal",
+      "env": {
+        "HARDHAT_NETWORK": "sokol",
+        "SKU": "0x5e0d8bbe3c8e4d9013509b469dabfa029270b38a5c55c9c94c095ec6199d7fda"
+      },
+      "args": ["run", "./scripts/prepaid-card-top-off.ts"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
       "name": "Config localhost - protocol",
       "cwd": "${workspaceRoot}",
       "program": "${workspaceFolder}/node_modules/.bin/hardhat",
