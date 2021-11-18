@@ -5,7 +5,6 @@ import "@openzeppelin/contract-upgradeable/contracts/math/SafeMath.sol";
 import "@openzeppelin/contract-upgradeable/contracts/cryptography/MerkleProof.sol";
 import "@openzeppelin/contract-upgradeable/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contract-upgradeable/contracts/token/ERC721/IERC721.sol";
-import "@openzeppelin/contract-upgradeable/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 
@@ -15,7 +14,7 @@ import "./RewardManager.sol";
 import "./TokenManager.sol";
 import "./VersionManager.sol";
 
-contract RewardPool is Initializable, Versionable, Ownable, ReentrancyGuard {
+contract RewardPool is Initializable, Versionable, Ownable {
   using SafeMath for uint256;
   using MerkleProof for bytes32[];
 
@@ -176,7 +175,7 @@ contract RewardPool is Initializable, Versionable, Ownable, ReentrancyGuard {
     bytes calldata leaf,
     bytes32[] calldata proof,
     bool acceptPartialClaim
-  ) external nonReentrant returns (bool) {
+  ) external returns (bool) {
     (
       address rewardProgramID,
       uint256 paymentCycleNumber,
@@ -194,6 +193,7 @@ contract RewardPool is Initializable, Versionable, Ownable, ReentrancyGuard {
       tokenType > 0,
       "Non-claimable proof, use valid(leaf, proof) to check validity"
     );
+    require(tokenType == 1, "Token type currently unsupported");
     require(
       block.number >= startBlock,
       "Can only be claimed on or after the start block"
@@ -226,8 +226,6 @@ contract RewardPool is Initializable, Versionable, Ownable, ReentrancyGuard {
         acceptPartialClaim
       );
       return true;
-    } else {
-      return false;
     }
   }
 

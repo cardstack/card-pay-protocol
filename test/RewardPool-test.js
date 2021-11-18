@@ -206,6 +206,16 @@ contract("RewardPool", function (accounts) {
           tokenType: 1,
           amount: toTokenUnit(101), // this amount is used to test logic when the payment pool doesn't have sufficient funds
         },
+        {
+          paymentCycleNumber: 1,
+          startBlock: currentBlockNumber,
+          endBlock: currentBlockNumber + 10000,
+          rewardProgramID: rewardProgramID,
+          payee: accounts[18],
+          token: cardcpxdToken.address,
+          tokenType: 2, // reserved for NFTs/other token types
+          amount: 1,
+        },
       ];
     });
 
@@ -804,6 +814,48 @@ contract("RewardPool", function (accounts) {
           proof,
           true
         ).should.be.rejectedWith(Error, "Reward program balance is empty");
+      });
+
+      it("non-payee cannot claim NFT token types yet", async function () {
+        // This test is expected to fail if you have implemented NFT token type
+        // claims
+        let payeeIndex = 8;
+        let leaf = merkleTree.getLeaf(payments[payeeIndex]);
+        let proof = merkleTree.getProof(payments[payeeIndex]);
+        let payee = payments[payeeIndex].payee;
+        let somePrepaidCard = await createPrepaidCardAndTransfer(
+          prepaidCardManager,
+          relayer,
+          depot,
+          issuer,
+          daicpxdToken,
+          toTokenUnit(10 + 1),
+          payee
+        );
+        const tx = await registerRewardee(
+          prepaidCardManager,
+          somePrepaidCard,
+          relayer,
+          payee,
+          undefined,
+          rewardProgramID
+        );
+
+        let someRewardSafe = await getRewardSafeFromEventLog(
+          tx,
+          rewardManager.address
+        );
+
+        await claimReward(
+          rewardManager,
+          rewardPool,
+          relayer,
+          someRewardSafe,
+          payee,
+          cardcpxdToken,
+          leaf, //this is the wrong proof
+          proof
+        ).should.be.rejectedWith(Error, "Token type currently unsupported");
       });
 
       it("payee can claim their allotted amount from an older proof", async function () {
