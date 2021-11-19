@@ -148,16 +148,7 @@ class MerkleTree {
   }
 
   sha3(node) {
-    return Buffer.from(
-      hexToBytes(
-        soliditySha3(
-          { t: "address", v: node["rewardProgramID"] },
-          { t: "address", v: node["token"] },
-          { t: "address", v: node["payee"] },
-          { t: "uint256", v: node["amount"] }
-        )
-      )
-    );
+    return Buffer.from(hexToBytes(soliditySha3(this.getLeaf(node))));
   }
 }
 
