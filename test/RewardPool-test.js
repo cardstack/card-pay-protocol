@@ -6,12 +6,15 @@ const _ = require("lodash");
 const ERC677Token = artifacts.require("ERC677Token.sol");
 
 const RewardPool = artifacts.require("RewardPool.sol");
+const GnosisSafe = artifacts.require("GnosisSafe");
 
 const {
   ZERO_ADDRESS,
   getRewardSafeFromEventLog,
   checkGnosisExecution,
+  getParamsFromEvent,
 } = require("./utils/general");
+const eventABIs = require("./utils/constant/eventABIs");
 const { setupProtocol, setupRoles } = require("./utils/setup");
 const { randomHex, BN } = require("web3-utils");
 const {
@@ -25,6 +28,9 @@ const {
   claimReward,
   mintWalletAndRefillPool,
   payRewardTokens,
+  recoverUnclaimedRewardTokens,
+  registerMerchant,
+  signAndSendSafeTransaction,
 } = require("./utils/helper");
 const AbiCoder = require("web3-eth-abi");
 
@@ -40,7 +46,8 @@ contract("RewardPool", function (accounts) {
     gnosisSafeMasterCopy,
     payRewardTokensHandler,
     versionManager,
-    proxyFactory;
+    proxyFactory,
+    merchantManager;
 
   let owner, issuer, prepaidCardOwner, relayer, governanceAdmin;
 
@@ -68,6 +75,7 @@ contract("RewardPool", function (accounts) {
         daicpxdToken,
         cardcpxdToken,
         tokenManager,
+        merchantManager,
         versionManager,
         payRewardTokensHandler,
       } = await setupProtocol(accounts));
@@ -200,6 +208,16 @@ contract("RewardPool", function (accounts) {
           token: cardcpxdToken.address,
           tokenType: 1,
           amount: toTokenUnit(9),
+        },
+        {
+          paymentCycleNumber: 1,
+          startBlock: currentBlockNumber,
+          endBlock: currentBlockNumber + 10000,
+          rewardProgramID: rewardProgramID,
+          payee: accounts[18],
+          token: cardcpxdToken.address,
+          tokenType: 2, // reserved for NFTs/other token types
+          amount: 1,
         },
       ];
     });
@@ -775,6 +793,48 @@ contract("RewardPool", function (accounts) {
         ).should.be.rejectedWith(Error, "Reward program balance is empty");
       });
 
+      it("non-payee cannot claim NFT token types yet", async function () {
+        // This test is expected to fail if you have implemented NFT token type
+        // claims
+        let payeeIndex = 8;
+        let leaf = merkleTree.getLeaf(payments[payeeIndex]);
+        let proof = merkleTree.getProof(payments[payeeIndex]);
+        let payee = payments[payeeIndex].payee;
+        let somePrepaidCard = await createPrepaidCardAndTransfer(
+          prepaidCardManager,
+          relayer,
+          depot,
+          issuer,
+          daicpxdToken,
+          toTokenUnit(10 + 1),
+          payee
+        );
+        const tx = await registerRewardee(
+          prepaidCardManager,
+          somePrepaidCard,
+          relayer,
+          payee,
+          undefined,
+          rewardProgramID
+        );
+
+        let someRewardSafe = await getRewardSafeFromEventLog(
+          tx,
+          rewardManager.address
+        );
+
+        await claimReward(
+          rewardManager,
+          rewardPool,
+          relayer,
+          someRewardSafe,
+          payee,
+          cardcpxdToken,
+          leaf, //this is the wrong proof
+          proof
+        ).should.be.rejectedWith(Error, "Token type currently unsupported");
+      });
+
       it("payee can claim their allotted amount from an older proof", async function () {
         let updatedPayments = [];
         for (var i = 0; i < payments.length; i++) {
@@ -1069,7 +1129,6 @@ contract("RewardPool", function (accounts) {
           },
         ];
         payee = payments[payeeIndex].payee;
-        paymentAmount = payments[payeeIndex].amount;
         merkleTree = new PaymentTree(payments);
         root = merkleTree.getHexRoot();
         rewardPoolBalance = toTokenUnit(100);
@@ -1135,7 +1194,10 @@ contract("RewardPool", function (accounts) {
 
         let claimed = await rewardPool.claimed(leaf, { from: payee });
 
-        rewardSafeBalance = await getBalance(cardcpxdToken, rewardSafe.address);
+        let rewardSafeBalance = await getBalance(
+          cardcpxdToken,
+          rewardSafe.address
+        );
         rewardPoolBalance = await getBalance(cardcpxdToken, rewardPool.address);
         assert(
           rewardSafeBalance.eq(rewardSafePreviousBalance),
@@ -1445,15 +1507,12 @@ contract("RewardPool", function (accounts) {
           .should.be.rejectedWith(Error, "calling token is unaccepted");
       });
       it("reward pool can be refilled using a prepaid card", async function () {
-        ({
-          prepaidCardManager,
-          rewardManager,
-          depot,
-          daicpxdToken,
-          cardcpxdToken,
-          tokenManager,
-          rewardPool,
-        } = await setupProtocol(accounts));
+        await payRewardTokensHandler.setup(
+          actionDispatcher.address,
+          tokenManager.address,
+          rewardPool.address,
+          versionManager.address
+        );
         const rewardPoolPreviousBalanceDai = await getBalance(
           daicpxdToken,
           rewardPool.address
@@ -1470,17 +1529,6 @@ contract("RewardPool", function (accounts) {
         const prepaidCardPreviousBalanceDai = await getBalance(
           daicpxdToken,
           prepaidCard.address
-        );
-
-        await registerRewardProgram(
-          prepaidCardManager,
-          prepaidCard,
-          relayer,
-          prepaidCardOwner,
-          REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
-          undefined,
-          prepaidCardOwner,
-          rewardProgramID
         );
         let txn = await payRewardTokens(
           prepaidCardManager,
@@ -1501,7 +1549,7 @@ contract("RewardPool", function (accounts) {
           rewardPool.address
         );
 
-        const rewardPoolBalanceCardByRewardProgram =
+        const rewardPoolBalanceDaiByRewardProgram =
           await getPoolBalanceByRewardProgram(
             rewardProgramID,
             rewardPool,
@@ -1518,18 +1566,191 @@ contract("RewardPool", function (accounts) {
           "the reward pool balance is correct"
         );
         assert(
-          rewardPoolBalanceCardByRewardProgram.eq(
-            new BN("5000000000000000000")
-          ),
+          rewardPoolBalanceDaiByRewardProgram.eq(new BN("5000000000000000000")),
           "the reward pool balance is correct"
         );
         assert(
           prepaidCardPreviousBalanceDai
             .sub(new BN("5000000000000000000"))
-            .sub(new BN("5000000000000000000"))
             .sub(gasFee)
             .eq(prepaidCardBalanceDai),
           "the prepaid card token balance is correct"
+        );
+      });
+    });
+
+    describe("recoverUnclaimedRewardTokens", function () {
+      let rewardSafe, amountTokensAdded;
+      beforeEach(async function () {
+        await cardcpxdToken.mint(prepaidCardOwner, toTokenUnit(100));
+        amountTokensAdded = toTokenUnit(50);
+        let prepaidCard = await createPrepaidCardAndTransfer(
+          prepaidCardManager,
+          relayer,
+          depot,
+          issuer,
+          daicpxdToken,
+          toTokenUnit(10 + 1),
+          prepaidCardOwner
+        );
+        await cardcpxdToken.transferAndCall(
+          rewardPool.address,
+          amountTokensAdded,
+          AbiCoder.encodeParameters(["address"], [rewardProgramID]),
+          { from: prepaidCardOwner }
+        );
+        let tx = await registerRewardee(
+          prepaidCardManager,
+          prepaidCard,
+          relayer,
+          prepaidCardOwner,
+          undefined,
+          rewardProgramID
+        );
+        rewardSafe = await getRewardSafeFromEventLog(tx, rewardManager.address);
+      });
+
+      it("recover unclaimed reward tokens using reward safe owned reward program admin", async function () {
+        const {
+          executionResult: { gasFee },
+        } = await recoverUnclaimedRewardTokens(
+          rewardManager,
+          rewardPool,
+          relayer,
+          rewardSafe,
+          prepaidCardOwner,
+          rewardProgramID,
+          cardcpxdToken,
+          amountTokensAdded
+        );
+        let rewardSafeBalance = await getBalance(
+          cardcpxdToken,
+          rewardSafe.address
+        );
+        assert(
+          rewardSafeBalance.eq(amountTokensAdded.sub(gasFee)),
+          "reward safe balance is correct"
+        );
+        let rewardPoolBalance = await rewardPool.rewardBalance(
+          rewardProgramID,
+          cardcpxdToken.address
+        );
+        assert(
+          rewardPoolBalance.eq(toTokenUnit(0)),
+          "reward pool balance is correct"
+        );
+      });
+
+      it("cannot recover if owner of safe is not reward program admin", async function () {
+        let prepaidCard = await createPrepaidCardAndTransfer(
+          prepaidCardManager,
+          relayer,
+          depot,
+          issuer,
+          daicpxdToken,
+          toTokenUnit(10 + 1),
+          owner
+        );
+        let tx = await registerRewardee(
+          prepaidCardManager,
+          prepaidCard,
+          relayer,
+          owner,
+          undefined,
+          rewardProgramID
+        );
+        rewardSafe = await getRewardSafeFromEventLog(tx, rewardManager.address);
+        await recoverUnclaimedRewardTokens(
+          rewardManager,
+          rewardPool,
+          relayer,
+          rewardSafe,
+          owner,
+          rewardProgramID,
+          cardcpxdToken,
+          amountTokensAdded
+        ).should.be.rejectedWith(
+          Error,
+          "owner of safe is not reward program admin"
+        );
+      });
+
+      it("cannot recover if insufficient funds in reward program", async function () {
+        await recoverUnclaimedRewardTokens(
+          rewardManager,
+          rewardPool,
+          relayer,
+          rewardSafe,
+          prepaidCardOwner,
+          rewardProgramID,
+          cardcpxdToken,
+          amountTokensAdded.add(toTokenUnit(10))
+        ).should.be.rejectedWith(Error, "not enough tokens to withdraw");
+      });
+      it("recover unclaimed reward tokens using merchant safe owned reward program admin", async function () {
+        let merchant = prepaidCardOwner;
+        let merchantPrepaidCard = await createPrepaidCardAndTransfer(
+          prepaidCardManager,
+          relayer,
+          depot,
+          issuer,
+          daicpxdToken,
+          toTokenUnit(10 + 1),
+          merchant
+        );
+        let merchantTx = await registerMerchant(
+          prepaidCardManager,
+          merchantPrepaidCard,
+          relayer,
+          merchant,
+          1000,
+          undefined,
+          "did:cardstack:56d6fc54-d399-443b-8778-d7e4512d3a49"
+        );
+        let merchantCreation = await getParamsFromEvent(
+          merchantTx,
+          eventABIs.MERCHANT_CREATION,
+          merchantManager.address
+        );
+        let merchantSafe = merchantCreation[0]["merchantSafe"];
+        let recoverTokens = rewardPool.contract.methods.recoverTokens(
+          rewardProgramID,
+          cardcpxdToken.address,
+          amountTokensAdded
+        );
+        let payload = recoverTokens.encodeABI();
+        let gasEstimate = await recoverTokens.estimateGas({
+          from: merchantSafe,
+        });
+        let safeTxData = {
+          to: rewardPool.address,
+          data: payload,
+          txGasEstimate: gasEstimate,
+          gasPrice: 1000000000,
+          txGasToken: cardcpxdToken.address,
+          refundReceive: relayer,
+        };
+        let merchantSafeContract = await GnosisSafe.at(merchantSafe);
+        let {
+          executionResult: { gasFee },
+        } = await signAndSendSafeTransaction(
+          safeTxData,
+          merchant,
+          merchantSafeContract,
+          relayer
+        );
+        let merchantSafeBalance = await getBalance(cardcpxdToken, merchantSafe);
+        assert(
+          merchantSafeBalance.eq(amountTokensAdded.sub(gasFee)),
+          "reward safe balance is correct"
+        );
+        let rewardPoolBalance = await rewardPool.rewardBalance(
+          rewardProgramID,
+          cardcpxdToken.address
+        );
+        assert(
+          rewardPoolBalance.eq(toTokenUnit(0)),
+          "reward pool balance is correct"
         );
       });
     });

@@ -5,7 +5,6 @@ import "@openzeppelin/contract-upgradeable/contracts/math/SafeMath.sol";
 import "@openzeppelin/contract-upgradeable/contracts/cryptography/MerkleProof.sol";
 import "@openzeppelin/contract-upgradeable/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contract-upgradeable/contracts/token/ERC721/IERC721.sol";
-import "@openzeppelin/contract-upgradeable/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 
@@ -15,7 +14,7 @@ import "./RewardManager.sol";
 import "./TokenManager.sol";
 import "./VersionManager.sol";
 
-contract RewardPool is Initializable, Versionable, Ownable, ReentrancyGuard {
+contract RewardPool is Initializable, Versionable, Ownable {
   using SafeMath for uint256;
   using MerkleProof for bytes32[];
 
@@ -37,6 +36,12 @@ contract RewardPool is Initializable, Versionable, Ownable, ReentrancyGuard {
     address sender,
     address tokenAddress,
     uint256 amount
+  );
+  event RewardTokensRecovered(
+    address rewardProgramID,
+    address token,
+    uint256 amount,
+    address rewardProgramAdmin
   );
 
   address internal constant ZERO_ADDRESS = address(0);
@@ -169,7 +174,7 @@ contract RewardPool is Initializable, Versionable, Ownable, ReentrancyGuard {
     bytes calldata leaf,
     bytes32[] calldata proof,
     bool acceptPartialClaim
-  ) external nonReentrant returns (bool) {
+  ) external returns (bool) {
     (
       address rewardProgramID,
       uint256 paymentCycleNumber,
@@ -187,6 +192,7 @@ contract RewardPool is Initializable, Versionable, Ownable, ReentrancyGuard {
       tokenType > 0,
       "Non-claimable proof, use valid(leaf, proof) to check validity"
     );
+    require(tokenType == 1, "Token type currently unsupported");
     require(
       block.number >= startBlock,
       "Can only be claimed on or after the start block"
@@ -219,8 +225,46 @@ contract RewardPool is Initializable, Versionable, Ownable, ReentrancyGuard {
         acceptPartialClaim
       );
       return true;
+    }
+  }
+
+  function recoverTokens(
+    address rewardProgramID,
+    address token,
+    uint256 amount
+  ) external returns (bool) {
+    address rewardProgramAdmin = RewardManager(rewardManager)
+      .rewardProgramAdmins(rewardProgramID);
+    require(rewardProgramAdmin != ZERO_ADDRESS);
+    require(
+      _getEOAOwner(msg.sender) == rewardProgramAdmin,
+      "owner of safe is not reward program admin"
+    );
+    require(
+      rewardBalance[rewardProgramID][token] >= amount,
+      "not enough tokens to withdraw"
+    );
+    rewardBalance[rewardProgramID][token] = rewardBalance[rewardProgramID][
+      token
+    ].sub(amount);
+    IERC677(token).transfer(msg.sender, amount);
+    emit RewardTokensRecovered(
+      rewardProgramID,
+      token,
+      amount,
+      rewardProgramAdmin
+    );
+  }
+
+  // lazy implementation of getting eoa owner of safe that has 1 or 2 owners
+  // think this is a use-case to handle during safe manager refactor
+  function _getEOAOwner(address safe) internal returns (address) {
+    address[] memory ownerArr = GnosisSafe(msg.sender).getOwners();
+    address eoaOwner;
+    if (ownerArr.length == 2) {
+      return ownerArr[1];
     } else {
-      return false;
+      return ownerArr[0];
     }
   }
 

@@ -19,6 +19,11 @@ class PaymentTree extends MerkleTree {
         ["address", "uint256"],
         [node["token"], node["amount"]]
       );
+    } else if (node["tokenType"] == 2) {
+      transferData = AbiCoder.encodeParameters(
+        ["address", "uint256"],
+        [node["token"], node["amount"]]
+      );
     }
 
     return AbiCoder.encodeParameters(

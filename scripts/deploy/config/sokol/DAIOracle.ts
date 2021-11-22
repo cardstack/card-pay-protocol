@@ -1,4 +1,9 @@
-import { getAddress, AddressFile, ContractConfig } from "../../config-utils";
+import {
+  getAddress,
+  AddressFile,
+  ContractConfig,
+  DAI_USD_RATE_SNAP_THRESHOLD,
+} from "../../config-utils";
 
 export default async function (
   proxyAddresses: AddressFile
@@ -19,6 +24,15 @@ export default async function (
       {
         name: "daiUsdFeed",
         value: address("DAIUSDFeed"),
+      },
+      {
+        name: "canSnapToUSD",
+        value: true,
+      },
+      {
+        name: "snapThreshold",
+        value: DAI_USD_RATE_SNAP_THRESHOLD,
+        formatter: (v) => `${(Number(v) / 100000000).toFixed(4)}%`,
       },
       {
         name: "versionManager",

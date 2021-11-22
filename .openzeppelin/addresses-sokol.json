@@ -87,29 +87,9 @@
     "proxy": "0x666A439cd8fbcF2cb826720C2E282Bb2c9743D0D",
     "contractName": "SetPrepaidCardAskHandler"
   },
-  "AddRewardRuleHandler": {
-    "proxy": "0x9b36e44C9CF5846824D031C2C36Acc233523Aa82",
-    "contractName": "AddRewardRuleHandler"
-  },
-  "LockRewardProgramHandler": {
-    "proxy": "0xE78472ee61339ACb45563641A9450b215E456517",
-    "contractName": "LockRewardProgramHandler"
-  },
   "RegisterRewardProgramHandler": {
     "proxy": "0xaF5B2869Be9Eb9c45cc0501F17B145A3229dD2C0",
     "contractName": "RegisterRewardProgramHandler"
-  },
-  "RegisterRewardeeHandler": {
-    "proxy": "0x0B793A280F2E47997432a9047073F5e634A9A731",
-    "contractName": "RegisterRewardeeHandler"
-  },
-  "RemoveRewardRuleHandler": {
-    "proxy": "0x35C56d847E97C47DDAEf701d1b2fD4990bdb9982",
-    "contractName": "RemoveRewardRuleHandler"
-  },
-  "UpdateRewardProgramAdminHandler": {
-    "proxy": "0x48D6Ec82d17CEd07aD14b1ADafd9d0a55Cb04769",
-    "contractName": "UpdateRewardProgramAdminHandler"
   },
   "PayRewardTokensHandler": {
     "proxy": "0x51bB036F75D989bC576A50F3d68924ca23e6073d",
@@ -118,10 +98,6 @@
   "VersionManager": {
     "proxy": "0xBbF3aad37298C997a485E270bD465ec3e6aCD2a7",
     "contractName": "VersionManager"
-  },
-  "RewardManager": {
-    "proxy": "0xC42a0E9Df2445D5b6918D44091524cDA4c13BbFd",
-    "contractName": "RewardManager"
   },
   "Market": {
     "proxy": "0xbacB9F2F94D9957Ed39eBc10b20AF8Ab4e0C20e6",
@@ -134,5 +110,25 @@
   "LevelRegistrar": {
     "proxy": "0x330e167945eb4EC0CB3a28D63533789aba62610B",
     "contractName": "LevelRegistrar"
+  },
+  "RewardManager": {
+    "proxy": "0x3ED4129d0076f3357e4915C5dd12F10c1335F49a",
+    "contractName": "RewardManager"
+  },
+  "AddRewardRuleHandler": {
+    "proxy": "0xDDb7cb7a6Ef756f0C5805d71b1c7ae919edCC305",
+    "contractName": "AddRewardRuleHandler"
+  },
+  "LockRewardProgramHandler": {
+    "proxy": "0x12D6e55CC4b979Aa65cea673292C62C142fE14d2",
+    "contractName": "LockRewardProgramHandler"
+  },
+  "RegisterRewardeeHandler": {
+    "proxy": "0xD46f5eE431eAA309ABeC7a3561E06586450171b0",
+    "contractName": "RegisterRewardeeHandler"
+  },
+  "UpdateRewardProgramAdminHandler": {
+    "proxy": "0x89a2aD80b7285630A27fBBe8f4d9A7141bcEA2E0",
+    "contractName": "UpdateRewardProgramAdminHandler"
   }
 }

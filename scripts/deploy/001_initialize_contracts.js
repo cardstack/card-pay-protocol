@@ -109,10 +109,6 @@ async function main() {
       contractName: "RegisterRewardeeHandler",
       init: [owner],
     },
-    RemoveRewardRuleHandler: {
-      contractName: "RemoveRewardRuleHandler",
-      init: [owner],
-    },
     UpdateRewardProgramAdminHandler: {
       contractName: "UpdateRewardProgramAdminHandler",
       init: [owner],
@@ -160,6 +156,7 @@ async function main() {
   }
 
   const addressesFile = `./.openzeppelin/addresses-${network}.json`;
+  const addressesBackupFile = `./.openzeppelin/addresses-${network}-${Date.now()}.json.bak`;
   let skipVerify = process.env.SKIP_VERIFY === "true";
   let proxyAddresses = {};
   let newImpls = [];
@@ -217,6 +214,7 @@ async function main() {
       console.log(
         `Deployed new proxy for ${contractId} (contract name: ${contractName}) to address ${proxyAddress}`
       );
+      writeJSONSync(addressesBackupFile, proxyAddresses);
     }
     let unverifiedImpls = difference(implAddresses(network), [
       ...previousImpls,

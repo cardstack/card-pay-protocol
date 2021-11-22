@@ -238,6 +238,25 @@ const eventABIs = {
       },
     ],
   },
+  REWARD_SAFE_WITHDRAWAL: {
+    topic: web3EthAbi.encodeEventSignature(
+      "RewardSafeWithdrawal(address,address,uint256)"
+    ),
+    abis: [
+      {
+        type: "address",
+        name: "rewardSafe",
+      },
+      {
+        type: "address",
+        name: "token",
+      },
+      {
+        type: "uint256",
+        name: "value",
+      },
+    ],
+  },
 };
 
 module.exports = eventABIs;

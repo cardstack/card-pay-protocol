@@ -109,11 +109,6 @@ export default async function (
         value: true,
         params: ["{NAME}", "{VALUE}"],
       },
-      removeRewardRule: {
-        mapping: "gasPoliciesV2",
-        value: true,
-        params: ["{NAME}", "{VALUE}"],
-      },
       payRewardTokens: {
         mapping: "gasPoliciesV2",
         value: true,
