@@ -175,7 +175,7 @@ function getParamsFromEvent(safeResult, event, address) {
 }
 
 // https://docs.gnosis.io/safe/docs/contracts_signatures/
-async function rewardEIP1271Signature(
+async function rewardEIP1271Signature({
   to,
   value,
   data,
@@ -188,8 +188,8 @@ async function rewardEIP1271Signature(
   nonce,
   owner,
   gnosisSafe,
-  verifyingContract //contract which implements isValidSignature() callback
-) {
+  verifyingContract, //contract which implements isValidSignature() callback
+}) {
   let eoaSignature = (
     await signSafeTransaction(
       to,

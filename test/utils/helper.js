@@ -1290,21 +1290,21 @@ const transferRewardSafe = async function (
   );
   const nonce = await rewardSafe.nonce();
 
-  const fullSignatureInnerExec = await rewardEIP1271Signature(
-    rewardSafe.address,
-    0,
-    swapData,
-    0,
-    0,
-    0,
-    0,
-    gasToken.address,
-    rewardSafe.address,
-    nonce.add(toBN("1")),
-    oldOwner,
-    rewardSafe,
-    rewardManager
-  );
+  const fullSignatureInnerExec = await rewardEIP1271Signature({
+    to: rewardSafe.address,
+    value: 0,
+    data: swapData,
+    operation: 0,
+    txGasEstimate: 0,
+    baseGasEstimate: 0,
+    gasPrice: 0,
+    txGasToken: gasToken.address,
+    refundReceiver: rewardSafe.address,
+    nonce: nonce.add(toBN("1")),
+    owner: oldOwner,
+    gnosisSafe: rewardSafe,
+    verifyingContract: rewardManager,
+  });
 
   let payload = rewardManager.contract.methods
     .transferRewardSafe(
@@ -1317,21 +1317,21 @@ const transferRewardSafe = async function (
     )
     .encodeABI();
 
-  const fullSignature = await rewardEIP1271Signature(
-    rewardManager.address,
-    0,
-    payload,
-    0,
-    0,
-    0,
-    0,
-    gasToken.address,
-    rewardSafe.address,
-    nonce,
-    oldOwner,
-    rewardSafe,
-    rewardManager
-  );
+  const fullSignature = await rewardEIP1271Signature({
+    to: rewardManager.address,
+    value: 0,
+    data: payload,
+    operation: 0,
+    txGasEstimate: 0,
+    baseGasEstimate: 0,
+    gasPrice: 0,
+    txGasToken: gasToken.address,
+    refundReceiver: rewardSafe.address,
+    nonce: nonce,
+    owner: oldOwner,
+    gnosisSafe: rewardSafe,
+    verifyingContract: rewardManager,
+  });
 
   let safeTxData = {
     to: rewardManager.address,
@@ -1351,15 +1351,15 @@ const transferRewardSafe = async function (
   );
 };
 
-const withdrawFromRewardSafe = async function (
+const withdrawFromRewardSafe = async function ({
   rewardManager,
   rewardSafe,
   tokenAddress,
   to,
   value,
   relayer,
-  gasToken
-) {
+  gasToken,
+}) {
   const rewardSafeEOA = (await rewardSafe.getOwners())[1];
   let token = await ERC677Token.at(tokenAddress);
   let transfer = token.contract.methods.transfer(to, value);
@@ -1369,21 +1369,21 @@ const withdrawFromRewardSafe = async function (
 
   const nonce = await rewardSafe.nonce();
 
-  const fullSignatureInnerExec = await rewardEIP1271Signature(
-    tokenAddress,
-    0,
-    transferData,
-    0,
-    gasEstimate,
-    0,
-    DEFAULT_GAS_PRICE,
-    gasToken.address,
-    rewardSafe.address,
-    nonce.add(toBN("1")),
-    rewardSafeEOA,
-    rewardSafe,
-    rewardManager
-  );
+  const fullSignatureInnerExec = await rewardEIP1271Signature({
+    to: tokenAddress,
+    value: 0,
+    data: transferData,
+    operation: 0,
+    txGasEstimate: gasEstimate,
+    baseGasEstimate: 0,
+    gasPrice: DEFAULT_GAS_PRICE,
+    txGasToken: gasToken.address,
+    refundReceiver: rewardSafe.address,
+    nonce: nonce.add(toBN("1")),
+    owner: rewardSafeEOA,
+    gnosisSafe: rewardSafe,
+    verifyingContract: rewardManager,
+  });
 
   let payload = rewardManager.contract.methods
     .withdrawFromRewardSafe(
@@ -1398,21 +1398,21 @@ const withdrawFromRewardSafe = async function (
     )
     .encodeABI();
 
-  const fullSignature = await rewardEIP1271Signature(
-    rewardManager.address,
-    0,
-    payload,
-    0,
-    0,
-    0,
-    0,
-    gasToken.address,
-    rewardSafe.address,
-    nonce,
-    rewardSafeEOA,
-    rewardSafe,
-    rewardManager
-  );
+  const fullSignature = await rewardEIP1271Signature({
+    to: rewardManager.address,
+    value: 0,
+    data: payload,
+    operation: 0,
+    txGasEstimate: 0,
+    baseGasEstimate: 0,
+    gasPrice: 0,
+    txGasToken: gasToken.address,
+    refundReceiver: rewardSafe.address,
+    nonce: nonce,
+    owner: rewardSafeEOA,
+    gnosisSafe: rewardSafe,
+    verifyingContract: rewardManager,
+  });
 
   let safeTxData = {
     to: rewardManager.address,
@@ -1529,13 +1529,13 @@ exports.swapOwnerWithFullSignature = async function (
 
   let packData = packExecutionData(safeTxData);
   let safeTxArr = Object.keys(packData).map((key) => packData[key]);
-  let signature = await rewardEIP1271Signature(
+  let signature = await rewardEIP1271Signature({
     ...safeTxArr,
     nonce,
-    oldOwner,
-    rewardSafe,
-    rewardManager
-  );
+    owner: oldOwner,
+    gnosisSafe: rewardSafe,
+    verifyingContract: rewardManager,
+  });
   return await sendSafeTransaction(safeTxData, rewardSafe, relayer, signature);
 };
 
@@ -1859,13 +1859,13 @@ exports.recoverUnclaimedRewardTokens = async function (
   let packData = packExecutionData(safeTxData);
   let safeTxArr = Object.keys(packData).map((key) => packData[key]);
 
-  let signature = await rewardEIP1271Signature(
+  let signature = await rewardEIP1271Signature({
     ...safeTxArr,
     nonce,
-    rewardSafeOwner,
-    rewardSafe,
-    rewardManager
-  );
+    owner: rewardSafeOwner,
+    gnosisSafe: rewardSafe,
+    verifyingContract: rewardManager,
+  });
 
   return await sendSafeTransaction(safeTxData, rewardSafe, relayer, signature);
 };

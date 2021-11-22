@@ -1591,15 +1591,15 @@ contract("RewardManager", (accounts) => {
         await daicpxdToken.balanceOf(prepaidCardOwner)
       ).to.be.bignumber.equal(toTokenUnit(0));
 
-      let { safeTx } = await withdrawFromRewardSafe(
-        rewardManager,
-        rewardSafe,
-        daicpxdToken.address,
-        prepaidCardOwner,
-        toTokenUnit(50),
-        relayer,
-        daicpxdToken
-      );
+      let { safeTx } = await withdrawFromRewardSafe({
+        rewardManager: rewardManager,
+        rewardSafe: rewardSafe,
+        tokenAddress: daicpxdToken.address,
+        to: prepaidCardOwner,
+        value: toTokenUnit(50),
+        relayer: relayer,
+        gasToken: daicpxdToken,
+      });
 
       let params = await getParamsFromEvent(
         safeTx,
@@ -1631,15 +1631,15 @@ contract("RewardManager", (accounts) => {
 
       expect(
         (
-          await withdrawFromRewardSafe(
-            rewardManager,
-            rewardSafe,
-            fakeDaicpxdToken.address,
-            prepaidCardOwner,
-            toTokenUnit(50),
-            relayer,
-            daicpxdToken
-          )
+          await withdrawFromRewardSafe({
+            rewardManager: rewardManager,
+            rewardSafe: rewardSafe,
+            tokenAddress: fakeDaicpxdToken.address,
+            to: prepaidCardOwner,
+            value: toTokenUnit(50),
+            relayer: relayer,
+            gasToken: daicpxdToken,
+          })
         ).executionResult.success
       ).to.equal(false);
       expect(
@@ -1650,15 +1650,15 @@ contract("RewardManager", (accounts) => {
     it("can withdraw to different address than the reward safe owner", async function () {
       expect(
         (
-          await withdrawFromRewardSafe(
-            rewardManager,
-            rewardSafe,
-            daicpxdToken.address,
-            otherPrepaidCardOwner,
-            toTokenUnit(50),
-            relayer,
-            daicpxdToken
-          )
+          await withdrawFromRewardSafe({
+            rewardManager: rewardManager,
+            rewardSafe: rewardSafe,
+            tokenAddress: daicpxdToken.address,
+            to: otherPrepaidCardOwner,
+            value: toTokenUnit(50),
+            relayer: relayer,
+            gasToken: daicpxdToken,
+          })
         ).executionResult.success
       ).to.equal(true);
       expect(
