@@ -65,7 +65,7 @@ The `SplitPrepaidCardHandler` is a contract that handles the `split` action. Thi
 The `TransferPrepaidCardHandler` is a contract that handles the `transfer` action. This contract will receive a "transfer" action and an ABI encoded signature from the prepaid card's original EOA owner that authorizes the transfer of ownership from the `ActionHandler`. This contract will then call the `PrepaidCardManager.transfer()` function to perform a gnosis safe transfer of the prepaid card to the new EOA owner using the provided signature of the previous EOA owner of the prepaid card.
 
 ### RegisterRewardProgramHandler
-The `RegisterRewardProgramHandler` is a contract that handles the `registerRewardProgram` action. This contract will receive reward program registration payments from the `ActionHandler`. This contract will call the `RewardManager` to register the reward program and set a _Reward Program Admin_. This contract sends the protocol fee to a designated address that is used to collect protocol fees (for rewards), i.e. `rewardProgramRegistrationFeeInSpend`. See [reward glossary](#rewardmanager).
+The `RegisterRewardProgramHandler` is a contract that handles the `registerRewardProgram` action. This contract will receive reward program registration payments from the `ActionHandler`. This contract will call the `RewardManager` to register the reward program and set a _Reward Program Admin_. This contract sends the protocol fee (`rewardProgramRegistrationFeeInSpend`) to a designated address that is used to collect protocol fees (for rewards). See [reward glossary](#rewardmanager).
 
 ### RegisterRewardeeHandler
 The `RegisterRewardeeHandler` is a contract that handles the `registerRewardee` action. This contract will receive rewardee registration payments from the `ActionHandler`. This contract will call the `RewardManager` to register _Rewardee_ under a reward program and create a reward safe for the rewardee. The prepaid card used for `registerRewardee` action will pay for the gas transaction cost in it's issuing token. See [reward glossary](#rewardmanager).
@@ -124,16 +124,16 @@ The `RewardManager` is the main administrative contract that enables management 
 - [lockRewardProgram](#lockrewardprogramhandler)
 - [updateRewardProgramAdmin](#updaterewardprogramadminhandler)
 
-The `RewardManager` is responsible for creating gnosis safes that are known as _Reward Safes_. More importantly, the reward manager host the EIP1271 signature callback that restrict the functions that a _Reward Safe_ can execute. The two examples of this are:
+The `RewardManager` is responsible for creating gnosis safes that are known as _Reward Safes_. More importantly, the `rewardManager` host the EIP1271 signature callback that restrict the functions that a _Reward Safe_ can execute. The two examples of this are:
 
-- `withdrawFromRewardSafe`: this function enables any ERC677 reward tokens to be transferred out of the _Reward Safe_ after it has been claimed.
-- `transferRewardSafe`: this function enables the EOA-portion of ownership to be transferred.
+- `withdrawFromRewardSafe`: this function enables any ERC677 reward tokens to be transferred out of the _Reward Safe_ after it has been claimed. The tokens transferred are used to pay for gas.
+- `transferRewardSafe`: this function enables the EOA-portion of ownership to be transferred. The transaction is gasless and considered as cost to the protocol fees collected during `registerRewardee`. 
 
 ### RewardPool
 
-The `RewardPool` is a contract that stores inventory of the reward tokens(CPXD tokens) to be distributed to *Rewardees* for each _Reward Program_. The `RewardPool` contract is also the interface in which _Tally_ delivers rewards to a list of _Rewardees_. To do so, we use a merkle tree as a way to verify how many tokens a _Rewardee_ has claim to. 
+The `RewardPool` is a contract that stores inventory of the reward tokens(CPXD tokens) to be distributed to _Rewardees_ for each _Reward Program_. The _Reward Program Admin_ will refill the `RewardPool` with reward tokens for it's _Reward Program_ when the balance gets low.
 
-For each `rewardCycle` (interval of blocks), _Tally_ will write a `root`(a 32 byte hash) and store corresponding `proofs`(bytes) in offchain-storage. These `proofs`are then verified against the `roots` written in the and by the _Rewardee_ to claim reward tokens. 
+The `RewardPool` contract is also the interface in which _Tally_ delivers rewards to a list of _Rewardees_. We use merkle trees as a way to verify how many tokens a _Rewardee_ has claim to. For each `rewardCycle` (interval of blocks), _Tally_ will write a `root`(a 32 byte hash) and store corresponding `proofs`(bytes) in offchain-storage. These `proofs` are used by the _Rewardee_ to be verified against the `roots` and claim reward tokens. 
 
 
 ## Prerequisites
