@@ -110,7 +110,7 @@ Roles:
 
 - _Rewardee_: The EOA owner that receives reward tokens. A rewardee can be any participant within the cardpay ecosystem, such as _Supplier_, _Merchant_, _Customer_.
 - _Reward Program Admin_: The EOA owner that is given authority to execute adminstrative functions for a `Reward Program` such as `updateRewardProgramAdmin`, `lockRewardProgram`.
-- _Governance Admin_: The EOA (represented as dao) that has the authority to `removeRewardProgram`.  
+- _Governance Admin_: The EOA (represented as dao) that has the authority to `removeRewardProgram`.
   Entities:
 - _Reward Program_: A program created to offer reward tokens _Rewardees_ based on a `rule`. For example, _Merchant_ might want to register a reward program to offer `Card.cpxd` tokens to _Customers_ who spend > 100 SPEND in a week.
 - _Reward Safe_: Dual-owner safe owned by _Rewardee_ and `rewardManager`. The safe is used to collect and store rewards. If a _Rewardee_ doesn't have a _Reward Safe_, he needs to `registerRewardee` before the _Rewardee_ can claim accrued rewards.
@@ -119,10 +119,10 @@ Roles:
 The `RewardManager` is the main administrative contract that enables management of a _Reward Programs_. The `RewardManager` store corresponding states that enable certain set of actions (these actions are prepaid actions):
 
 - [registerRewardProgram](#registerrewardprogramhandler)
-- `registerRewardee`
-- `addRewardRule`
-- `lockRewardProgram`
-- `updateRewardProgramAdmin`
+- [registerRewardee](#registerrewardeehandler)
+- [addRewardRule](#addrewardrulehandler)
+- [lockRewardProgram](#lockrewardprogramhandler)
+- [updateRewardProgramAdmin](#updaterewardprogramadminhandler)
 
 The `RewardManager` is responsible for creating gnosis safes that are known as _Reward Safes_. More importantly, the reward manager host the EIP1271 signature callback that restrict the functions that a _Reward Safe_ can execute. The two examples of this are:
 
