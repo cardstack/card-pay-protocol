@@ -99,19 +99,19 @@ The `SPEND` token contract is a simple token contract that has `mint` and `burn`
 ### IPriceOracle
 In order to determine the amount of SPEND token to mint for *Customer* payments to *Merchants, we require a price oracle to convert the CPXD stable coin to USD. To support this we will leverage price oracles from both chainlink and DIA. Chainlink will provide stablecoin USD rates, and DIA will provide CARD USD rates. Chainlink and DIA use different interfaces for their onchain price feeds. In order to present a consolidated representation of various token prices we have created an `IPriceOracle` interface that represents the consolidated interface for all our price oracles, as well as we have a `ChainlinkFeedAdapter` and a `DIAOracleAdapter` contract that implements the `IPriceOracle` interface. These adapter contracts allow us to wrap the on-chain feeds from these two different token price sources into a consolidated interface that we can query from our `Exchange` contract. We also provide the token rates in units of ETH in order to support various web client needd.
 
-### RewardPool
-The `RewardPool` contract enables rewards to be distributed *Merchants*, *Customers* and *Suppliers*. An offchain service, Tally, will be able to submit a merkle root, a hash to indicate how many tokens each party can redeem within each period cycle. Any party is able to `withdraw` the amount of token redeemable as long as a correct proof is provided. These proofs will be attainable from the Tally service.
-
 
 ### RewardManager
 
 Glossary for rewards within Cardpay:
-Roles:
+
+#### Roles:
 
 - _Rewardee_: The EOA owner that receives reward tokens. A rewardee can be any participant within the cardpay ecosystem, such as _Supplier_, _Merchant_, _Customer_.
 - _Reward Program Admin_: The EOA owner that is given authority to execute adminstrative functions for a `Reward Program` such as `updateRewardProgramAdmin`, `lockRewardProgram`.
 - _Governance Admin_: The EOA (represented as dao) that has the authority to `removeRewardProgram`.
-  Entities:
+  
+#### Entities:
+
 - _Reward Program_: A program created to offer reward tokens _Rewardees_ based on a `rule`. For example, _Merchant_ might want to register a reward program to offer `Card.cpxd` tokens to _Customers_ who spend > 100 SPEND in a week.
 - _Reward Safe_: Dual-owner safe owned by _Rewardee_ and `rewardManager`. The safe is used to collect and store rewards. If a _Rewardee_ doesn't have a _Reward Safe_, he needs to `registerRewardee` before the _Rewardee_ can claim accrued rewards.
 - _Tally_: An offchain service that is responsible for computing rewards for a particular reward program; it determines how much reward token each _Rewardee_ deserves.
@@ -128,6 +128,12 @@ The `RewardManager` is responsible for creating gnosis safes that are known as _
 
 - `withdrawFromRewardSafe`: this function enables any ERC677 reward tokens to be transferred out of the _Reward Safe_ after it has been claimed.
 - `transferRewardSafe`: this function enables the EOA-portion of ownership to be transferred.
+
+### RewardPool
+
+The `RewardPool` contract that stores the rewards to be distributed *Rewardees*. 
+
+An offchain service, Tally, will be able to submit a merkle root, a hash to indicate how many tokens each party can redeem within each period cycle. Any party is able to `withdraw` the amount of token redeemable as long as a correct proof is provided. These proofs will be attainable from the Tally service.
 
 ## Prerequisites
 The following prerequisites are required for this project:
