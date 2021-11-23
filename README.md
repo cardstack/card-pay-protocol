@@ -44,6 +44,8 @@ Examples of existing "actions" include:
 - registering a merchant
 - paying a merchant
 - transferring a prepaid card.
+- registering a new reward program
+- provisioning a prepaid card to a customer
 
 In the future prepaid cards will support actions that allow it to perform capabilities that will be expressed by rewards programs and the commerce protocol.
 
@@ -63,25 +65,22 @@ The `SplitPrepaidCardHandler` is a contract that handles the `split` action. Thi
 The `TransferPrepaidCardHandler` is a contract that handles the `transfer` action. This contract will receive a "transfer" action and an ABI encoded signature from the prepaid card's original EOA owner that authorizes the transfer of ownership from the `ActionHandler`. This contract will then call the `PrepaidCardManager.transfer()` function to perform a gnosis safe transfer of the prepaid card to the new EOA owner using the provided signature of the previous EOA owner of the prepaid card.
 
 ### RegisterRewardProgramHandler
-The `RegisterRewardProgramHandler` is a contract that handles the `registerRewardProgram` action. This contract will receive reward program registration payments from the `ActionHandler`. This contract will call the `RewardManager` to register the reward program that tally knows about. This contract will collect a protocol fee from the registration to offset the gas charges for reward functions. This contract sends the protocol fee to a designated address that is used to collect protocol fees (for rewards). The gas policy is set to "false"; the prepaid card will pay a protocol fee, i.e. `rewardProgramRegistrationFeeInSpend=500` 
+The `RegisterRewardProgramHandler` is a contract that handles the `registerRewardProgram` action. This contract will receive reward program registration payments from the `ActionHandler`. This contract will call the `RewardManager` to register the reward program and set a _Reward Program Admin_. This contract sends the protocol fee to a designated address that is used to collect protocol fees (for rewards), i.e. `rewardProgramRegistrationFeeInSpend`. See [reward glossary](#rewardmanager).
 
 ### RegisterRewardeeHandler
-The `RegisterRewardeeHandler` is a contract that handles the `registerRewardee` action. This contract will receive rewardee registration payments from the `ActionHandler`. This contract will call the `RewardManager` to register rewardee under a reward program and create a reward safe for the rewardee. The gas policy is set to "true"; the prepaid card will pay for gas in it's issuing token. 
+The `RegisterRewardeeHandler` is a contract that handles the `registerRewardee` action. This contract will receive rewardee registration payments from the `ActionHandler`. This contract will call the `RewardManager` to register _Rewardee_ under a reward program and create a reward safe for the rewardee. The prepaid card used for `registerRewardee` action will pay for the gas transaction cost in it's issuing token.
 
 ### LockRewardProgramHandler
-The `LockRewardProgramHandler` is a contract that handles the `lockRewardProgram` action. This contract will call the `RewardManager` to update the lock state of the reward program. The gas policy is set to "true"; the prepaid card will pay for gas in it's issuing token
+The `LockRewardProgramHandler` is a contract that handles the `lockRewardProgram` action. This contract will call the `RewardManager` to update the lock state of the reward program, i.e. turn it on or off. The prepaid card used for `lockRewardProgram` will pay for the gas transaction cost in it's issuing token.
 
 ### UpdateRewardProgramAdminHandler
-The `UpdateRewardProgramAdminHandler` is a contract that handles the `updateRewardProgramAdmin` action. This contract will call the `RewardManager` to update the `rewardProgramAdmin` that can control the reward program. 
-The gas policy is set to "true"; the prepaid card will pay for gas in it's issuing token. 
+The `UpdateRewardProgramAdminHandler` is a contract that handles the `updateRewardProgramAdmin` action. This contract will call the `RewardManager` to update the _Reward Program Admin_ that CAN control and manage the reward program. The prepaid card used for `updateRewardProgramAdmin` will pay for the gas transaction cost in it's issuing token.
 
 ### AddRewardRuleHandler
-The `AddRewardRuleHandler` is a contract that handles the `addRewardRule` action. This contract will call the `RewardManager` to add a rule to a reward program. 
-The gas policy is set to "true"; the prepaid card will pay for gas in it's issuing token. 
+The `AddRewardRuleHandler` is a contract that handles the `addRewardRule` action. This contract will call the `RewardManager` to add a rule to a reward program. The prepaid card used for `updateRewardProgramAdmin` will pay for the transaction cost gas in it's issuing token.
 
 ### PayRewardTokensHandler
-The `PayRewardTokensHandler` is a contract that handles the `payRewardTokens` action. This contract will send token transfers to fill up pool for a particular reward program. 
-The gas policy is set to "true"; the prepaid card will pay for gas in it's issuing token. 
+The `PayRewardTokensHandler` is a contract that handles the `payRewardTokens` action. This contract will send token transfers to fill up the `RewardPool` with reward tokens for a particular reward program. The prepaid card used for `payRewardTokens` will pay for the transaction cost gas in it's issuing token.
 
 ### Exchange
 The `Exchange` is a contract that handles converting to and from §SPEND tokens from any other CPXD token, as well as getting the current USD rate for any of the CPXD tokens (which accompanies calls to `PrepaidCardManager.send()`). This contract is also responsible to determining if the USD rate that is being requested by `PrepaidCardManager.send()` calls falls within an allowable margin. We use the idea of a "rate lock" as part of the way in which callers call the `PrepaidCardManager.send()` function. The reason being is that these calls are normally issued from a gnosis relay server in 2 steps. The first step is to get an estimation of the transaction and then generate a signature, and the second step is to issue the transaction with the data from the transaction estimate along with the signature. In between those 2 steps the USD rate for the prepaid card's issuing token may have changed. To accommodate USD rate fluctuations the caller is allowed to specify the USD rate they used as part of the transaction estimation. This contract will then determine if that requested rate is actually allowable given the current USD rate and a configured "rate drift" percentage. If the requested rate falls outside of the "rate drift" percentage, then the transaction will be reverted. To accommodate the fact that we allow the caller to provide the USD rate to use, we have a pessimistic prepaid card face value calculation that we employ in `PrepaidCardManager.faceValue()` which uses the most pessimistic rate allowable given the "rate drift percentage" to calculate the prepaid card's face value after it's been used at least one time.
@@ -103,16 +102,32 @@ In order to determine the amount of SPEND token to mint for *Customer* payments 
 ### RewardPool
 The `RewardPool` contract enables rewards to be distributed *Merchants*, *Customers* and *Suppliers*. An offchain service, Tally, will be able to submit a merkle root, a hash to indicate how many tokens each party can redeem within each period cycle. Any party is able to `withdraw` the amount of token redeemable as long as a correct proof is provided. These proofs will be attainable from the Tally service.
 
+
 ### Reward Manager
-The `RewardManager` contract enables a `rewardProgramAdmin` to create and manage a reward program that distributes rewards based on a set of rules and benefits. Once a reward program is created, two things occur: 1) tally (reward-calculating offchain service) begins to read rules and deliver rewards to accounts based on these rules/benefits. 2) the accounts owners which get a reward are able to redeem for a particular reward program by registering and creating a reward safe for themselves.
 
-The `RewardManager` contract is responsible for creating the gnosis safes that are considered as *Reward Cards*. These safes are used to redeem assets/rewards or levels; a person cannot get rewards if he doesn't have a *Reward Card*. *Reward Cards* are one-to-one with reward programs, therefore, an account can own more than one *Reward Card*. These safes are created as a result of the `registerRewardee` action. This safe is created with 2 owners:
-1. The `rewardee` or the owner of the prepaid card that executed the `registerRewardee` action.
-2. The `RewardManager` contract itself.
+Glossary for rewards within Cardpay:
+Roles:
 
-Withdraw is only possible to the EOA owner of the reward safe, using the `withdrawFromRewardSafe` action with a wrapped gnosis signature, the inner signature being for the `token.transfer(to, value)` call, and the outer signature being for the `withdrawFromRewardSafe` function.
+- _Rewardee_: The EOA owner that receives reward tokens. A rewardee can be any participant within the cardpay ecosystem, such as _Supplier_, _Merchant_, _Customer_.
+- _Reward Program Admin_: The EOA owner that is given authority to execute adminstrative functions for a `Reward Program` such as `updateRewardProgramAdmin`, `lockRewardProgram`.
+- _Governance Admin_: The EOA (represented as dao) that has the authority to `removeRewardProgram`.  
+  Entities:
+- _Reward Program_: A program created to offer reward tokens _Rewardees_ based on a `rule`. For example, _Merchant_ might want to register a reward program to offer `Card.cpxd` tokens to _Customers_ who spend > 100 SPEND in a week.
+- _Reward Safe_: Dual-owner safe owned by _Rewardee_ and `rewardManager`. The safe is used to collect and store rewards. If a _Rewardee_ doesn't have a _Reward Safe_, he needs to `registerRewardee` before the _Rewardee_ can claim accrued rewards.
+- _Tally_: An offchain service that is responsible for computing rewards for a particular reward program; it determines how much reward token each _Rewardee_ deserves.
 
-Only approved tokens can be withdrawn from the reward safe.
+The `RewardManager` is the main administrative contract that enables management of a _Reward Programs_. The `RewardManager` store corresponding states that enable certain set of actions (these actions are prepaid actions):
+
+- [registerRewardProgram](#registerrewardprogramhandler)
+- `registerRewardee`
+- `addRewardRule`
+- `lockRewardProgram`
+- `updateRewardProgramAdmin`
+
+The `RewardManager` is responsible for creating gnosis safes that are known as _Reward Safes_. More importantly, the reward manager host the EIP1271 signature callback that restrict the functions that a _Reward Safe_ can execute. The two examples of this are:
+
+- `withdrawFromRewardSafe`: this function enables any reward tokens to e transferred out of the _Reward Safe_ after it has been claimed.
+- `transferRewardSafe`: this function enables the EOA-portion of ownership to be transferred.
 
 ## Prerequisites
 The following prerequisites are required for this project:
