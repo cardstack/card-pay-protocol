@@ -126,7 +126,7 @@ The `RewardManager` is the main administrative contract that enables management 
 
 The `RewardManager` is responsible for creating gnosis safes that are known as _Reward Safes_. More importantly, the reward manager host the EIP1271 signature callback that restrict the functions that a _Reward Safe_ can execute. The two examples of this are:
 
-- `withdrawFromRewardSafe`: this function enables any reward tokens to e transferred out of the _Reward Safe_ after it has been claimed.
+- `withdrawFromRewardSafe`: this function enables any ERC677 reward tokens to be transferred out of the _Reward Safe_ after it has been claimed.
 - `transferRewardSafe`: this function enables the EOA-portion of ownership to be transferred.
 
 ## Prerequisites
