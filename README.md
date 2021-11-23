@@ -116,7 +116,7 @@ Roles:
 - _Reward Safe_: Dual-owner safe owned by _Rewardee_ and `rewardManager`. The safe is used to collect and store rewards. If a _Rewardee_ doesn't have a _Reward Safe_, he needs to `registerRewardee` before the _Rewardee_ can claim accrued rewards.
 - _Tally_: An offchain service that is responsible for computing rewards for a particular reward program; it determines how much reward token each _Rewardee_ deserves.
 
-The `RewardManager` is the main administrative contract that enables management of a _Reward Programs_. The `RewardManager` store corresponding states that enable a set of prepaid card:
+The `RewardManager` is the main administrative contract that enables management of a _Reward Programs_. The `RewardManager` store corresponding states that are executed through a set of prepaid card actions:
 
 - [registerRewardProgram](#registerrewardprogramhandler)
 - [registerRewardee](#registerrewardeehandler)
