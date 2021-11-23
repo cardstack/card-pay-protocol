@@ -133,7 +133,7 @@ The `RewardManager` is responsible for creating gnosis safes that are known as _
 
 The `RewardPool` is a contract that stores inventory of the reward tokens(CPXD tokens) to be distributed to _Rewardees_ for each _Reward Program_. The _Reward Program Admin_ will refill the `RewardPool` with reward tokens for it's _Reward Program_ when the balance gets low.
 
-The `RewardPool` contract is also the interface in which _Tally_ delivers rewards to a list of _Rewardees_. We use merkle trees as a way to verify how many tokens a _Rewardee_ has claim to. For each `rewardCycle` (interval of blocks), _Tally_ will write a `root`(a 32 byte hash) and store corresponding `proofs`(bytes) in offchain-storage. These `proofs` are used by the _Rewardee_ to be verified against the `roots` and claim reward tokens. 
+The `RewardPool` contract is also the interface in which _Tally_ delivers rewards to a list of _Rewardees_. We use merkle trees as a way to verify how many tokens a _Rewardee_ has claim to. For each `rewardCycle` (interval of blocks), _Tally_ will write a `root`(a 32 byte hash) and store corresponding `proofs`(bytes) in offchain-storage. These `proofs` are used by the _Rewardee_ to be verified against the `roots` and to claim reward tokens. 
 
 
 ## Prerequisites
