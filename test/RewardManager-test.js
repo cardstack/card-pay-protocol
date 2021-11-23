@@ -10,6 +10,9 @@ const RevenuePool = artifacts.require("RevenuePool.sol");
 const MerchantManager = artifacts.require("MerchantManager");
 const ERC677Token = artifacts.require("ERC677Token.sol");
 const RewardPool = artifacts.require("RewardPool");
+const RewardSafeDelegateImplementation = artifacts.require(
+  "RewardSafeDelegateImplementation"
+);
 
 const { randomHex } = require("web3-utils");
 const { assert, expect, TOKEN_DETAIL_DATA } = require("./setup");
@@ -62,7 +65,8 @@ contract("RewardManager", (accounts) => {
     revenuePool,
     merchantManager,
     versionManager,
-    rewardPool;
+    rewardPool,
+    rewardSafeDelegate;
   // handlers
   let registerRewardeeHandler,
     registerRewardProgramHandler,
@@ -213,6 +217,9 @@ contract("RewardManager", (accounts) => {
       tokenManager.address,
       versionManager.address
     );
+
+    rewardSafeDelegate = await RewardSafeDelegateImplementation.new();
+
     await rewardManager.setup(
       actionDispatcher.address,
       gnosisSafeMasterCopy.address,
@@ -221,7 +228,8 @@ contract("RewardManager", (accounts) => {
       REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
       [rewardPool.address],
       governanceAdmin,
-      versionManager.address
+      versionManager.address,
+      rewardSafeDelegate.address
     );
 
     await prepaidCardManager.addGasPolicy("transfer", false);
@@ -1604,7 +1612,7 @@ contract("RewardManager", (accounts) => {
       let params = await getParamsFromEvent(
         safeTx,
         eventABIs.REWARD_SAFE_WITHDRAWAL,
-        rewardManager.address
+        rewardSafe.address
       );
 
       expect(params.length).to.equal(1);

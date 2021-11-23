@@ -11,6 +11,7 @@ import "./core/Safe.sol";
 import "./core/Versionable.sol";
 import "./ActionDispatcher.sol";
 import "./VersionManager.sol";
+import "./RewardSafeDelegateImplementation.sol";
 
 contract RewardManager is Ownable, Versionable, Safe {
   using EnumerableSet for EnumerableSet.AddressSet;
@@ -27,7 +28,6 @@ contract RewardManager is Ownable, Versionable, Safe {
     address newOwner
   );
   event RewardRuleAdded(address rewardProgramID, bytes blob);
-  event RewardSafeWithdrawal(address rewardSafe, address token, uint256 value);
   event RewardeeRegistered(
     address rewardProgramID,
     address rewardee,
@@ -54,6 +54,9 @@ contract RewardManager is Ownable, Versionable, Safe {
   mapping(address => mapping(address => address)) public ownedRewardSafes; // EOA <> reward program id <> reward safe address
   mapping(address => address) public rewardProgramsForRewardSafes; // reward safe <> reward program id
   mapping(bytes32 => bool) internal signatures;
+
+  address public safeDelegateImplementation;
+
   address public versionManager;
 
   modifier onlyHandlers() {
@@ -82,7 +85,8 @@ contract RewardManager is Ownable, Versionable, Safe {
     uint256 _rewardProgramRegistrationFeeInSPEND,
     address[] calldata _eip1271Contracts,
     address _governanceAdmin,
-    address _versionManager
+    address _versionManager,
+    address _safeDelegateImplementation
   ) external onlyOwner {
     require(_rewardFeeReceiver != ZERO_ADDRESS, "rewardFeeReceiver not set");
     require(
@@ -98,6 +102,7 @@ contract RewardManager is Ownable, Versionable, Safe {
     for (uint256 i = 0; i < _eip1271Contracts.length; i++) {
       eip1271Contracts.add(_eip1271Contracts[i]);
     }
+    safeDelegateImplementation = _safeDelegateImplementation;
     emit Setup();
   }
 
@@ -204,35 +209,6 @@ contract RewardManager is Ownable, Versionable, Safe {
     emit RewardSafeTransferred(msg.sender, oldOwner, newOwner);
   }
 
-  function withdrawFromRewardSafe(
-    address token,
-    address to,
-    uint256 value,
-    uint256 safeTxGas,
-    uint256 baseGas,
-    uint256 gasPrice,
-    address gasToken,
-    bytes calldata signature
-  ) external {
-    address rewardSafeOwner = getRewardSafeOwner(msg.sender);
-    bytes memory conSignature = contractSignature(msg.sender, rewardSafeOwner);
-    signatures[keccak256(conSignature)] = true;
-
-    execTransaction(
-      token,
-      0,
-      abi.encodeWithSelector(TRANSFER, to, value),
-      safeTxGas,
-      baseGas,
-      gasPrice,
-      gasToken,
-      signature,
-      msg.sender
-    );
-    signatures[keccak256(conSignature)] = false;
-    emit RewardSafeWithdrawal(msg.sender, token, value);
-  }
-
   function getRewardSafeOwner(address payable rewardSafe)
     public
     view
@@ -257,7 +233,12 @@ contract RewardManager is Ownable, Versionable, Safe {
   function encodeTransactionData(bytes memory signature)
     public
     view
-    returns (address, bytes memory)
+    returns (
+      address,
+      bytes memory,
+      Enum.Operation,
+      bytes memory
+    )
   {
     (
       address to,
@@ -291,14 +272,16 @@ contract RewardManager is Ownable, Versionable, Safe {
         to,
         value,
         payload,
-        Enum.Operation.Call,
+        Enum.Operation(operation),
         safeTxGas,
         baseGas,
         gasPrice,
         gasToken,
         refundReceiver,
         nonce
-      )
+      ),
+      Enum.Operation(operation),
+      payload
     );
   }
 
@@ -315,9 +298,12 @@ contract RewardManager is Ownable, Versionable, Safe {
     view
     returns (bytes4)
   {
-    (address to, bytes memory encodedTransactionData) = encodeTransactionData(
-      signature
-    );
+    (
+      address to,
+      bytes memory encodedTransactionData,
+      Enum.Operation operation,
+      bytes memory payload
+    ) = encodeTransactionData(signature);
     address rewardSafeOwner = getRewardSafeOwner(msg.sender);
 
     bytes memory contractSignature = _contractSignature(
@@ -325,43 +311,69 @@ contract RewardManager is Ownable, Versionable, Safe {
       rewardSafeOwner
     );
 
-    // Signature must always match
+    // _equalBytes checks that the data verifying part of the eip1271 signature to make sure that the user is not trying to exploit this callback, for example, if they pass in a different nonce or different payload
     require(
       _equalBytes(data, encodedTransactionData),
       "Signature data mismatch"
     );
 
-    // One of these three conditions must be true for the signature to be valid:
+    if (operation == Enum.Operation.DelegateCall) {
+      require(to == safeDelegateImplementation, "Invalid delegate contract");
 
-    // 1. allows gnosis exec of reward safe to call any function on reward manager
-    if (to == address(this)) {
-      return EIP1271_MAGIC_VALUE;
-    }
+      address manager = _extractFirstPayloadArgument(payload);
 
-    // 2. allows gnosis exec of reward safe to call any function on federated contracts
-    //    essentially, we can lock all reward safe transactions by unfederating a contract
-    if (eip1271Contracts.contains(to)) {
-      return EIP1271_MAGIC_VALUE;
-    }
+      // By convention, the first payload argument for any function we execute as a delegateCall must be
+      // the verifying contract that has the isValidSignature function. The other params are validated
+      // by the code in the RewardSafeDelegateImplementation as necessary, but by validating this address,
+      // we provide a trusted contract that can be queried for known state
+      require(manager == address(this), "invalid manager");
 
-    // 3. allows gnosis exec of a gnosis function call, .e.g. SWAP_OWNER to the reward safe
-    //    signatures is a state variable that needs to be switched on in the reward manager contract function to execute the inner safe transaction. This prevents the direct interaction with the safe.
-    //    _equalBytes checks that the data verifying part of the eip1271 signature to make sure that the user is not trying to exploit this callback, for example, if they pass in a different nonce or different payload
-    //    isAllowedGnosisRecipient checks if the recipient of the message is the same as the sender, or alternatively if the message is to an allowed token contract
-    if (
-      signatures[keccak256(contractSignature)] && isAllowedGnosisRecipient(to)
-    ) {
       return EIP1271_MAGIC_VALUE;
+    } else {
+      // One of these three conditions must be true for the signature to be valid:
+
+      // 1. allows gnosis exec of reward safe to call any function on reward manager
+      if (to == address(this)) {
+        return EIP1271_MAGIC_VALUE;
+      }
+
+      // 2. allows gnosis exec of reward safe to call any function on federated contracts
+      //    essentially, we can lock all reward safe transactions by unfederating a contract
+      if (eip1271Contracts.contains(to)) {
+        return EIP1271_MAGIC_VALUE;
+      }
+
+      // 3. allows gnosis exec of a gnosis function call, .e.g. SWAP_OWNER to the reward safe
+      //    signatures is a state variable that needs to be switched on in the reward manager contract function to execute the inner safe transaction. This prevents the direct interaction with the safe.
+      //    this is only allowed for transactions to the safe, which will be msg.sender
+      if (signatures[keccak256(contractSignature)] && (to == msg.sender)) {
+        return EIP1271_MAGIC_VALUE;
+      }
     }
 
     return bytes4(0);
   }
 
-  function isAllowedGnosisRecipient(address to) private view returns (bool) {
+  function isValidToken(address tokenAddress) external view returns (bool) {
     return
-      (to == msg.sender) ||
       TokenManager(ActionDispatcher(actionDispatcher).tokenManager())
-        .isValidToken(to);
+        .isValidToken(tokenAddress);
+  }
+
+  function _extractFirstPayloadArgument(bytes memory payload)
+    private
+    pure
+    returns (address)
+  {
+    uint256 begin = 5;
+    uint256 end = begin + 31;
+
+    bytes memory a = new bytes(32);
+    for (uint256 i = 0; i <= end - begin; i++) {
+      a[i] = payload[i + begin - 1];
+    }
+
+    return abi.decode(a, (address));
   }
 
   function _equalBytes(bytes memory bytesArr1, bytes memory bytesArr2)

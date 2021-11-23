@@ -1,4 +1,7 @@
 const GnosisSafe = artifacts.require("GnosisSafe");
+const RewardSafeDelegateImplementation = artifacts.require(
+  "RewardSafeDelegateImplementation"
+);
 const ChainlinkOracle = artifacts.require("ChainlinkFeedAdapter");
 const MockDIAOracle = artifacts.require("MockDIAOracle");
 const DIAPriceOracle = artifacts.require("DIAOracleAdapter");
@@ -50,6 +53,7 @@ const {
 const BLOCK_GAS_LIMIT = 6000000;
 const DEFAULT_GAS_PRICE = 1000000000;
 const SENTINEL_OWNER = "0x0000000000000000000000000000000000000001";
+const DelegateCall = 1;
 
 function toTokenUnit(_numberToken, _decimals = 18) {
   let dec = toBN("10").pow(toBN(_decimals));
@@ -1350,8 +1354,7 @@ const transferRewardSafe = async function (
     fullSignature
   );
 };
-
-const withdrawFromRewardSafe = async function ({
+async function withdrawFromRewardSafe({
   rewardManager,
   rewardSafe,
   tokenAddress,
@@ -1362,62 +1365,42 @@ const withdrawFromRewardSafe = async function ({
 }) {
   const rewardSafeEOA = (await rewardSafe.getOwners())[1];
   let token = await ERC677Token.at(tokenAddress);
-  let transfer = token.contract.methods.transfer(to, value);
 
-  let transferData = transfer.encodeABI();
-  let gasEstimate = await transfer.estimateGas({ from: rewardSafe.address });
+  let delegateImplementation = await RewardSafeDelegateImplementation.at(
+    await rewardManager.safeDelegateImplementation()
+  );
 
-  const nonce = await rewardSafe.nonce();
-
-  const fullSignatureInnerExec = await rewardEIP1271Signature({
-    to: tokenAddress,
-    value: 0,
-    data: transferData,
-    operation: 0,
-    txGasEstimate: gasEstimate,
-    baseGasEstimate: 0,
-    gasPrice: DEFAULT_GAS_PRICE,
-    txGasToken: gasToken.address,
-    refundReceiver: rewardSafe.address,
-    nonce: nonce.add(toBN("1")),
-    owner: rewardSafeEOA,
-    gnosisSafe: rewardSafe,
-    verifyingContract: rewardManager,
-  });
-
-  let payload = rewardManager.contract.methods
-    .withdrawFromRewardSafe(
-      tokenAddress,
-      to,
-      value,
-      gasEstimate,
-      0,
-      DEFAULT_GAS_PRICE,
-      gasToken.address,
-      fullSignatureInnerExec
-    )
-    .encodeABI();
+  let payload = delegateImplementation.contract.methods.withdraw(
+    rewardManager.address,
+    token.address,
+    to,
+    value
+  );
+  let data = payload.encodeABI();
 
   const fullSignature = await rewardEIP1271Signature({
-    to: rewardManager.address,
+    // When using DelegateCall, the "to" argument is misleading.
+    // The transaction is actually sent to the safe address, but using the contract
+    // implementation at the adderess passed in the "to" field
+    to: delegateImplementation.address,
     value: 0,
-    data: payload,
-    operation: 0,
+    data,
+    operation: DelegateCall,
     txGasEstimate: 0,
     baseGasEstimate: 0,
     gasPrice: 0,
     txGasToken: gasToken.address,
     refundReceiver: rewardSafe.address,
-    nonce: nonce,
+    nonce: await rewardSafe.nonce(),
     owner: rewardSafeEOA,
     gnosisSafe: rewardSafe,
     verifyingContract: rewardManager,
   });
 
   let safeTxData = {
-    to: rewardManager.address,
-    data: payload,
-    operation: 0,
+    to: delegateImplementation.address,
+    data,
+    operation: DelegateCall,
     txGasEstimate: 0,
     gasPrice: 0,
     txGasToken: gasToken.address,
@@ -1430,7 +1413,7 @@ const withdrawFromRewardSafe = async function ({
     relayer,
     fullSignature
   );
-};
+}
 
 exports.swapOwner = async function (
   rewardManager,
