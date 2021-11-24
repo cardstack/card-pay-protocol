@@ -8,7 +8,10 @@ import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 // This contract is used as an implementation for delegatecall usage of safe operations.
 // It will never be called from it's own deployment address, whenever code here executes,
 // address(this) will be the gnosis safe, and if you call a function on another contract,
-// that other contract will see msg.sender as the safe address
+// that other contract will see msg.sender as the safe address.
+
+// When you inspect msg.sender in one of the functions in this contract called with delegatecall,
+//it will be the relayer, not the safe address
 
 // Because the arguments to the functions called with delegate call are all user-provided, they
 // cannot be considered safe to trust. However, the reward manager contract validates the first
