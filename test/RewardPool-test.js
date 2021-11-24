@@ -360,7 +360,7 @@ contract("RewardPool", function (accounts) {
           .submitPayeeMerkleRoot(updatedRoot, { from: tally })
           .should.be.rejectedWith(
             Error,
-            "Cannot start new payment cycle before currentPaymentCycleStartBlock"
+            "Cannot start payment cycle before currentPaymentCycleStartBlock"
           );
         let paymentCycleNumber = await rewardPool.numPaymentCycles();
 
