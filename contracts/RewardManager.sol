@@ -285,12 +285,6 @@ contract RewardManager is Ownable, Versionable, Safe {
       Enum.Operation operation,
       bytes memory payload
     ) = encodeTransactionData(signature);
-    address rewardSafeOwner = getRewardSafeOwner(msg.sender);
-
-    bytes memory contractSignature = _contractSignature(
-      msg.sender,
-      rewardSafeOwner
-    );
 
     // _equalBytes checks that the data verifying part of the eip1271 signature to make sure that the user is not trying to exploit this callback, for example, if they pass in a different nonce or different payload
     require(
@@ -360,55 +354,6 @@ contract RewardManager is Ownable, Versionable, Safe {
     return
       keccak256(abi.encodePacked(bytesArr1)) ==
       keccak256(abi.encodePacked(bytesArr2));
-  }
-
-  function contractSignature(address rewardSafe, address owner)
-    internal
-    returns (bytes memory)
-  {
-    _nonce++;
-    return _contractSignature(rewardSafe, owner);
-  }
-
-  function _contractSignature(address rewardSafe, address owner)
-    private
-    view
-    returns (bytes memory)
-  {
-    return
-      abi.encodePacked(
-        keccak256(abi.encodePacked(address(this), _nonce, rewardSafe, owner))
-      );
-  }
-
-  function execTransaction(
-    address to,
-    uint256 value,
-    bytes memory data,
-    uint256 safeTxGas,
-    uint256 baseGas,
-    uint256 gasPrice,
-    address gasToken,
-    bytes memory signature,
-    address payable rewardSafe
-  ) private returns (bool) {
-    require(
-      GnosisSafe(rewardSafe).execTransaction(
-        to,
-        value,
-        data,
-        Enum.Operation.Call, //only call operations
-        safeTxGas,
-        baseGas,
-        gasPrice,
-        gasToken,
-        rewardSafe,
-        signature
-      ),
-      "safe transaction was reverted"
-    );
-
-    return true;
   }
 
   function cardpayVersion() external view returns (string memory) {

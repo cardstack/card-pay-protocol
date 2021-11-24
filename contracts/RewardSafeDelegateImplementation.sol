@@ -11,7 +11,7 @@ import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 // that other contract will see msg.sender as the safe address.
 
 // When you inspect msg.sender in one of the functions in this contract called with delegatecall,
-//it will be the relayer, not the safe address
+// it will be the relayer, not the safe address
 
 // Because the arguments to the functions called with delegate call are all user-provided, they
 // cannot be considered safe to trust. However, the reward manager contract validates the first
@@ -21,6 +21,7 @@ import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 // in this contract with __trusted__ or __untrusted__ to indicated if further validation should
 // be performed before operating on the arguments
 
+// solhint-disable var-name-mixedcase
 contract RewardSafeDelegateImplementation {
   event RewardSafeWithdrawal(address rewardSafe, address token, uint256 value);
 
@@ -76,3 +77,4 @@ contract RewardSafeDelegateImplementation {
     return GnosisSafe(safeAddress);
   }
 }
+// solhint-enable var-name-mixedcase
