@@ -49,6 +49,10 @@ export default async function (
         value: GOVERNANCE_ADMIN,
       },
       {
+        name: "safeDelegateImplementation",
+        value: address("RewardSafeDelegateImplementation"),
+      },
+      {
         name: "versionManager",
         value: address("VersionManager"),
       },
