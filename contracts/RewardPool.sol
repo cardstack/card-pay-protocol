@@ -237,6 +237,10 @@ contract RewardPool is Initializable, Versionable, Ownable {
     address rewardProgramAdmin = RewardManager(rewardManager)
       .rewardProgramAdmins(rewardProgramID);
     require(
+      rewardProgramAdmin != ZERO_ADDRESS,
+      "reward program admin does not exist"
+    );
+    require(
       _getEOAOwner(msg.sender) == rewardProgramAdmin,
       "owner of safe is not reward program admin"
     );
