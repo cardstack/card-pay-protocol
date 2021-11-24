@@ -10,6 +10,10 @@ const RevenuePool = artifacts.require("RevenuePool.sol");
 const MerchantManager = artifacts.require("MerchantManager");
 const ERC677Token = artifacts.require("ERC677Token.sol");
 const RewardPool = artifacts.require("RewardPool.sol");
+const RewardSafeDelegateImplementation = artifacts.require(
+  "RewardSafeDelegateImplementation"
+);
+
 const { TOKEN_DETAIL_DATA } = require("../setup");
 
 const {
@@ -122,6 +126,8 @@ const setupProtocol = async (accounts) => {
     1000,
     versionManager.address
   );
+  rewardSafeDelegate = await RewardSafeDelegateImplementation.new();
+
   await rewardManager.setup(
     actionDispatcher.address,
     gnosisSafeMasterCopy.address,
@@ -130,7 +136,8 @@ const setupProtocol = async (accounts) => {
     REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
     [rewardPool.address],
     versionManager.address,
-    governanceAdmin
+    governanceAdmin,
+    rewardSafeDelegate.address
   );
   await rewardPool.setup(
     tally,

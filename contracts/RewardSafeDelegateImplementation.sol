@@ -3,8 +3,7 @@ pragma solidity ^0.5.17;
 import "@openzeppelin/contract-upgradeable/contracts/token/ERC20/IERC20.sol";
 import "./RewardManager.sol";
 import "./ActionDispatcher.sol";
-
-import "hardhat/console.sol";
+import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 
 // This contract is used as an implementation for delegatecall usage of safe operations.
 // It will never be called from it's own deployment address, whenever code here executes,
@@ -47,5 +46,30 @@ contract RewardSafeDelegateImplementation {
       __untrusted__token,
       __untrusted__value
     );
+  }
+
+  function swapOwner(
+    address __trusted__managerContract,
+    address __untrusted__prevOwner,
+    address __untrusted__oldOwner,
+    address __untrusted__newOwner
+  ) external {
+    RewardManager(__trusted__managerContract).willTransferRewardSafe(
+      __untrusted__newOwner
+    );
+
+    _originalSafe().swapOwner(
+      __untrusted__prevOwner,
+      __untrusted__oldOwner,
+      __untrusted__newOwner
+    );
+  }
+
+  // It needs this casting to allow the lookup of this contract as the orignal
+  // safe. But once you have it, you can call methods that are restricted to be
+  // only called by the safe, because msg.sender is the safe address!
+  function _originalSafe() private view returns (GnosisSafe) {
+    address payable safeAddress = address(uint160(address(this)));
+    return GnosisSafe(safeAddress);
   }
 }

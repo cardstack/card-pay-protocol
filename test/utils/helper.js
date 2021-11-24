@@ -89,7 +89,7 @@ function packExecutionData({
   baseGasEstimate = 0,
   gasPrice = 0,
   txGasToken = ZERO_ADDRESS,
-  refundReceive = ZERO_ADDRESS,
+  refundReceiver = ZERO_ADDRESS,
 }) {
   return {
     to,
@@ -100,7 +100,7 @@ function packExecutionData({
     baseGasEstimate,
     gasPrice,
     txGasToken,
-    refundReceive,
+    refundReceiver,
   };
 }
 
@@ -731,7 +731,7 @@ const createPrepaidCards = async function (
     txGasEstimate: gasEstimate,
     gasPrice: DEFAULT_GAS_PRICE,
     txGasToken: issuingToken.address,
-    refundReceive: relayer,
+    refundReceiver: relayer,
   };
 
   let { safeTxHash, safeTx } = await signAndSendSafeTransaction(
@@ -1263,88 +1263,53 @@ exports.registerRewardee = async function (
   );
 };
 
-const transferRewardSafe = async function (
+const transferRewardSafe = async function ({
   rewardManager,
   rewardSafe,
   oldOwner,
   newOwner,
   relayer,
-  gasToken
-) {
-  const swapData = AbiCoder.encodeFunctionCall(
-    {
-      name: "swapOwner",
-      type: "function",
-      inputs: [
-        {
-          type: "address",
-          name: "prevOwner", //the contract that made the safe
-        },
-        {
-          type: "address",
-          name: "oldOwner",
-        },
-        {
-          type: "address",
-          name: "newOwner",
-        },
-      ],
-    },
-    [rewardManager.address, oldOwner, newOwner]
+  gasToken,
+}) {
+  let delegateImplementation = await RewardSafeDelegateImplementation.at(
+    await rewardManager.safeDelegateImplementation()
   );
-  const nonce = await rewardSafe.nonce();
 
-  const fullSignatureInnerExec = await rewardEIP1271Signature({
-    to: rewardSafe.address,
-    value: 0,
-    data: swapData,
-    operation: 0,
-    txGasEstimate: 0,
-    baseGasEstimate: 0,
-    gasPrice: 0,
-    txGasToken: gasToken.address,
-    refundReceiver: rewardSafe.address,
-    nonce: nonce.add(toBN("1")),
-    owner: oldOwner,
-    gnosisSafe: rewardSafe,
-    verifyingContract: rewardManager,
-  });
-
-  let payload = rewardManager.contract.methods
-    .transferRewardSafe(
-      newOwner,
-      0,
-      0,
-      0,
-      gasToken.address,
-      fullSignatureInnerExec
-    )
-    .encodeABI();
+  let payload = delegateImplementation.contract.methods.swapOwner(
+    rewardManager.address,
+    rewardManager.address,
+    oldOwner,
+    newOwner
+  );
+  let data = payload.encodeABI();
 
   const fullSignature = await rewardEIP1271Signature({
-    to: rewardManager.address,
+    // When using DelegateCall, the "to" argument is misleading.
+    // The transaction is actually sent to the safe address, but using the contract
+    // implementation at the adderess passed in the "to" field
+    to: delegateImplementation.address,
     value: 0,
-    data: payload,
-    operation: 0,
+    data,
+    operation: DelegateCall,
     txGasEstimate: 0,
     baseGasEstimate: 0,
     gasPrice: 0,
     txGasToken: gasToken.address,
     refundReceiver: rewardSafe.address,
-    nonce: nonce,
+    nonce: await rewardSafe.nonce(),
     owner: oldOwner,
     gnosisSafe: rewardSafe,
     verifyingContract: rewardManager,
   });
 
   let safeTxData = {
-    to: rewardManager.address,
-    data: payload,
-    operation: 0,
+    to: delegateImplementation.address,
+    data,
+    operation: DelegateCall,
     txGasEstimate: 0,
     gasPrice: 0,
     txGasToken: gasToken.address,
-    refundReceive: rewardSafe.address,
+    refundReceiver: rewardSafe.address,
   };
 
   return await sendSafeTransaction(
@@ -1404,7 +1369,7 @@ async function withdrawFromRewardSafe({
     txGasEstimate: 0,
     gasPrice: 0,
     txGasToken: gasToken.address,
-    refundReceive: rewardSafe.address,
+    refundReceiver: rewardSafe.address,
   };
 
   return await sendSafeTransaction(
@@ -1452,7 +1417,7 @@ exports.swapOwner = async function (
     txGasEstimate: 0,
     gasPrice: 0,
     txGasToken: gasToken.address,
-    refundReceive: rewardSafe.address,
+    refundReceiver: rewardSafe.address,
   };
 
   let { safeTxHash, safeTx } = await signAndSendSafeTransaction(
@@ -1506,14 +1471,13 @@ exports.swapOwnerWithFullSignature = async function (
     txGasEstimate: 0,
     gasPrice: 0,
     txGasToken: gasToken.address,
-    refundReceive: rewardSafe.address,
+    refundReceiver: rewardSafe.address,
   };
   let nonce = await rewardSafe.nonce();
 
   let packData = packExecutionData(safeTxData);
-  let safeTxArr = Object.keys(packData).map((key) => packData[key]);
   let signature = await rewardEIP1271Signature({
-    ...safeTxArr,
+    ...packData,
     nonce,
     owner: oldOwner,
     gnosisSafe: rewardSafe,
@@ -1788,21 +1752,20 @@ exports.claimReward = async function (
     txGasEstimate: gasEstimate,
     gasPrice: DEFAULT_GAS_PRICE,
     txGasToken: token.address,
-    refundReceive: relayer,
+    refundReceiver: relayer,
   };
 
   const nonce = await rewardSafe.nonce();
 
   let packData = packExecutionData(safeTxData);
-  let safeTxArr = Object.keys(packData).map((key) => packData[key]);
 
-  let signature = await rewardEIP1271Signature(
-    ...safeTxArr,
+  let signature = await rewardEIP1271Signature({
+    ...packData,
     nonce,
-    rewardSafeOwner,
-    rewardSafe,
-    rewardManager
-  );
+    owner: rewardSafeOwner,
+    gnosisSafe: rewardSafe,
+    verifyingContract: rewardManager,
+  });
 
   return await sendSafeTransaction(safeTxData, rewardSafe, relayer, signature);
 };
@@ -1834,16 +1797,15 @@ exports.recoverUnclaimedRewardTokens = async function (
     txGasEstimate: gasEstimate,
     gasPrice: DEFAULT_GAS_PRICE,
     txGasToken: token.address,
-    refundReceive: relayer,
+    refundReceiver: relayer,
   };
 
   const nonce = await rewardSafe.nonce();
 
   let packData = packExecutionData(safeTxData);
-  let safeTxArr = Object.keys(packData).map((key) => packData[key]);
 
   let signature = await rewardEIP1271Signature({
-    ...safeTxArr,
+    ...packData,
     nonce,
     owner: rewardSafeOwner,
     gnosisSafe: rewardSafe,
@@ -1944,6 +1906,7 @@ exports.toTokenUnit = toTokenUnit;
 exports.encodeCreateCardsData = encodeCreateCardsData;
 exports.packExecutionData = packExecutionData;
 exports.signAndSendSafeTransaction = signAndSendSafeTransaction;
+exports.sendSafeTransaction = sendSafeTransaction;
 exports.transferOwner = transferOwner;
 exports.createPrepaidCards = createPrepaidCards;
 exports.transferRewardSafe = transferRewardSafe;

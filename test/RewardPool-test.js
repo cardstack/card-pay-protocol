@@ -8,6 +8,10 @@ const ERC677Token = artifacts.require("ERC677Token.sol");
 const RewardPool = artifacts.require("RewardPool.sol");
 const GnosisSafe = artifacts.require("GnosisSafe");
 
+const RewardSafeDelegateImplementation = artifacts.require(
+  "RewardSafeDelegateImplementation"
+);
+
 const {
   ZERO_ADDRESS,
   getRewardSafeFromEventLog,
@@ -90,6 +94,7 @@ contract("RewardPool", function (accounts) {
       );
       let rewardFeeReceiver = accounts[5]; //same as in setupProtocol()
       // have to recall setup because reward pool is being created independently of setupProtocol
+
       await rewardManager.setup(
         actionDispatcher.address,
         gnosisSafeMasterCopy.address,
@@ -98,7 +103,10 @@ contract("RewardPool", function (accounts) {
         REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
         [rewardPool.address],
         governanceAdmin,
-        versionManager.address
+        versionManager.address,
+        (
+          await RewardSafeDelegateImplementation.new()
+        ).address
       );
       rewardProgramID = randomHex(20);
       otherRewardProgramID = randomHex(20);
@@ -1726,7 +1734,7 @@ contract("RewardPool", function (accounts) {
           txGasEstimate: gasEstimate,
           gasPrice: 1000000000,
           txGasToken: cardcpxdToken.address,
-          refundReceive: relayer,
+          refundReceiver: relayer,
         };
         let merchantSafeContract = await GnosisSafe.at(merchantSafe);
         let {

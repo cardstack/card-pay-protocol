@@ -36,8 +36,6 @@ contract RewardManager is Ownable, Versionable, Safe {
 
   address internal constant ZERO_ADDRESS = address(0);
   bytes4 internal constant EIP1271_MAGIC_VALUE = 0x20c13b0b;
-  bytes4 internal constant SWAP_OWNER = 0xe318b52b; //swapOwner(address,address,address)
-  bytes4 internal constant TRANSFER = 0xa9059cbb; //transfer(address,uint256)
   uint256 internal _nonce;
 
   address public actionDispatcher;
@@ -53,7 +51,6 @@ contract RewardManager is Ownable, Versionable, Safe {
   mapping(address => bool) public rewardProgramLocked; //reward program id <> locked
   mapping(address => mapping(address => address)) public ownedRewardSafes; // EOA <> reward program id <> reward safe address
   mapping(address => address) public rewardProgramsForRewardSafes; // reward safe <> reward program id
-  mapping(bytes32 => bool) internal signatures;
 
   address public safeDelegateImplementation;
 
@@ -92,6 +89,10 @@ contract RewardManager is Ownable, Versionable, Safe {
     require(
       _rewardProgramRegistrationFeeInSPEND > 0,
       "rewardProgramRegistrationFeeInSPEND is not set"
+    );
+    require(
+      _safeDelegateImplementation != ZERO_ADDRESS,
+      "safeDelegateImplementation not set"
     );
     actionDispatcher = _actionDispatcher;
     Safe.setup(_gsMasterCopy, _gsProxyFactory);
@@ -176,34 +177,14 @@ contract RewardManager is Ownable, Versionable, Safe {
     return rewardSafe;
   }
 
-  function transferRewardSafe(
-    address newOwner,
-    uint256 safeTxGas,
-    uint256 baseGas,
-    uint256 gasPrice,
-    address gasToken,
-    bytes calldata signature
-  ) external {
+  function willTransferRewardSafe(address newOwner) external {
     address oldOwner = getRewardSafeOwner(msg.sender);
-    bytes memory conSignature = contractSignature(msg.sender, oldOwner);
     address rewardProgramID = rewardProgramsForRewardSafes[msg.sender];
-    assert(ownedRewardSafes[oldOwner][rewardProgramID] == msg.sender);
-    ownedRewardSafes[oldOwner][rewardProgramID] = address(0);
-
-    signatures[keccak256(conSignature)] = true;
-    execTransaction(
-      msg.sender,
-      0,
-      abi.encodeWithSelector(SWAP_OWNER, address(this), oldOwner, newOwner),
-      safeTxGas,
-      baseGas,
-      gasPrice,
-      gasToken,
-      signature,
-      msg.sender
+    require(
+      ownedRewardSafes[oldOwner][rewardProgramID] == msg.sender,
+      "Only current owner can transfer"
     );
-    signatures[keccak256(conSignature)] = false;
-
+    ownedRewardSafes[oldOwner][rewardProgramID] = address(0);
     ownedRewardSafes[newOwner][rewardProgramID] = msg.sender;
 
     emit RewardSafeTransferred(msg.sender, oldOwner, newOwner);
@@ -342,13 +323,6 @@ contract RewardManager is Ownable, Versionable, Safe {
       if (eip1271Contracts.contains(to)) {
         return EIP1271_MAGIC_VALUE;
       }
-
-      // 3. allows gnosis exec of a gnosis function call, .e.g. SWAP_OWNER to the reward safe
-      //    signatures is a state variable that needs to be switched on in the reward manager contract function to execute the inner safe transaction. This prevents the direct interaction with the safe.
-      //    this is only allowed for transactions to the safe, which will be msg.sender
-      if (signatures[keccak256(contractSignature)] && (to == msg.sender)) {
-        return EIP1271_MAGIC_VALUE;
-      }
     }
 
     return bytes4(0);
@@ -365,6 +339,8 @@ contract RewardManager is Ownable, Versionable, Safe {
     pure
     returns (address)
   {
+    // the payload starts with the method selector, and so needs an offset
+    // before decoding the params
     uint256 begin = 5;
     uint256 end = begin + 31;
 
