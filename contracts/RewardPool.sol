@@ -178,7 +178,7 @@ contract RewardPool is Initializable, Versionable, Ownable {
   ) external returns (bool) {
     (
       address rewardProgramID,
-      uint256 paymentCycleNumber, // solhint-disable-line no-unused-vars
+      ,
       uint256 startBlock,
       uint256 endBlock,
       uint256 tokenType,
