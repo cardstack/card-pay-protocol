@@ -126,7 +126,7 @@ const setupProtocol = async (accounts) => {
     1000,
     versionManager.address
   );
-  rewardSafeDelegate = await RewardSafeDelegateImplementation.new();
+  let rewardSafeDelegate = await RewardSafeDelegateImplementation.new();
 
   await rewardManager.setup(
     actionDispatcher.address,
