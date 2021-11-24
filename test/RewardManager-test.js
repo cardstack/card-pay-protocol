@@ -306,8 +306,8 @@ contract("RewardManager", (accounts) => {
           REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
           [rewardPool.address],
           governanceAdmin,
-          versionManager.address,
-          rewardSafeDelegate.address
+          rewardSafeDelegate.address,
+          versionManager.address
         )
         .should.be.rejectedWith(Error, "rewardFeeReceiver not set");
     });
@@ -321,9 +321,9 @@ contract("RewardManager", (accounts) => {
           rewardFeeReceiver,
           0,
           [rewardPool.address],
-          versionManager.address,
           governanceAdmin,
-          rewardSafeDelegate.address
+          rewardSafeDelegate.address,
+          versionManager.address
         )
         .should.be.rejectedWith(
           Error,
@@ -341,8 +341,8 @@ contract("RewardManager", (accounts) => {
           REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
           [rewardPool.address],
           governanceAdmin,
-          versionManager.address,
-          ZERO_ADDRESS
+          ZERO_ADDRESS,
+          versionManager.address
         )
         .should.be.rejectedWith(Error, "safeDelegateImplementation not set");
     });
@@ -355,9 +355,9 @@ contract("RewardManager", (accounts) => {
           rewardFeeReceiver,
           REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
           [rewardPool.address],
-          versionManager.address,
           governanceAdmin,
           rewardSafeDelegate.address,
+          versionManager.address,
           { from: issuer }
         )
         .should.be.rejectedWith(Error, "Ownable: caller is not the owner");
