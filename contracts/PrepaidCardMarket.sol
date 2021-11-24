@@ -165,12 +165,14 @@ contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
       signatures[keccak256(signature)] = true;
       // note that this is not a token transfer, so linter concerns around reetrancy
       // after transfer are not valid
+      /* solhint-disable reentrancy */
       prepaidCardManager.transfer(
         address(uint160(prepaidCards[i])),
         issuer,
         signature
       );
       signatures[keccak256(signature)] = false;
+      /* solhint-enable reentrancy */
       emit ItemRemoved(prepaidCards[i], issuer, sku);
     }
     return true;
@@ -207,12 +209,14 @@ contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
     inventory[sku].remove(prepaidCard);
     // note that this is not a token transfer, so linter concerns around reetrancy
     // after transfer are not valid
+    /* solhint-disable reentrancy */
     PrepaidCardManager(prepaidCardManagerAddress).transfer(
       address(uint160(prepaidCard)),
       customer,
       signature
     );
     signatures[keccak256(signature)] = false;
+    /* solhint-enable reentrancy */
 
     emit ProvisionedPrepaidCard(prepaidCard, customer, sku, asks[sku]);
     return true;

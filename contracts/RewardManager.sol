@@ -45,8 +45,8 @@ contract RewardManager is Ownable, Versionable, Safe {
   address payable public rewardFeeReceiver; // will receive receive all fees
   address public governanceAdmin; // eoa with governance powers
 
-  EnumerableSet.AddressSet rewardProgramIDs;
-  EnumerableSet.AddressSet eip1271Contracts;
+  EnumerableSet.AddressSet internal rewardProgramIDs;
+  EnumerableSet.AddressSet internal eip1271Contracts;
   mapping(address => EnumerableSet.AddressSet) internal rewardSafes; //reward program id <> reward safes
   mapping(address => bytes) public rule; //reward program id <> bytes
   mapping(address => address) public rewardProgramAdmins; //reward program id <> reward program admins
@@ -263,7 +263,7 @@ contract RewardManager is Ownable, Versionable, Safe {
       address to,
       uint256 value,
       bytes memory payload,
-      uint8 operation,
+      ,
       uint256 safeTxGas,
       uint256 baseGas,
       uint256 gasPrice,
