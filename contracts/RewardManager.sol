@@ -225,7 +225,7 @@ contract RewardManager is Ownable, Versionable, Safe {
       address to,
       uint256 value,
       bytes memory payload,
-      ,
+      uint8 operation,
       uint256 safeTxGas,
       uint256 baseGas,
       uint256 gasPrice,
