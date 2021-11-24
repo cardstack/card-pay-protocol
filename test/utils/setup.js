@@ -135,9 +135,9 @@ const setupProtocol = async (accounts) => {
     rewardFeeReceiver,
     REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
     [rewardPool.address],
-    versionManager.address,
     governanceAdmin,
-    rewardSafeDelegate.address
+    rewardSafeDelegate.address,
+    versionManager.address
   );
   await rewardPool.setup(
     tally,

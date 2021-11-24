@@ -232,8 +232,8 @@ contract("RewardManager", (accounts) => {
       REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
       [rewardPool.address],
       governanceAdmin,
-      versionManager.address,
-      rewardSafeDelegate.address
+      rewardSafeDelegate.address,
+      versionManager.address
     );
 
     await prepaidCardManager.addGasPolicy("transfer", false);
@@ -291,8 +291,8 @@ contract("RewardManager", (accounts) => {
         REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
         [rewardPool.address],
         governanceAdmin,
-        versionManager.address,
-        rewardSafeDelegate.address
+        rewardSafeDelegate.address,
+        versionManager.address
       );
     });
 

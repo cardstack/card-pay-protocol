@@ -95,6 +95,8 @@ contract("RewardPool", function (accounts) {
       let rewardFeeReceiver = accounts[5]; //same as in setupProtocol()
       // have to recall setup because reward pool is being created independently of setupProtocol
 
+      let delegateImplementation = await RewardSafeDelegateImplementation.new();
+
       await rewardManager.setup(
         actionDispatcher.address,
         gnosisSafeMasterCopy.address,
@@ -103,10 +105,8 @@ contract("RewardPool", function (accounts) {
         REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
         [rewardPool.address],
         governanceAdmin,
-        versionManager.address,
-        (
-          await RewardSafeDelegateImplementation.new()
-        ).address
+        delegateImplementation.address,
+        versionManager.address
       );
       rewardProgramID = randomHex(20);
       otherRewardProgramID = randomHex(20);
