@@ -293,6 +293,7 @@ contract RewardManager is Ownable, Versionable, Safe {
     );
 
     if (operation == Enum.Operation.DelegateCall) {
+      // Allow DelegateCall operations to the designated delegate implementation contract
       require(to == safeDelegateImplementation, "Invalid delegate contract");
 
       address manager = _extractFirstPayloadArgument(payload);
@@ -304,19 +305,10 @@ contract RewardManager is Ownable, Versionable, Safe {
       require(manager == address(this), "invalid manager");
 
       return EIP1271_MAGIC_VALUE;
-    } else {
-      // One of these three conditions must be true for the signature to be valid:
-
-      // 1. allows gnosis exec of reward safe to call any function on reward manager
-      if (to == address(this)) {
-        return EIP1271_MAGIC_VALUE;
-      }
-
-      // 2. allows gnosis exec of reward safe to call any function on federated contracts
-      //    essentially, we can lock all reward safe transactions by unfederating a contract
-      if (eip1271Contracts.contains(to)) {
-        return EIP1271_MAGIC_VALUE;
-      }
+    } else if (eip1271Contracts.contains(to)) {
+      // Allow gnosis exec of reward safe to call any function on federated contracts
+      // essentially, we can lock all reward safe transactions by unfederating a contract
+      return EIP1271_MAGIC_VALUE;
     }
 
     return bytes4(0);
