@@ -8,13 +8,12 @@ const targetDir = "abi/";
 const globPattern = "artifacts/!(build-info)/**/[!I]*[!dbg].json";
 
 glob(globPattern, {}, (err, files) => {
+  if (err) {
+    throw new Error(err);
+  }
   files.map((file) => {
     let o;
-    try {
-      o = JSON.parse(readFileSync(file));
-    } catch (e) {
-      console.log(e);
-    }
+    o = JSON.parse(readFileSync(file));
     const abi = o["abi"];
     prettier
       .resolveConfig(file)
@@ -34,7 +33,7 @@ glob(globPattern, {}, (err, files) => {
         );
       })
       .catch((e) => {
-        console.log(e);
+        throw new Error(e);
       });
   });
 });
