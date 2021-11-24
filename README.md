@@ -47,6 +47,9 @@ Examples of existing "actions" include:
 
 In the future prepaid cards will support actions that allow it to perform capabilities that will be expressed by rewards programs and the commerce protocol.
 
+### PrepaidCardMarket
+The PrepaidCardMarket contract is responsible for provisioning already created prepaid card safes to customers. The intent is that Prepaid Card issuers can add their prepaid cards as inventory to this contract, thereby creating a SKU that represents the class of Prepaid Card which becomes available to provision to a customer. The act of adding a Prepaid Card to inventory means that the issuer of the Prepaid Card transfers their ownership of the Prepaid Card safe contract to the PrepaidCardMarket contract, such that the Prepaid Card safe has 2 contract owners: the PrepaidCardManager and the PrepaidCardMarket. Once a Prepaid Card is part of the inventory of the PrepaidCardMarket contract a "provisioner" role (which is a special EOA) is permitted to provision a Prepaid Card safe to a customer's EOA. This process entails leveraging an EIP-1271 contract signature to transfer ownership of the Prepaid Card safe from the PrepaidCardMarket contract to the specified customer EOA. Additionally the issuer of a Prepaid Card may also
+
 ### ActionDispatcher
 The `ActionDispatcher` receives actions that have been issued from the `PrepaidCardManager.send()` as gnosis safe transactions. The `ActionDispatcher` will confirm that the requested USD rate for the §SPEND amount falls within an acceptable range, and then will forward (via an ERC677 `transferAndCall()`) the action to the contract address that has been configured to handle the requested action.
 
@@ -59,29 +62,40 @@ The `RegisterMerchantHandler` is a contract that handles the `registerMerchant` 
 ### SplitPrepaidCardHandler
 The `SplitPrepaidCardHandler` is a contract that handles the `split` action. This contract will receive a payment from a prepaid card to create more prepaid cards (along with ABI encoded data that describes how to provision the new prepaid cards) from the `ActionHandler`. This contract will then transfer tokens directly to the `PrepaidCardManager` thereby creating new prepaid cards in the same manner that prepaid cards are created when tokens are transferred directly from a gnosis safe into the `PrepaidCardManager`. Note that for each prepaid card that is created via the `PrepaidCardManager` (regardless of where the tokens originate from) a gas fee is collected by the `PrepaidCardManager` contract to offset the cost of the gas used to create each prepaid card.
 
+[TODO: Discuss how this relates to the PrepaidCardMarket contract]
+
 ### TransferPrepaidCardHandler
 The `TransferPrepaidCardHandler` is a contract that handles the `transfer` action. This contract will receive a "transfer" action and an ABI encoded signature from the prepaid card's original EOA owner that authorizes the transfer of ownership from the `ActionHandler`. This contract will then call the `PrepaidCardManager.transfer()` function to perform a gnosis safe transfer of the prepaid card to the new EOA owner using the provided signature of the previous EOA owner of the prepaid card.
 
+### SetPrepaidCardInventoryHandler
+[TODO]
+
+### RemovePrepaidCardInventoryHandler
+[TODO]
+
+### SetPrepaidCardAskHandler
+[TODO]
+
 ### RegisterRewardProgramHandler
-The `RegisterRewardProgramHandler` is a contract that handles the `registerRewardProgram` action. This contract will receive reward program registration payments from the `ActionHandler`. This contract will call the `RewardManager` to register the reward program that tally knows about. This contract will collect a protocol fee from the registration to offset the gas charges for reward functions. This contract sends the protocol fee to a designated address that is used to collect protocol fees (for rewards). The gas policy is set to "false"; the prepaid card will pay a protocol fee, i.e. `rewardProgramRegistrationFeeInSpend=500` 
+The `RegisterRewardProgramHandler` is a contract that handles the `registerRewardProgram` action. This contract will receive reward program registration payments from the `ActionHandler`. This contract will call the `RewardManager` to register the reward program that tally knows about. This contract will collect a protocol fee from the registration to offset the gas charges for reward functions. This contract sends the protocol fee to a designated address that is used to collect protocol fees (for rewards). The gas policy is set to "false"; the prepaid card will pay a protocol fee, i.e. `rewardProgramRegistrationFeeInSpend=500`
 
 ### RegisterRewardeeHandler
-The `RegisterRewardeeHandler` is a contract that handles the `registerRewardee` action. This contract will receive rewardee registration payments from the `ActionHandler`. This contract will call the `RewardManager` to register rewardee under a reward program and create a reward safe for the rewardee. The gas policy is set to "true"; the prepaid card will pay for gas in it's issuing token. 
+The `RegisterRewardeeHandler` is a contract that handles the `registerRewardee` action. This contract will receive rewardee registration payments from the `ActionHandler`. This contract will call the `RewardManager` to register rewardee under a reward program and create a reward safe for the rewardee. The gas policy is set to "true"; the prepaid card will pay for gas in it's issuing token.
 
 ### LockRewardProgramHandler
 The `LockRewardProgramHandler` is a contract that handles the `lockRewardProgram` action. This contract will call the `RewardManager` to update the lock state of the reward program. The gas policy is set to "true"; the prepaid card will pay for gas in it's issuing token
 
 ### UpdateRewardProgramAdminHandler
-The `UpdateRewardProgramAdminHandler` is a contract that handles the `updateRewardProgramAdmin` action. This contract will call the `RewardManager` to update the `rewardProgramAdmin` that can control the reward program. 
-The gas policy is set to "true"; the prepaid card will pay for gas in it's issuing token. 
+The `UpdateRewardProgramAdminHandler` is a contract that handles the `updateRewardProgramAdmin` action. This contract will call the `RewardManager` to update the `rewardProgramAdmin` that can control the reward program.
+The gas policy is set to "true"; the prepaid card will pay for gas in it's issuing token.
 
 ### AddRewardRuleHandler
-The `AddRewardRuleHandler` is a contract that handles the `addRewardRule` action. This contract will call the `RewardManager` to add a rule to a reward program. 
-The gas policy is set to "true"; the prepaid card will pay for gas in it's issuing token. 
+The `AddRewardRuleHandler` is a contract that handles the `addRewardRule` action. This contract will call the `RewardManager` to add a rule to a reward program.
+The gas policy is set to "true"; the prepaid card will pay for gas in it's issuing token.
 
 ### PayRewardTokensHandler
-The `PayRewardTokensHandler` is a contract that handles the `payRewardTokens` action. This contract will send token transfers to fill up pool for a particular reward program. 
-The gas policy is set to "true"; the prepaid card will pay for gas in it's issuing token. 
+The `PayRewardTokensHandler` is a contract that handles the `payRewardTokens` action. This contract will send token transfers to fill up pool for a particular reward program.
+The gas policy is set to "true"; the prepaid card will pay for gas in it's issuing token.
 
 ### Exchange
 The `Exchange` is a contract that handles converting to and from §SPEND tokens from any other CPXD token, as well as getting the current USD rate for any of the CPXD tokens (which accompanies calls to `PrepaidCardManager.send()`). This contract is also responsible to determining if the USD rate that is being requested by `PrepaidCardManager.send()` calls falls within an allowable margin. We use the idea of a "rate lock" as part of the way in which callers call the `PrepaidCardManager.send()` function. The reason being is that these calls are normally issued from a gnosis relay server in 2 steps. The first step is to get an estimation of the transaction and then generate a signature, and the second step is to issue the transaction with the data from the transaction estimate along with the signature. In between those 2 steps the USD rate for the prepaid card's issuing token may have changed. To accommodate USD rate fluctuations the caller is allowed to specify the USD rate they used as part of the transaction estimation. This contract will then determine if that requested rate is actually allowable given the current USD rate and a configured "rate drift" percentage. If the requested rate falls outside of the "rate drift" percentage, then the transaction will be reverted. To accommodate the fact that we allow the caller to provide the USD rate to use, we have a pessimistic prepaid card face value calculation that we employ in `PrepaidCardManager.faceValue()` which uses the most pessimistic rate allowable given the "rate drift percentage" to calculate the prepaid card's face value after it's been used at least one time.
