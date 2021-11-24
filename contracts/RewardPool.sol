@@ -103,18 +103,6 @@ contract RewardPool is Initializable, Versionable, Ownable {
     view
     returns (bool)
   {
-    (
-      address rewardProgramID,
-      uint256 paymentCycleNumber,
-      uint256 startBlock,
-      uint256 endBlock,
-      uint256 tokenType,
-      address payee,
-      bytes memory transferDetails
-    ) = abi.decode(
-        leaf,
-        (address, uint256, uint256, uint256, uint256, address, bytes)
-      );
     if (block.number >= startBlock && block.number < endBlock) {
       bytes32 root = bytes32(payeeRoots[paymentCycleNumber]);
       return proof.verify(root, keccak256(leaf));
@@ -178,7 +166,7 @@ contract RewardPool is Initializable, Versionable, Ownable {
   ) external returns (bool) {
     (
       address rewardProgramID,
-      uint256 paymentCycleNumber,
+      uint256 paymentCycleNumber, // solhint-disable-line no-unused-vars
       uint256 startBlock,
       uint256 endBlock,
       uint256 tokenType,
@@ -236,7 +224,7 @@ contract RewardPool is Initializable, Versionable, Ownable {
   ) external returns (bool) {
     address rewardProgramAdmin = RewardManager(rewardManager)
       .rewardProgramAdmins(rewardProgramID);
-    require(rewardProgramAdmin != ZERO_ADDRESS);
+    require(rewardProgramAdmin != ZERO_ADDRESS, "Caller is not reward program admin");
     require(
       _getEOAOwner(msg.sender) == rewardProgramAdmin,
       "owner of safe is not reward program admin"
@@ -260,8 +248,7 @@ contract RewardPool is Initializable, Versionable, Ownable {
   // lazy implementation of getting eoa owner of safe that has 1 or 2 owners
   // think this is a use-case to handle during safe manager refactor
   function _getEOAOwner(address safe) internal returns (address) {
-    address[] memory ownerArr = GnosisSafe(msg.sender).getOwners();
-    address eoaOwner;
+    address[] memory ownerArr = GnosisSafe(safe).getOwners();
     if (ownerArr.length == 2) {
       return ownerArr[1];
     } else {
@@ -292,7 +279,7 @@ contract RewardPool is Initializable, Versionable, Ownable {
   function startNewPaymentCycle() internal onlyTally returns (bool) {
     require(
       block.number > currentPaymentCycleStartBlock,
-      "Cannot start new payment cycle before currentPaymentCycleStartBlock"
+      "Cannot start payment cycle before currentPaymentCycleStartBlock"
     );
 
     emit PaymentCycleEnded(
