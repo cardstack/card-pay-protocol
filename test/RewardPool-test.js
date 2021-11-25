@@ -796,10 +796,11 @@ contract("RewardPool", function (accounts) {
       it("non-payee cannot claim NFT token types yet", async function () {
         // This test is expected to fail if you have implemented NFT token type
         // claims
-        let payeeIndex = 8;
-        let leaf = merkleTree.getLeaf(payments[payeeIndex]);
-        let proof = merkleTree.getProof(payments[payeeIndex]);
-        let payee = payments[payeeIndex].payee;
+        let payment = otherPayments[2];
+        let merkleTree = new PaymentTree(otherPayments);
+        let leaf = merkleTree.getLeaf(payment);
+        let proof = merkleTree.getProof(payment);
+        let payee = payment.payee;
         let somePrepaidCard = await createPrepaidCardAndTransfer(
           prepaidCardManager,
           relayer,
@@ -830,7 +831,7 @@ contract("RewardPool", function (accounts) {
           someRewardSafe,
           payee,
           cardcpxdToken,
-          leaf, //this is the wrong proof
+          leaf,
           proof
         ).should.be.rejectedWith(Error, "Token type currently unsupported");
       });
@@ -1076,7 +1077,6 @@ contract("RewardPool", function (accounts) {
 
     describe("verify", function () {
       let rewardPoolBalance;
-      let paymentCycle;
       let proof;
       let payeeIndex = 0;
       let payee;
@@ -1139,14 +1139,12 @@ contract("RewardPool", function (accounts) {
           rewardPoolBalance,
           rewardProgramID
         );
-        paymentCycle = await rewardPool.numPaymentCycles();
-        paymentCycle = paymentCycle.toNumber();
         leaf = merkleTree.getLeaf(payments[payeeIndex]);
         proof = merkleTree.getProof(payments[payeeIndex]);
         await rewardPool.submitPayeeMerkleRoot(
           payments[0]["rewardProgramID"],
           payments[0]["paymentCycleNumber"],
-          updatedRoot,
+          root,
           { from: tally }
         );
         rewardeePrepaidCard = await createPrepaidCardAndTransfer(
@@ -1317,12 +1315,10 @@ contract("RewardPool", function (accounts) {
         merkleTree = new PaymentTree(payments);
         root = merkleTree.getHexRoot();
 
-        paymentCycle = await rewardPool.numPaymentCycles();
-        paymentCycle = paymentCycle.toNumber();
         await rewardPool.submitPayeeMerkleRoot(
           payments[0]["rewardProgramID"],
           payments[0]["paymentCycleNumber"],
-          updatedRoot,
+          root,
           { from: tally }
         );
 
