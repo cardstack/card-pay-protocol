@@ -365,6 +365,8 @@ contract("RewardPool", function (accounts) {
       let merkleTree;
       let root;
       let leaf;
+      let otherMerkleTree;
+      let otherRoot;
       let rewardeePrepaidCard;
       let rewardSafePreviousBalance, rewardPoolPreviousBalance;
 
@@ -1258,7 +1260,6 @@ contract("RewardPool", function (accounts) {
 
     describe("multi-token support", () => {
       let rewardPoolBalance;
-      let paymentCycle;
       let payee;
       let merkleTree;
       let root;
