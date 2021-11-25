@@ -15,6 +15,7 @@ coverage
 .openzeppelin/.session
 .openzeppelin/addresses-localhost.json
 .openzeppelin/unknown-31337.json
+.openzeppelin/*.bak
 cache
 artifacts
 build

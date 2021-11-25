@@ -26,7 +26,6 @@ const RegisterRewardProgramHandler = artifacts.require(
 );
 const LockRewardProgramHandler = artifacts.require("LockRewardProgramHandler");
 const AddRewardRuleHandler = artifacts.require("AddRewardRuleHandler");
-const RemoveRewardRuleHandler = artifacts.require("RemoveRewardRuleHandler");
 const UpdateRewardProgramAdminHandler = artifacts.require(
   "UpdateRewardProgramAdminHandler"
 );
@@ -135,13 +134,13 @@ async function getIssuingToken(prepaidCardManager, prepaidCard) {
   return await ERC677Token.at(details.issueToken);
 }
 
-const sendSafeTransaction = async (
+async function sendSafeTransaction(
   safeTxData,
   gnosisSafe,
   relayer,
   signature,
   options = null
-) => {
+) {
   let packData = packExecutionData(safeTxData);
   let safeTxArr = Object.keys(packData).map((key) => packData[key]);
   let nonce = await gnosisSafe.nonce();
@@ -163,7 +162,7 @@ const sendSafeTransaction = async (
     safeTx,
     executionResult: checkGnosisExecution(safeTx, gnosisSafe.address),
   };
-};
+}
 
 async function signAndSendSafeTransaction(
   safeTxData,
@@ -262,6 +261,8 @@ exports.setupExchanges = async function (owner, versionManager) {
     daiFeed.address,
     ethFeed.address,
     daiFeed.address,
+    false,
+    0,
     versionManagerAddress
   );
   let mockDiaOracle = await MockDIAOracle.new();
@@ -319,7 +320,6 @@ exports.addActionHandlers = async function ({
     registerRewardProgramHandler,
     lockRewardProgramHandler,
     addRewardRuleHandler,
-    removeRewardRuleHandler,
     updateRewardProgramAdminHandler,
     payRewardTokensHandler;
 
@@ -508,26 +508,6 @@ exports.addActionHandlers = async function ({
     tokenManager &&
     rewardManager
   ) {
-    removeRewardRuleHandler = await RemoveRewardRuleHandler.new();
-    await removeRewardRuleHandler.initialize(owner);
-    await removeRewardRuleHandler.setup(
-      actionDispatcher.address,
-      prepaidCardManager.address,
-      exchangeAddress,
-      tokenManager.address,
-      rewardManager.address,
-      versionManagerAddress
-    );
-  }
-
-  if (
-    owner &&
-    actionDispatcher &&
-    prepaidCardManager &&
-    exchangeAddress &&
-    tokenManager &&
-    rewardManager
-  ) {
     updateRewardProgramAdminHandler =
       await UpdateRewardProgramAdminHandler.new();
     await updateRewardProgramAdminHandler.initialize(owner);
@@ -626,13 +606,6 @@ exports.addActionHandlers = async function ({
     );
   }
 
-  if (removeRewardRuleHandler) {
-    await actionDispatcher.addHandler(
-      removeRewardRuleHandler.address,
-      "removeRewardRule"
-    );
-  }
-
   if (updateRewardProgramAdminHandler) {
     await actionDispatcher.addHandler(
       updateRewardProgramAdminHandler.address,
@@ -658,7 +631,6 @@ exports.addActionHandlers = async function ({
     registerRewardProgramHandler,
     lockRewardProgramHandler,
     addRewardRuleHandler,
-    removeRewardRuleHandler,
     updateRewardProgramAdminHandler,
     payRewardTokensHandler,
   };
@@ -1379,6 +1351,87 @@ const transferRewardSafe = async function (
   );
 };
 
+const withdrawFromRewardSafe = async function (
+  rewardManager,
+  rewardSafe,
+  tokenAddress,
+  to,
+  value,
+  relayer,
+  gasToken
+) {
+  const rewardSafeEOA = (await rewardSafe.getOwners())[1];
+  let token = await ERC677Token.at(tokenAddress);
+  let transfer = token.contract.methods.transfer(to, value);
+
+  let transferData = transfer.encodeABI();
+  let gasEstimate = await transfer.estimateGas({ from: rewardSafe.address });
+
+  const nonce = await rewardSafe.nonce();
+
+  const fullSignatureInnerExec = await rewardEIP1271Signature(
+    tokenAddress,
+    0,
+    transferData,
+    0,
+    gasEstimate,
+    0,
+    DEFAULT_GAS_PRICE,
+    gasToken.address,
+    rewardSafe.address,
+    nonce.add(toBN("1")),
+    rewardSafeEOA,
+    rewardSafe,
+    rewardManager
+  );
+
+  let payload = rewardManager.contract.methods
+    .withdrawFromRewardSafe(
+      tokenAddress,
+      to,
+      value,
+      gasEstimate,
+      0,
+      DEFAULT_GAS_PRICE,
+      gasToken.address,
+      fullSignatureInnerExec
+    )
+    .encodeABI();
+
+  const fullSignature = await rewardEIP1271Signature(
+    rewardManager.address,
+    0,
+    payload,
+    0,
+    0,
+    0,
+    0,
+    gasToken.address,
+    rewardSafe.address,
+    nonce,
+    rewardSafeEOA,
+    rewardSafe,
+    rewardManager
+  );
+
+  let safeTxData = {
+    to: rewardManager.address,
+    data: payload,
+    operation: 0,
+    txGasEstimate: 0,
+    gasPrice: 0,
+    txGasToken: gasToken.address,
+    refundReceive: rewardSafe.address,
+  };
+
+  return await sendSafeTransaction(
+    safeTxData,
+    rewardSafe,
+    relayer,
+    fullSignature
+  );
+};
+
 exports.swapOwner = async function (
   rewardManager,
   rewardSafe,
@@ -1600,9 +1653,7 @@ exports.addRewardRule = async function (
   spendAmount,
   usdRate,
   rewardProgramID,
-  ruleDID,
-  tallyRuleDID,
-  benefitDID
+  blob
 ) {
   if (usdRate == null) {
     usdRate = 100000000;
@@ -1611,63 +1662,8 @@ exports.addRewardRule = async function (
   let issuingToken = await getIssuingToken(prepaidCardManager, prepaidCard);
   const actionName = "addRewardRule";
   const actionData = AbiCoder.encodeParameters(
-    ["address", "string", "string", "string"],
-    [rewardProgramID, ruleDID, tallyRuleDID, benefitDID]
-  );
-  let data = await prepaidCardManager.getSendData(
-    prepaidCard.address,
-    spendAmount,
-    usdRate,
-    actionName,
-    actionData
-  );
-  let signature = await signSafeTransaction(
-    issuingToken.address,
-    0,
-    data,
-    0,
-    BLOCK_GAS_LIMIT,
-    0,
-    DEFAULT_GAS_PRICE,
-    issuingToken.address,
-    ZERO_ADDRESS,
-    await prepaidCard.nonce(),
-    prepaidCardOwner,
-    prepaidCard
-  );
-  return await prepaidCardManager.send(
-    prepaidCard.address,
-    spendAmount,
-    usdRate,
-    DEFAULT_GAS_PRICE,
-    BLOCK_GAS_LIMIT,
-    0,
-    actionName,
-    actionData,
-    signature,
-    { from: relayer }
-  );
-};
-
-exports.removeRewardRule = async function (
-  prepaidCardManager,
-  prepaidCard,
-  relayer,
-  prepaidCardOwner,
-  spendAmount,
-  usdRate,
-  rewardProgramID,
-  ruleDID
-) {
-  if (usdRate == null) {
-    usdRate = 100000000;
-  }
-
-  let issuingToken = await getIssuingToken(prepaidCardManager, prepaidCard);
-  const actionName = "removeRewardRule";
-  const actionData = AbiCoder.encodeParameters(
-    ["address", "string"],
-    [rewardProgramID, ruleDID]
+    ["address", "bytes"],
+    [rewardProgramID, blob]
   );
   let data = await prepaidCardManager.getSendData(
     prepaidCard.address,
@@ -1828,6 +1824,52 @@ exports.claimReward = async function (
   return await sendSafeTransaction(safeTxData, rewardSafe, relayer, signature);
 };
 
+exports.recoverUnclaimedRewardTokens = async function (
+  rewardManager,
+  rewardPool,
+  relayer,
+  rewardSafe,
+  rewardSafeOwner,
+  rewardProgramID,
+  token,
+  amount
+) {
+  let recoverTokens = rewardPool.contract.methods.recoverTokens(
+    rewardProgramID,
+    token.address,
+    amount
+  );
+
+  let payload = recoverTokens.encodeABI();
+  let gasEstimate = await recoverTokens.estimateGas({
+    from: rewardSafe.address,
+  });
+
+  let safeTxData = {
+    to: rewardPool.address,
+    data: payload,
+    txGasEstimate: gasEstimate,
+    gasPrice: DEFAULT_GAS_PRICE,
+    txGasToken: token.address,
+    refundReceive: relayer,
+  };
+
+  const nonce = await rewardSafe.nonce();
+
+  let packData = packExecutionData(safeTxData);
+  let safeTxArr = Object.keys(packData).map((key) => packData[key]);
+
+  let signature = await rewardEIP1271Signature(
+    ...safeTxArr,
+    nonce,
+    rewardSafeOwner,
+    rewardSafe,
+    rewardManager
+  );
+
+  return await sendSafeTransaction(safeTxData, rewardSafe, relayer, signature);
+};
+
 exports.mintWalletAndRefillPool = async function (
   rewardToken,
   rewardPool,
@@ -1922,3 +1964,4 @@ exports.signAndSendSafeTransaction = signAndSendSafeTransaction;
 exports.transferOwner = transferOwner;
 exports.createPrepaidCards = createPrepaidCards;
 exports.transferRewardSafe = transferRewardSafe;
+exports.withdrawFromRewardSafe = withdrawFromRewardSafe;

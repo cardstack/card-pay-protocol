@@ -82,11 +82,6 @@ export default async function (
         value: address("AddRewardRuleHandler"),
         params: ["{VALUE}", "{NAME}"],
       },
-      removeRewardRule: {
-        mapping: "actions",
-        value: address("RemoveRewardRuleHandler"),
-        params: ["{VALUE}", "{NAME}"],
-      },
       updateRewardProgramAdmin: {
         mapping: "actions",
         value: address("UpdateRewardProgramAdminHandler"),

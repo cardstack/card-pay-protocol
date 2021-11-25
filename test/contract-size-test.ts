@@ -39,7 +39,6 @@ const UpdateRewardProgramAdminHandler = artifacts.require(
   "UpdateRewardProgramAdminHandler"
 );
 const AddRewardRuleHandler = artifacts.require("AddRewardRuleHandler");
-const RemoveRewardRuleHandler = artifacts.require("RemoveRewardRuleHandler");
 const VersionManager = artifacts.require("VersionManager");
 
 describe("Contract deploy gas usage", async () => {
@@ -74,7 +73,6 @@ describe("Contract deploy gas usage", async () => {
       await LockRewardProgramHandler.new(),
       await UpdateRewardProgramAdminHandler.new(),
       await AddRewardRuleHandler.new(),
-      await RemoveRewardRuleHandler.new(),
       await VersionManager.new(),
     ]);
   });

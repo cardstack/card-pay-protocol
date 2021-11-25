@@ -65,6 +65,10 @@ contract UpdateRewardProgramAdminHandler is Ownable, Versionable {
       (address, address)
     );
 
+    require(
+      RewardManager(rewardManagerAddress).isRewardProgram(rewardProgramID),
+      "reward program does not exist"
+    );
     address prepaidCardOwner = PrepaidCardManager(prepaidCardManager)
       .getPrepaidCardOwner(prepaidCard);
 

@@ -57,7 +57,9 @@ export const GAS_FEE_CARD_WEI = String(
   process.env.GAS_FEE_CARD_WEI ?? 1000000000000000000
 );
 export const RATE_DRIFT_PERCENTAGE =
-  process.env.RATE_DRIFT_PERCENTAGE ?? 125000; // 0.125%
+  process.env.RATE_DRIFT_PERCENTAGE ?? 1000000; // 1% (decimals 6)
+export const DAI_USD_RATE_SNAP_THRESHOLD =
+  process.env.DAI_USD_RATE_SNAP_THRESHOLD ?? 100000000; // +/-1% (decimals 8)
 export const MERCHANT_FEE_PERCENTAGE =
   process.env.MERCHANT_FEE_PERCENTAGE ?? 500000; // 0.5%
 export const MERCHANT_REGISTRATION_FEE_IN_SPEND =
