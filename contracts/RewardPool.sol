@@ -103,7 +103,7 @@ contract RewardPool is Initializable, Versionable, Ownable {
     returns (bool)
   {
     (
-      ,
+      address rewardProgramID,
       uint256 paymentCycleNumber,
       uint256 startBlock,
       uint256 endBlock,
