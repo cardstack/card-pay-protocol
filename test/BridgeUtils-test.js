@@ -176,7 +176,7 @@ contract("BridgeUtils", async (accounts) => {
       txGasEstimate: gasEstimate,
       gasPrice: 1000000000,
       txGasToken: daicpxdToken.address,
-      refundReceive: relayer,
+      refundReceiver: relayer,
     };
     let depotContract = await GnosisSafe.at(depot);
     let { safeTx } = await signAndSendSafeTransaction(
