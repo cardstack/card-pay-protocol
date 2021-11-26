@@ -269,6 +269,19 @@ contract("RewardPool", function (accounts) {
     });
 
     describe("submitPayeeMerkleRoot", function () {
+      it("does not allow submitting a merkle root for an unregistered reward program", async function () {
+        let randomInvalidProgramID = randomHex(20);
+        let merkleTree = new PaymentTree(payments);
+        let root = merkleTree.getHexRoot();
+        await rewardPool
+          .submitPayeeMerkleRoot(randomInvalidProgramID, 1, root, {
+            from: tally,
+          })
+          .should.be.rejectedWith(
+            Error,
+            "Can only submit a root for a registered reward program"
+          );
+      });
       it("supports submitting a new merkle root for a payment cycle", async function () {
         let merkleTree = new PaymentTree(payments);
         let root = merkleTree.getHexRoot();
