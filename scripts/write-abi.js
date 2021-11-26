@@ -18,6 +18,7 @@ glob(globPattern, {}, (err, files) => {
     prettier
       .resolveConfig(file)
       .then((options) => {
+        console.log(options);
         let fileName = kebabCase(o["contractName"]) + ".ts";
         if (fileName == "i-price-oracle.ts") {
           fileName = "price-oracle.ts";
@@ -26,6 +27,7 @@ glob(globPattern, {}, (err, files) => {
         const formatted = prettier.format(JSON.stringify(abi, null, 2), {
           ...options,
           parser: "babel",
+          singleQuote: true,
         });
         outputFile(
           filePath,
