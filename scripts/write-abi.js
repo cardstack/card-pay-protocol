@@ -5,7 +5,7 @@ const kebabCase = require("lodash/kebabCase");
 
 const targetDir = "abi/";
 
-const globPattern = "artifacts/!(build-info)/**/[!I]*[!dbg].json";
+const globPattern = "artifacts/!(build-info)/**/*[!dbg].json";
 
 glob(globPattern, {}, (err, files) => {
   if (err) {
@@ -18,7 +18,10 @@ glob(globPattern, {}, (err, files) => {
     prettier
       .resolveConfig(file)
       .then((options) => {
-        const fileName = kebabCase(o["contractName"]) + ".ts";
+        let fileName = kebabCase(o["contractName"]) + ".ts";
+        if (fileName == "i-price-oracle.ts") {
+          fileName = "price-oracle.ts";
+        }
         const filePath = `${targetDir}${fileName}`;
         const formatted = prettier.format(JSON.stringify(abi, null, 2), {
           ...options,
