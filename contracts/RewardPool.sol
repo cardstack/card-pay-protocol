@@ -105,8 +105,8 @@ contract RewardPool is Initializable, Versionable, Ownable {
     (
       address rewardProgramID,
       uint256 paymentCycleNumber,
-      uint256 startBlock,
-      uint256 endBlock,
+      uint256 validFrom,
+      uint256 validTo,
       ,
       ,
 
@@ -114,7 +114,7 @@ contract RewardPool is Initializable, Versionable, Ownable {
         leaf,
         (address, uint256, uint256, uint256, uint256, address, bytes)
       );
-    if (block.number >= startBlock && block.number < endBlock) {
+    if (block.number >= validFrom && block.number < validTo) {
       bytes32 root = bytes32(payeeRoots[rewardProgramID][paymentCycleNumber]);
       return proof.verify(root, keccak256(leaf));
     } else {
@@ -178,8 +178,8 @@ contract RewardPool is Initializable, Versionable, Ownable {
     (
       address rewardProgramID,
       ,
-      uint256 startBlock,
-      uint256 endBlock,
+      uint256 validFrom,
+      uint256 validTo,
       uint256 tokenType,
       address payee,
       bytes memory transferDetails
@@ -194,10 +194,10 @@ contract RewardPool is Initializable, Versionable, Ownable {
     );
     require(tokenType == 1, "Token type currently unsupported");
     require(
-      block.number >= startBlock,
+      block.number >= validFrom,
       "Can only be claimed on or after the start block"
     );
-    require(block.number < endBlock, "Can only be claimed before end block");
+    require(block.number < validTo, "Can only be claimed before end block");
     require(valid(leaf, proof), "Proof is invalid");
     require(claimed(leaf) == false, "Reward has already been claimed");
 

@@ -137,8 +137,8 @@ contract("RewardPool", function (accounts) {
       payments = [
         {
           paymentCycleNumber: 1,
-          startBlock: currentBlockNumber,
-          endBlock: currentBlockNumber + 10000,
+          validFrom: currentBlockNumber,
+          validTo: currentBlockNumber + 10000,
           rewardProgramID: rewardProgramID,
           payee: accounts[11],
           token: cardcpxdToken.address,
@@ -147,8 +147,8 @@ contract("RewardPool", function (accounts) {
         },
         {
           paymentCycleNumber: 1,
-          startBlock: currentBlockNumber,
-          endBlock: currentBlockNumber + 10000,
+          validFrom: currentBlockNumber,
+          validTo: currentBlockNumber + 10000,
           rewardProgramID: rewardProgramID,
           payee: accounts[12],
           token: cardcpxdToken.address,
@@ -157,8 +157,8 @@ contract("RewardPool", function (accounts) {
         },
         {
           paymentCycleNumber: 1,
-          startBlock: currentBlockNumber,
-          endBlock: currentBlockNumber + 10000,
+          validFrom: currentBlockNumber,
+          validTo: currentBlockNumber + 10000,
           rewardProgramID: rewardProgramID,
           payee: accounts[13],
           token: cardcpxdToken.address,
@@ -167,8 +167,8 @@ contract("RewardPool", function (accounts) {
         },
         {
           paymentCycleNumber: 1,
-          startBlock: currentBlockNumber,
-          endBlock: currentBlockNumber + 10000,
+          validFrom: currentBlockNumber,
+          validTo: currentBlockNumber + 10000,
           rewardProgramID: rewardProgramID,
           payee: accounts[14],
           token: cardcpxdToken.address,
@@ -177,8 +177,8 @@ contract("RewardPool", function (accounts) {
         },
         {
           paymentCycleNumber: 1,
-          startBlock: currentBlockNumber,
-          endBlock: currentBlockNumber + 10000,
+          validFrom: currentBlockNumber,
+          validTo: currentBlockNumber + 10000,
           rewardProgramID: rewardProgramID,
           payee: accounts[15],
           token: cardcpxdToken.address,
@@ -187,8 +187,8 @@ contract("RewardPool", function (accounts) {
         },
         {
           paymentCycleNumber: 1,
-          startBlock: currentBlockNumber,
-          endBlock: currentBlockNumber + 10000,
+          validFrom: currentBlockNumber,
+          validTo: currentBlockNumber + 10000,
           rewardProgramID: rewardProgramID,
           payee: accounts[18],
           token: cardcpxdToken.address,
@@ -199,8 +199,8 @@ contract("RewardPool", function (accounts) {
       otherPayments = [
         {
           paymentCycleNumber: 1,
-          startBlock: currentBlockNumber,
-          endBlock: currentBlockNumber + 10000,
+          validFrom: currentBlockNumber,
+          validTo: currentBlockNumber + 10000,
           rewardProgramID: otherRewardProgramID,
           payee: accounts[16],
           token: cardcpxdToken.address,
@@ -209,8 +209,8 @@ contract("RewardPool", function (accounts) {
         },
         {
           paymentCycleNumber: 1,
-          startBlock: currentBlockNumber,
-          endBlock: currentBlockNumber + 10000,
+          validFrom: currentBlockNumber,
+          validTo: currentBlockNumber + 10000,
           rewardProgramID: otherRewardProgramID,
           payee: accounts[17],
           token: cardcpxdToken.address,
@@ -219,8 +219,8 @@ contract("RewardPool", function (accounts) {
         },
         {
           paymentCycleNumber: 1,
-          startBlock: currentBlockNumber,
-          endBlock: currentBlockNumber + 10000,
+          validFrom: currentBlockNumber,
+          validTo: currentBlockNumber + 10000,
           rewardProgramID: rewardProgramID,
           payee: accounts[18],
           token: cardcpxdToken.address,
@@ -1102,8 +1102,8 @@ contract("RewardPool", function (accounts) {
         payments = [
           {
             paymentCycleNumber: 1,
-            startBlock: currentBlockNumber,
-            endBlock: currentBlockNumber + 10000,
+            validFrom: currentBlockNumber,
+            validTo: currentBlockNumber + 10000,
             rewardProgramID: rewardProgramID,
             payee: accounts[1],
             tokenType: 0, // Token type of 0 means that this is not a token
@@ -1111,8 +1111,8 @@ contract("RewardPool", function (accounts) {
           },
           {
             paymentCycleNumber: 1,
-            startBlock: currentBlockNumber,
-            endBlock: currentBlockNumber + 10000,
+            validFrom: currentBlockNumber,
+            validTo: currentBlockNumber + 10000,
             rewardProgramID: rewardProgramID,
             payee: accounts[2],
             token: cardcpxdToken.address,
@@ -1121,8 +1121,8 @@ contract("RewardPool", function (accounts) {
           },
           {
             paymentCycleNumber: 1,
-            startBlock: currentBlockNumber + 1000,
-            endBlock: currentBlockNumber + 10000,
+            validFrom: currentBlockNumber + 1000,
+            validTo: currentBlockNumber + 10000,
             rewardProgramID: rewardProgramID,
             payee: accounts[1],
             tokenType: 0, // Token type of 0 means that this is not a token
@@ -1130,8 +1130,8 @@ contract("RewardPool", function (accounts) {
           },
           {
             paymentCycleNumber: 1,
-            startBlock: currentBlockNumber - 1,
-            endBlock: currentBlockNumber - 1,
+            validFrom: currentBlockNumber - 1,
+            validTo: currentBlockNumber - 1,
             rewardProgramID: rewardProgramID,
             payee: accounts[1],
             tokenType: 0, // Token type of 0 means that this is not a token
@@ -1284,8 +1284,8 @@ contract("RewardPool", function (accounts) {
         payments = [
           {
             paymentCycleNumber: 1,
-            startBlock: currentBlockNumber,
-            endBlock: currentBlockNumber + 10000,
+            validFrom: currentBlockNumber,
+            validTo: currentBlockNumber + 10000,
             rewardProgramID: rewardProgramID,
             payee: payee,
             tokenType: 1,
@@ -1294,8 +1294,8 @@ contract("RewardPool", function (accounts) {
           },
           {
             paymentCycleNumber: 1,
-            startBlock: currentBlockNumber,
-            endBlock: currentBlockNumber + 10000,
+            validFrom: currentBlockNumber,
+            validTo: currentBlockNumber + 10000,
             rewardProgramID: rewardProgramID,
             payee: payee,
             tokenType: 1,
