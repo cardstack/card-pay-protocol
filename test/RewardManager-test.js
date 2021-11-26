@@ -1279,7 +1279,7 @@ contract("RewardManager", (accounts) => {
         await rewardManager.ownedRewardSafes(prepaidCardOwner, rewardProgramID)
       ).to.equal(rewardSafe.address);
 
-      await transferRewardSafe({
+      let { safeTx } = await transferRewardSafe({
         rewardManager,
         rewardSafe,
         oldOwner: prepaidCardOwner,
@@ -1287,6 +1287,20 @@ contract("RewardManager", (accounts) => {
         relayer,
         gasToken: daicpxdToken,
       });
+
+      let params = await getParamsFromEvent(
+        safeTx,
+        eventABIs.REWARD_SAFE_TRANSFER,
+        rewardSafe.address
+      );
+
+      expect(params.length).to.equal(1);
+      expect(params[0]).to.deep.include({
+        rewardSafe: rewardSafe.address,
+        oldOwner: prepaidCardOwner,
+        newOwner: otherPrepaidCardOwner,
+      });
+
       owners = await rewardSafe.getOwners();
       expect(owners.length).to.equal(2);
       expect(owners[1]).to.equal(otherPrepaidCardOwner);
