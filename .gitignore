@@ -21,3 +21,4 @@ artifacts
 build
 typechain
 dist
+abi
