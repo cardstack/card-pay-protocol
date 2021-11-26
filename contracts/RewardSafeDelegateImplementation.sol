@@ -24,11 +24,11 @@ import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 // solhint-disable var-name-mixedcase
 contract RewardSafeDelegateImplementation {
   event RewardSafeWithdrawal(address rewardSafe, address token, uint256 value);
-
-  // > web3.utils.keccak256("withdraw(address,address,address,uint256)").slice(0,10)
-  // > web3.utils.keccak256("withdraw(address,address,address,uint256)").slice(0,10)
-  // '0x0b620b81'
-  // bytes4 public constant WITHDRAW = hex"d9caed12";
+  event RewardSafeTransferred(
+    address rewardSafe,
+    address oldOwner,
+    address newOwner
+  );
 
   function withdraw(
     address __trusted__managerContract,
@@ -64,6 +64,12 @@ contract RewardSafeDelegateImplementation {
 
     _originalSafe().swapOwner(
       __untrusted__prevOwner,
+      __untrusted__oldOwner,
+      __untrusted__newOwner
+    );
+
+    emit RewardSafeTransferred(
+      address(this),
       __untrusted__oldOwner,
       __untrusted__newOwner
     );

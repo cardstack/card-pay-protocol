@@ -22,11 +22,6 @@ contract RewardManager is Ownable, Versionable, Safe {
   event RewardProgramRemoved(address rewardProgramID);
   event RewardProgramAdminUpdated(address rewardProgramID, address newAdmin);
   event RewardProgramLocked(address rewardProgramID);
-  event RewardSafeTransferred(
-    address rewardSafe,
-    address oldOwner,
-    address newOwner
-  );
   event RewardRuleAdded(address rewardProgramID, bytes blob);
   event RewardeeRegistered(
     address rewardProgramID,
@@ -186,8 +181,6 @@ contract RewardManager is Ownable, Versionable, Safe {
     );
     ownedRewardSafes[oldOwner][rewardProgramID] = address(0);
     ownedRewardSafes[newOwner][rewardProgramID] = msg.sender;
-
-    emit RewardSafeTransferred(msg.sender, oldOwner, newOwner);
   }
 
   function getRewardSafeOwner(address payable rewardSafe)
