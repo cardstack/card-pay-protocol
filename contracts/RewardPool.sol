@@ -87,6 +87,10 @@ contract RewardPool is Initializable, Versionable, Ownable {
     bytes32 payeeRoot
   ) external onlyTally returns (bool) {
     require(
+      RewardManager(rewardManager).isRewardProgram(rewardProgramID),
+      "Can only submit a root for a registered reward program"
+    );
+    require(
       payeeRoots[rewardProgramID][paymentCycle] == 0,
       "Payee root already submitted for this program & cycle"
     );
