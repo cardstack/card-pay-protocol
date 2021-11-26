@@ -324,7 +324,6 @@ contract("RewardPool", function (accounts) {
         await rewardPool.submitPayeeMerkleRoot(rewardProgramID, 1, root, {
           from: tally,
         });
-
         // This should not throw any errors
         await rewardPool.submitPayeeMerkleRoot(rewardProgramID, 2, root, {
           from: tally,
@@ -334,6 +333,16 @@ contract("RewardPool", function (accounts) {
       it("allows a multiple merkle roots for different reward programs to be submitted with the same payment cycle number", async function () {
         let merkleTree = new PaymentTree(payments);
         let root = merkleTree.getHexRoot();
+        await registerRewardProgram(
+          prepaidCardManager,
+          prepaidCard,
+          relayer,
+          prepaidCardOwner,
+          REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
+          undefined,
+          prepaidCardOwner,
+          otherRewardProgramID
+        );
         await rewardPool.submitPayeeMerkleRoot(rewardProgramID, 1, root, {
           from: tally,
         });
@@ -397,6 +406,18 @@ contract("RewardPool", function (accounts) {
         merkleTree = new PaymentTree(payments);
         root = merkleTree.getHexRoot();
         rewardPoolBalance = toTokenUnit(100);
+
+        await registerRewardProgram(
+          prepaidCardManager,
+          prepaidCard,
+          relayer,
+          prepaidCardOwner,
+          REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
+          undefined,
+          prepaidCardOwner,
+          otherRewardProgramID
+        );
+
         await mintWalletAndRefillPool(
           cardcpxdToken,
           rewardPool,
@@ -404,6 +425,7 @@ contract("RewardPool", function (accounts) {
           rewardPoolBalance,
           rewardProgramID
         );
+
         leaf = merkleTree.getLeaf(payments[payeeIndex]);
         proof = merkleTree.getProof(payments[payeeIndex]);
         await rewardPool.submitPayeeMerkleRoot(
@@ -501,16 +523,6 @@ contract("RewardPool", function (accounts) {
       });
       it("payee cannot claim from a safe associated with different reward program", async function () {
         let aPayee = payments[0].payee;
-        await registerRewardProgram(
-          prepaidCardManager,
-          prepaidCard,
-          relayer,
-          prepaidCardOwner,
-          REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
-          undefined,
-          prepaidCardOwner,
-          otherRewardProgramID
-        );
 
         rewardeePrepaidCard = await createPrepaidCardAndTransfer(
           prepaidCardManager,
@@ -630,16 +642,6 @@ contract("RewardPool", function (accounts) {
       });
 
       it("payee cannot claim their allotted tokens from the pool when the reward program does not have enough tokens in the pool and don't want to allow partial claims", async function () {
-        await registerRewardProgram(
-          prepaidCardManager,
-          prepaidCard,
-          relayer,
-          prepaidCardOwner,
-          REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
-          undefined,
-          prepaidCardOwner,
-          otherRewardProgramID
-        );
         let payeeIndex = 1;
         let rewardee = otherPayments[payeeIndex].payee;
         let proof = otherMerkleTree.getProof(otherPayments[payeeIndex]);
@@ -689,16 +691,6 @@ contract("RewardPool", function (accounts) {
       });
 
       it("payee can claim the remaining tokens from a pool when the reward program does not have enough tokens in the pool and the user does want to allow partial claims", async function () {
-        await registerRewardProgram(
-          prepaidCardManager,
-          prepaidCard,
-          relayer,
-          prepaidCardOwner,
-          REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
-          undefined,
-          prepaidCardOwner,
-          otherRewardProgramID
-        );
         let payeeIndex = 1;
         let rewardee = otherPayments[payeeIndex].payee;
         let proof = otherMerkleTree.getProof(otherPayments[payeeIndex]);
@@ -766,16 +758,6 @@ contract("RewardPool", function (accounts) {
       });
 
       it("payee cannot claim their allotted tokens from the pool even when they allow partial claims if the reward program is empty", async function () {
-        await registerRewardProgram(
-          prepaidCardManager,
-          prepaidCard,
-          relayer,
-          prepaidCardOwner,
-          REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
-          undefined,
-          prepaidCardOwner,
-          otherRewardProgramID
-        );
         let payeeIndex = 1;
         let rewardee = otherPayments[payeeIndex].payee;
         let proof = otherMerkleTree.getProof(otherPayments[payeeIndex]);
