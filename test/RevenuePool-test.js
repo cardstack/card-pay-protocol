@@ -1331,7 +1331,7 @@ contract("RevenuePool", (accounts) => {
         txGasEstimate: gasEstimate,
         gasPrice: 1000000000,
         txGasToken: daicpxdToken.address,
-        refundReceive: relayer,
+        refundReceiver: relayer,
       };
 
       let merchantSafeContract = await GnosisSafe.at(merchantSafe);

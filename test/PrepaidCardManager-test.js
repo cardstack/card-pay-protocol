@@ -618,7 +618,7 @@ contract("PrepaidCardManager", (accounts) => {
         txGasEstimate: gasEstimate,
         gasPrice: 1000000000,
         txGasToken: daicpxdToken.address,
-        refundReceive: relayer,
+        refundReceiver: relayer,
       };
 
       let { safeTx } = await signAndSendSafeTransaction(
@@ -692,7 +692,7 @@ contract("PrepaidCardManager", (accounts) => {
         txGasEstimate: gasEstimate,
         gasPrice: 1000000000,
         txGasToken: daicpxdToken.address,
-        refundReceive: relayer,
+        refundReceiver: relayer,
       };
 
       let { safeTx } = await signAndSendSafeTransaction(
@@ -773,7 +773,7 @@ contract("PrepaidCardManager", (accounts) => {
         txGasEstimate: gasEstimate,
         gasPrice: 1000000000,
         txGasToken: daicpxdToken.address,
-        refundReceive: relayer,
+        refundReceiver: relayer,
       };
 
       let { safeTx } = await signAndSendSafeTransaction(
@@ -867,7 +867,7 @@ contract("PrepaidCardManager", (accounts) => {
         txGasEstimate: gasEstimate,
         gasPrice: 1000000000,
         txGasToken: daicpxdToken.address,
-        refundReceive: relayer,
+        refundReceiver: relayer,
       };
 
       let { safeTx } = await signAndSendSafeTransaction(

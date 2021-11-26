@@ -39,8 +39,8 @@ class PaymentTree extends MerkleTree {
       [
         node["rewardProgramID"],
         node["paymentCycleNumber"],
-        node["startBlock"],
-        node["endBlock"],
+        node["validFrom"],
+        node["validTo"],
         node["tokenType"],
         node["payee"],
         transferData,
