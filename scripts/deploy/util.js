@@ -2,10 +2,15 @@ const { readJSONSync } = require("node-fs-extra");
 const { existsSync } = require("fs");
 const { resolve } = require("path");
 const TrezorWalletProvider = require("trezor-cli-wallet-provider");
+const TransparentUpgradeableProxy = require("@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol/TransparentUpgradeableProxy.json");
 
 const hre = require("hardhat");
 const {
-  upgrades: { deployProxy, upgradeProxy },
+  upgrades: {
+    deployProxy,
+    upgradeProxy,
+    erc1967: { getImplementationAddress },
+  },
   ethers,
 } = hre;
 
@@ -59,6 +64,10 @@ async function makeFactory(contractName) {
 }
 
 function getSigner() {
+  return getProvider().getSigner();
+}
+
+function getProvider() {
   const {
     network: {
       name: network,
@@ -72,11 +81,7 @@ function getSigner() {
     derivationPath,
   });
 
-  const ethersProvider = new ethers.providers.Web3Provider(
-    walletProvider,
-    network
-  );
-  return ethersProvider.getSigner();
+  return new ethers.providers.Web3Provider(walletProvider, network);
 }
 
 async function getDeployAddress() {
@@ -110,16 +115,37 @@ async function retry(cb, maxAttempts = 5) {
         `received ${e.message}, trying again (${attempts} of ${maxAttempts} attempts)`
       );
     }
-  } while (attempts > maxAttempts);
+  } while (attempts < maxAttempts);
 
   throw new Error("Reached max retry attempts");
 }
 
 async function upgradeImplementation(contractName, proxyAddress) {
   await retry(async () => {
-    console.log(`Upgrading ${contractName}@${proxyAddress}...`);
-    let factory = await makeFactory(contractName);
-    await upgradeProxy(proxyAddress, factory);
+    let currentImplementationAddress = await getImplementationAddress(
+      proxyAddress
+    );
+    let deployedCode = await getProvider().getCode(
+      currentImplementationAddress
+    );
+    let artifact = artifacts.require(contractName);
+
+    if (
+      deployedCode &&
+      deployedCode != "0x" &&
+      deployedCode === artifact.deployedBytecode
+    ) {
+      console.log(
+        `Deployed bytecode already matches for ${contractName}@${proxyAddress} - no need to deploy new version`
+      );
+    } else {
+      console.log(
+        `Bytecode changed for ${contractName}@${proxyAddress}... Upgrading`
+      );
+
+      let factory = await makeFactory(contractName);
+      await upgradeProxy(proxyAddress, factory);
+    }
   });
 }
 
