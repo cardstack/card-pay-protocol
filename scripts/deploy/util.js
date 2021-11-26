@@ -75,6 +75,10 @@ function getProvider() {
     },
   } = hre;
 
+  if (network === "localhost") {
+    return new ethers.getDefaultProvider("http://localhost:8545");
+  }
+
   const walletProvider = new TrezorWalletProvider(rpcUrl, {
     chainId: chainId,
     numberOfAccounts: 3,
