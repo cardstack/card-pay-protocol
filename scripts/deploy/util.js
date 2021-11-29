@@ -2,7 +2,6 @@ const { readJSONSync } = require("node-fs-extra");
 const { existsSync } = require("fs");
 const { resolve } = require("path");
 const TrezorWalletProvider = require("trezor-cli-wallet-provider");
-const TransparentUpgradeableProxy = require("@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol/TransparentUpgradeableProxy.json");
 
 const hre = require("hardhat");
 const {
