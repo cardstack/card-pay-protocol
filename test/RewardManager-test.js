@@ -60,10 +60,11 @@ const encodeBlob = function (n = 100) {
 };
 
 contract("RewardManager", (accounts) => {
-  //main contracts
-  let gnosisSafeMasterCopy,
-    proxyFactory,
-    prepaidCardManager,
+  //safe contracts
+  let gnosisSafeMasterCopy, proxyFactory;
+
+  //protocol contracts
+  let prepaidCardManager,
     spendToken,
     actionDispatcher,
     revenuePool,
@@ -85,7 +86,6 @@ contract("RewardManager", (accounts) => {
   // reward manager
   let rewardManager;
   //roles
-
   let owner,
     // == cardpay
     issuer,
