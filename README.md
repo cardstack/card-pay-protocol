@@ -106,7 +106,7 @@ Glossary for rewards within Cardpay:
 
 #### Roles:
 
-- _Rewardee_: The EOA owner that receives reward tokens. A rewardee can be any participant within the cardpay ecosystem, such as _Supplier_, _Merchant_, _Customer_.
+- _Rewardee_: The EOA owner that receives reward tokens. A rewardee can be any participant within the cardpay ecosystem, such as _Supplier_, _Merchant_, _Customer_. For historical reasons, _Payee_ used exchangeably with _Rewardee_.
 - _Reward Program Admin_: The EOA owner that is given authority to execute adminstrative functions for a `Reward Program` such as `updateRewardProgramAdmin`, `lockRewardProgram`.
 - _Governance Admin_: The EOA (represented as dao) that has the authority to `removeRewardProgram`.
   
