@@ -11,6 +11,7 @@ const {
   asyncMain,
   upgradeImplementation,
   deployNewProxyAndImplementation,
+  makeFactory,
 } = require("./util");
 
 patchNetworks();
@@ -93,6 +94,11 @@ async function main() {
     DAIOracle: { contractName: "ChainlinkFeedAdapter", init: [owner] },
     CARDOracle: { contractName: "DIAOracleAdapter", init: [owner] },
     RewardManager: { contractName: "RewardManager", init: [owner] },
+    RewardSafeDelegateImplementation: {
+      contractName: "RewardSafeDelegateImplementation",
+      init: [],
+      nonUpgradeable: true,
+    },
     AddRewardRuleHandler: {
       contractName: "AddRewardRuleHandler",
       init: [owner],
@@ -166,7 +172,10 @@ async function main() {
     proxyAddresses = readJSONSync(addressesFile);
   }
 
-  for (let [contractId, { contractName, init }] of Object.entries(contracts)) {
+  for (let [
+    contractId,
+    { contractName, init, nonUpgradeable },
+  ] of Object.entries(contracts)) {
     let proxyAddress;
 
     init = init.map((i) => {
@@ -195,12 +204,31 @@ async function main() {
       }
     });
 
-    if (proxyAddresses[contractId]) {
+    if (proxyAddresses[contractId] && !nonUpgradeable) {
       ({ proxy: proxyAddress } = proxyAddresses[contractId]);
       console.log(
         `Upgrading ${contractId} (${contractName}@${proxyAddress}) ...`
       );
       await upgradeImplementation(contractName, proxyAddress);
+    } else if (nonUpgradeable) {
+      // if the contract is not upgradeable, deploy a new version each time.
+      // Deploying a new version each time probably only makes sense for contracts
+      // that are used as delegate implementations, and it is done so that when
+      // changes are made to that contract, a new one is deployed and other contracts
+      // are configured to point to it later.
+
+      // This behaviour makes sense for RewardSafeDelegateImplementation,
+      // however it may not make sense for other non-upgradeable contracts in the future
+      console.log(
+        `Deploying new non upgradeable contract ${contractId} (${contractName})...`
+      );
+
+      let factory = await makeFactory(contractName);
+      let instance = await factory.deploy(...init);
+      proxyAddresses[contractId] = {
+        proxy: instance.address, // it's misleading to use the proxy field here, however it's the address used later to refer to the contract
+        contractName,
+      };
     } else {
       console.log(`Deploying new contract ${contractId} (${contractName})...`);
 

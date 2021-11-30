@@ -26,11 +26,10 @@ contract RewardPool is Initializable, Versionable, Ownable {
     address token,
     uint256 amount
   );
-  event MerkleRootSubmission(bytes32 payeeRoot, uint256 numPaymentCycles);
-  event PaymentCycleEnded(
-    uint256 paymentCycle,
-    uint256 startBlock,
-    uint256 endBlock
+  event MerkleRootSubmission(
+    bytes32 payeeRoot,
+    address rewardProgramID,
+    uint256 paymentCycle
   );
   event RewardTokensAdded(
     address rewardProgramID,
@@ -47,13 +46,11 @@ contract RewardPool is Initializable, Versionable, Ownable {
 
   address internal constant ZERO_ADDRESS = address(0);
   address public tally;
-  uint256 public numPaymentCycles;
-  uint256 public currentPaymentCycleStartBlock;
   address public rewardManager;
   address public tokenManager;
 
   mapping(bytes32 => bool) private rewardsClaimed; // hash of leaf node -> claimed status
-  mapping(uint256 => bytes32) private payeeRoots; // payment cycle -> merkle root
+  mapping(address => mapping(uint256 => bytes32)) public payeeRoots; // reward program ID -> payment cycle -> merkle root
   mapping(address => mapping(address => uint256)) public rewardBalance; // reward program ID -> token -> balance
   address public versionManager;
 
@@ -63,7 +60,6 @@ contract RewardPool is Initializable, Versionable, Ownable {
   }
 
   function initialize(address owner) public initializer {
-    numPaymentCycles = 1;
     Ownable.initialize(owner);
   }
 
@@ -85,15 +81,22 @@ contract RewardPool is Initializable, Versionable, Ownable {
     emit Setup(_tally, _rewardManager, _tokenManager);
   }
 
-  function submitPayeeMerkleRoot(bytes32 payeeRoot)
-    external
-    onlyTally
-    returns (bool)
-  {
-    payeeRoots[numPaymentCycles] = payeeRoot;
+  function submitPayeeMerkleRoot(
+    address rewardProgramID,
+    uint256 paymentCycle,
+    bytes32 payeeRoot
+  ) external onlyTally returns (bool) {
+    require(
+      RewardManager(rewardManager).isRewardProgram(rewardProgramID),
+      "Can only submit a root for a registered reward program"
+    );
+    require(
+      payeeRoots[rewardProgramID][paymentCycle] == 0,
+      "Payee root already submitted for this program & cycle"
+    );
+    payeeRoots[rewardProgramID][paymentCycle] = payeeRoot;
 
-    emit MerkleRootSubmission(payeeRoot, numPaymentCycles);
-    startNewPaymentCycle();
+    emit MerkleRootSubmission(payeeRoot, rewardProgramID, paymentCycle);
 
     return true;
   }
@@ -106,17 +109,17 @@ contract RewardPool is Initializable, Versionable, Ownable {
     (
       address rewardProgramID,
       uint256 paymentCycleNumber,
-      uint256 startBlock,
-      uint256 endBlock,
-      uint256 tokenType,
-      address payee,
-      bytes memory transferDetails
+      uint256 validFrom,
+      uint256 validTo,
+      ,
+      ,
+
     ) = abi.decode(
         leaf,
         (address, uint256, uint256, uint256, uint256, address, bytes)
       );
-    if (block.number >= startBlock && block.number < endBlock) {
-      bytes32 root = bytes32(payeeRoots[paymentCycleNumber]);
+    if (block.number >= validFrom && block.number < validTo) {
+      bytes32 root = bytes32(payeeRoots[rewardProgramID][paymentCycleNumber]);
       return proof.verify(root, keccak256(leaf));
     } else {
       return false;
@@ -178,9 +181,9 @@ contract RewardPool is Initializable, Versionable, Ownable {
   ) external returns (bool) {
     (
       address rewardProgramID,
-      uint256 paymentCycleNumber,
-      uint256 startBlock,
-      uint256 endBlock,
+      ,
+      uint256 validFrom,
+      uint256 validTo,
       uint256 tokenType,
       address payee,
       bytes memory transferDetails
@@ -195,10 +198,10 @@ contract RewardPool is Initializable, Versionable, Ownable {
     );
     require(tokenType == 1, "Token type currently unsupported");
     require(
-      block.number >= startBlock,
+      block.number >= validFrom,
       "Can only be claimed on or after the start block"
     );
-    require(block.number < endBlock, "Can only be claimed before end block");
+    require(block.number < validTo, "Can only be claimed before end block");
     require(valid(leaf, proof), "Proof is invalid");
     require(claimed(leaf) == false, "Reward has already been claimed");
 
@@ -236,7 +239,10 @@ contract RewardPool is Initializable, Versionable, Ownable {
   ) external returns (bool) {
     address rewardProgramAdmin = RewardManager(rewardManager)
       .rewardProgramAdmins(rewardProgramID);
-    require(rewardProgramAdmin != ZERO_ADDRESS);
+    require(
+      rewardProgramAdmin != ZERO_ADDRESS,
+      "reward program admin does not exist"
+    );
     require(
       _getEOAOwner(msg.sender) == rewardProgramAdmin,
       "owner of safe is not reward program admin"
@@ -259,9 +265,8 @@ contract RewardPool is Initializable, Versionable, Ownable {
 
   // lazy implementation of getting eoa owner of safe that has 1 or 2 owners
   // think this is a use-case to handle during safe manager refactor
-  function _getEOAOwner(address safe) internal returns (address) {
-    address[] memory ownerArr = GnosisSafe(msg.sender).getOwners();
-    address eoaOwner;
+  function _getEOAOwner(address payable safe) internal returns (address) {
+    address[] memory ownerArr = GnosisSafe(safe).getOwners();
     if (ownerArr.length == 2) {
       return ownerArr[1];
     } else {
@@ -287,24 +292,6 @@ contract RewardPool is Initializable, Versionable, Ownable {
       msg.sender
     ].add(amount);
     emit RewardTokensAdded(rewardProgramID, from, msg.sender, amount);
-  }
-
-  function startNewPaymentCycle() internal onlyTally returns (bool) {
-    require(
-      block.number > currentPaymentCycleStartBlock,
-      "Cannot start new payment cycle before currentPaymentCycleStartBlock"
-    );
-
-    emit PaymentCycleEnded(
-      numPaymentCycles,
-      currentPaymentCycleStartBlock,
-      block.number
-    );
-
-    numPaymentCycles = numPaymentCycles.add(1);
-    currentPaymentCycleStartBlock = block.number.add(1);
-
-    return true;
   }
 
   function cardpayVersion() external view returns (string memory) {

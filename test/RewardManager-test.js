@@ -6,10 +6,14 @@ const SPEND = artifacts.require("SPEND.sol");
 const TokenManager = artifacts.require("TokenManager");
 const SupplierManager = artifacts.require("SupplierManager");
 const RewardManager = artifacts.require("RewardManager");
+const FakeRewardManager = artifacts.require("FakeRewardManager");
 const RevenuePool = artifacts.require("RevenuePool.sol");
 const MerchantManager = artifacts.require("MerchantManager");
 const ERC677Token = artifacts.require("ERC677Token.sol");
 const RewardPool = artifacts.require("RewardPool");
+const RewardSafeDelegateImplementation = artifacts.require(
+  "RewardSafeDelegateImplementation"
+);
 
 const { randomHex } = require("web3-utils");
 const { assert, expect, TOKEN_DETAIL_DATA } = require("./setup");
@@ -19,6 +23,7 @@ const {
   deployContract,
   getParamsFromEvent,
   ZERO_ADDRESS,
+  rewardEIP1271Signature,
 } = require("./utils/general");
 const eventABIs = require("./utils/constant/eventABIs");
 
@@ -42,27 +47,31 @@ const {
   findAccountBeforeAddress,
   setupVersionManager,
   withdrawFromRewardSafe,
+  sendSafeTransaction,
 } = require("./utils/helper");
 
 const AbiCoder = require("web3-eth-abi");
 
 const REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND = 500;
+const DelegateCall = 1;
 
 const encodeBlob = function (n = 100) {
   return randomHex(n);
 };
 
 contract("RewardManager", (accounts) => {
-  //main contracts
-  let gnosisSafeMasterCopy,
-    proxyFactory,
-    prepaidCardManager,
+  //safe contracts
+  let gnosisSafeMasterCopy, proxyFactory;
+
+  //protocol contracts
+  let prepaidCardManager,
     spendToken,
     actionDispatcher,
     revenuePool,
     merchantManager,
     versionManager,
-    rewardPool;
+    rewardPool,
+    rewardSafeDelegate;
   // handlers
   let registerRewardeeHandler,
     registerRewardProgramHandler,
@@ -70,30 +79,34 @@ contract("RewardManager", (accounts) => {
     addRewardRuleHandler,
     updateRewardProgramAdminHandler;
 
-  // tokens
+  // tokens and exchange
   let daicpxdToken, cardcpxdToken, fakeDaicpxdToken;
   let exchange;
 
-  // reward manager contract
+  // reward manager
   let rewardManager;
   //roles
   let owner,
+    // == cardpay
     issuer,
     prepaidCardOwner,
-    relayer,
     merchantFeeReceiver,
     otherPrepaidCardOwner,
-    tally,
     prepaidCardOwnerA,
     prepaidCardOwnerB,
-    governanceAdmin;
+    // == services
+    tally,
+    relayer,
+    // == reward program
+    governanceAdmin,
+    rewardProgramAdmin,
+    rewardFeeReceiver;
   // safes
   let depot;
-  // reward roles
-  let rewardProgramID, rewardProgramAdmin, rewardFeeReceiver;
+  // vars
+  let rewardProgramID;
 
   before(async () => {
-    // accounts
     owner = accounts[0];
     issuer = accounts[1];
     rewardProgramAdmin = accounts[2];
@@ -165,7 +178,7 @@ contract("RewardManager", (accounts) => {
     );
     ({ daicpxdToken, cardcpxdToken, exchange } = await setupExchanges(owner));
 
-    // setup
+    // setup & configure
     await tokenManager.setup(
       ZERO_ADDRESS,
       [daicpxdToken.address, cardcpxdToken.address],
@@ -213,6 +226,9 @@ contract("RewardManager", (accounts) => {
       tokenManager.address,
       versionManager.address
     );
+
+    rewardSafeDelegate = await RewardSafeDelegateImplementation.new();
+
     await rewardManager.setup(
       actionDispatcher.address,
       gnosisSafeMasterCopy.address,
@@ -221,6 +237,7 @@ contract("RewardManager", (accounts) => {
       REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
       [rewardPool.address],
       governanceAdmin,
+      rewardSafeDelegate.address,
       versionManager.address
     );
 
@@ -260,7 +277,6 @@ contract("RewardManager", (accounts) => {
 
     await daicpxdToken.mint(owner, toTokenUnit(100));
 
-    //safes
     depot = await createDepotFromSupplierMgr(supplierManager, issuer);
     await daicpxdToken.mint(depot.address, toTokenUnit(1000));
 
@@ -279,6 +295,7 @@ contract("RewardManager", (accounts) => {
         REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
         [rewardPool.address],
         governanceAdmin,
+        rewardSafeDelegate.address,
         versionManager.address
       );
     });
@@ -293,6 +310,7 @@ contract("RewardManager", (accounts) => {
           REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
           [rewardPool.address],
           governanceAdmin,
+          rewardSafeDelegate.address,
           versionManager.address
         )
         .should.be.rejectedWith(Error, "rewardFeeReceiver not set");
@@ -307,13 +325,30 @@ contract("RewardManager", (accounts) => {
           rewardFeeReceiver,
           0,
           [rewardPool.address],
-          versionManager.address,
-          governanceAdmin
+          governanceAdmin,
+          rewardSafeDelegate.address,
+          versionManager.address
         )
         .should.be.rejectedWith(
           Error,
           "rewardProgramRegistrationFeeInSPEND is not set"
         );
+    });
+
+    it("reverts when safeDelegateImplementation is set to zero address", async () => {
+      await rewardManager
+        .setup(
+          actionDispatcher.address,
+          gnosisSafeMasterCopy.address,
+          proxyFactory.address,
+          rewardFeeReceiver,
+          REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
+          [rewardPool.address],
+          governanceAdmin,
+          ZERO_ADDRESS,
+          versionManager.address
+        )
+        .should.be.rejectedWith(Error, "safeDelegateImplementation not set");
     });
     it("reverts when non-owner calls setup()", async () => {
       await rewardManager
@@ -324,8 +359,9 @@ contract("RewardManager", (accounts) => {
           rewardFeeReceiver,
           REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
           [rewardPool.address],
-          versionManager.address,
           governanceAdmin,
+          rewardSafeDelegate.address,
+          versionManager.address,
           { from: issuer }
         )
         .should.be.rejectedWith(Error, "Ownable: caller is not the owner");
@@ -347,7 +383,7 @@ contract("RewardManager", (accounts) => {
     });
   });
 
-  describe("create reward program", () => {
+  describe("register reward program", () => {
     let prepaidCard, otherPrepaidCard;
     beforeEach(async () => {
       rewardProgramID = randomHex(20);
@@ -474,7 +510,7 @@ contract("RewardManager", (accounts) => {
         .should.be.rejectedWith(Error, "calling token is unaccepted");
     });
 
-    it("reverts when prepaid card owner doesn't send enough in their prepaid card for the reward program registration fee amount", async () => {
+    it("reverts when prepaid card owner doesn't send enough spend from their prepaid for registration fee", async () => {
       await registerRewardProgram(
         prepaidCardManager,
         prepaidCard,
@@ -518,7 +554,7 @@ contract("RewardManager", (accounts) => {
     });
   });
 
-  describe("update reward program", () => {
+  describe("update/configure reward program", () => {
     let prepaidCard, otherPrepaidCard;
     beforeEach(async () => {
       rewardProgramID = randomHex(20);
@@ -538,7 +574,7 @@ contract("RewardManager", (accounts) => {
         prepaidCardOwner,
         REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
         undefined,
-        prepaidCardOwner, //current rewardProgramAdmin
+        prepaidCardOwner,
         rewardProgramID
       );
     });
@@ -673,14 +709,14 @@ contract("RewardManager", (accounts) => {
       await rewardManager.removeRewardProgram(rewardProgramID, {
         from: governanceAdmin,
       });
-      await transferRewardSafe(
-        rewardManager,
-        rewardSafe,
-        prepaidCardOwner,
-        otherPrepaidCardOwner,
-        relayer,
-        daicpxdToken
-      );
+      await transferRewardSafe({
+        rewardManager: rewardManager,
+        rewardSafe: rewardSafe,
+        oldOwner: prepaidCardOwner,
+        newOwner: otherPrepaidCardOwner,
+        relayer: relayer,
+        gasToken: daicpxdToken,
+      });
       let owners = await rewardSafe.getOwners();
       expect(owners.length).to.equal(2);
       expect(owners[1]).to.equal(otherPrepaidCardOwner);
@@ -1247,14 +1283,28 @@ contract("RewardManager", (accounts) => {
         await rewardManager.ownedRewardSafes(prepaidCardOwner, rewardProgramID)
       ).to.equal(rewardSafe.address);
 
-      await transferRewardSafe(
+      let { safeTx } = await transferRewardSafe({
         rewardManager,
         rewardSafe,
-        prepaidCardOwner,
-        otherPrepaidCardOwner,
+        oldOwner: prepaidCardOwner,
+        newOwner: otherPrepaidCardOwner,
         relayer,
-        daicpxdToken
+        gasToken: daicpxdToken,
+      });
+
+      let params = await getParamsFromEvent(
+        safeTx,
+        eventABIs.REWARD_SAFE_TRANSFER,
+        rewardSafe.address
       );
+
+      expect(params.length).to.equal(1);
+      expect(params[0]).to.deep.include({
+        rewardSafe: rewardSafe.address,
+        oldOwner: prepaidCardOwner,
+        newOwner: otherPrepaidCardOwner,
+      });
+
       owners = await rewardSafe.getOwners();
       expect(owners.length).to.equal(2);
       expect(owners[1]).to.equal(otherPrepaidCardOwner);
@@ -1270,7 +1320,7 @@ contract("RewardManager", (accounts) => {
       ).to.equal(rewardSafe.address);
     });
 
-    it("cannot transfer reward safe with swap owner directly to safe", async () => {
+    it("cannot transfer reward safe with swap owner with EOA-signature only", async () => {
       const tx = await registerRewardee(
         prepaidCardManager,
         prepaidCard,
@@ -1298,7 +1348,7 @@ contract("RewardManager", (accounts) => {
       ).should.be.rejectedWith(Error, "Signatures data too short");
     });
 
-    it("cannot transfer reward safe swap owner full signature", async () => {
+    it("cannot transfer reward safe with swap owner full signature", async () => {
       const tx = await registerRewardee(
         prepaidCardManager,
         prepaidCard,
@@ -1343,25 +1393,25 @@ contract("RewardManager", (accounts) => {
       let owners = await rewardSafe.getOwners();
       expect(owners.length).to.equal(2);
       expect(owners[1]).to.equal(prepaidCardOwner);
-      await transferRewardSafe(
-        rewardManager,
-        rewardSafe,
-        prepaidCardOwner,
-        otherPrepaidCardOwner,
-        relayer,
-        daicpxdToken
-      );
+      await transferRewardSafe({
+        rewardManager: rewardManager,
+        rewardSafe: rewardSafe,
+        oldOwner: prepaidCardOwner,
+        newOwner: otherPrepaidCardOwner,
+        relayer: relayer,
+        gasToken: daicpxdToken,
+      });
       owners = await rewardSafe.getOwners();
       expect(owners.length).to.equal(2);
       expect(owners[1]).to.equal(otherPrepaidCardOwner);
-      await transferRewardSafe(
-        rewardManager,
-        rewardSafe,
-        otherPrepaidCardOwner,
-        prepaidCardOwnerA,
-        relayer,
-        daicpxdToken
-      );
+      await transferRewardSafe({
+        rewardManager: rewardManager,
+        rewardSafe: rewardSafe,
+        oldOwner: otherPrepaidCardOwner,
+        newOwner: prepaidCardOwnerA,
+        relayer: relayer,
+        gasToken: daicpxdToken,
+      });
       owners = await rewardSafe.getOwners();
       expect(owners.length).to.equal(2);
       expect(owners[1]).to.equal(prepaidCardOwnerA);
@@ -1384,26 +1434,25 @@ contract("RewardManager", (accounts) => {
       let owners = await rewardSafe.getOwners();
       expect(owners.length).to.equal(2);
       expect(owners[1]).to.equal(prepaidCardOwner);
-      await transferRewardSafe(
-        rewardManager,
-        rewardSafe,
-        prepaidCardOwner,
-        otherPrepaidCardOwner,
-        relayer,
-        daicpxdToken
-      );
+      await transferRewardSafe({
+        rewardManager: rewardManager,
+        rewardSafe: rewardSafe,
+        oldOwner: prepaidCardOwner,
+        newOwner: otherPrepaidCardOwner,
+        relayer: relayer,
+        gasToken: daicpxdToken,
+      });
       owners = await rewardSafe.getOwners();
       expect(owners.length).to.equal(2);
       expect(owners[1]).to.equal(otherPrepaidCardOwner);
-      await transferRewardSafe(
-        rewardManager,
-        rewardSafe,
-        prepaidCardOwner,
-        prepaidCardOwnerA,
-        relayer,
-        daicpxdToken,
-        rewardProgramID
-      ).should.be.rejectedWith(Error, "Invalid owner provided");
+      await transferRewardSafe({
+        rewardManager: rewardManager,
+        rewardSafe: rewardSafe,
+        oldOwner: prepaidCardOwner,
+        newOwner: prepaidCardOwnerA,
+        relayer: relayer,
+        gasToken: daicpxdToken,
+      }).should.be.rejectedWith(Error, "Invalid owner provided");
     });
     it("can sign with address lexigraphically after reward manager contract address for transfer", async () => {
       prepaidCard = await createPrepaidCardAndTransfer(
@@ -1432,14 +1481,14 @@ contract("RewardManager", (accounts) => {
       let owners = await rewardSafe.getOwners();
       expect(owners.length).to.equal(2);
       expect(owners[1]).to.equal(prepaidCardOwnerA);
-      await transferRewardSafe(
-        rewardManager,
-        rewardSafe,
-        prepaidCardOwnerA,
-        otherPrepaidCardOwner,
-        relayer,
-        daicpxdToken
-      );
+      await transferRewardSafe({
+        rewardManager: rewardManager,
+        rewardSafe: rewardSafe,
+        oldOwner: prepaidCardOwnerA,
+        newOwner: otherPrepaidCardOwner,
+        relayer: relayer,
+        gasToken: daicpxdToken,
+      });
       owners = await rewardSafe.getOwners();
       expect(owners.length).to.equal(2);
       expect(owners[1]).to.equal(otherPrepaidCardOwner);
@@ -1471,14 +1520,14 @@ contract("RewardManager", (accounts) => {
       let owners = await rewardSafe.getOwners();
       expect(owners.length).to.equal(2);
       expect(owners[1]).to.equal(prepaidCardOwnerB);
-      await transferRewardSafe(
-        rewardManager,
-        rewardSafe,
-        prepaidCardOwnerB,
-        otherPrepaidCardOwner,
-        relayer,
-        daicpxdToken
-      );
+      await transferRewardSafe({
+        rewardManager: rewardManager,
+        rewardSafe: rewardSafe,
+        oldOwner: prepaidCardOwnerB,
+        newOwner: otherPrepaidCardOwner,
+        relayer: relayer,
+        gasToken: daicpxdToken,
+      });
       owners = await rewardSafe.getOwners();
       expect(owners.length).to.equal(2);
       expect(owners[1]).to.equal(otherPrepaidCardOwner);
@@ -1501,14 +1550,14 @@ contract("RewardManager", (accounts) => {
       let owners = await rewardSafe.getOwners();
       expect(owners.length).to.equal(2);
       expect(owners[1]).to.equal(prepaidCardOwner);
-      await transferRewardSafe(
-        rewardManager,
-        rewardSafe,
-        prepaidCardOwner,
-        otherPrepaidCardOwner,
-        relayer,
-        daicpxdToken
-      );
+      await transferRewardSafe({
+        rewardManager: rewardManager,
+        rewardSafe: rewardSafe,
+        oldOwner: prepaidCardOwner,
+        newOwner: otherPrepaidCardOwner,
+        relayer: relayer,
+        gasToken: daicpxdToken,
+      });
       owners = await rewardSafe.getOwners();
       expect(owners.length).to.equal(2);
       expect(owners[1]).to.equal(otherPrepaidCardOwner);
@@ -1591,20 +1640,20 @@ contract("RewardManager", (accounts) => {
         await daicpxdToken.balanceOf(prepaidCardOwner)
       ).to.be.bignumber.equal(toTokenUnit(0));
 
-      let { safeTx } = await withdrawFromRewardSafe(
-        rewardManager,
-        rewardSafe,
-        daicpxdToken.address,
-        prepaidCardOwner,
-        toTokenUnit(50),
-        relayer,
-        daicpxdToken
-      );
+      let { safeTx } = await withdrawFromRewardSafe({
+        rewardManager: rewardManager,
+        rewardSafe: rewardSafe,
+        tokenAddress: daicpxdToken.address,
+        to: prepaidCardOwner,
+        value: toTokenUnit(50),
+        relayer: relayer,
+        gasToken: daicpxdToken,
+      });
 
       let params = await getParamsFromEvent(
         safeTx,
         eventABIs.REWARD_SAFE_WITHDRAWAL,
-        rewardManager.address
+        rewardSafe.address
       );
 
       expect(params.length).to.equal(1);
@@ -1631,15 +1680,15 @@ contract("RewardManager", (accounts) => {
 
       expect(
         (
-          await withdrawFromRewardSafe(
-            rewardManager,
-            rewardSafe,
-            fakeDaicpxdToken.address,
-            prepaidCardOwner,
-            toTokenUnit(50),
-            relayer,
-            daicpxdToken
-          )
+          await withdrawFromRewardSafe({
+            rewardManager: rewardManager,
+            rewardSafe: rewardSafe,
+            tokenAddress: fakeDaicpxdToken.address,
+            to: prepaidCardOwner,
+            value: toTokenUnit(50),
+            relayer: relayer,
+            gasToken: daicpxdToken,
+          })
         ).executionResult.success
       ).to.equal(false);
       expect(
@@ -1647,18 +1696,18 @@ contract("RewardManager", (accounts) => {
       ).to.be.bignumber.equal(toTokenUnit(100));
     });
 
-    it("can withdraw to different address than the reward safe owner", async function () {
+    it("can withdraw to different address other than the reward safe owner", async function () {
       expect(
         (
-          await withdrawFromRewardSafe(
-            rewardManager,
-            rewardSafe,
-            daicpxdToken.address,
-            otherPrepaidCardOwner,
-            toTokenUnit(50),
-            relayer,
-            daicpxdToken
-          )
+          await withdrawFromRewardSafe({
+            rewardManager: rewardManager,
+            rewardSafe: rewardSafe,
+            tokenAddress: daicpxdToken.address,
+            to: otherPrepaidCardOwner,
+            value: toTokenUnit(50),
+            relayer: relayer,
+            gasToken: daicpxdToken,
+          })
         ).executionResult.success
       ).to.equal(true);
       expect(
@@ -1667,6 +1716,60 @@ contract("RewardManager", (accounts) => {
       expect(
         await daicpxdToken.balanceOf(otherPrepaidCardOwner)
       ).to.be.bignumber.equal(toTokenUnit(50));
+    });
+
+    it("cannot withdraw with a fake reward manager; validates reward manager address on reward safe delegate implementation", async function () {
+      const rewardSafeEOA = (await rewardSafe.getOwners())[1];
+
+      let delegateImplementation = await RewardSafeDelegateImplementation.at(
+        await rewardManager.safeDelegateImplementation()
+      );
+
+      let fakeRewardManager = await FakeRewardManager.new();
+
+      let payload = delegateImplementation.contract.methods.withdraw(
+        fakeRewardManager.address,
+        daicpxdToken.address,
+        prepaidCardOwner,
+        toTokenUnit(50)
+      );
+      let data = payload.encodeABI();
+
+      const fullSignature = await rewardEIP1271Signature({
+        // When using DelegateCall, the "to" argument is misleading.
+        // The transaction is actually sent to the safe address, but using the contract
+        // implementation at the adderess passed in the "to" field
+        to: delegateImplementation.address,
+        value: 0,
+        data,
+        operation: DelegateCall,
+        txGasEstimate: 0,
+        baseGasEstimate: 0,
+        gasPrice: 0,
+        txGasToken: daicpxdToken.address,
+        refundReceiver: rewardSafe.address,
+        nonce: await rewardSafe.nonce(),
+        owner: rewardSafeEOA,
+        gnosisSafe: rewardSafe,
+        verifyingContract: rewardManager,
+      });
+
+      let safeTxData = {
+        to: delegateImplementation.address,
+        data,
+        operation: DelegateCall,
+        txGasEstimate: 0,
+        gasPrice: 0,
+        txGasToken: daicpxdToken.address,
+        refundReceiver: rewardSafe.address,
+      };
+
+      await sendSafeTransaction(
+        safeTxData,
+        rewardSafe,
+        relayer,
+        fullSignature
+      ).should.be.rejectedWith("invalid manager");
     });
   });
 

@@ -257,6 +257,25 @@ const eventABIs = {
       },
     ],
   },
+  REWARD_SAFE_TRANSFER: {
+    topic: web3EthAbi.encodeEventSignature(
+      "RewardSafeTransferred(address,address,address)"
+    ),
+    abis: [
+      {
+        type: "address",
+        name: "rewardSafe",
+      },
+      {
+        type: "address",
+        name: "oldOwner",
+      },
+      {
+        type: "address",
+        name: "newOwner",
+      },
+    ],
+  },
 };
 
 module.exports = eventABIs;

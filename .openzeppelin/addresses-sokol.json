@@ -71,10 +71,6 @@
     "proxy": "0x959CF9c3f8bDdba69210159c25f77BCE58EADC75",
     "contractName": "PrepaidCardMarket"
   },
-  "RewardPool": {
-    "proxy": "0x2D23acfEA32492911E8DF12E697AF0013B8D4E7b",
-    "contractName": "RewardPool"
-  },
   "SetPrepaidCardInventoryHandler": {
     "proxy": "0x1243E39e42eD35cd272a05B152996cBB4E883fB8",
     "contractName": "SetPrepaidCardInventoryHandler"
@@ -111,10 +107,6 @@
     "proxy": "0x330e167945eb4EC0CB3a28D63533789aba62610B",
     "contractName": "LevelRegistrar"
   },
-  "RewardManager": {
-    "proxy": "0x3ED4129d0076f3357e4915C5dd12F10c1335F49a",
-    "contractName": "RewardManager"
-  },
   "AddRewardRuleHandler": {
     "proxy": "0xDDb7cb7a6Ef756f0C5805d71b1c7ae919edCC305",
     "contractName": "AddRewardRuleHandler"
@@ -130,5 +122,17 @@
   "UpdateRewardProgramAdminHandler": {
     "proxy": "0x89a2aD80b7285630A27fBBe8f4d9A7141bcEA2E0",
     "contractName": "UpdateRewardProgramAdminHandler"
+  },
+  "RewardPool": {
+    "proxy": "0x93a2684c14CeeF20fCdE714BDF362dda6A4C9287",
+    "contractName": "RewardPool"
+  },
+  "RewardManager": {
+    "proxy": "0xaC47B293f836F3a64eb4AEF02Cb7d1428dCe815f",
+    "contractName": "RewardManager"
+  },
+  "RewardSafeDelegateImplementation": {
+    "proxy": "0x4F771D5d4B6DA6be9811EE199D0bb735aB5948a6",
+    "contractName": "RewardSafeDelegateImplementation"
   }
 }

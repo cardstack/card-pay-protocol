@@ -1,6 +1,6 @@
 {
   "name": "card-protocol-xdai",
-  "version": "0.8.5",
+  "version": "0.8.6",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -13,9 +13,10 @@
     "test:size": "{ ./node_modules/.bin/hardhat size-contracts | tee /dev/fd/3 | grep -q 'exceed the size limit for mainnet deployment' && exit 1; } 3>&1 || echo 'All contracts within size limit'",
     "watch:compile": "./node_modules/.bin/hardhat watch compile",
     "watch:test": "./node_modules/.bin/hardhat watch test",
-    "lint": "npm-run-all lint:*",
+    "write:abi": "node ./scripts/write-abi.js",
+    "lint": "yarn lint:sol && yarn lint:js",
     "lint:js": "./node_modules/.bin/eslint .",
-    "lint:sol": "./node_modules/.bin/solhint ./contracts/**/*.sol -w 0",
+    "lint:sol": "./node_modules/.bin/solhint ./contracts/\\*\\*/\\*.sol -w 0",
     "ganache:stop": "for PID in $(ps -ef | grep ganache-cli | awk '{print $2}'); do kill $PID; done > /dev/null 2>&1 &",
     "deploy:contracts": "./node_modules/.bin/hardhat run scripts/deploy/001_initialize_contracts.js",
     "deploy:config-only": "yarn deploy:config:protocol",
@@ -126,7 +127,6 @@
     "mocha": "^8.2.1",
     "node-fetch": "^2.6.1",
     "node-fs-extra": "^0.8.2",
-    "npm-run-all": "^4.1.5",
     "pify": "^5.0.0",
     "prettier": "^2.2.1",
     "prettier-plugin-solidity": "^1.0.0-beta.7",
@@ -148,7 +148,8 @@
     "bitcore-lib": "8.1.1"
   },
   "volta": {
-    "node": "14.16.1"
+    "node": "14.16.1",
+    "yarn": "1.22.17"
   },
   "dependencies": {
     "hardhat-watcher": "^2.1.1"
