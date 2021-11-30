@@ -172,6 +172,12 @@ Solidity contracts has a maximum deployed bytecode size of 24KB. When a contract
 yarn test:size
 ```
 
+Abis generated from this repository will be used inside the [monorepo](https://github.com/cardstack/cardstack). To prepare the abis to be copied into the cardpay sdk  [here](https://github.com/cardstack/cardstack/tree/main/packages/cardpay-sdk/contracts/abi) run the command below; a directory `abi` will be generated.
+
+```sh
+yarn write:abi
+```
+
 ### Deploying to private network
 If you desire to test the protocol in an ad hoc manner in a private network (hardhat), then first start an RPC node in its own terminal window:
 ```sh
