@@ -61,6 +61,8 @@ function toTokenUnit(_numberToken, _decimals = 18) {
   let number = toBN(_numberToken);
   return number.mul(dec);
 }
+
+function encodeCreateCardsData(
   account,
   issuingTokenAmounts = [],
   spendAmounts = [],
@@ -1342,7 +1344,7 @@ async function withdrawFromRewardSafe({
   );
   let data = payload.encodeABI();
 
- const fullSignature = await rewardEIP1271Signature({
+  const fullSignature = await rewardEIP1271Signature({
     // When using DELEGATE_CALL, the "to" argument is misleading.
     // The transaction is actually sent to the safe address, but using the contract
     // implementation at the adderess passed in the "to" field
@@ -1758,7 +1760,7 @@ exports.claimReward = async function (
 
   let packData = packExecutionData(safeTxData);
 
-  le signature = await rewardEIP1271Signature({
+  let signature = await rewardEIP1271Signature({
     ...packData,
     nonce,
     owner: rewardSafeOwner,
