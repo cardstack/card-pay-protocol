@@ -49,6 +49,12 @@ Examples of existing "actions" include:
 
 In the future prepaid cards will support actions that allow it to perform capabilities that will be expressed by rewards programs and the commerce protocol.
 
+### PrepaidCardMarket
+The PrepaidCardMarket contract is responsible for provisioning already created prepaid card safes to customers. The intent is that Prepaid Card issuers can add their prepaid cards as inventory to this contract, thereby creating a SKU that represents the class of Prepaid Card which becomes available to provision to a customer. The act of adding a Prepaid Card to inventory means that the issuer of the Prepaid Card transfers their ownership of the Prepaid Card safe contract to the PrepaidCardMarket contract, such that the Prepaid Card safe has 2 contract owners: the PrepaidCardManager and the PrepaidCardMarket. Once a Prepaid Card is part of the inventory of the PrepaidCardMarket contract a "provisioner" role (which is a special EOA) is permitted to provision a Prepaid Card safe to a customer's EOA. This process entails leveraging an EIP-1271 contract signature to transfer ownership of the Prepaid Card safe from the PrepaidCardMarket contract to the specified customer EOA. Additionally the issuer of a Prepaid Card may also decide to remove Prepaid Cards from their inventory. This process also leverages EIP-1271 contract signatures to transfer ownership of the Prepaid Card safe from the PrepaidCardMarket contract back to the issuer that originally placed the Prepaid Card safe into their inventory.
+
+A future update to this contract will provide the ability for EOAs to directly purchase Prepaid Card safes from the PrepaidCardMarket using native coin and/or CPXD tokens. In that future scenario we would leverage the "ask price" that can be set against a SKU to be able to purchase Prepaid Card safes directly. To support this eventual feature we have added the ability to set an "ask price" for SKUs ni the inventory, however, capability to directly purchase a Prepaid Card from this contract is still TBD.
+
+
 ### ActionDispatcher
 The `ActionDispatcher` receives actions that have been issued from the `PrepaidCardManager.send()` as gnosis safe transactions. The `ActionDispatcher` will confirm that the requested USD rate for the §SPEND amount falls within an acceptable range, and then will forward (via an ERC677 `transferAndCall()`) the action to the contract address that has been configured to handle the requested action.
 
@@ -63,6 +69,15 @@ The `SplitPrepaidCardHandler` is a contract that handles the `split` action. Thi
 
 ### TransferPrepaidCardHandler
 The `TransferPrepaidCardHandler` is a contract that handles the `transfer` action. This contract will receive a "transfer" action and an ABI encoded signature from the prepaid card's original EOA owner that authorizes the transfer of ownership from the `ActionHandler`. This contract will then call the `PrepaidCardManager.transfer()` function to perform a gnosis safe transfer of the prepaid card to the new EOA owner using the provided signature of the previous EOA owner of the prepaid card.
+
+### SetPrepaidCardInventoryHandler
+The `SetPrepaidCardInventoryHandler` is a contract that handles the `setPrepaidCardInventory` action. This contract will receive a "setPrepaidCardInventory" action accompanied by ABI encoded fields that include the prepaid card to add to inventory, a signature from the prepaid card issuer to transfer the prepaid card safe to add to inventory to the PrepaidCardMarket contract, and the address of the PrepaidCardMarket contract. This contract will only permit unused Prepaid card safes to be added to inventory by the issuer of the Prepaid Card. This contract will then perform the gnosis safe transfer of the prepaid card to the PrepaidCardMarket contract using the provided signature, and then this contract will call the necessary functions to add the transferred prepaid card safe to the issuer's inventory in the PrepaidCardMarket contract.
+
+### RemovePrepaidCardInventoryHandler
+The `RemovePrepaidCardInventoryHandler` is a contract that handles the `removePrepaidCardInventory` action. This contract will receive a "removePrepaidCardInventory" action accompanied by ABI encoded fields that include a list of prepaid card safe addresses to be removed from an issuer's inventory in the PrepaidCardMarket contract. This contract will iterate over the list of prepaid card safe addresses and leverage an EIP-1271 contract signature to transfer the prepaid card safes back to the issuer that originally added these prepaid card safes to the inventory, thereby removing these prepaid card safes from the PrepaidCardMarket contract inventory.
+
+### SetPrepaidCardAskHandler
+The `SetPrepaidCardAskHandler` is a contract that handles the `setPrepaidCardAsk` action. This contract will receive a "setPrepaidCardAsk" action accompanied by ABI encoded fields that include the SKU for prepaid card inventory and the ask price for a single item in the inventory in units of the issuing token for the prepaid card. Until an ask price is set for a SKU, the prepaid cards that are a part of the SKU cannot be provisioned. This is to prevent the scenario where prepaid cards could be purchased before a price is set when the TBD direct purchase functionality is added to the PrepaidCardMarket contract. Eventually when the TBD direct purchase functionality is added, the ask price will be used to charge EOAs that wish to purchase prepaid card inventory from the PrepaidCardMarket contract.
 
 ### RegisterRewardProgramHandler
 The `RegisterRewardProgramHandler` is a contract that handles the `registerRewardProgram` action. This contract will receive reward program registration payments from the `ActionHandler`. This contract will call the `RewardManager` to register the reward program and set a _Reward Program Admin_. This contract sends the protocol fee (`rewardProgramRegistrationFeeInSpend`) to a designated address that is used to collect protocol fees (for rewards). See [reward glossary](#rewardmanager).
@@ -109,7 +124,7 @@ Glossary for rewards within Cardpay:
 - _Rewardee_: The EOA owner that receives reward tokens. A rewardee can be any participant within the cardpay ecosystem, such as _Supplier_, _Merchant_, _Customer_. For historical reasons, _Payee_ used exchangeably with _Rewardee_.
 - _Reward Program Admin_: The EOA owner that is given authority to execute adminstrative functions for a `Reward Program` such as `updateRewardProgramAdmin`, `lockRewardProgram`.
 - _Governance Admin_: The EOA (represented as dao) that has the authority to `removeRewardProgram`.
-  
+
 #### Entities:
 
 - _Reward Program_: A program created to offer reward tokens _Rewardees_ based on a `rule`. For example, _Merchant_ might want to register a reward program to offer `Card.cpxd` tokens to _Customers_ who spend > 100 SPEND in a week.
@@ -127,13 +142,13 @@ The `RewardManager` is the main administrative contract that enables management 
 The `RewardManager` is responsible for creating gnosis safes that are known as _Reward Safes_. More importantly, the `rewardManager` host the EIP1271 signature callback that restrict the functions that a _Reward Safe_ can execute. The two examples of this are:
 
 - `withdrawFromRewardSafe`: this function enables any ERC677 reward tokens to be transferred out of the _Reward Safe_ after it has been claimed. The tokens transferred are used to pay for gas.
-- `transferRewardSafe`: this function enables the EOA-portion of ownership to be transferred. The transaction is gasless and considered as cost to the protocol fees collected during `registerRewardee`. 
+- `transferRewardSafe`: this function enables the EOA-portion of ownership to be transferred. The transaction is gasless and considered as cost to the protocol fees collected during `registerRewardee`.
 
 ### RewardPool
 
 The `RewardPool` is a contract that stores inventory of the reward tokens(CPXD tokens) to be distributed to _Rewardees_ for each _Reward Program_. The _Reward Program Admin_ will refill the `RewardPool` with reward tokens for it's _Reward Program_ when the balance gets low.
 
-The `RewardPool` contract is also the interface in which _Tally_ delivers rewards to a list of _Rewardees_. We use merkle trees as a way to verify how many tokens a _Rewardee_ has claim to. For each `rewardCycle` (interval of blocks), _Tally_ will write a `root`(a 32 byte hash) and store corresponding `proofs`(bytes) in offchain-storage. These `proofs` are used by the _Rewardee_ to be verified against the `roots` and to claim reward tokens. 
+The `RewardPool` contract is also the interface in which _Tally_ delivers rewards to a list of _Rewardees_. We use merkle trees as a way to verify how many tokens a _Rewardee_ has claim to. For each `rewardCycle` (interval of blocks), _Tally_ will write a `root`(a 32 byte hash) and store corresponding `proofs`(bytes) in offchain-storage. These `proofs` are used by the _Rewardee_ to be verified against the `roots` and to claim reward tokens.
 
 
 ## Prerequisites
