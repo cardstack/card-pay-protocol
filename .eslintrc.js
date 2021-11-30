@@ -17,7 +17,7 @@ module.exports = {
     artifacts: "readonly",
     web3: "readonly",
   },
-  ignorePatterns: ["bin/**", "build/**", "coverage/**", "dist/**"],
+  ignorePatterns: ["bin/**", "build/**", "coverage/**", "dist/**", "abi/**"],
   rules: {
     "prettier/prettier": "error",
     "prefer-const": "off",
