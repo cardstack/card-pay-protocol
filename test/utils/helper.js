@@ -53,8 +53,8 @@ const {
 const BLOCK_GAS_LIMIT = 6000000;
 const DEFAULT_GAS_PRICE = 1000000000;
 const SENTINEL_OWNER = "0x0000000000000000000000000000000000000001";
+const CALL = 0;
 const DELEGATE_CALL = 1;
-const CALL = 1;
 
 function toTokenUnit(_numberToken, _decimals = 18) {
   let dec = toBN("10").pow(toBN(_decimals));
