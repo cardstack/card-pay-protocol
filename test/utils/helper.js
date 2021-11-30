@@ -53,7 +53,8 @@ const {
 const BLOCK_GAS_LIMIT = 6000000;
 const DEFAULT_GAS_PRICE = 1000000000;
 const SENTINEL_OWNER = "0x0000000000000000000000000000000000000001";
-const DelegateCall = 1;
+const CALL = 0;
+const DELEGATE_CALL = 1;
 
 function toTokenUnit(_numberToken, _decimals = 18) {
   let dec = toBN("10").pow(toBN(_decimals));
@@ -84,7 +85,7 @@ function packExecutionData({
   to,
   value = 0,
   data,
-  operation = 0,
+  operation = CALL,
   txGasEstimate = 0,
   baseGasEstimate = 0,
   gasPrice = 0,
@@ -801,7 +802,7 @@ const transferOwner = async function (
       issuingToken.address,
       0,
       data,
-      0,
+      CALL,
       0,
       0,
       0,
@@ -854,7 +855,7 @@ exports.registerMerchant = async function (
     issuingToken.address,
     0,
     data,
-    0,
+    CALL,
     0,
     0,
     0,
@@ -926,7 +927,7 @@ exports.setPrepaidCardInventory = async function (
     issuingToken.address,
     0,
     data,
-    0,
+    CALL,
     BLOCK_GAS_LIMIT,
     0,
     gasPrice,
@@ -990,7 +991,7 @@ exports.removePrepaidCardInventory = async function (
     issuingToken.address,
     0,
     data,
-    0,
+    CALL,
     BLOCK_GAS_LIMIT,
     0,
     gasPrice,
@@ -1054,7 +1055,7 @@ exports.setPrepaidCardAsk = async function (
     issuingToken.address,
     0,
     data,
-    0,
+    CALL,
     BLOCK_GAS_LIMIT,
     0,
     gasPrice,
@@ -1117,7 +1118,7 @@ exports.splitPrepaidCard = async function (
     issuingToken.address,
     0,
     data,
-    0,
+    CALL,
     BLOCK_GAS_LIMIT,
     0,
     gasPrice,
@@ -1167,7 +1168,7 @@ exports.payMerchant = async function (
     issuingToken.address,
     0,
     data,
-    0,
+    CALL,
     0,
     0,
     0,
@@ -1238,7 +1239,7 @@ exports.registerRewardee = async function (
     issuingToken.address,
     0,
     data,
-    0,
+    CALL,
     BLOCK_GAS_LIMIT,
     0,
     DEFAULT_GAS_PRICE,
@@ -1284,13 +1285,13 @@ const transferRewardSafe = async function ({
   let data = payload.encodeABI();
 
   const fullSignature = await rewardEIP1271Signature({
-    // When using DelegateCall, the "to" argument is misleading.
+    // When using DELEGATE_CALL, the "to" argument is misleading.
     // The transaction is actually sent to the safe address, but using the contract
     // implementation at the adderess passed in the "to" field
     to: delegateImplementation.address,
     value: 0,
     data,
-    operation: DelegateCall,
+    operation: DELEGATE_CALL,
     txGasEstimate: 0,
     baseGasEstimate: 0,
     gasPrice: 0,
@@ -1305,7 +1306,7 @@ const transferRewardSafe = async function ({
   let safeTxData = {
     to: delegateImplementation.address,
     data,
-    operation: DelegateCall,
+    operation: DELEGATE_CALL,
     txGasEstimate: 0,
     gasPrice: 0,
     txGasToken: gasToken.address,
@@ -1344,13 +1345,13 @@ async function withdrawFromRewardSafe({
   let data = payload.encodeABI();
 
   const fullSignature = await rewardEIP1271Signature({
-    // When using DelegateCall, the "to" argument is misleading.
+    // When using DELEGATE_CALL, the "to" argument is misleading.
     // The transaction is actually sent to the safe address, but using the contract
     // implementation at the adderess passed in the "to" field
     to: delegateImplementation.address,
     value: 0,
     data,
-    operation: DelegateCall,
+    operation: DELEGATE_CALL,
     txGasEstimate: 0,
     baseGasEstimate: 0,
     gasPrice: 0,
@@ -1365,7 +1366,7 @@ async function withdrawFromRewardSafe({
   let safeTxData = {
     to: delegateImplementation.address,
     data,
-    operation: DelegateCall,
+    operation: DELEGATE_CALL,
     txGasEstimate: 0,
     gasPrice: 0,
     txGasToken: gasToken.address,
@@ -1516,7 +1517,7 @@ exports.registerRewardProgram = async function (
     issuingToken.address,
     0,
     data,
-    0,
+    CALL,
     0,
     0,
     0,
@@ -1568,7 +1569,7 @@ exports.lockRewardProgram = async function (
     issuingToken.address,
     0,
     data,
-    0,
+    CALL,
     BLOCK_GAS_LIMIT,
     0,
     DEFAULT_GAS_PRICE,
@@ -1623,7 +1624,7 @@ exports.addRewardRule = async function (
     issuingToken.address,
     0,
     data,
-    0,
+    CALL,
     BLOCK_GAS_LIMIT,
     0,
     DEFAULT_GAS_PRICE,
@@ -1677,7 +1678,7 @@ exports.updateRewardProgramAdmin = async function (
     issuingToken.address,
     0,
     data,
-    0,
+    CALL,
     BLOCK_GAS_LIMIT,
     0,
     DEFAULT_GAS_PRICE,
@@ -1857,7 +1858,7 @@ exports.payRewardTokens = async function (
     issuingToken.address,
     0,
     data,
-    0,
+    CALL,
     BLOCK_GAS_LIMIT,
     0,
     DEFAULT_GAS_PRICE,

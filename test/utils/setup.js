@@ -24,7 +24,6 @@ const {
   setupVersionManager,
 } = require("./helper");
 
-//constants
 const REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND = 500;
 
 const utils = require("./general");
@@ -46,7 +45,8 @@ const setupRoles = function (accounts) {
   };
 };
 
-// this is bad but I use as placeholder because it greedily loads all contracts
+// This is a utility that supposed to setup entire protocol
+// - note: it greedily loads all contracts so it might deploy & setup contracts unused in test
 const setupProtocol = async (accounts) => {
   const {
     owner,
@@ -178,7 +178,6 @@ const setupProtocol = async (accounts) => {
 
   await daicpxdToken.mint(owner, toTokenUnit(100));
 
-  //safes
   const depot = await createDepotFromSupplierMgr(supplierManager, issuer);
   await daicpxdToken.mint(depot.address, toTokenUnit(1000));
   await cardcpxdToken.mint(depot.address, toTokenUnit(1000));
@@ -199,16 +198,16 @@ const setupProtocol = async (accounts) => {
     rewardManager,
     revenuePool,
     actionDispatcher,
-    exchange,
     spendToken,
     rewardPool,
     payRewardTokensHandler,
     versionManager,
 
-    //tokens
+    //tokens and exchange
     daicpxdToken,
     cardcpxdToken,
     fakeDaicpxdToken,
+    exchange,
 
     //safes
     depot,

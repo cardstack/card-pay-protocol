@@ -140,7 +140,7 @@ contract("RewardPool", function (accounts) {
           validFrom: currentBlockNumber,
           validTo: currentBlockNumber + 10000,
           rewardProgramID: rewardProgramID,
-          payee: accounts[11],
+          payee: accounts[11], //payee == rewardee
           token: cardcpxdToken.address,
           tokenType: 1,
           amount: toTokenUnit(10),
@@ -282,7 +282,7 @@ contract("RewardPool", function (accounts) {
             "Can only submit a root for a registered reward program"
           );
       });
-      it("supports submitting a new merkle root for a payment cycle", async function () {
+      it("can submit a new merkle root for a payment cycle", async function () {
         let merkleTree = new PaymentTree(payments);
         let root = merkleTree.getHexRoot();
         let paymentCycleNumber = 1;
@@ -318,7 +318,7 @@ contract("RewardPool", function (accounts) {
         );
       });
 
-      it("allows a multiple merkle roots for the same reward program to be submitted", async function () {
+      it("allows multiple merkle roots for the same reward program to be submitted", async function () {
         let merkleTree = new PaymentTree(payments);
         let root = merkleTree.getHexRoot();
         await rewardPool.submitPayeeMerkleRoot(rewardProgramID, 1, root, {
@@ -330,7 +330,7 @@ contract("RewardPool", function (accounts) {
         });
       });
 
-      it("allows a multiple merkle roots for different reward programs to be submitted with the same payment cycle number", async function () {
+      it("allows multiple merkle roots for different reward programs to be submitted with the same payment cycle number", async function () {
         let merkleTree = new PaymentTree(payments);
         let root = merkleTree.getHexRoot();
         await registerRewardProgram(
@@ -475,7 +475,7 @@ contract("RewardPool", function (accounts) {
         );
       });
 
-      it("payee can claim from the pool", async function () {
+      it("payee/rewardee can claim from the pool", async function () {
         const {
           executionResult: { gasFee },
         } = await claimReward(
@@ -511,7 +511,7 @@ contract("RewardPool", function (accounts) {
         );
       });
 
-      it("payee cannot claim using an eoa", async function () {
+      it("payee/rewardee cannot claim using an eoa", async function () {
         await rewardPool
           .claim(leaf, proof, false, {
             from: payee,
@@ -521,7 +521,7 @@ contract("RewardPool", function (accounts) {
             "Transaction reverted: function call to a non-contract account"
           );
       });
-      it("payee cannot claim from a safe associated with different reward program", async function () {
+      it("payee/rewardee cannot claim from a safe associated with different reward program", async function () {
         let aPayee = payments[0].payee;
 
         rewardeePrepaidCard = await createPrepaidCardAndTransfer(
@@ -597,7 +597,7 @@ contract("RewardPool", function (accounts) {
         ).should.be.rejectedWith(Error, "Can only be claimed by payee");
       });
 
-      it("payee cannot claim their allotted tokens from the pool when the pool does not have enough tokens", async function () {
+      it("payee/rewardee cannot claim their allotted tokens from the pool when the pool does not have enough tokens", async function () {
         let payeeIndex = 5;
         let rewardee = payments[payeeIndex].payee;
         let paymentAmountAbove100 = payments[payeeIndex].amount;
@@ -641,7 +641,7 @@ contract("RewardPool", function (accounts) {
         ).should.be.rejectedWith(Error, "Reward pool has insufficient balance");
       });
 
-      it("payee cannot claim their allotted tokens from the pool when the reward program does not have enough tokens in the pool and don't want to allow partial claims", async function () {
+      it("payee/rewardee cannot claim their allotted tokens from the pool when the reward program does not have enough tokens in the pool and don't want to allow partial claims", async function () {
         let payeeIndex = 1;
         let rewardee = otherPayments[payeeIndex].payee;
         let proof = otherMerkleTree.getProof(otherPayments[payeeIndex]);
@@ -690,7 +690,7 @@ contract("RewardPool", function (accounts) {
         );
       });
 
-      it("payee can claim the remaining tokens from a pool when the reward program does not have enough tokens in the pool and the user does want to allow partial claims", async function () {
+      it("payee/rewardee can claim the remaining tokens from a pool when the reward program does not have enough tokens in the pool and the user does want to allow partial claims", async function () {
         let payeeIndex = 1;
         let rewardee = otherPayments[payeeIndex].payee;
         let proof = otherMerkleTree.getProof(otherPayments[payeeIndex]);
@@ -757,7 +757,7 @@ contract("RewardPool", function (accounts) {
         );
       });
 
-      it("payee cannot claim their allotted tokens from the pool even when they allow partial claims if the reward program is empty", async function () {
+      it("payee/rewardee cannot claim their allotted tokens from the pool even when they allow partial claims if the reward program is empty", async function () {
         let payeeIndex = 1;
         let rewardee = otherPayments[payeeIndex].payee;
         let proof = otherMerkleTree.getProof(otherPayments[payeeIndex]);
@@ -841,7 +841,7 @@ contract("RewardPool", function (accounts) {
         ).should.be.rejectedWith(Error, "Token type currently unsupported");
       });
 
-      it("payee can claim their allotted amount from an older proof", async function () {
+      it("payee/rewardee can claim their allotted amount from an older proof", async function () {
         let updatedPayments = [];
         for (var i = 0; i < payments.length; i++) {
           let payment = Object.assign({}, payments[i]);
@@ -911,7 +911,7 @@ contract("RewardPool", function (accounts) {
         assert(!updatedClaimed, "the new proof has not been claimed");
       });
 
-      it("payee can claim their allotted amount from a newer proof", async function () {
+      it("payee/rewardee can claim their allotted amount from a newer proof", async function () {
         let updatedPayments = [];
         for (var i = 0; i < payments.length; i++) {
           let payment = Object.assign({}, payments[i]);
@@ -983,7 +983,7 @@ contract("RewardPool", function (accounts) {
         assert(updatedClaimed, "the new proof has been claimed");
       });
 
-      it("payee can claim their allotted amount from a newer proof even after claim from older proof", async function () {
+      it("payee/rewardee can claim their allotted amount from a newer proof even after claim from older proof", async function () {
         let updatedPayments = [];
         for (var i = 0; i < payments.length; i++) {
           let payment = Object.assign({}, payments[i]);
@@ -1180,7 +1180,7 @@ contract("RewardPool", function (accounts) {
           rewardPool.address
         );
       });
-      it("payee cannot claim if the node is non-claimable (only verifiable)", async function () {
+      it("payee/rewardee cannot claim if the node is non-claimable (only verifiable)", async function () {
         await claimReward(
           rewardManager,
           rewardPool,
