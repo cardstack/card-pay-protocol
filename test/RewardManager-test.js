@@ -78,30 +78,35 @@ contract("RewardManager", (accounts) => {
     addRewardRuleHandler,
     updateRewardProgramAdminHandler;
 
-  // tokens
+  // tokens and exchange
   let daicpxdToken, cardcpxdToken, fakeDaicpxdToken;
   let exchange;
 
-  // reward manager contract
+  // reward manager
   let rewardManager;
   //roles
+
   let owner,
+    // == cardpay
     issuer,
     prepaidCardOwner,
-    relayer,
     merchantFeeReceiver,
     otherPrepaidCardOwner,
-    tally,
     prepaidCardOwnerA,
     prepaidCardOwnerB,
-    governanceAdmin;
+    // == services
+    tally,
+    relayer,
+    // == reward program
+    governanceAdmin,
+    rewardProgramAdmin,
+    rewardFeeReceiver;
   // safes
   let depot;
-  // reward roles
-  let rewardProgramID, rewardProgramAdmin, rewardFeeReceiver;
+  // vars
+  let rewardProgramID;
 
   before(async () => {
-    // accounts
     owner = accounts[0];
     issuer = accounts[1];
     rewardProgramAdmin = accounts[2];
@@ -173,7 +178,7 @@ contract("RewardManager", (accounts) => {
     );
     ({ daicpxdToken, cardcpxdToken, exchange } = await setupExchanges(owner));
 
-    // setup
+    // setup & configure
     await tokenManager.setup(
       ZERO_ADDRESS,
       [daicpxdToken.address, cardcpxdToken.address],
@@ -272,7 +277,6 @@ contract("RewardManager", (accounts) => {
 
     await daicpxdToken.mint(owner, toTokenUnit(100));
 
-    //safes
     depot = await createDepotFromSupplierMgr(supplierManager, issuer);
     await daicpxdToken.mint(depot.address, toTokenUnit(1000));
 
@@ -379,7 +383,7 @@ contract("RewardManager", (accounts) => {
     });
   });
 
-  describe("create reward program", () => {
+  describe("register reward program", () => {
     let prepaidCard, otherPrepaidCard;
     beforeEach(async () => {
       rewardProgramID = randomHex(20);
@@ -506,7 +510,7 @@ contract("RewardManager", (accounts) => {
         .should.be.rejectedWith(Error, "calling token is unaccepted");
     });
 
-    it("reverts when prepaid card owner doesn't send enough in their prepaid card for the reward program registration fee amount", async () => {
+    it("reverts when prepaid card owner doesn't send enough spend from their prepaid for registration fee", async () => {
       await registerRewardProgram(
         prepaidCardManager,
         prepaidCard,
@@ -550,7 +554,7 @@ contract("RewardManager", (accounts) => {
     });
   });
 
-  describe("update reward program", () => {
+  describe("update/configure reward program", () => {
     let prepaidCard, otherPrepaidCard;
     beforeEach(async () => {
       rewardProgramID = randomHex(20);
@@ -570,7 +574,7 @@ contract("RewardManager", (accounts) => {
         prepaidCardOwner,
         REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
         undefined,
-        prepaidCardOwner, //current rewardProgramAdmin
+        prepaidCardOwner,
         rewardProgramID
       );
     });
@@ -1316,7 +1320,7 @@ contract("RewardManager", (accounts) => {
       ).to.equal(rewardSafe.address);
     });
 
-    it("cannot transfer reward safe with swap owner directly to safe", async () => {
+    it("cannot transfer reward safe with swap owner with EOA-signature only", async () => {
       const tx = await registerRewardee(
         prepaidCardManager,
         prepaidCard,
@@ -1344,7 +1348,7 @@ contract("RewardManager", (accounts) => {
       ).should.be.rejectedWith(Error, "Signatures data too short");
     });
 
-    it("cannot transfer reward safe swap owner full signature", async () => {
+    it("cannot transfer reward safe with swap owner full signature", async () => {
       const tx = await registerRewardee(
         prepaidCardManager,
         prepaidCard,
@@ -1692,7 +1696,7 @@ contract("RewardManager", (accounts) => {
       ).to.be.bignumber.equal(toTokenUnit(100));
     });
 
-    it("can withdraw to different address than the reward safe owner", async function () {
+    it("can withdraw to different address other than the reward safe owner", async function () {
       expect(
         (
           await withdrawFromRewardSafe({
@@ -1714,7 +1718,7 @@ contract("RewardManager", (accounts) => {
       ).to.be.bignumber.equal(toTokenUnit(50));
     });
 
-    it("validates the manager address for the delegate contract", async function () {
+    it("cannot withdraw with a fake reward manager; validates reward manager address on reward safe delegate implementation", async function () {
       const rewardSafeEOA = (await rewardSafe.getOwners())[1];
 
       let delegateImplementation = await RewardSafeDelegateImplementation.at(
