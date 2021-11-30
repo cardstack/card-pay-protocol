@@ -53,7 +53,7 @@ const {
 const BLOCK_GAS_LIMIT = 6000000;
 const DEFAULT_GAS_PRICE = 1000000000;
 const SENTINEL_OWNER = "0x0000000000000000000000000000000000000001";
-const DelegateCall = 1;
+const DELEGATE_CALL = 1;
 
 function toTokenUnit(_numberToken, _decimals = 18) {
   let dec = toBN("10").pow(toBN(_decimals));
@@ -1284,13 +1284,13 @@ const transferRewardSafe = async function ({
   let data = payload.encodeABI();
 
   const fullSignature = await rewardEIP1271Signature({
-    // When using DelegateCall, the "to" argument is misleading.
+    // When using DELEGATE_CALL, the "to" argument is misleading.
     // The transaction is actually sent to the safe address, but using the contract
     // implementation at the adderess passed in the "to" field
     to: delegateImplementation.address,
     value: 0,
     data,
-    operation: DelegateCall,
+    operation: DELEGATE_CALL,
     txGasEstimate: 0,
     baseGasEstimate: 0,
     gasPrice: 0,
@@ -1305,7 +1305,7 @@ const transferRewardSafe = async function ({
   let safeTxData = {
     to: delegateImplementation.address,
     data,
-    operation: DelegateCall,
+    operation: DELEGATE_CALL,
     txGasEstimate: 0,
     gasPrice: 0,
     txGasToken: gasToken.address,
@@ -1343,14 +1343,14 @@ async function withdrawFromRewardSafe({
   );
   let data = payload.encodeABI();
 
-  const fullSignature = await rewardEIP1271Signature({
-    // When using DelegateCall, the "to" argument is misleading.
+ const fullSignature = await rewardEIP1271Signature({
+    // When using DELEGATE_CALL, the "to" argument is misleading.
     // The transaction is actually sent to the safe address, but using the contract
     // implementation at the adderess passed in the "to" field
     to: delegateImplementation.address,
     value: 0,
     data,
-    operation: DelegateCall,
+    operation: DELEGATE_CALL,
     txGasEstimate: 0,
     baseGasEstimate: 0,
     gasPrice: 0,
@@ -1365,7 +1365,7 @@ async function withdrawFromRewardSafe({
   let safeTxData = {
     to: delegateImplementation.address,
     data,
-    operation: DelegateCall,
+    operation: DELEGATE_CALL,
     txGasEstimate: 0,
     gasPrice: 0,
     txGasToken: gasToken.address,
@@ -1759,7 +1759,7 @@ exports.claimReward = async function (
 
   let packData = packExecutionData(safeTxData);
 
-  let signature = await rewardEIP1271Signature({
+  le signature = await rewardEIP1271Signature({
     ...packData,
     nonce,
     owner: rewardSafeOwner,
