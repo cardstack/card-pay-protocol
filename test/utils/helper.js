@@ -85,7 +85,7 @@ function packExecutionData({
   to,
   value = 0,
   data,
-  operation = 0,
+  operation = CALL,
   txGasEstimate = 0,
   baseGasEstimate = 0,
   gasPrice = 0,
