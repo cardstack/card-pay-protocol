@@ -1261,7 +1261,7 @@ contract("RewardManager", (accounts) => {
       );
     });
 
-    it.only("can transfer reward safe", async () => {
+    it("can transfer reward safe", async () => {
       let tx = await registerRewardee(
         prepaidCardManager,
         prepaidCard,
@@ -1305,7 +1305,6 @@ contract("RewardManager", (accounts) => {
         oldOwner: prepaidCardOwner,
         newOwner: otherPrepaidCardOwner,
       });
-      console.log(params[0]);
 
       owners = await rewardSafe.getOwners();
       expect(owners.length).to.equal(2);
