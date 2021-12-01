@@ -518,15 +518,6 @@ contract("RewardPool", function (accounts) {
           rewardPool.address
         );
         expect(params.length).to.equal(1);
-        console.log(params[0]);
-        console.log({
-          rewardProgramID,
-          rewardee: payee,
-          rewardSafe: rewardSafe.address,
-          token: cardcpxdToken.address,
-          amount: paymentAmount.toString(),
-          leaf,
-        });
         expect(params[0]).to.deep.include({
           rewardProgramID,
           rewardee: payee,
