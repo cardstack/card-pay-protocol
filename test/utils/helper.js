@@ -35,7 +35,7 @@ const UpdateRewardProgramAdminHandler = artifacts.require(
 const PayRewardTokensHandler = artifacts.require("PayRewardTokensHandler");
 const VersionManager = artifacts.require("VersionManager");
 
-const { toBN } = require("web3-utils");
+const { toBN, toChecksumAddress, randomHex } = require("web3-utils");
 const eventABIs = require("./constant/eventABIs");
 const {
   getParamsFromEvent,
@@ -1901,6 +1901,10 @@ exports.burnDepotTokens = async function (depot, token, owner, relayer) {
   };
 
   await signAndSendSafeTransaction(safeTxData, owner, depot, relayer);
+};
+
+exports.generateRewardProgramID = () => {
+  return toChecksumAddress(randomHex(20));
 };
 
 exports.toTokenUnit = toTokenUnit;

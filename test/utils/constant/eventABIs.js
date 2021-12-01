@@ -217,7 +217,7 @@ const eventABIs = {
   },
   REWARDEE_CLAIM: {
     topic: web3EthAbi.encodeEventSignature(
-      "RewardeeClaim(address,address,address,uint256)"
+      "RewardeeClaim(address,address,address,address,uint256,bytes)"
     ),
     abis: [
       {
@@ -233,8 +233,16 @@ const eventABIs = {
         name: "rewardSafe",
       },
       {
+        type: "address",
+        name: "token",
+      },
+      {
         type: "uint256",
         name: "amount",
+      },
+      {
+        type: "bytes",
+        name: "leaf",
       },
     ],
   },

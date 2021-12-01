@@ -48,6 +48,7 @@ const {
   setupVersionManager,
   withdrawFromRewardSafe,
   sendSafeTransaction,
+  generateRewardProgramID,
 } = require("./utils/helper");
 
 const AbiCoder = require("web3-eth-abi");
@@ -386,7 +387,7 @@ contract("RewardManager", (accounts) => {
   describe("register reward program", () => {
     let prepaidCard, otherPrepaidCard;
     beforeEach(async () => {
-      rewardProgramID = randomHex(20);
+      rewardProgramID = generateRewardProgramID();
       prepaidCard = await createPrepaidCardAndTransfer(
         prepaidCardManager,
         relayer,
@@ -557,7 +558,7 @@ contract("RewardManager", (accounts) => {
   describe("update/configure reward program", () => {
     let prepaidCard, otherPrepaidCard;
     beforeEach(async () => {
-      rewardProgramID = randomHex(20);
+      rewardProgramID = generateRewardProgramID();
       prepaidCard = await createPrepaidCardAndTransfer(
         prepaidCardManager,
         relayer,
@@ -1112,7 +1113,7 @@ contract("RewardManager", (accounts) => {
   describe("rewardee registers for reward program", () => {
     let prepaidCard, otherPrepaidCard;
     beforeEach(async () => {
-      rewardProgramID = randomHex(20);
+      rewardProgramID = generateRewardProgramID();
       prepaidCard = await createPrepaidCardAndTransfer(
         prepaidCardManager,
         relayer,
@@ -1238,7 +1239,7 @@ contract("RewardManager", (accounts) => {
     let prepaidCard, rewardSafe;
 
     beforeEach(async () => {
-      rewardProgramID = randomHex(20);
+      rewardProgramID = generateRewardProgramID();
       prepaidCard = await createPrepaidCardAndTransfer(
         prepaidCardManager,
         relayer,
@@ -1589,7 +1590,7 @@ contract("RewardManager", (accounts) => {
     let prepaidCard, rewardSafe;
 
     beforeEach(async () => {
-      rewardProgramID = randomHex(20);
+      rewardProgramID = generateRewardProgramID();
       prepaidCard = await createPrepaidCardAndTransfer(
         prepaidCardManager,
         relayer,

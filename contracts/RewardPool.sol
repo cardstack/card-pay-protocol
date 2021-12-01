@@ -24,7 +24,8 @@ contract RewardPool is Initializable, Versionable, Ownable {
     address rewardee,
     address rewardSafe,
     address token,
-    uint256 amount
+    uint256 amount,
+    bytes leaf
   );
   event MerkleRootSubmission(
     bytes32 payeeRoot,
@@ -170,7 +171,8 @@ contract RewardPool is Initializable, Versionable, Ownable {
       rewardSafeOwner,
       msg.sender,
       payableToken,
-      amount
+      amount,
+      leaf
     );
   }
 
