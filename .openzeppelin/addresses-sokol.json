@@ -123,16 +123,16 @@
     "proxy": "0x89a2aD80b7285630A27fBBe8f4d9A7141bcEA2E0",
     "contractName": "UpdateRewardProgramAdminHandler"
   },
-  "RewardPool": {
-    "proxy": "0x93a2684c14CeeF20fCdE714BDF362dda6A4C9287",
-    "contractName": "RewardPool"
-  },
   "RewardManager": {
     "proxy": "0xaC47B293f836F3a64eb4AEF02Cb7d1428dCe815f",
     "contractName": "RewardManager"
   },
   "RewardSafeDelegateImplementation": {
-    "proxy": "0x4F771D5d4B6DA6be9811EE199D0bb735aB5948a6",
+    "proxy": "0x83D0d79aBFB18f3E50bE0f680aF88D933731E7f5",
     "contractName": "RewardSafeDelegateImplementation"
+  },
+  "RewardPool": {
+    "proxy": "0xc9A238Ee71A65554984234DF9721dbdA873F84FA",
+    "contractName": "RewardPool"
   }
 }
