@@ -48,6 +48,7 @@ const {
   setupVersionManager,
   withdrawFromRewardSafe,
   sendSafeTransaction,
+  generateRewardProgramID,
 } = require("./utils/helper");
 
 const AbiCoder = require("web3-eth-abi");
@@ -386,7 +387,7 @@ contract("RewardManager", (accounts) => {
   describe("register reward program", () => {
     let prepaidCard, otherPrepaidCard;
     beforeEach(async () => {
-      rewardProgramID = randomHex(20);
+      rewardProgramID = generateRewardProgramID();
       prepaidCard = await createPrepaidCardAndTransfer(
         prepaidCardManager,
         relayer,
@@ -557,7 +558,7 @@ contract("RewardManager", (accounts) => {
   describe("update/configure reward program", () => {
     let prepaidCard, otherPrepaidCard;
     beforeEach(async () => {
-      rewardProgramID = randomHex(20);
+      rewardProgramID = generateRewardProgramID();
       prepaidCard = await createPrepaidCardAndTransfer(
         prepaidCardManager,
         relayer,
@@ -1112,7 +1113,7 @@ contract("RewardManager", (accounts) => {
   describe("rewardee registers for reward program", () => {
     let prepaidCard, otherPrepaidCard;
     beforeEach(async () => {
-      rewardProgramID = randomHex(20);
+      rewardProgramID = generateRewardProgramID();
       prepaidCard = await createPrepaidCardAndTransfer(
         prepaidCardManager,
         relayer,
@@ -1238,7 +1239,7 @@ contract("RewardManager", (accounts) => {
     let prepaidCard, rewardSafe;
 
     beforeEach(async () => {
-      rewardProgramID = randomHex(20);
+      rewardProgramID = generateRewardProgramID();
       prepaidCard = await createPrepaidCardAndTransfer(
         prepaidCardManager,
         relayer,
@@ -1260,7 +1261,7 @@ contract("RewardManager", (accounts) => {
       );
     });
 
-    it("can transfer reward safe", async () => {
+    it.only("can transfer reward safe", async () => {
       let tx = await registerRewardee(
         prepaidCardManager,
         prepaidCard,
@@ -1304,6 +1305,7 @@ contract("RewardManager", (accounts) => {
         oldOwner: prepaidCardOwner,
         newOwner: otherPrepaidCardOwner,
       });
+      console.log(params[0]);
 
       owners = await rewardSafe.getOwners();
       expect(owners.length).to.equal(2);
@@ -1589,7 +1591,7 @@ contract("RewardManager", (accounts) => {
     let prepaidCard, rewardSafe;
 
     beforeEach(async () => {
-      rewardProgramID = randomHex(20);
+      rewardProgramID = generateRewardProgramID();
       prepaidCard = await createPrepaidCardAndTransfer(
         prepaidCardManager,
         relayer,

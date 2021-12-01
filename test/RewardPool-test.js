@@ -20,7 +20,7 @@ const {
 } = require("./utils/general");
 const eventABIs = require("./utils/constant/eventABIs");
 const { setupProtocol, setupRoles } = require("./utils/setup");
-const { randomHex, BN } = require("web3-utils");
+const { BN } = require("web3-utils");
 const {
   advanceBlock,
   toTokenUnit,
@@ -35,6 +35,7 @@ const {
   recoverUnclaimedRewardTokens,
   registerMerchant,
   signAndSendSafeTransaction,
+  generateRewardProgramID,
 } = require("./utils/helper");
 const AbiCoder = require("web3-eth-abi");
 
@@ -109,8 +110,8 @@ contract("RewardPool", function (accounts) {
         delegateImplementation.address,
         versionManager.address
       );
-      rewardProgramID = randomHex(20);
-      otherRewardProgramID = randomHex(20);
+      rewardProgramID = generateRewardProgramID();
+      otherRewardProgramID = generateRewardProgramID();
       prepaidCard = await createPrepaidCardAndTransfer(
         prepaidCardManager,
         relayer,
@@ -270,7 +271,7 @@ contract("RewardPool", function (accounts) {
 
     describe("submitPayeeMerkleRoot", function () {
       it("does not allow submitting a merkle root for an unregistered reward program", async function () {
-        let randomInvalidProgramID = randomHex(20);
+        let randomInvalidProgramID = generateRewardProgramID();
         let merkleTree = new PaymentTree(payments);
         let root = merkleTree.getHexRoot();
         await rewardPool
@@ -477,6 +478,7 @@ contract("RewardPool", function (accounts) {
 
       it("payee/rewardee can claim from the pool", async function () {
         const {
+          safeTx,
           executionResult: { gasFee },
         } = await claimReward(
           rewardManager,
@@ -509,6 +511,30 @@ contract("RewardPool", function (accounts) {
           rewardPoolBalance.eq(rewardPoolPreviousBalance.sub(paymentAmount)),
           "the pool balance is correct"
         );
+
+        let params = await getParamsFromEvent(
+          safeTx,
+          eventABIs.REWARDEE_CLAIM,
+          rewardPool.address
+        );
+        expect(params.length).to.equal(1);
+        console.log(params[0]);
+        console.log({
+          rewardProgramID,
+          rewardee: payee,
+          rewardSafe: rewardSafe.address,
+          token: cardcpxdToken.address,
+          amount: paymentAmount.toString(),
+          leaf,
+        });
+        expect(params[0]).to.deep.include({
+          rewardProgramID,
+          rewardee: payee,
+          rewardSafe: rewardSafe.address,
+          token: cardcpxdToken.address,
+          amount: paymentAmount.toString(),
+          leaf,
+        });
       });
 
       it("payee/rewardee cannot claim using an eoa", async function () {
@@ -1488,7 +1514,7 @@ contract("RewardPool", function (accounts) {
           .transferAndCall(
             rewardPool.address,
             toTokenUnit(50),
-            AbiCoder.encodeParameters(["address"], [randomHex(20)]),
+            AbiCoder.encodeParameters(["address"], [generateRewardProgramID()]),
             { from: prepaidCardOwner }
           )
           .should.be.rejectedWith(Error, "reward program is not found");
