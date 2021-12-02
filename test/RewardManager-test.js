@@ -1321,7 +1321,7 @@ contract("RewardManager", (accounts) => {
       ).to.equal(rewardSafe.address);
     });
 
-    it("cannot transfer reward safe", async () => {
+    it("cannot transfer reward safe to an owner who already owns a reward safe", async () => {
       let otherPrepaidCard = await createPrepaidCardAndTransfer(
         prepaidCardManager,
         relayer,
