@@ -1372,14 +1372,17 @@ contract("RewardManager", (accounts) => {
         )
       ).to.equal(rewardSafe2.address);
 
-      await transferRewardSafe({
+      let {
+        executionResult: { success },
+      } = await transferRewardSafe({
         rewardManager,
         rewardSafe: rewardSafe2,
         oldOwner: otherPrepaidCardOwner,
         newOwner: prepaidCardOwner,
         relayer,
         gasToken: daicpxdToken,
-      }).should.be.rejectedWith(Error, "safe transaction was reverted");
+      });
+      expect(success).to.equal(false);
     });
 
     it("cannot transfer reward safe with swap owner with EOA-signature only", async () => {
