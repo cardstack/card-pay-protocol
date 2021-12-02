@@ -11,10 +11,6 @@
     "proxy": "0xE097ec255eA9fE4e199E920E105b0f61d6e09C34",
     "contractName": "RevenuePool"
   },
-  "RewardPool": {
-    "proxy": "0x86648EbB0de02B9815Bfc5001cEa1Dd35a5A4552",
-    "contractName": "RewardPool"
-  },
   "Exchange": {
     "proxy": "0x1c5B87A6905327D2370fA57C80667D432926ABA1",
     "contractName": "Exchange"
@@ -103,10 +99,6 @@
     "proxy": "0xCC5DD03Bf98db8d8eeFf32F9422cF029Aaff2244",
     "contractName": "LevelRegistrar"
   },
-  "RewardManager": {
-    "proxy": "0xF104705A77a30493E1FD3909440F96f72E32eCD4",
-    "contractName": "RewardManager"
-  },
   "AddRewardRuleHandler": {
     "proxy": "0x186d3214Af4b4025A1A8eb9E284b7e49bE0c5179",
     "contractName": "AddRewardRuleHandler"
@@ -122,5 +114,17 @@
   "UpdateRewardProgramAdminHandler": {
     "proxy": "0xB2C5F67cAa1aEf617a73D29BdDc9ABb84576dC9F",
     "contractName": "UpdateRewardProgramAdminHandler"
+  },
+  "RewardPool": {
+    "proxy": "0x340EB99eB9aC7DB3a3eb68dB76c6F62738DB656a",
+    "contractName": "RewardPool"
+  },
+  "RewardManager": {
+    "proxy": "0xDbAe2bC81bFa4e46df43a34403aAcde5FFdB2A9D",
+    "contractName": "RewardManager"
+  },
+  "RewardSafeDelegateImplementation": {
+    "proxy": "0xD4dc5B151D213674c77441EFDfBd577e46831964",
+    "contractName": "RewardSafeDelegateImplementation"
   }
 }
