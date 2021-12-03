@@ -1321,6 +1321,70 @@ contract("RewardManager", (accounts) => {
       ).to.equal(rewardSafe.address);
     });
 
+    it("cannot transfer reward safe to an owner who already owns a reward safe", async () => {
+      let otherPrepaidCard = await createPrepaidCardAndTransfer(
+        prepaidCardManager,
+        relayer,
+        depot,
+        issuer,
+        daicpxdToken,
+        toTokenUnit(10 + 1),
+        otherPrepaidCardOwner
+      );
+      let tx1 = await registerRewardee(
+        prepaidCardManager,
+        prepaidCard,
+        relayer,
+        prepaidCardOwner,
+        undefined,
+        rewardProgramID
+      );
+      let rewardSafeCreation1 = await getParamsFromEvent(
+        tx1,
+        eventABIs.REWARDEE_REGISTERED,
+        rewardManager.address
+      );
+      let rewardSafe1 = await GnosisSafe.at(rewardSafeCreation1[0].rewardSafe);
+
+      expect(
+        await rewardManager.ownedRewardSafes(prepaidCardOwner, rewardProgramID)
+      ).to.equal(rewardSafe1.address);
+
+      let tx2 = await registerRewardee(
+        prepaidCardManager,
+        otherPrepaidCard,
+        relayer,
+        otherPrepaidCardOwner,
+        undefined,
+        rewardProgramID
+      );
+      let rewardSafeCreation2 = await getParamsFromEvent(
+        tx2,
+        eventABIs.REWARDEE_REGISTERED,
+        rewardManager.address
+      );
+      let rewardSafe2 = await GnosisSafe.at(rewardSafeCreation2[0].rewardSafe);
+
+      expect(
+        await rewardManager.ownedRewardSafes(
+          otherPrepaidCardOwner,
+          rewardProgramID
+        )
+      ).to.equal(rewardSafe2.address);
+
+      let {
+        executionResult: { success },
+      } = await transferRewardSafe({
+        rewardManager,
+        rewardSafe: rewardSafe2,
+        oldOwner: otherPrepaidCardOwner,
+        newOwner: prepaidCardOwner,
+        relayer,
+        gasToken: daicpxdToken,
+      });
+      expect(success).to.equal(false);
+    });
+
     it("cannot transfer reward safe with swap owner with EOA-signature only", async () => {
       const tx = await registerRewardee(
         prepaidCardManager,

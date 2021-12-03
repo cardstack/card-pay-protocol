@@ -176,6 +176,10 @@ contract RewardManager is Ownable, Versionable, Safe {
     address oldOwner = getRewardSafeOwner(msg.sender);
     address rewardProgramID = rewardProgramsForRewardSafes[msg.sender];
     require(
+      ownedRewardSafes[newOwner][rewardProgramID] == address(0),
+      "Cannot transfer to owner which already has reward safe"
+    );
+    require(
       ownedRewardSafes[oldOwner][rewardProgramID] == msg.sender,
       "Only current owner can transfer"
     );
