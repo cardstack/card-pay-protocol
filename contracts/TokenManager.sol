@@ -1,15 +1,17 @@
-pragma solidity 0.5.17;
+pragma solidity ^0.7.6;
 
-import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
-import "@openzeppelin/contract-upgradeable/contracts/utils/EnumerableSet.sol";
+import "@openzeppelin/contracts-upgradeable/utils/EnumerableSetUpgradeable.sol";
 
+import "./core/Ownable.sol";
+import "./libraries/EnumerableSetUnboundedEnumerable.sol";
 import "./core/Versionable.sol";
 import "./VersionManager.sol";
 
 contract TokenManager is Ownable, Versionable {
-  using EnumerableSet for EnumerableSet.AddressSet;
+  using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
+  using EnumerableSetUnboundedEnumerable for EnumerableSetUpgradeable.AddressSet;
 
-  EnumerableSet.AddressSet internal payableTokens;
+  EnumerableSetUpgradeable.AddressSet internal payableTokens;
   address public bridgeUtils;
   address public versionManager;
 
@@ -18,7 +20,10 @@ contract TokenManager is Ownable, Versionable {
   event BridgeUtilsSet(address indexed bridgeUtils);
 
   modifier onlyBridgeUtilsOrOwner() {
-    require(isBridgeUtils() || isOwner(), "caller is not BridgeUtils");
+    require(
+      isBridgeUtils() || (owner() == _msgSender()),
+      "caller is not BridgeUtils"
+    );
     _;
   }
 

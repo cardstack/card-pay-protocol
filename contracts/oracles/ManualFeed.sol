@@ -1,7 +1,8 @@
-pragma solidity 0.5.17;
+pragma solidity ^0.7.6;
 
-import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
 import "@chainlink/contracts/src/v0.5/interfaces/AggregatorV3Interface.sol";
+
+import "../core/Ownable.sol";
 import "../core/Versionable.sol";
 import "../VersionManager.sol";
 
@@ -23,7 +24,7 @@ contract ManualFeed is Ownable, Versionable, AggregatorV3Interface {
   event RoundAdded(uint80 indexed roundId);
   event FeedSetup(string description, uint8 decimals);
 
-  function initialize(address owner) public initializer {
+  function initialize(address owner) public override initializer {
     _currentRound = 0;
     Ownable.initialize(owner);
   }
@@ -59,6 +60,7 @@ contract ManualFeed is Ownable, Versionable, AggregatorV3Interface {
   function getRoundData(uint80 _roundId)
     external
     view
+    override
     returns (
       uint80 roundId,
       int256 answer,
@@ -73,6 +75,7 @@ contract ManualFeed is Ownable, Versionable, AggregatorV3Interface {
   function latestRoundData()
     external
     view
+    override
     returns (
       uint80 roundId,
       int256 answer,
@@ -101,15 +104,15 @@ contract ManualFeed is Ownable, Versionable, AggregatorV3Interface {
     return (_roundId, round.price, round.startedAt, round.updatedAt, _roundId);
   }
 
-  function version() external view returns (uint256) {
+  function version() external view override returns (uint256) {
     return 3;
   }
 
-  function decimals() external view returns (uint8) {
+  function decimals() external view override returns (uint8) {
     return _decimals;
   }
 
-  function description() external view returns (string memory) {
+  function description() external view override returns (string memory) {
     return _description;
   }
 

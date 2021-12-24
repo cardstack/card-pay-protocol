@@ -1,10 +1,15 @@
-const gnosisUtils = require("@gnosis.pm/safe-contracts/test/utils/general");
 const web3EthAbi = require("web3-eth-abi");
+const gnosisUtils = require("./deprecated-gnosis-utils.js");
 const GnosisSafe = artifacts.require("GnosisSafe");
 const eventABIs = require("./constant/eventABIs.js");
 const { toHex, padLeft, hexToBytes, numberToHex } = require("web3-utils");
 const AbiCoder = require("web3-eth-abi");
 const { BN } = require("web3-utils");
+const {
+  network: {
+    config: { chainId },
+  },
+} = require("hardhat");
 
 exports = Object.assign({}, gnosisUtils);
 
@@ -71,7 +76,12 @@ async function signSafeTransaction(
 ) {
   const typedData = {
     types: {
+      // EIP712Domain(uint256 chainId,address verifyingContract)
       EIP712Domain: [
+        {
+          type: "uint256",
+          name: "chainId",
+        },
         {
           type: "address",
           name: "verifyingContract",
@@ -123,6 +133,7 @@ async function signSafeTransaction(
     },
     domain: {
       verifyingContract: gnosisSafe.address,
+      chainId,
     },
     primaryType: "SafeTx",
     message: {

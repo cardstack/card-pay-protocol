@@ -1,18 +1,20 @@
-pragma solidity 0.5.17;
+pragma solidity ^0.7.6;
 
-import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
-import "@openzeppelin/contract-upgradeable/contracts/utils/EnumerableSet.sol";
-import "@openzeppelin/contract-upgradeable/contracts/math/SafeMath.sol";
+import "./core/Ownable.sol";
+import "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/EnumerableSetUpgradeable.sol";
 
 import "./core/Versionable.sol";
 import "./IPrepaidCardMarket.sol";
 import "./PrepaidCardManager.sol";
 import "./ActionDispatcher.sol";
+import "./libraries/EnumerableSetUnboundedEnumerable.sol";
 import "./VersionManager.sol";
 
 contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
-  using SafeMath for uint256;
-  using EnumerableSet for EnumerableSet.AddressSet;
+  using SafeMathUpgradeable for uint256;
+  using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
+  using EnumerableSetUnboundedEnumerable for EnumerableSetUpgradeable.AddressSet;
 
   struct SKU {
     address issuer;
@@ -57,7 +59,7 @@ contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
   address public actionDispatcher;
   address public provisioner;
 
-  mapping(bytes32 => EnumerableSet.AddressSet) internal inventory; // sku => prepaid card addresses
+  mapping(bytes32 => EnumerableSetUpgradeable.AddressSet) internal inventory; // sku => prepaid card addresses
   mapping(bytes32 => uint256) public asks; // sku => ask price (in issuing token)
   mapping(bytes32 => SKU) public skus; // sku => sku data
   mapping(address => address) public provisionedCards; // prepaid card => EOA
@@ -82,16 +84,16 @@ contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
   }
   modifier onlyProvisionerOrOwner() {
     require(
-      isOwner() || msg.sender == provisioner,
+      (owner() == _msgSender()) || msg.sender == provisioner,
       "caller is not the provisioner nor the owner"
     );
     _;
   }
 
-  function initialize(address owner) public initializer {
+  function initialize(address owner) public override initializer {
     nonce = 0;
-    Ownable.initialize(owner);
     paused = false;
+    Ownable.initialize(owner);
   }
 
   function setup(
@@ -115,6 +117,7 @@ contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
 
   function setItem(address issuer, address prepaidCard)
     external
+    override
     onlyHandlersOrPrepaidCardManager
     returns (bool)
   {
@@ -147,6 +150,7 @@ contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
 
   function removeItems(address issuer, address[] calldata prepaidCards)
     external
+    override
     onlyHandlers
     returns (bool)
   {
@@ -166,11 +170,7 @@ contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
       // note that this is not a token transfer, so linter concerns around reetrancy
       // after transfer are not valid
       /* solhint-disable reentrancy */
-      prepaidCardManager.transfer(
-        address(uint160(prepaidCards[i])),
-        issuer,
-        signature
-      );
+      prepaidCardManager.transfer(payable(prepaidCards[i]), issuer, signature);
       signatures[keccak256(signature)] = false;
       /* solhint-enable reentrancy */
       emit ItemRemoved(prepaidCards[i], issuer, sku);
@@ -184,7 +184,7 @@ contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
     address issuer,
     bytes32 sku,
     uint256 askPrice // a "0" askPrice removes the SKU from the market
-  ) external onlyHandlers returns (bool) {
+  ) external override onlyHandlers returns (bool) {
     require(skus[sku].issuer != address(0), "Non-existent SKU");
     require(skus[sku].issuer == issuer, "SKU not owned by issuer");
     asks[sku] = askPrice;
@@ -195,6 +195,7 @@ contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
 
   function provisionPrepaidCard(address customer, bytes32 sku)
     external
+    override
     onlyProvisionerOrOwner
     returns (bool)
   {
@@ -202,7 +203,7 @@ contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
     require(inventory[sku].length() > 0, "No more prepaid cards for sku");
     require(asks[sku] > 0, "No ask price for sku");
 
-    address prepaidCard = inventory[sku].get(0);
+    address prepaidCard = inventory[sku].at(0);
     provisionedCards[prepaidCard] = customer;
     bytes memory signature = contractSignature(prepaidCard, customer);
     signatures[keccak256(signature)] = true;
@@ -211,7 +212,7 @@ contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
     // after transfer are not valid
     /* solhint-disable reentrancy */
     PrepaidCardManager(prepaidCardManagerAddress).transfer(
-      address(uint160(prepaidCard)),
+      payable(prepaidCard),
       customer,
       signature
     );
@@ -235,6 +236,7 @@ contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
   function getSkuInfo(bytes32 sku)
     external
     view
+    override
     returns (
       address issuer,
       address issuingToken,
@@ -314,7 +316,7 @@ contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
       .cardDetails(prepaidCard);
 
     require(
-      prepaidCardManager.getPrepaidCardOwner(address(uint160(prepaidCard))) ==
+      prepaidCardManager.getPrepaidCardOwner(payable(prepaidCard)) ==
         address(this),
       "Market contract does not own the prepaid card"
     );

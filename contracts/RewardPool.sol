@@ -1,13 +1,12 @@
-pragma solidity 0.5.17;
+pragma solidity ^0.7.6;
 
-import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
-import "@openzeppelin/contract-upgradeable/contracts/math/SafeMath.sol";
-import "@openzeppelin/contract-upgradeable/contracts/cryptography/MerkleProof.sol";
-import "@openzeppelin/contract-upgradeable/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contract-upgradeable/contracts/token/ERC721/IERC721.sol";
-import "@openzeppelin/upgrades/contracts/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/cryptography/MerkleProofUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721Upgradeable.sol";
 import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 
+import "./core/Ownable.sol";
 import "./token/IERC677.sol";
 import "./core/Versionable.sol";
 import "./RewardManager.sol";
@@ -15,8 +14,8 @@ import "./TokenManager.sol";
 import "./VersionManager.sol";
 
 contract RewardPool is Initializable, Versionable, Ownable {
-  using SafeMath for uint256;
-  using MerkleProof for bytes32[];
+  using SafeMathUpgradeable for uint256;
+  using MerkleProofUpgradeable for bytes32[];
 
   event Setup(address tally, address rewardManager, address tokenManager);
   event RewardeeClaim(
@@ -58,10 +57,6 @@ contract RewardPool is Initializable, Versionable, Ownable {
   modifier onlyTally() {
     require(tally == msg.sender, "Caller is not tally");
     _;
-  }
-
-  function initialize(address owner) public initializer {
-    Ownable.initialize(owner);
   }
 
   function setup(
@@ -208,14 +203,14 @@ contract RewardPool is Initializable, Versionable, Ownable {
     require(claimed(leaf) == false, "Reward has already been claimed");
 
     address rewardSafeOwner = RewardManager(rewardManager).getRewardSafeOwner(
-      msg.sender
+      payable(msg.sender)
     );
 
     require(rewardSafeOwner == payee, "Can only be claimed by payee");
 
     require(
       RewardManager(rewardManager).isValidRewardSafe(
-        msg.sender,
+        payable(msg.sender),
         rewardProgramID
       ),
       "can only withdraw for safe registered on reward program"
@@ -246,7 +241,7 @@ contract RewardPool is Initializable, Versionable, Ownable {
       "reward program admin does not exist"
     );
     require(
-      _getEOAOwner(msg.sender) == rewardProgramAdmin,
+      _getEOAOwner(payable(msg.sender)) == rewardProgramAdmin,
       "owner of safe is not reward program admin"
     );
     require(

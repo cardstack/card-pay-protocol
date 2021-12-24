@@ -1,15 +1,17 @@
-pragma solidity 0.5.17;
+pragma solidity ^0.7.6;
 
-import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
-import "@openzeppelin/contract-upgradeable/contracts/utils/EnumerableSet.sol";
+import "./core/Ownable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/EnumerableSetUpgradeable.sol";
 
 import "./core/Safe.sol";
 import "./core/Versionable.sol";
 import "./ActionDispatcher.sol";
 import "./VersionManager.sol";
+import "./libraries/EnumerableSetUnboundedEnumerable.sol";
 
 contract MerchantManager is Ownable, Versionable, Safe {
-  using EnumerableSet for EnumerableSet.AddressSet;
+  using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
+  using EnumerableSetUnboundedEnumerable for EnumerableSetUpgradeable.AddressSet;
 
   event Setup();
   event MerchantCreation(
@@ -20,14 +22,15 @@ contract MerchantManager is Ownable, Versionable, Safe {
 
   address public deprecatedMerchantManager;
   address public actionDispatcher;
-  mapping(address => EnumerableSet.AddressSet) internal merchants; // merchant address => enumeration of merchant safe addresses
+  mapping(address => EnumerableSetUpgradeable.AddressSet) internal merchants; // merchant address => enumeration of merchant safe addresses
   mapping(address => address) public merchantSafes; // merchant safe address => merchant address
   mapping(address => string) public merchantSafeInfoDIDs; // merchant safe address => Info DID
   address public versionManager;
 
   modifier onlyHandlersOrOwner() {
     require(
-      isOwner() || ActionDispatcher(actionDispatcher).isHandler(msg.sender),
+      (owner() == _msgSender()) ||
+        ActionDispatcher(actionDispatcher).isHandler(msg.sender),
       "caller is not a registered action handler nor an owner"
     );
     _;

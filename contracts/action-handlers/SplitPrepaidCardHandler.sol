@@ -1,7 +1,7 @@
-pragma solidity 0.5.17;
+pragma solidity ^0.7.6;
 
-import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
 import "../core/Versionable.sol";
+import "../core/Ownable.sol";
 import "../token/IERC677.sol";
 import "../PrepaidCardManager.sol";
 import "../TokenManager.sol";

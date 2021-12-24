@@ -1,4 +1,4 @@
-pragma solidity 0.5.17;
+pragma solidity ^0.7.6;
 
 // This contract no longer does anything, but we can't remove it because our
 // upgradeable contracts' storage layout would break. If we ever rev the

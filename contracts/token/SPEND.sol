@@ -1,7 +1,6 @@
-pragma solidity 0.5.17;
+pragma solidity ^0.7.6;
 
-import "@openzeppelin/contract-upgradeable/contracts/math/SafeMath.sol";
-import "@openzeppelin/upgrades/contracts/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
 
 import "./ISPEND.sol";
 import "../core/Versionable.sol";
@@ -9,7 +8,7 @@ import "../roles/SPENDMinterRole.sol";
 import "../VersionManager.sol";
 
 contract SPEND is Versionable, ISPEND, SPENDMinterRole {
-  using SafeMath for uint256;
+  using SafeMathUpgradeable for uint256;
   event Setup();
 
   mapping(address => uint256) public _balances;
@@ -29,6 +28,7 @@ contract SPEND is Versionable, ISPEND, SPENDMinterRole {
 
   function mint(address account, uint256 amount)
     external
+    override
     onlyMinter
     returns (bool)
   {
@@ -38,6 +38,7 @@ contract SPEND is Versionable, ISPEND, SPENDMinterRole {
 
   function burn(address account, uint256 amount)
     external
+    override
     onlyMinter
     returns (bool)
   {
@@ -80,14 +81,14 @@ contract SPEND is Versionable, ISPEND, SPENDMinterRole {
   /**
    * @dev See {IERC20-totalSupply}.
    */
-  function totalSupply() external view returns (uint256) {
+  function totalSupply() external view override returns (uint256) {
     return _totalSupply;
   }
 
   /**
    * @dev See {IERC20-balanceOf}.
    */
-  function balanceOf(address account) external view returns (uint256) {
+  function balanceOf(address account) external view override returns (uint256) {
     return _balances[account];
   }
 

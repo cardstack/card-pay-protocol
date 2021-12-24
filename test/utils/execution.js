@@ -49,7 +49,7 @@ let estimateBaseGas = function (
       data,
       operation,
       txGasEstimate,
-      utils.Address0,
+      utils.ZERO_ADDRESS,
       GAS_PRICE,
       gasToken,
       refundReceiver,
@@ -77,8 +77,8 @@ let executeTransactionWithSigner = async function (
 ) {
   let options = opts || {};
   let txFailed = options.fails || false;
-  let txGasToken = options.gasToken || utils.Address0;
-  let refundReceiver = options.refundReceiver || utils.Address0;
+  let txGasToken = options.gasToken || utils.ADDRESS_ZERO;
+  let refundReceiver = options.refundReceiver || utils.ADDRESS_ZERO;
   let extraGas = options.extraGas || 0;
   let executorValue = options.value || 0;
 
@@ -141,7 +141,7 @@ let executeTransactionWithSigner = async function (
     }
   }
   let gasPrice = GAS_PRICE;
-  if (txGasToken != utils.Address0) {
+  if (txGasToken != utils.ADDRESS_ZERO) {
     gasPrice = 1;
   }
   gasPrice = options.gasPrice || gasPrice;
