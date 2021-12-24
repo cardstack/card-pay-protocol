@@ -1,7 +1,7 @@
-pragma solidity 0.5.17;
+pragma solidity ^0.7.6;
 
-import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
 import "../core/Versionable.sol";
+import "../core/Ownable.sol";
 import "../token/IERC677.sol";
 import "../PrepaidCardManager.sol";
 import "../TokenManager.sol";
@@ -66,7 +66,7 @@ contract SetPrepaidCardInventoryHandler is Ownable, Versionable {
       prepaidCardManagerAddress
     );
     address owner = prepaidCardMgr.getPrepaidCardOwner(
-      address(uint160(prepaidCardForInventory))
+      payable(prepaidCardForInventory)
     );
     address issuer = prepaidCardMgr.getPrepaidCardIssuer(
       prepaidCardForInventory
@@ -76,7 +76,7 @@ contract SetPrepaidCardInventoryHandler is Ownable, Versionable {
     prepaidCardMgr.setPrepaidCardUsed(prepaidCard);
 
     PrepaidCardManager(prepaidCardManagerAddress).transfer(
-      address(uint160(prepaidCardForInventory)),
+      payable(prepaidCardForInventory),
       marketAddress,
       previousOwnerSignature
     );

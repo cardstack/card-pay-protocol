@@ -1,9 +1,9 @@
-pragma solidity 0.5.17;
+pragma solidity ^0.7.6;
 
-import "@openzeppelin/contract-upgradeable/contracts/utils/EnumerableSet.sol";
-import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
-import "@openzeppelin/contract-upgradeable/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts-upgradeable/utils/EnumerableSetUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
 
+import "./core/Ownable.sol";
 import "./token/IERC677.sol";
 import "./token/ISPEND.sol";
 import "./Exchange.sol";
@@ -11,14 +11,16 @@ import "./core/Versionable.sol";
 import "./MerchantManager.sol";
 import "./PrepaidCardManager.sol";
 import "./ActionDispatcher.sol";
+import "./libraries/EnumerableSetUnboundedEnumerable.sol";
 import "./VersionManager.sol";
 
 contract RevenuePool is Ownable, Versionable {
-  using EnumerableSet for EnumerableSet.AddressSet;
-  using SafeMath for uint256;
+  using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
+  using EnumerableSetUnboundedEnumerable for EnumerableSetUpgradeable.AddressSet;
+  using SafeMathUpgradeable for uint256;
 
   struct RevenueBalance {
-    EnumerableSet.AddressSet tokens;
+    EnumerableSetUpgradeable.AddressSet tokens;
     // mapping from token address to revenue pool balance for merchant in that
     // token
     mapping(address => uint256) balance;

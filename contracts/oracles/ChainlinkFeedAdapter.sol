@@ -1,14 +1,14 @@
-pragma solidity 0.5.17;
+pragma solidity ^0.7.6;
 
 import "@chainlink/contracts/src/v0.5/interfaces/AggregatorV3Interface.sol";
-import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
-import "@openzeppelin/contract-upgradeable/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
+import "../core/Ownable.sol";
 import "./IPriceOracle.sol";
 import "../core/Versionable.sol";
 import "../VersionManager.sol";
 
 contract ChainlinkFeedAdapter is Ownable, Versionable, IPriceOracle {
-  using SafeMath for uint256;
+  using SafeMathUpgradeable for uint256;
   address public tokenUsdFeed;
   address public ethUsdFeed;
   address public daiUsdFeed;
@@ -51,11 +51,11 @@ contract ChainlinkFeedAdapter is Ownable, Versionable, IPriceOracle {
     emit ChainlinkFeedSetup(_tokenUsdFeed, _ethUsdFeed, _daiUsdFeed);
   }
 
-  function decimals() public view returns (uint8) {
+  function decimals() public view override returns (uint8) {
     return AggregatorV3Interface(tokenUsdFeed).decimals();
   }
 
-  function description() external view returns (string memory) {
+  function description() external view override returns (string memory) {
     return AggregatorV3Interface(tokenUsdFeed).description();
   }
 
@@ -75,7 +75,12 @@ contract ChainlinkFeedAdapter is Ownable, Versionable, IPriceOracle {
     return usdDelta() <= snapThreshold;
   }
 
-  function usdPrice() public view returns (uint256 price, uint256 updatedAt) {
+  function usdPrice()
+    public
+    view
+    override
+    returns (uint256 price, uint256 updatedAt)
+  {
     require(tokenUsdFeed != address(0), "feed address is not specified");
     (, int256 _price, , uint256 _updatedAt, ) = AggregatorV3Interface(
       tokenUsdFeed
@@ -88,7 +93,12 @@ contract ChainlinkFeedAdapter is Ownable, Versionable, IPriceOracle {
     }
   }
 
-  function ethPrice() external view returns (uint256 price, uint256 updatedAt) {
+  function ethPrice()
+    external
+    view
+    override
+    returns (uint256 price, uint256 updatedAt)
+  {
     require(
       tokenUsdFeed != address(0) && ethUsdFeed != address(0),
       "feed address is not specified"
@@ -109,7 +119,12 @@ contract ChainlinkFeedAdapter is Ownable, Versionable, IPriceOracle {
     updatedAt = _updatedAt;
   }
 
-  function daiPrice() external view returns (uint256 price, uint256 updatedAt) {
+  function daiPrice()
+    external
+    view
+    override
+    returns (uint256 price, uint256 updatedAt)
+  {
     require(
       tokenUsdFeed != address(0) && daiUsdFeed != address(0),
       "feed address is not specified"

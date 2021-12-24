@@ -1,7 +1,7 @@
-pragma solidity 0.5.17;
+pragma solidity ^0.7.6;
 
-import "@openzeppelin/contract-upgradeable/contracts/math/SafeMath.sol";
-import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
+import "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
+import "./core/Ownable.sol";
 
 import "./token/IERC677.sol";
 import "./oracles/IPriceOracle.sol";
@@ -9,7 +9,7 @@ import "./core/Versionable.sol";
 import "./VersionManager.sol";
 
 contract Exchange is Ownable, Versionable {
-  using SafeMath for uint256;
+  using SafeMathUpgradeable for uint256;
 
   event Setup();
   event ExchangeCreated(string indexed tokenSymbol, address feed);
@@ -61,7 +61,8 @@ contract Exchange is Ownable, Versionable {
   /**
    * @dev query USD exchange rate of payable token
    * @param token address of payableToken
-   * @return exchange rate
+   * @return price exchange rate
+   * @return decimals
    */
   function exchangeRateOf(address token)
     public

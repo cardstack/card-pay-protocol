@@ -1,13 +1,16 @@
-pragma solidity 0.5.17;
+pragma solidity ^0.7.6;
 
-import "@openzeppelin/contract-upgradeable/contracts/utils/EnumerableSet.sol";
-import "@openzeppelin/upgrades/contracts/Initializable.sol";
-import "@openzeppelin/contract-upgradeable/contracts/GSN/Context.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/EnumerableSetUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 
-contract SPENDMinterRole is Initializable, Context {
-  using EnumerableSet for EnumerableSet.AddressSet;
+import "../libraries/EnumerableSetUnboundedEnumerable.sol";
 
-  EnumerableSet.AddressSet internal minter;
+contract SPENDMinterRole is Initializable, ContextUpgradeable {
+  using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
+  using EnumerableSetUnboundedEnumerable for EnumerableSetUpgradeable.AddressSet;
+
+  EnumerableSetUpgradeable.AddressSet internal minter;
   address private _owner;
 
   event OwnershipTransferred(

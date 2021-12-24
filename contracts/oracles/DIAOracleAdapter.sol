@@ -1,15 +1,15 @@
-pragma solidity 0.5.17;
+pragma solidity ^0.7.6;
 
-import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
-import "@openzeppelin/contract-upgradeable/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
 import "@chainlink/contracts/src/v0.5/interfaces/AggregatorV3Interface.sol";
 import "./IPriceOracle.sol";
 import "./IDIAOracle.sol";
+import "../core/Ownable.sol";
 import "../core/Versionable.sol";
 import "../VersionManager.sol";
 
 contract DIAOracleAdapter is Ownable, Versionable, IPriceOracle {
-  using SafeMath for uint256;
+  using SafeMathUpgradeable for uint256;
 
   uint8 internal constant DECIMALS = 8;
   address public oracle;
@@ -44,23 +44,38 @@ contract DIAOracleAdapter is Ownable, Versionable, IPriceOracle {
     emit DAIOracleSetup(oracle, _tokenSymbol, _daiUsdFeed);
   }
 
-  function decimals() external view returns (uint8) {
+  function decimals() external view override returns (uint8) {
     return DECIMALS;
   }
 
-  function description() external view returns (string memory) {
+  function description() external view override returns (string memory) {
     return tokenSymbol;
   }
 
-  function usdPrice() external view returns (uint256 price, uint256 updatedAt) {
+  function usdPrice()
+    external
+    view
+    override
+    returns (uint256 price, uint256 updatedAt)
+  {
     return priceForPair(string(abi.encodePacked(tokenSymbol, "/USD")));
   }
 
-  function ethPrice() external view returns (uint256 price, uint256 updatedAt) {
+  function ethPrice()
+    external
+    view
+    override
+    returns (uint256 price, uint256 updatedAt)
+  {
     return priceForPair(string(abi.encodePacked(tokenSymbol, "/ETH")));
   }
 
-  function daiPrice() external view returns (uint256 price, uint256 updatedAt) {
+  function daiPrice()
+    external
+    view
+    override
+    returns (uint256 price, uint256 updatedAt)
+  {
     (uint256 tokenUsdPrice, uint256 _updatedAt) = priceForPair(
       string(abi.encodePacked(tokenSymbol, "/USD"))
     );

@@ -1,11 +1,12 @@
-pragma solidity 0.5.17;
+pragma solidity ^0.7.6;
 
 import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 import "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
-import "@openzeppelin/contract-upgradeable/contracts/math/SafeMath.sol";
-import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
+import "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
+import "./core/Ownable.sol";
 
 import "./token/IERC677.sol";
+import "./libraries/EnumerableSetUnboundedEnumerable.sol";
 import "./IPrepaidCardMarket.sol";
 import "./TokenManager.sol";
 import "./core/Safe.sol";
@@ -16,8 +17,9 @@ import "./ActionDispatcher.sol";
 import "./VersionManager.sol";
 
 contract PrepaidCardManager is Ownable, Versionable, Safe {
-  using SafeMath for uint256;
-  using EnumerableSet for EnumerableSet.AddressSet;
+  using SafeMathUpgradeable for uint256;
+  using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
+  using EnumerableSetUnboundedEnumerable for EnumerableSetUpgradeable.AddressSet;
 
   struct CardDetail {
     address issuer;
@@ -93,7 +95,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
   mapping(string => GasPolicy) public gasPolicies; // this is deprecated, remove it when possible
   mapping(address => bool) public hasBeenSplit; // this is deprecated, remove it when possible
   mapping(address => bool) public hasBeenUsed;
-  EnumerableSet.AddressSet internal contractSigners;
+  EnumerableSetUpgradeable.AddressSet internal contractSigners;
   mapping(string => GasPolicyV2) public gasPoliciesV2;
   address public versionManager;
 
@@ -476,15 +478,9 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     return
       ExecTransactionData(
         action,
-        address(uint160(prepaidCard)),
+        payable(prepaidCard),
         cardDetails[prepaidCard].issueToken,
-        getSendData(
-          address(uint160(prepaidCard)),
-          spendAmount,
-          rateLock,
-          action,
-          data
-        )
+        getSendData(payable(prepaidCard), spendAmount, rateLock, action, data)
       );
   }
 
@@ -643,7 +639,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
         baseGas,
         gasPolicy.gasPrice,
         gasPolicy.gasToken,
-        address(0),
+        payable(address(0)),
         signatures
       ),
       "safe transaction was reverted"

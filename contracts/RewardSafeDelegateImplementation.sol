@@ -1,6 +1,6 @@
-pragma solidity ^0.5.17;
+pragma solidity ^0.7.6;
 
-import "@openzeppelin/contract-upgradeable/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "./RewardManager.sol";
 import "./ActionDispatcher.sol";
 import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
@@ -43,7 +43,10 @@ contract RewardSafeDelegateImplementation {
       "must be valid token"
     );
 
-    IERC20(__untrusted__token).transfer(__untrusted__to, __untrusted__value);
+    IERC20Upgradeable(__untrusted__token).transfer(
+      __untrusted__to,
+      __untrusted__value
+    );
 
     emit RewardSafeWithdrawal(
       address(this),
@@ -79,7 +82,7 @@ contract RewardSafeDelegateImplementation {
   // safe. But once you have it, you can call methods that are restricted to be
   // only called by the safe, because msg.sender is the safe address!
   function _originalSafe() private view returns (GnosisSafe) {
-    address payable safeAddress = address(uint160(address(this)));
+    address payable safeAddress = payable(address(this));
     return GnosisSafe(safeAddress);
   }
 }

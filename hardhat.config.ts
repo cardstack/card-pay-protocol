@@ -11,43 +11,11 @@ import "@typechain/hardhat";
 import "@nomiclabs/hardhat-ethers";
 import "hardhat-watcher";
 
-import glob from "fast-glob";
-
-// force compiler version 0.5.17 for gnosis safe contracts, because their pragma
-// version is too lenient and they won't actually compile with 0.6.8 compiler
-const overrides = glob
-  .sync(`${__dirname}/node_modules/@gnosis.pm/safe-contracts/**/*.sol`)
-  .reduce(
-    (memo, path) =>
-      Object.assign(memo, {
-        [path.split("node_modules/")[1]]: { version: "0.5.17" },
-      }),
-    {}
-  );
-
 export default {
   solidity: {
     compilers: [
       {
-        version: "0.5.17",
-        settings: {
-          evmVersion: "istanbul",
-          optimizer: {
-            enabled: true,
-            runs: 200,
-          },
-        },
-      },
-      {
-        version: "0.6.8",
-        settings: {
-          optimizer: {
-            enabled: true,
-          },
-        },
-      },
-      {
-        version: "0.8.0",
+        version: "0.7.6",
         settings: {
           optimizer: {
             enabled: true,
@@ -55,7 +23,6 @@ export default {
         },
       },
     ],
-    overrides,
   },
 
   networks: {
