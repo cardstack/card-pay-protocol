@@ -123,19 +123,6 @@ async function main() {
       contractName: "PayRewardTokensHandler",
       init: [owner],
     },
-    // Commerce Protocol
-    Market: {
-      contractName: "Market",
-      init: [],
-    },
-    Inventory: {
-      contractName: "Inventory",
-      init: ["Market.address"],
-    },
-    LevelRegistrar: {
-      contractName: "LevelRegistrar",
-      init: [],
-    },
   };
 
   // Use manual feeds in sokol
