@@ -423,7 +423,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
   {
     uint256 amountInSPEND = Exchange(exchangeAddress).convertToSpend(
       token,
-      amount - gasFee(token)
+      amount.sub(gasFee(token))
     );
     return (minimumFaceValue <= amountInSPEND &&
       amountInSPEND <= maximumFaceValue);
