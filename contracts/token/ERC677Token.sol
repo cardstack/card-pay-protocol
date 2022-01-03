@@ -32,6 +32,8 @@ contract ERC677Token is IERC677, ERC20PresetMinterPauserUpgradeable {
 
     _setupRole(MINTER_ROLE, owner);
     _setupRole(PAUSER_ROLE, owner);
+
+    _setupDecimals(decimals);
   }
 
   function transferAndCall(

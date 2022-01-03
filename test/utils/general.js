@@ -335,6 +335,13 @@ const checkGnosisExecution = (safeTx, safeAddress) => {
     : { success: true, gasFee: new BN(executionSucceeded[0].payment) };
 };
 
+const gnosisErrors = {
+  SAFE_TRANSACTION_FAILED_WITHOUT_GAS_SET: "GS013",
+  INVALID_OWNER_PROVIDED: "GS026",
+  SIGNATURES_DATA_TOO_SHORT: "GS020",
+  INVALID_CONTRACT_SIGNATURE_PROVIDED: "GS024",
+};
+
 Object.assign(exports, {
   ZERO_ADDRESS,
   encodeMultiSendCall,
@@ -346,6 +353,7 @@ Object.assign(exports, {
   signTypedData,
   rewardEIP1271Signature,
   checkGnosisExecution,
+  gnosisErrors,
 });
 
 module.exports = exports;

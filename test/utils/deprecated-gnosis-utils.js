@@ -1,7 +1,5 @@
-const util = require("util");
 const solc = require("solc");
 const lightwallet = require("eth-lightwallet");
-const abi = require("ethereumjs-abi");
 const { assert } = require("chai");
 
 async function getParamFromTxEvent(
