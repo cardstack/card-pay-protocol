@@ -24,6 +24,12 @@ const {
   getParamsFromEvent,
   ZERO_ADDRESS,
   rewardEIP1271Signature,
+  gnosisErrors: {
+    SIGNATURES_DATA_TOO_SHORT,
+    INVALID_CONTRACT_SIGNATURE_PROVIDED,
+    SAFE_TRANSACTION_FAILED_WITHOUT_GAS_SET,
+    INVALID_OWNER_PROVIDED,
+  },
 } = require("./utils/general");
 const eventABIs = require("./utils/constant/eventABIs");
 
@@ -457,7 +463,7 @@ contract("RewardManager", (accounts) => {
         undefined,
         rewardProgramAdmin,
         rewardProgramID
-      ).should.be.rejectedWith(Error, "safe transaction was reverted");
+      ).should.be.rejectedWith(Error, SAFE_TRANSACTION_FAILED_WITHOUT_GAS_SET);
     });
 
     it("does not allow non-action handler to call registerRewardProgram", async () => {
@@ -521,7 +527,7 @@ contract("RewardManager", (accounts) => {
         undefined,
         rewardProgramAdmin,
         rewardProgramID
-      ).should.be.rejectedWith(Error, "safe transaction was reverted");
+      ).should.be.rejectedWith(Error, SAFE_TRANSACTION_FAILED_WITHOUT_GAS_SET);
     });
     it("refunds the prepaid card if the prepaid card owner pays more than the registration fee", async () => {
       let startingPrepaidCardDaicpxdBalance = await getBalance(
@@ -1372,17 +1378,16 @@ contract("RewardManager", (accounts) => {
         )
       ).to.equal(rewardSafe2.address);
 
-      let {
-        executionResult: { success },
-      } = await transferRewardSafe({
-        rewardManager,
-        rewardSafe: rewardSafe2,
-        oldOwner: otherPrepaidCardOwner,
-        newOwner: prepaidCardOwner,
-        relayer,
-        gasToken: daicpxdToken,
-      });
-      expect(success).to.equal(false);
+      await expect(
+        transferRewardSafe({
+          rewardManager,
+          rewardSafe: rewardSafe2,
+          oldOwner: otherPrepaidCardOwner,
+          newOwner: prepaidCardOwner,
+          relayer,
+          gasToken: daicpxdToken,
+        })
+      ).to.be.rejectedWith(SAFE_TRANSACTION_FAILED_WITHOUT_GAS_SET);
     });
 
     it("cannot transfer reward safe with swap owner with EOA-signature only", async () => {
@@ -1410,7 +1415,7 @@ contract("RewardManager", (accounts) => {
         otherPrepaidCardOwner,
         relayer,
         daicpxdToken
-      ).should.be.rejectedWith(Error, "Signatures data too short");
+      ).should.be.rejectedWith(Error, SIGNATURES_DATA_TOO_SHORT);
     });
 
     it("cannot transfer reward safe with swap owner full signature", async () => {
@@ -1438,7 +1443,7 @@ contract("RewardManager", (accounts) => {
         otherPrepaidCardOwner,
         relayer,
         daicpxdToken
-      ).should.be.rejectedWith(Error, "Invalid contract signature provided");
+      ).should.be.rejectedWith(Error, INVALID_CONTRACT_SIGNATURE_PROVIDED);
     });
     it("new owner can transfer reward safe after it has been transferred to them", async () => {
       const tx = await registerRewardee(
@@ -1517,7 +1522,7 @@ contract("RewardManager", (accounts) => {
         newOwner: prepaidCardOwnerA,
         relayer: relayer,
         gasToken: daicpxdToken,
-      }).should.be.rejectedWith(Error, "Invalid owner provided");
+      }).should.be.rejectedWith(Error, INVALID_OWNER_PROVIDED);
     });
     it("can sign with address lexigraphically after reward manager contract address for transfer", async () => {
       prepaidCard = await createPrepaidCardAndTransfer(
@@ -1743,19 +1748,17 @@ contract("RewardManager", (accounts) => {
         await fakeDaicpxdToken.balanceOf(rewardSafe.address)
       ).to.be.bignumber.equal(toTokenUnit(100));
 
-      expect(
-        (
-          await withdrawFromRewardSafe({
-            rewardManager: rewardManager,
-            rewardSafe: rewardSafe,
-            tokenAddress: fakeDaicpxdToken.address,
-            to: prepaidCardOwner,
-            value: toTokenUnit(50),
-            relayer: relayer,
-            gasToken: daicpxdToken,
-          })
-        ).executionResult.success
-      ).to.equal(false);
+      await expect(
+        withdrawFromRewardSafe({
+          rewardManager: rewardManager,
+          rewardSafe: rewardSafe,
+          tokenAddress: fakeDaicpxdToken.address,
+          to: prepaidCardOwner,
+          value: toTokenUnit(50),
+          relayer: relayer,
+          gasToken: daicpxdToken,
+        })
+      ).to.be.rejectedWith(SAFE_TRANSACTION_FAILED_WITHOUT_GAS_SET);
       expect(
         await fakeDaicpxdToken.balanceOf(rewardSafe.address)
       ).to.be.bignumber.equal(toTokenUnit(100));

@@ -129,7 +129,7 @@
     "semver": "^7.3.5",
     "sol-merger": "^3.1.0",
     "solc": "0.5.17",
-    "solhint": "^3.3.4",
+    "solhint": "^3.3.6",
     "solidity-coverage": "^0.7.16",
     "trezor-cli-wallet-provider": "^1.0.6",
     "ts-generator": "^0.1.1",

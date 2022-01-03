@@ -14,6 +14,7 @@ const {
   ZERO_ADDRESS,
   getParamsFromEvent,
   getGnosisSafeFromEventLog,
+  gnosisErrors: { SAFE_TRANSACTION_FAILED_WITHOUT_GAS_SET },
 } = require("./utils/general");
 const {
   toTokenUnit,
@@ -1035,7 +1036,7 @@ contract("PrepaidCardManager", (accounts) => {
         Error,
         // the real revert reason is behind the gnosis safe execTransaction
         // boundary, so we just get this generic error
-        "safe transaction was reverted"
+        SAFE_TRANSACTION_FAILED_WITHOUT_GAS_SET
       );
     });
 
@@ -1219,7 +1220,7 @@ contract("PrepaidCardManager", (accounts) => {
         Error,
         // the real revert reason is behind the gnosis safe execTransaction
         // boundary, so we just get this generic error
-        "safe transaction was reverted"
+        SAFE_TRANSACTION_FAILED_WITHOUT_GAS_SET
       );
     });
 
@@ -1525,7 +1526,7 @@ contract("PrepaidCardManager", (accounts) => {
         Error,
         // the real revert reason is behind the gnosis safe execTransaction
         // boundary, so we just get this generic error
-        "safe transaction was reverted"
+        SAFE_TRANSACTION_FAILED_WITHOUT_GAS_SET
       );
     });
 
@@ -1549,7 +1550,7 @@ contract("PrepaidCardManager", (accounts) => {
         Error,
         // the real revert reason is behind the gnosis safe execTransaction
         // boundary, so we just get this generic error
-        "safe transaction was reverted"
+        SAFE_TRANSACTION_FAILED_WITHOUT_GAS_SET
       );
       await shouldBeSameBalance(
         daicpxdToken,
@@ -1583,7 +1584,7 @@ contract("PrepaidCardManager", (accounts) => {
         Error,
         // the real revert reason is behind the gnosis safe execTransaction
         // boundary, so we just get this generic error
-        "safe transaction was reverted"
+        SAFE_TRANSACTION_FAILED_WITHOUT_GAS_SET
       );
       await shouldBeSameBalance(
         daicpxdToken,

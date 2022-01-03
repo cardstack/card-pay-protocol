@@ -8,6 +8,7 @@ const TokenManager = artifacts.require("TokenManager");
 const SupplierManager = artifacts.require("SupplierManager");
 
 const utils = require("./utils/general");
+const { INVALID_OWNER_PROVIDED } = utils.gnosisErrors;
 const eventABIs = require("./utils/constant/eventABIs");
 
 const { ZERO_ADDRESS, getParamsFromEvent } = utils;
@@ -305,7 +306,7 @@ contract("PrepaidCardMarket", (accounts) => {
           prepaidCardMarket,
           customer,
           relayer
-        ).should.be.rejectedWith(Error, "Invalid owner provided");
+        ).should.be.rejectedWith(Error, INVALID_OWNER_PROVIDED);
       });
 
       it(`rejects when the market address is missing`, async function () {
@@ -517,7 +518,7 @@ contract("PrepaidCardMarket", (accounts) => {
           prepaidCardMarket,
           customer,
           relayer
-        ).should.be.rejectedWith(Error, "Invalid owner provided");
+        ).should.be.rejectedWith(Error, INVALID_OWNER_PROVIDED);
       });
 
       it(`rejects when contract is paused (paused contract cannot perform EIP-1271 signing)`, async function () {

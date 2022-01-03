@@ -1,3 +1,5 @@
+pragma solidity ^0.7.6;
+
 import "@openzeppelin/contracts-upgradeable/utils/EnumerableSetUpgradeable.sol";
 
 library EnumerableSetUnboundedEnumerable {
