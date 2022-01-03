@@ -220,7 +220,7 @@ exports.findAccountBeforeAddress = (accounts, address) => {
     }
   }
   throw new Error(
-    `Could not find an account address that is lexigraphically before the address ${address} from ${accounts.length} possibilities. Make sure you are using ganache (yarn ganache:start) to run your private chain and try increasing the number of accounts to test with.`
+    `Could not find an account address that is lexigraphically before the address ${address} from ${accounts.length} possibilities. Please adjust the mnemonic in hardhat.config.ts to get a new random set of accounts that hopefully is better ordered.`
   );
 };
 
@@ -231,7 +231,7 @@ exports.findAccountAfterAddress = (accounts, address) => {
     }
   }
   throw new Error(
-    `Could not find an account address that is lexigraphically after the address ${address} from ${accounts.length} possibilities. Make sure you are using ganache (yarn ganache:start) to run your private chain and try increasing the number of accounts to test with.`
+    `Could not find an account address that is lexigraphically after the address ${address} from ${accounts.length} possibilities. Please adjust the mnemonic in hardhat.config.ts to get a new random set of accounts that hopefully is better ordered.`
   );
 };
 
