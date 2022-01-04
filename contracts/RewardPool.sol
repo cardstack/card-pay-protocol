@@ -1,7 +1,8 @@
-pragma solidity ^0.7.6;
+pragma solidity ^0.8.9;
+pragma abicoder v1;
 
-import "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/cryptography/MerkleProofUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/cryptography/MerkleProofUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721Upgradeable.sol";
 import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
@@ -262,7 +263,7 @@ contract RewardPool is Initializable, Versionable, Ownable {
 
   // lazy implementation of getting eoa owner of safe that has 1 or 2 owners
   // think this is a use-case to handle during safe manager refactor
-  function _getEOAOwner(address payable safe) internal returns (address) {
+  function _getEOAOwner(address payable safe) internal view returns (address) {
     address[] memory ownerArr = GnosisSafe(safe).getOwners();
     if (ownerArr.length == 2) {
       return ownerArr[1];

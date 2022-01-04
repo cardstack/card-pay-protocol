@@ -1,4 +1,5 @@
-pragma solidity ^0.7.6;
+pragma solidity ^0.8.9;
+pragma abicoder v1;
 
 contract FakeRewardManager {
   bytes4 internal constant EIP1271_MAGIC_VALUE = 0x20c13b0b;
