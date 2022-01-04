@@ -1,6 +1,7 @@
-pragma solidity ^0.7.6;
+pragma solidity ^0.8.9;
+pragma abicoder v1;
 
-import "@openzeppelin/contracts-upgradeable/utils/EnumerableSetUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
 
 library EnumerableSetUnboundedEnumerable {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;

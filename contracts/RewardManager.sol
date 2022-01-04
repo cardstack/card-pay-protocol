@@ -1,11 +1,12 @@
-pragma solidity ^0.7.6;
+pragma solidity ^0.8.9;
+pragma abicoder v1;
 
 import "./core/Ownable.sol";
 import "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
-import "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import "@gnosis.pm/safe-contracts/contracts/interfaces/ISignatureValidator.sol";
 import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
-import "@openzeppelin/contracts-upgradeable/utils/EnumerableSetUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
 
 import "./core/Safe.sol";
 import "./core/Versionable.sol";

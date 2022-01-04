@@ -1,6 +1,5 @@
-pragma solidity ^0.7.6;
-
-import "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
+pragma solidity ^0.8.9;
+pragma abicoder v1;
 
 import "../core/Ownable.sol";
 import "../core/Versionable.sol";

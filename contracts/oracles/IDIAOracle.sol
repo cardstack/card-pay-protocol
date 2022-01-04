@@ -1,4 +1,5 @@
-pragma solidity ^0.7.6;
+pragma solidity ^0.8.9;
+pragma abicoder v1;
 
 interface IDIAOracle {
   function getValue(string calldata pair)

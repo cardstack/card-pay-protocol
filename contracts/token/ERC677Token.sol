@@ -1,6 +1,7 @@
-pragma solidity ^0.7.6;
+pragma solidity ^0.8.9;
+pragma abicoder v1;
 
-import "@openzeppelin/contracts-upgradeable/presets/ERC20PresetMinterPauserUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/presets/ERC20PresetMinterPauserUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
 import "./ERC677TransferReceiver.sol";
 import "./IERC677.sol";
@@ -13,6 +14,8 @@ import "../core/Versionable.sol";
   This contract is only used in tests, in the real protocol bridged tokens from the tokenbridge contracts are used
  */
 contract ERC677Token is IERC677, ERC20PresetMinterPauserUpgradeable {
+  uint8 configuredDecimals;
+
   function initialize(
     string memory name,
     string memory symbol,
@@ -33,7 +36,7 @@ contract ERC677Token is IERC677, ERC20PresetMinterPauserUpgradeable {
     _setupRole(MINTER_ROLE, owner);
     _setupRole(PAUSER_ROLE, owner);
 
-    _setupDecimals(decimals);
+    configuredDecimals = decimals;
   }
 
   function transferAndCall(
@@ -68,7 +71,7 @@ contract ERC677Token is IERC677, ERC20PresetMinterPauserUpgradeable {
     override(ERC20Upgradeable, IERC677)
     returns (uint8)
   {
-    return ERC20Upgradeable.decimals();
+    return configuredDecimals;
   }
 
   function contractFallBack(
