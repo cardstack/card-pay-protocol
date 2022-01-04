@@ -11,6 +11,13 @@ const {
     erc1967: { getImplementationAddress },
   },
   ethers,
+  config: {
+    networks: {
+      hardhat: {
+        accounts: { mnemonic },
+      },
+    },
+  },
 } = hre;
 
 const networks = require("@ethersproject/networks/lib/index.js");
@@ -46,7 +53,7 @@ function getHardhatTestWallet() {
   let provider = new ethers.getDefaultProvider("http://localhost:8545");
   // This is the default hardhat test mnemonic
   let wallet = new ethers.Wallet.fromMnemonic(
-    "test test test test test test test test test test test junk"
+    mnemonic || "test test test test test test test test test test test junk"
   );
   return wallet.connect(provider);
 }
