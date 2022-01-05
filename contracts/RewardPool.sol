@@ -215,19 +215,20 @@ contract RewardPool is Initializable, Versionable, Ownable {
       "can only withdraw for safe registered on reward program"
     );
 
-    if (tokenType == 1) {
-      // Type 1: ERC667 fungible tokens
-      claimERC667(
-        leaf,
-        rewardProgramID,
-        rewardSafeOwner,
-        transferDetails,
-        acceptPartialClaim
-      );
-      return true;
-    }
+    // if statement commented out due to code coverage rules - add back in when
+    // more token types are supported.
 
-    return false;
+    // if (tokenType == 1) {
+    // Type 1: ERC667 fungible tokens
+    claimERC667(
+      leaf,
+      rewardProgramID,
+      rewardSafeOwner,
+      transferDetails,
+      acceptPartialClaim
+    );
+    return true;
+    // }
   }
 
   function recoverTokens(
