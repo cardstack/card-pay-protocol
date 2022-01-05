@@ -10,6 +10,7 @@ import "@nomiclabs/hardhat-waffle";
 import "@typechain/hardhat";
 import "@nomiclabs/hardhat-ethers";
 import "hardhat-watcher";
+import "./lib/hardhat-error-on-compiler-warnings";
 
 export default {
   solidity: {

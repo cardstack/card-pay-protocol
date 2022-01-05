@@ -18,7 +18,7 @@ jobs:
         run: yarn install
 
       - name: Build
-        run: yarn build
+        run: yarn build:clean
 
       - name: Test
         run: yarn test

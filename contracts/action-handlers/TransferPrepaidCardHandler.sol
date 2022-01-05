@@ -58,11 +58,12 @@ contract TransferPrepaidCardHandler is Ownable, Versionable {
       actionData,
       (address, bytes)
     );
-    PrepaidCardManager(prepaidCardManagerAddress).transfer(
-      prepaidCard,
-      newOwner,
-      previousOwnerSignature
-    );
+    return
+      PrepaidCardManager(prepaidCardManagerAddress).transfer(
+        prepaidCard,
+        newOwner,
+        previousOwnerSignature
+      );
   }
 
   function cardpayVersion() external view returns (string memory) {

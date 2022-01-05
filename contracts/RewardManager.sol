@@ -68,7 +68,7 @@ contract RewardManager is Ownable, Versionable, Safe {
 
   function initialize(address owner) public override initializer {
     _nonce = 0;
-    Ownable.initialize(owner);
+    OwnableInitialize(owner);
   }
 
   function setup(

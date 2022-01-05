@@ -27,18 +27,18 @@ contract ManualFeed is Ownable, Versionable, AggregatorV3Interface {
 
   function initialize(address owner) public override initializer {
     _currentRound = 0;
-    Ownable.initialize(owner);
+    OwnableInitialize(owner);
   }
 
   function setup(
-    string calldata description,
-    uint8 decimals,
+    string calldata newDescription,
+    uint8 newDecimals,
     address _versionManager
   ) external onlyOwner {
-    _description = description;
-    _decimals = decimals;
+    _description = newDescription;
+    _decimals = newDecimals;
     versionManager = _versionManager;
-    emit FeedSetup(description, decimals);
+    emit FeedSetup(newDescription, newDecimals);
   }
 
   function addRound(
@@ -105,7 +105,7 @@ contract ManualFeed is Ownable, Versionable, AggregatorV3Interface {
     return (_roundId, round.price, round.startedAt, round.updatedAt, _roundId);
   }
 
-  function version() external view override returns (uint256) {
+  function version() external pure override returns (uint256) {
     return 3;
   }
 

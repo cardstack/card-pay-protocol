@@ -94,7 +94,7 @@ contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
   function initialize(address owner) public override initializer {
     nonce = 0;
     paused = false;
-    Ownable.initialize(owner);
+    OwnableInitialize(owner);
   }
 
   function setup(
@@ -295,7 +295,7 @@ contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
   }
 
   function isValidSignature(
-    bytes memory data, // solhint-disable-line no-unused-vars
+    bytes memory, // data
     bytes memory signature
   ) public view returns (bytes4) {
     return

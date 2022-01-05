@@ -52,7 +52,7 @@ contract SPENDMinterRole is Initializable, ContextUpgradeable {
   /**
    * @dev Initializes the contract setting the deployer as the initial owner.
    */
-  function initializeMinterRole(address sender) internal initializer {
+  function initializeMinterRole(address sender) internal onlyInitializing {
     _owner = sender;
     emit OwnershipTransferred(address(0), _owner);
   }

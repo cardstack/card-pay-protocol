@@ -108,6 +108,7 @@ contract RegisterMerchantHandler is Ownable, Versionable {
       revenuePool.merchantRegistrationFeeInSPEND()
     );
     MerchantManager(merchantManager).registerMerchant(merchant, infoDID);
+    return true;
   }
 
   function cardpayVersion() external view returns (string memory) {
