@@ -21,7 +21,6 @@ subtask(
 
         console.error(chalk.red(errorMessage));
       } else if (!ignoreError(error)) {
-        console.log(error);
         console.warn(chalk.yellow(error.formattedMessage));
         warnings.push(error.formattedMessage);
       }
@@ -48,6 +47,7 @@ subtask(
 
 const IgnoredErrorCodes = [
   "1878", // "SPDX license identifier not provided"
+  "5574", // Contract code size exceeds 24576 - this is triggered during coverage, we still care about it but a seperate build task will catch it outside of the coverage context
 ];
 
 const IgnoredPrefixes = ["@openzeppelin/contracts-upgradeable"];
