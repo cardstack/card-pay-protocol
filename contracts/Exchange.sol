@@ -1,7 +1,6 @@
 pragma solidity ^0.8.9;
 pragma abicoder v1;
 
-import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import "./core/Ownable.sol";
 
 import "./token/IERC677.sol";
@@ -10,8 +9,6 @@ import "./core/Versionable.sol";
 import "./VersionManager.sol";
 
 contract Exchange is Ownable, Versionable {
-  using SafeMathUpgradeable for uint256;
-
   event Setup();
   event ExchangeCreated(string indexed tokenSymbol, address feed);
 
@@ -123,7 +120,7 @@ contract Exchange is Ownable, Versionable {
     // of the base, so in order to prevent overflows you should use a base of
     // uint256
     uint256 ten = 10;
-    return (amount.mul(usdRate)).div(ten**spendDecimals);
+    return (amount * usdRate) / (ten**spendDecimals);
   }
 
   /**
@@ -169,7 +166,7 @@ contract Exchange is Ownable, Versionable {
     // of the base, so in order to prevent overflows you should use a base of
     // uint256
     uint256 ten = 10;
-    return (amount.mul(ten**spendDecimals)).div(usdRate);
+    return (amount * (ten**spendDecimals)) / usdRate;
   }
 
   /**
@@ -191,16 +188,15 @@ contract Exchange is Ownable, Versionable {
     IPriceOracle oracle = IPriceOracle(exchanges[cardKey].feed);
     uint8 cardExchangeDecimals = oracle.decimals();
     (uint256 cardUSDPrice, ) = oracle.usdPrice();
-    uint256 rawUsdValue = amount.mul(cardUSDPrice);
+    uint256 rawUsdValue = amount * cardUSDPrice;
 
     (uint256 tokenUSDPrice, uint8 tokenExchangeDecimals) = exchangeRateOf(
       token
     );
     uint256 ten = 10;
     return
-      (rawUsdValue.mul(ten**tokenExchangeDecimals)).div(
-        tokenUSDPrice.mul(ten**cardExchangeDecimals)
-      );
+      (rawUsdValue * (ten**tokenExchangeDecimals)) /
+      (tokenUSDPrice * (ten**cardExchangeDecimals));
   }
 
   /**
@@ -216,11 +212,11 @@ contract Exchange is Ownable, Versionable {
   {
     (uint256 actualRate, ) = exchangeRateOf(token);
     uint256 drift = actualRate > requestedRate
-      ? actualRate.sub(requestedRate)
-      : requestedRate.sub(actualRate);
+      ? actualRate - requestedRate
+      : requestedRate - actualRate;
     uint256 ten = 10;
-    uint256 observedDriftPercentage = (drift.mul(ten**exchangeRateDecimals()))
-      .div(actualRate);
+    uint256 observedDriftPercentage = (drift * (ten**exchangeRateDecimals())) /
+      actualRate;
     return observedDriftPercentage <= rateDriftPercentage;
   }
 

@@ -1,7 +1,6 @@
 pragma solidity ^0.8.9;
 pragma abicoder v1;
 
-import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import "../core/Ownable.sol";
 import "../RewardManager.sol";
 import "../Exchange.sol";
@@ -9,7 +8,6 @@ import "../core/Versionable.sol";
 import "../VersionManager.sol";
 
 contract RegisterRewardProgramHandler is Ownable, Versionable {
-  using SafeMathUpgradeable for uint256;
   event Setup();
   event RewardProgramRegistrationFee(
     address prepaidCard,
@@ -83,7 +81,7 @@ contract RegisterRewardProgramHandler is Ownable, Versionable {
       rewardProgramRegistrationFeeInToken
     );
 
-    uint256 refund = amount.sub(rewardProgramRegistrationFeeInToken);
+    uint256 refund = amount - rewardProgramRegistrationFeeInToken;
     if (refund > 0) {
       IERC677(msg.sender).transfer(prepaidCard, refund);
     }

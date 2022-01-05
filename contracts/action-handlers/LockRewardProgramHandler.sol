@@ -1,7 +1,6 @@
 pragma solidity ^0.8.9;
 pragma abicoder v1;
 
-import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import "../core/Ownable.sol";
 import "../core/Versionable.sol";
 import "../PrepaidCardManager.sol";
@@ -10,7 +9,6 @@ import "../RewardManager.sol";
 import "../VersionManager.sol";
 
 contract LockRewardProgramHandler is Ownable, Versionable {
-  using SafeMathUpgradeable for uint256;
   event Setup();
   event RewardProgramLocked(address prepaidCard, address rewardProgramID);
   address public actionDispatcher;

@@ -1,7 +1,6 @@
 pragma solidity ^0.8.9;
 pragma abicoder v1;
 
-import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import "@chainlink/contracts/src/v0.5/interfaces/AggregatorV3Interface.sol";
 import "./IPriceOracle.sol";
 import "./IDIAOracle.sol";
@@ -10,8 +9,6 @@ import "../core/Versionable.sol";
 import "../VersionManager.sol";
 
 contract DIAOracleAdapter is Ownable, Versionable, IPriceOracle {
-  using SafeMathUpgradeable for uint256;
-
   uint8 internal constant DECIMALS = 8;
   address public oracle;
   string public tokenSymbol;
@@ -86,7 +83,7 @@ contract DIAOracleAdapter is Ownable, Versionable, IPriceOracle {
     // of the base, so in order to prevent overflows you should use a base of
     // uint256
     uint256 ten = 10;
-    price = (tokenUsdPrice.mul(ten**DECIMALS)).div(uint256(daiUsdPrice));
+    price = (tokenUsdPrice * (ten**DECIMALS)) / uint256(daiUsdPrice);
     updatedAt = _updatedAt;
   }
 

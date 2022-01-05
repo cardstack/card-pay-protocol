@@ -10,8 +10,6 @@ import "./PrepaidCardManager.sol";
 import "./VersionManager.sol";
 
 contract ActionDispatcher is Ownable, Versionable {
-  using SafeMathUpgradeable for uint256;
-
   struct Action {
     string name;
     address payable prepaidCard;

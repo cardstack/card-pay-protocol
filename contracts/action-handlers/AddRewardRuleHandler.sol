@@ -9,7 +9,6 @@ import "../RewardManager.sol";
 import "../VersionManager.sol";
 
 contract AddRewardRuleHandler is Ownable, Versionable {
-  using SafeMathUpgradeable for uint256;
   event Setup();
   event RewardRuleAdded(
     address prepaidCard,

@@ -1,7 +1,6 @@
 pragma solidity ^0.8.9;
 pragma abicoder v1;
 
-import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/cryptography/MerkleProofUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721Upgradeable.sol";
@@ -15,7 +14,6 @@ import "./TokenManager.sol";
 import "./VersionManager.sol";
 
 contract RewardPool is Initializable, Versionable, Ownable {
-  using SafeMathUpgradeable for uint256;
   using MerkleProofUpgradeable for bytes32[];
 
   event Setup(address tally, address rewardManager, address tokenManager);
@@ -157,9 +155,9 @@ contract RewardPool is Initializable, Versionable, Ownable {
 
     rewardsClaimed[keccak256(leaf)] = true;
 
-    rewardBalance[rewardProgramID][payableToken] = rewardProgramBalance.sub(
-      amount
-    );
+    rewardBalance[rewardProgramID][payableToken] =
+      rewardProgramBalance -
+      amount;
     IERC677(payableToken).transfer(msg.sender, amount);
 
     emit RewardeeClaim(
@@ -251,9 +249,9 @@ contract RewardPool is Initializable, Versionable, Ownable {
       rewardBalance[rewardProgramID][token] >= amount,
       "not enough tokens to withdraw"
     );
-    rewardBalance[rewardProgramID][token] = rewardBalance[rewardProgramID][
-      token
-    ].sub(amount);
+    rewardBalance[rewardProgramID][token] =
+      rewardBalance[rewardProgramID][token] -
+      amount;
     emit RewardTokensRecovered(
       rewardProgramID,
       token,
@@ -288,9 +286,9 @@ contract RewardPool is Initializable, Versionable, Ownable {
       RewardManager(rewardManager).isRewardProgram(rewardProgramID),
       "reward program is not found"
     );
-    rewardBalance[rewardProgramID][msg.sender] = rewardBalance[rewardProgramID][
-      msg.sender
-    ].add(amount);
+    rewardBalance[rewardProgramID][msg.sender] =
+      rewardBalance[rewardProgramID][msg.sender] +
+      amount;
 
     emit RewardTokensAdded(rewardProgramID, from, msg.sender, amount);
 

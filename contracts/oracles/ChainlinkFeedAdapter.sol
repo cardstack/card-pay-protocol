@@ -2,14 +2,13 @@ pragma solidity ^0.8.9;
 pragma abicoder v1;
 
 import "@chainlink/contracts/src/v0.5/interfaces/AggregatorV3Interface.sol";
-import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
+
 import "../core/Ownable.sol";
 import "./IPriceOracle.sol";
 import "../core/Versionable.sol";
 import "../VersionManager.sol";
 
 contract ChainlinkFeedAdapter is Ownable, Versionable, IPriceOracle {
-  using SafeMathUpgradeable for uint256;
   address public tokenUsdFeed;
   address public ethUsdFeed;
   address public daiUsdFeed;
@@ -67,8 +66,8 @@ contract ChainlinkFeedAdapter is Ownable, Versionable, IPriceOracle {
     uint256 _oneDollar = oneDollar();
     return
       currentUsdPrice >= _oneDollar
-        ? currentUsdPrice.sub(_oneDollar)
-        : _oneDollar.sub(currentUsdPrice);
+        ? currentUsdPrice - _oneDollar
+        : _oneDollar - currentUsdPrice;
   }
 
   function isSnappedToUSD() public view returns (bool) {
@@ -114,9 +113,7 @@ contract ChainlinkFeedAdapter is Ownable, Versionable, IPriceOracle {
     // of the base, so in order to prevent overflows you should use a base of
     // uint256
     uint256 ten = 10;
-    price = ((usdTokenPrice).mul(ten**tokenUsdDecimals)).div(
-      uint256(ethUsdPrice)
-    );
+    price = (usdTokenPrice * (ten**tokenUsdDecimals)) / uint256(ethUsdPrice);
     updatedAt = _updatedAt;
   }
 
@@ -149,9 +146,9 @@ contract ChainlinkFeedAdapter is Ownable, Versionable, IPriceOracle {
     (, int256 tokenUsdPrice, , uint256 _updatedAt, ) = tokenUsd
       .latestRoundData();
     (, int256 daiUsdPrice, , , ) = daiUsd.latestRoundData();
-    price = (uint256(tokenUsdPrice).mul(ten**tokenUsdDecimals)).div(
-      uint256(daiUsdPrice)
-    );
+    price =
+      (uint256(tokenUsdPrice) * (ten**tokenUsdDecimals)) /
+      uint256(daiUsdPrice);
     updatedAt = _updatedAt;
   }
 

@@ -2,7 +2,7 @@ pragma solidity ^0.8.9;
 pragma abicoder v1;
 
 import "./core/Ownable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
+
 import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
 
 import "./core/Versionable.sol";
@@ -13,7 +13,6 @@ import "./libraries/EnumerableSetUnboundedEnumerable.sol";
 import "./VersionManager.sol";
 
 contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
-  using SafeMathUpgradeable for uint256;
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
   using EnumerableSetUnboundedEnumerable for EnumerableSetUpgradeable.AddressSet;
 

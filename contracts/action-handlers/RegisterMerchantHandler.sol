@@ -1,7 +1,6 @@
 pragma solidity ^0.8.9;
 pragma abicoder v1;
 
-import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import "../core/Ownable.sol";
 import "../MerchantManager.sol";
 import "../RevenuePool.sol";
@@ -11,8 +10,6 @@ import "../TokenManager.sol";
 import "../VersionManager.sol";
 
 contract RegisterMerchantHandler is Ownable, Versionable {
-  using SafeMathUpgradeable for uint256;
-
   event MerchantRegistrationFee(
     address card,
     address issuingToken,
@@ -93,7 +90,7 @@ contract RegisterMerchantHandler is Ownable, Versionable {
       revenuePool.merchantFeeReceiver(),
       merchantRegistrationFeeInToken
     );
-    uint256 refund = amount.sub(merchantRegistrationFeeInToken);
+    uint256 refund = amount - merchantRegistrationFeeInToken;
     if (refund > 0) {
       // from is a trusted contract address (gnosis safe)
       IERC677(issuingToken).transfer(prepaidCard, refund);

@@ -3,7 +3,7 @@ pragma abicoder v1;
 
 import "./core/Ownable.sol";
 import "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
-import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
+
 import "@gnosis.pm/safe-contracts/contracts/interfaces/ISignatureValidator.sol";
 import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
@@ -18,7 +18,6 @@ import "./VersionManager.sol";
 contract RewardManager is Ownable, Versionable, Safe {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
   using EnumerableSetUnboundedEnumerable for EnumerableSetUpgradeable.AddressSet;
-  using SafeMathUpgradeable for uint256;
 
   event Setup();
   event RewardProgramCreated(address rewardProgramID, address admin);

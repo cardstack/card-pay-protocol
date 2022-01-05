@@ -7,7 +7,6 @@ import "solidity-coverage";
 import "hardhat-contract-sizer";
 import "@openzeppelin/hardhat-upgrades";
 import "@nomiclabs/hardhat-waffle";
-import "@typechain/hardhat";
 import "@nomiclabs/hardhat-ethers";
 import "hardhat-watcher";
 import "./lib/hardhat-error-on-compiler-warnings";

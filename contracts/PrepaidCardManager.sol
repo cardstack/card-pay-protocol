@@ -3,7 +3,7 @@ pragma abicoder v1;
 
 import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 import "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
-import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
+
 import "./core/Ownable.sol";
 
 import "./token/IERC677.sol";
@@ -18,7 +18,6 @@ import "./ActionDispatcher.sol";
 import "./VersionManager.sol";
 
 contract PrepaidCardManager is Ownable, Versionable, Safe {
-  using SafeMathUpgradeable for uint256;
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
   using EnumerableSetUnboundedEnumerable for EnumerableSetUpgradeable.AddressSet;
 
@@ -262,9 +261,9 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     returns (uint256)
   {
     return
-      (Exchange(exchangeAddress).convertFromSpend(token, spendFaceValue))
-        .add(gasFee(token))
-        .add(100); // this is to deal with any rounding errors
+      Exchange(exchangeAddress).convertFromSpend(token, spendFaceValue) +
+      gasFee(token) +
+      100; // this is to deal with any rounding errors
   }
 
   /**
@@ -517,7 +516,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
         isValidAmount(token, issuingTokenAmounts[i]),
         "Amount below threshold"
       );
-      neededAmount = neededAmount.add(issuingTokenAmounts[i]);
+      neededAmount = neededAmount + issuingTokenAmounts[i];
     }
 
     require(
@@ -544,7 +543,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
       SupplierManager(supplierManager).safes(depot) != address(0)
     ) {
       // the owner safe is a trusted contract (gnosis safe)
-      IERC677(token).transfer(depot, amountReceived.sub(neededAmount));
+      IERC677(token).transfer(depot, amountReceived - neededAmount);
     }
 
     return true;
@@ -588,14 +587,14 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
       IERC677(token).transfer(gasFeeReceiver, _gasFee);
     }
     // The card is a trusted contract (gnosis safe)
-    IERC677(token).transfer(card, issuingTokenAmount.sub(_gasFee));
+    IERC677(token).transfer(card, issuingTokenAmount - _gasFee);
 
     emit CreatePrepaidCard(
       owner,
       card,
       token,
       depot,
-      issuingTokenAmount.sub(_gasFee),
+      issuingTokenAmount - _gasFee,
       spendAmount,
       _gasFee,
       customizationDID
@@ -688,7 +687,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     contractSignature = new bytes(65);
     bytes memory encodeData = abi.encode(this, address(0));
     for (uint256 i = 1; i <= 64; i++) {
-      contractSignature[64 - i] = encodeData[encodeData.length.sub(i)];
+      contractSignature[64 - i] = encodeData[encodeData.length - i];
     }
     bytes1 v = 0x01;
     contractSignature[64] = v;

@@ -1,15 +1,12 @@
 pragma solidity ^0.8.9;
 pragma abicoder v1;
 
-import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
-
 import "./ISPEND.sol";
 import "../core/Versionable.sol";
 import "../roles/SPENDMinterRole.sol";
 import "../VersionManager.sol";
 
 contract SPEND is Versionable, ISPEND, SPENDMinterRole {
-  using SafeMathUpgradeable for uint256;
   event Setup();
 
   mapping(address => uint256) public _balances;
@@ -96,19 +93,18 @@ contract SPEND is Versionable, ISPEND, SPENDMinterRole {
   function _mint(address account, uint256 amount) internal {
     require(account != address(0), "cannot mint to zero address");
 
-    _totalSupply = _totalSupply.add(amount);
-    _balances[account] = _balances[account].add(amount);
+    _totalSupply = _totalSupply + amount;
+    _balances[account] = _balances[account] + amount;
     emit Mint(account, amount);
   }
 
   function _burn(address account, uint256 amount) internal {
     require(account != address(0), "cannot burn from zero address");
+    require(_balances[account] >= amount, "burn amount exceeds balance");
 
-    _balances[account] = _balances[account].sub(
-      amount,
-      "burn amount exceeds balance"
-    );
-    _totalSupply = _totalSupply.sub(amount);
+    _balances[account] = _balances[account] - amount;
+
+    _totalSupply = _totalSupply - amount;
     emit Burn(account, amount);
   }
 

@@ -2,7 +2,6 @@ pragma solidity ^0.8.9;
 pragma abicoder v1;
 
 import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 
 import "./core/Ownable.sol";
 import "./token/IERC677.sol";
@@ -18,7 +17,6 @@ import "./VersionManager.sol";
 contract RevenuePool is Ownable, Versionable {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
   using EnumerableSetUnboundedEnumerable for EnumerableSetUpgradeable.AddressSet;
-  using SafeMathUpgradeable for uint256;
 
   struct RevenueBalance {
     EnumerableSetUpgradeable.AddressSet tokens;
@@ -145,7 +143,7 @@ contract RevenuePool is Ownable, Versionable {
     uint256 amount
   ) external onlyHandlers returns (uint256) {
     uint256 balance = balances[merchantSafe].balance[token];
-    balances[merchantSafe].balance[token] = balance.add(amount);
+    balances[merchantSafe].balance[token] = balance + amount;
     balances[merchantSafe].tokens.add(token);
     return balances[merchantSafe].balance[token];
   }
@@ -166,7 +164,7 @@ contract RevenuePool is Ownable, Versionable {
     require(amount <= balance, "Insufficient funds");
 
     // unlock token of merchant
-    balance = balance.sub(amount);
+    balance = balance - amount;
 
     // update new balance
     balances[merchantSafe].balance[token] = balance;
