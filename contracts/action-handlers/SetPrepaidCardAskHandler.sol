@@ -35,13 +35,12 @@ contract SetPrepaidCardAskHandler is Ownable, Versionable {
    * @dev onTokenTransfer(ERC677) - this is the ERC677 token transfer callback.
    * handle setting prepaid cards in market inventory
    * @param from the token sender (should be the revenue pool)
-   * @param amount the amount of tokens being transferred
    * @param data the data encoded as (address prepaidCard, uint256 spendAmount, bytes actionData)
    * where actionData is encoded as (bytes32 sku, uint256 askPrice, address marketAddress)
    */
   function onTokenTransfer(
     address payable from,
-    uint256 amount, // solhint-disable-line no-unused-vars
+    uint256, // amount
     bytes calldata data
   ) external returns (bool) {
     require(
@@ -72,7 +71,7 @@ contract SetPrepaidCardAskHandler is Ownable, Versionable {
     require(issuer == owner, "only issuer can set market inventory");
 
     prepaidCardMgr.setPrepaidCardUsed(prepaidCard);
-    prepaidCardMarket.setAsk(issuer, sku, askPrice);
+    return prepaidCardMarket.setAsk(issuer, sku, askPrice);
   }
 
   function cardpayVersion() external view returns (string memory) {

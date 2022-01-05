@@ -134,10 +134,11 @@ contract ChainlinkFeedAdapter is Ownable, Versionable, IPriceOracle {
     AggregatorV3Interface daiUsd = AggregatorV3Interface(daiUsdFeed);
     // the token is question actually is DAI, so the price is just 1 DAI
     if (tokenUsdFeed == daiUsdFeed) {
-      (, , , uint256 _updatedAt, ) = daiUsd.latestRoundData();
+      (, , , uint256 _updatedAtDai, ) = daiUsd.latestRoundData();
       uint8 daiDecimals = daiUsd.decimals();
       price = ten**daiDecimals;
-      updatedAt = _updatedAt;
+      updatedAt = _updatedAtDai;
+      return (price, updatedAt);
     }
 
     AggregatorV3Interface tokenUsd = AggregatorV3Interface(tokenUsdFeed);

@@ -228,6 +228,8 @@ contract RewardPool is Initializable, Versionable, Ownable {
       );
       return true;
     }
+
+    return false;
   }
 
   function recoverTokens(
@@ -252,13 +254,13 @@ contract RewardPool is Initializable, Versionable, Ownable {
     rewardBalance[rewardProgramID][token] = rewardBalance[rewardProgramID][
       token
     ].sub(amount);
-    IERC677(token).transfer(msg.sender, amount);
     emit RewardTokensRecovered(
       rewardProgramID,
       token,
       amount,
       rewardProgramAdmin
     );
+    return IERC677(token).transfer(msg.sender, amount);
   }
 
   // lazy implementation of getting eoa owner of safe that has 1 or 2 owners
@@ -289,7 +291,10 @@ contract RewardPool is Initializable, Versionable, Ownable {
     rewardBalance[rewardProgramID][msg.sender] = rewardBalance[rewardProgramID][
       msg.sender
     ].add(amount);
+
     emit RewardTokensAdded(rewardProgramID, from, msg.sender, amount);
+
+    return true;
   }
 
   function cardpayVersion() external view returns (string memory) {

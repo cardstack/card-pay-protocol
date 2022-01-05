@@ -14,29 +14,29 @@ import "../core/Versionable.sol";
   This contract is only used in tests, in the real protocol bridged tokens from the tokenbridge contracts are used
  */
 contract ERC677Token is IERC677, ERC20PresetMinterPauserUpgradeable {
-  uint8 configuredDecimals;
+  uint8 private configuredDecimals;
 
   function initialize(
-    string memory name,
-    string memory symbol,
-    uint8 decimals,
+    string memory _name,
+    string memory _symbol,
+    uint8 _decimals,
     address owner
   ) public initializer {
     // lots of initializers to override here, due to owner by default being msg sender
     __Context_init_unchained();
     __AccessControl_init_unchained();
-    __ERC20_init_unchained(name, symbol);
+    __ERC20_init_unchained(_name, _symbol);
     __ERC20Burnable_init_unchained();
     __Pausable_init_unchained();
     __ERC20Pausable_init_unchained();
-    __ERC20PresetMinterPauser_init_unchained(name, symbol);
+    __ERC20PresetMinterPauser_init_unchained(_name, _symbol);
 
     _setupRole(DEFAULT_ADMIN_ROLE, owner);
 
     _setupRole(MINTER_ROLE, owner);
     _setupRole(PAUSER_ROLE, owner);
 
-    configuredDecimals = decimals;
+    configuredDecimals = _decimals;
   }
 
   function transferAndCall(

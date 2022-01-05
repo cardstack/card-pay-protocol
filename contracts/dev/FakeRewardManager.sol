@@ -7,13 +7,13 @@ contract FakeRewardManager {
   function isValidSignature(
     bytes memory, /* data */
     bytes memory /* signature */
-  ) public view returns (bytes4) {
+  ) public pure returns (bytes4) {
     return EIP1271_MAGIC_VALUE;
   }
 
   function isValidToken(
     address /* token */
-  ) public view returns (bytes4) {
+  ) public pure returns (bytes4) {
     return EIP1271_MAGIC_VALUE;
   }
 }

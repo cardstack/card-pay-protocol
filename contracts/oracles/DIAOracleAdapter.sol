@@ -45,7 +45,7 @@ contract DIAOracleAdapter is Ownable, Versionable, IPriceOracle {
     emit DAIOracleSetup(oracle, _tokenSymbol, _daiUsdFeed);
   }
 
-  function decimals() external view override returns (uint8) {
+  function decimals() external pure override returns (uint8) {
     return DECIMALS;
   }
 

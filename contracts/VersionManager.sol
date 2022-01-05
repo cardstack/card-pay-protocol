@@ -12,7 +12,7 @@ contract VersionManager is Ownable {
     // this is the version of the protocol that this contract is being
     // introduced at.
     version = "0.8.3";
-    Ownable.initialize(owner);
+    OwnableInitialize(owner);
   }
 
   function setVersion(string calldata _version) external onlyOwner {
