@@ -87,18 +87,6 @@
     "proxy": "0x90e8C108AbCF667cDdE92ECbba0078f56DeDb2c8",
     "contractName": "PayRewardTokensHandler"
   },
-  "Market": {
-    "proxy": "0x8C17417408a3A925d1c2EbCADc0F5f98Ca9B6Fce",
-    "contractName": "Market"
-  },
-  "Inventory": {
-    "proxy": "0xD7B8562A39F8AFcDB375C32a5605417B50A6ed9c",
-    "contractName": "Inventory"
-  },
-  "LevelRegistrar": {
-    "proxy": "0xCC5DD03Bf98db8d8eeFf32F9422cF029Aaff2244",
-    "contractName": "LevelRegistrar"
-  },
   "AddRewardRuleHandler": {
     "proxy": "0x186d3214Af4b4025A1A8eb9E284b7e49bE0c5179",
     "contractName": "AddRewardRuleHandler"

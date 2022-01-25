@@ -10,6 +10,20 @@ import "@nomiclabs/hardhat-waffle";
 import "@nomiclabs/hardhat-ethers";
 import "hardhat-watcher";
 import "./lib/hardhat-error-on-compiler-warnings";
+import "./lib/hardhat-use-local-compiler";
+
+const SOKOL_RPC_URL = "https://sokol.poa.network";
+const XDAI_RPC_URL = "https://rpc.xdaichain.com/";
+
+let forking: { url: string }, forkingChainId: number;
+
+if (process.env.HARDHAT_FORKING === "sokol") {
+  forking = { url: SOKOL_RPC_URL };
+  forkingChainId = 77;
+} else if (process.env.HARDHAT_FORKING === "xdai") {
+  forkingChainId = 100;
+  forking = { url: XDAI_RPC_URL };
+}
 
 export default {
   solidity: {
@@ -19,6 +33,11 @@ export default {
         settings: {
           optimizer: {
             enabled: true,
+          },
+          outputSelection: {
+            "*": {
+              "*": ["storageLayout"],
+            },
           },
         },
       },
@@ -36,17 +55,19 @@ export default {
         mnemonic:
           "fix burden relax exact quick orbit ticket peasant apology outer lady police",
       },
+      forking,
+      chainId: forkingChainId,
     },
 
     sokol: {
-      url: "https://sokol.poa.network",
+      url: SOKOL_RPC_URL,
       chainId: 77,
       gasPrice: 20000000000, // 20 gwei
       derivationPath: "m/44'/60'/0'/0/1",
     },
 
     xdai: {
-      url: "https://rpc.xdaichain.com/",
+      url: XDAI_RPC_URL,
       chainId: 100,
       derivationPath: "m/44'/60'/0'/0/2",
       gasPrice: 20000000000, // 20 gwei

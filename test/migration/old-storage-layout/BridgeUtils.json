@@ -1,0 +1,115 @@
+{
+  "storage": [
+    {
+      "astId": 4131,
+      "contract": "contracts/BridgeUtils.sol:BridgeUtils",
+      "label": "initialized",
+      "offset": 0,
+      "slot": "0",
+      "type": "t_bool"
+    },
+    {
+      "astId": 4133,
+      "contract": "contracts/BridgeUtils.sol:BridgeUtils",
+      "label": "initializing",
+      "offset": 1,
+      "slot": "0",
+      "type": "t_bool"
+    },
+    {
+      "astId": 4195,
+      "contract": "contracts/BridgeUtils.sol:BridgeUtils",
+      "label": "______gap",
+      "offset": 0,
+      "slot": "1",
+      "type": "t_array(t_uint256)50_storage"
+    },
+    {
+      "astId": 3121,
+      "contract": "contracts/BridgeUtils.sol:BridgeUtils",
+      "label": "_owner",
+      "offset": 0,
+      "slot": "51",
+      "type": "t_address"
+    },
+    {
+      "astId": 3234,
+      "contract": "contracts/BridgeUtils.sol:BridgeUtils",
+      "label": "______gap",
+      "offset": 0,
+      "slot": "52",
+      "type": "t_array(t_uint256)50_storage"
+    },
+    {
+      "astId": 13407,
+      "contract": "contracts/BridgeUtils.sol:BridgeUtils",
+      "label": "____gap",
+      "offset": 0,
+      "slot": "102",
+      "type": "t_array(t_uint256)50_storage"
+    },
+    {
+      "astId": 4622,
+      "contract": "contracts/BridgeUtils.sol:BridgeUtils",
+      "label": "tokenManager",
+      "offset": 0,
+      "slot": "152",
+      "type": "t_address"
+    },
+    {
+      "astId": 4624,
+      "contract": "contracts/BridgeUtils.sol:BridgeUtils",
+      "label": "bridgeMediator",
+      "offset": 0,
+      "slot": "153",
+      "type": "t_address"
+    },
+    {
+      "astId": 4626,
+      "contract": "contracts/BridgeUtils.sol:BridgeUtils",
+      "label": "exchange",
+      "offset": 0,
+      "slot": "154",
+      "type": "t_address"
+    },
+    {
+      "astId": 4628,
+      "contract": "contracts/BridgeUtils.sol:BridgeUtils",
+      "label": "supplierManager",
+      "offset": 0,
+      "slot": "155",
+      "type": "t_address"
+    },
+    {
+      "astId": 4630,
+      "contract": "contracts/BridgeUtils.sol:BridgeUtils",
+      "label": "versionManager",
+      "offset": 0,
+      "slot": "156",
+      "type": "t_address"
+    }
+  ],
+  "types": {
+    "t_address": {
+      "encoding": "inplace",
+      "label": "address",
+      "numberOfBytes": "20"
+    },
+    "t_array(t_uint256)50_storage": {
+      "base": "t_uint256",
+      "encoding": "inplace",
+      "label": "uint256[50]",
+      "numberOfBytes": "1600"
+    },
+    "t_bool": {
+      "encoding": "inplace",
+      "label": "bool",
+      "numberOfBytes": "1"
+    },
+    "t_uint256": {
+      "encoding": "inplace",
+      "label": "uint256",
+      "numberOfBytes": "32"
+    }
+  }
+}

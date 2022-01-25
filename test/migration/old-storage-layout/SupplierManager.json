@@ -1,0 +1,181 @@
+{
+  "storage": [
+    {
+      "astId": 4131,
+      "contract": "contracts/SupplierManager.sol:SupplierManager",
+      "label": "initialized",
+      "offset": 0,
+      "slot": "0",
+      "type": "t_bool"
+    },
+    {
+      "astId": 4133,
+      "contract": "contracts/SupplierManager.sol:SupplierManager",
+      "label": "initializing",
+      "offset": 1,
+      "slot": "0",
+      "type": "t_bool"
+    },
+    {
+      "astId": 4195,
+      "contract": "contracts/SupplierManager.sol:SupplierManager",
+      "label": "______gap",
+      "offset": 0,
+      "slot": "1",
+      "type": "t_array(t_uint256)50_storage"
+    },
+    {
+      "astId": 3121,
+      "contract": "contracts/SupplierManager.sol:SupplierManager",
+      "label": "_owner",
+      "offset": 0,
+      "slot": "51",
+      "type": "t_address"
+    },
+    {
+      "astId": 3234,
+      "contract": "contracts/SupplierManager.sol:SupplierManager",
+      "label": "______gap",
+      "offset": 0,
+      "slot": "52",
+      "type": "t_array(t_uint256)50_storage"
+    },
+    {
+      "astId": 13407,
+      "contract": "contracts/SupplierManager.sol:SupplierManager",
+      "label": "____gap",
+      "offset": 0,
+      "slot": "102",
+      "type": "t_array(t_uint256)50_storage"
+    },
+    {
+      "astId": 13302,
+      "contract": "contracts/SupplierManager.sol:SupplierManager",
+      "label": "gnosisSafe",
+      "offset": 0,
+      "slot": "152",
+      "type": "t_address"
+    },
+    {
+      "astId": 13304,
+      "contract": "contracts/SupplierManager.sol:SupplierManager",
+      "label": "gnosisProxyFactory",
+      "offset": 0,
+      "slot": "153",
+      "type": "t_address"
+    },
+    {
+      "astId": 13400,
+      "contract": "contracts/SupplierManager.sol:SupplierManager",
+      "label": "____gap",
+      "offset": 0,
+      "slot": "154",
+      "type": "t_array(t_uint256)50_storage"
+    },
+    {
+      "astId": 10112,
+      "contract": "contracts/SupplierManager.sol:SupplierManager",
+      "label": "suppliers",
+      "offset": 0,
+      "slot": "204",
+      "type": "t_mapping(t_address,t_struct(Supplier)10108_storage)"
+    },
+    {
+      "astId": 10116,
+      "contract": "contracts/SupplierManager.sol:SupplierManager",
+      "label": "safes",
+      "offset": 0,
+      "slot": "205",
+      "type": "t_mapping(t_address,t_address)"
+    },
+    {
+      "astId": 10118,
+      "contract": "contracts/SupplierManager.sol:SupplierManager",
+      "label": "bridgeUtils",
+      "offset": 0,
+      "slot": "206",
+      "type": "t_address"
+    },
+    {
+      "astId": 10120,
+      "contract": "contracts/SupplierManager.sol:SupplierManager",
+      "label": "versionManager",
+      "offset": 0,
+      "slot": "207",
+      "type": "t_address"
+    }
+  ],
+  "types": {
+    "t_address": {
+      "encoding": "inplace",
+      "label": "address",
+      "numberOfBytes": "20"
+    },
+    "t_array(t_uint256)50_storage": {
+      "base": "t_uint256",
+      "encoding": "inplace",
+      "label": "uint256[50]",
+      "numberOfBytes": "1600"
+    },
+    "t_bool": {
+      "encoding": "inplace",
+      "label": "bool",
+      "numberOfBytes": "1"
+    },
+    "t_mapping(t_address,t_address)": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => address)",
+      "numberOfBytes": "32",
+      "value": "t_address"
+    },
+    "t_mapping(t_address,t_struct(Supplier)10108_storage)": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => struct SupplierManager.Supplier)",
+      "numberOfBytes": "32",
+      "value": "t_struct(Supplier)10108_storage"
+    },
+    "t_string_storage": {
+      "encoding": "bytes",
+      "label": "string",
+      "numberOfBytes": "32"
+    },
+    "t_struct(Supplier)10108_storage": {
+      "encoding": "inplace",
+      "label": "struct SupplierManager.Supplier",
+      "members": [
+        {
+          "astId": 10103,
+          "contract": "contracts/SupplierManager.sol:SupplierManager",
+          "label": "registered",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_bool"
+        },
+        {
+          "astId": 10105,
+          "contract": "contracts/SupplierManager.sol:SupplierManager",
+          "label": "safe",
+          "offset": 1,
+          "slot": "0",
+          "type": "t_address"
+        },
+        {
+          "astId": 10107,
+          "contract": "contracts/SupplierManager.sol:SupplierManager",
+          "label": "infoDID",
+          "offset": 0,
+          "slot": "1",
+          "type": "t_string_storage"
+        }
+      ],
+      "numberOfBytes": "64"
+    },
+    "t_uint256": {
+      "encoding": "inplace",
+      "label": "uint256",
+      "numberOfBytes": "32"
+    }
+  }
+}

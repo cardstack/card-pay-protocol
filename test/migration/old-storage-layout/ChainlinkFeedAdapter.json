@@ -1,0 +1,123 @@
+{
+  "storage": [
+    {
+      "astId": 4131,
+      "contract": "contracts/oracles/ChainlinkFeedAdapter.sol:ChainlinkFeedAdapter",
+      "label": "initialized",
+      "offset": 0,
+      "slot": "0",
+      "type": "t_bool"
+    },
+    {
+      "astId": 4133,
+      "contract": "contracts/oracles/ChainlinkFeedAdapter.sol:ChainlinkFeedAdapter",
+      "label": "initializing",
+      "offset": 1,
+      "slot": "0",
+      "type": "t_bool"
+    },
+    {
+      "astId": 4195,
+      "contract": "contracts/oracles/ChainlinkFeedAdapter.sol:ChainlinkFeedAdapter",
+      "label": "______gap",
+      "offset": 0,
+      "slot": "1",
+      "type": "t_array(t_uint256)50_storage"
+    },
+    {
+      "astId": 3121,
+      "contract": "contracts/oracles/ChainlinkFeedAdapter.sol:ChainlinkFeedAdapter",
+      "label": "_owner",
+      "offset": 0,
+      "slot": "51",
+      "type": "t_address"
+    },
+    {
+      "astId": 3234,
+      "contract": "contracts/oracles/ChainlinkFeedAdapter.sol:ChainlinkFeedAdapter",
+      "label": "______gap",
+      "offset": 0,
+      "slot": "52",
+      "type": "t_array(t_uint256)50_storage"
+    },
+    {
+      "astId": 13407,
+      "contract": "contracts/oracles/ChainlinkFeedAdapter.sol:ChainlinkFeedAdapter",
+      "label": "____gap",
+      "offset": 0,
+      "slot": "102",
+      "type": "t_array(t_uint256)50_storage"
+    },
+    {
+      "astId": 13549,
+      "contract": "contracts/oracles/ChainlinkFeedAdapter.sol:ChainlinkFeedAdapter",
+      "label": "tokenUsdFeed",
+      "offset": 0,
+      "slot": "152",
+      "type": "t_address"
+    },
+    {
+      "astId": 13551,
+      "contract": "contracts/oracles/ChainlinkFeedAdapter.sol:ChainlinkFeedAdapter",
+      "label": "ethUsdFeed",
+      "offset": 0,
+      "slot": "153",
+      "type": "t_address"
+    },
+    {
+      "astId": 13553,
+      "contract": "contracts/oracles/ChainlinkFeedAdapter.sol:ChainlinkFeedAdapter",
+      "label": "daiUsdFeed",
+      "offset": 0,
+      "slot": "154",
+      "type": "t_address"
+    },
+    {
+      "astId": 13555,
+      "contract": "contracts/oracles/ChainlinkFeedAdapter.sol:ChainlinkFeedAdapter",
+      "label": "versionManager",
+      "offset": 0,
+      "slot": "155",
+      "type": "t_address"
+    },
+    {
+      "astId": 13557,
+      "contract": "contracts/oracles/ChainlinkFeedAdapter.sol:ChainlinkFeedAdapter",
+      "label": "canSnapToUSD",
+      "offset": 20,
+      "slot": "155",
+      "type": "t_bool"
+    },
+    {
+      "astId": 13559,
+      "contract": "contracts/oracles/ChainlinkFeedAdapter.sol:ChainlinkFeedAdapter",
+      "label": "snapThreshold",
+      "offset": 0,
+      "slot": "156",
+      "type": "t_uint256"
+    }
+  ],
+  "types": {
+    "t_address": {
+      "encoding": "inplace",
+      "label": "address",
+      "numberOfBytes": "20"
+    },
+    "t_array(t_uint256)50_storage": {
+      "base": "t_uint256",
+      "encoding": "inplace",
+      "label": "uint256[50]",
+      "numberOfBytes": "1600"
+    },
+    "t_bool": {
+      "encoding": "inplace",
+      "label": "bool",
+      "numberOfBytes": "1"
+    },
+    "t_uint256": {
+      "encoding": "inplace",
+      "label": "uint256",
+      "numberOfBytes": "32"
+    }
+  }
+}

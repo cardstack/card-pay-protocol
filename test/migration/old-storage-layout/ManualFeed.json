@@ -1,0 +1,181 @@
+{
+  "storage": [
+    {
+      "astId": 4131,
+      "contract": "contracts/oracles/ManualFeed.sol:ManualFeed",
+      "label": "initialized",
+      "offset": 0,
+      "slot": "0",
+      "type": "t_bool"
+    },
+    {
+      "astId": 4133,
+      "contract": "contracts/oracles/ManualFeed.sol:ManualFeed",
+      "label": "initializing",
+      "offset": 1,
+      "slot": "0",
+      "type": "t_bool"
+    },
+    {
+      "astId": 4195,
+      "contract": "contracts/oracles/ManualFeed.sol:ManualFeed",
+      "label": "______gap",
+      "offset": 0,
+      "slot": "1",
+      "type": "t_array(t_uint256)50_storage"
+    },
+    {
+      "astId": 3121,
+      "contract": "contracts/oracles/ManualFeed.sol:ManualFeed",
+      "label": "_owner",
+      "offset": 0,
+      "slot": "51",
+      "type": "t_address"
+    },
+    {
+      "astId": 3234,
+      "contract": "contracts/oracles/ManualFeed.sol:ManualFeed",
+      "label": "______gap",
+      "offset": 0,
+      "slot": "52",
+      "type": "t_array(t_uint256)50_storage"
+    },
+    {
+      "astId": 13407,
+      "contract": "contracts/oracles/ManualFeed.sol:ManualFeed",
+      "label": "____gap",
+      "offset": 0,
+      "slot": "102",
+      "type": "t_array(t_uint256)50_storage"
+    },
+    {
+      "astId": 14344,
+      "contract": "contracts/oracles/ManualFeed.sol:ManualFeed",
+      "label": "_description",
+      "offset": 0,
+      "slot": "152",
+      "type": "t_string_storage"
+    },
+    {
+      "astId": 14346,
+      "contract": "contracts/oracles/ManualFeed.sol:ManualFeed",
+      "label": "_decimals",
+      "offset": 0,
+      "slot": "153",
+      "type": "t_uint8"
+    },
+    {
+      "astId": 14348,
+      "contract": "contracts/oracles/ManualFeed.sol:ManualFeed",
+      "label": "_currentRound",
+      "offset": 1,
+      "slot": "153",
+      "type": "t_uint80"
+    },
+    {
+      "astId": 14352,
+      "contract": "contracts/oracles/ManualFeed.sol:ManualFeed",
+      "label": "rounds",
+      "offset": 0,
+      "slot": "154",
+      "type": "t_mapping(t_uint80,t_struct(RoundData)14342_storage)"
+    },
+    {
+      "astId": 14354,
+      "contract": "contracts/oracles/ManualFeed.sol:ManualFeed",
+      "label": "versionManager",
+      "offset": 0,
+      "slot": "155",
+      "type": "t_address"
+    }
+  ],
+  "types": {
+    "t_address": {
+      "encoding": "inplace",
+      "label": "address",
+      "numberOfBytes": "20"
+    },
+    "t_array(t_uint256)50_storage": {
+      "base": "t_uint256",
+      "encoding": "inplace",
+      "label": "uint256[50]",
+      "numberOfBytes": "1600"
+    },
+    "t_bool": {
+      "encoding": "inplace",
+      "label": "bool",
+      "numberOfBytes": "1"
+    },
+    "t_int256": {
+      "encoding": "inplace",
+      "label": "int256",
+      "numberOfBytes": "32"
+    },
+    "t_mapping(t_uint80,t_struct(RoundData)14342_storage)": {
+      "encoding": "mapping",
+      "key": "t_uint80",
+      "label": "mapping(uint80 => struct ManualFeed.RoundData)",
+      "numberOfBytes": "32",
+      "value": "t_struct(RoundData)14342_storage"
+    },
+    "t_string_storage": {
+      "encoding": "bytes",
+      "label": "string",
+      "numberOfBytes": "32"
+    },
+    "t_struct(RoundData)14342_storage": {
+      "encoding": "inplace",
+      "label": "struct ManualFeed.RoundData",
+      "members": [
+        {
+          "astId": 14335,
+          "contract": "contracts/oracles/ManualFeed.sol:ManualFeed",
+          "label": "exists",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_bool"
+        },
+        {
+          "astId": 14337,
+          "contract": "contracts/oracles/ManualFeed.sol:ManualFeed",
+          "label": "price",
+          "offset": 0,
+          "slot": "1",
+          "type": "t_int256"
+        },
+        {
+          "astId": 14339,
+          "contract": "contracts/oracles/ManualFeed.sol:ManualFeed",
+          "label": "startedAt",
+          "offset": 0,
+          "slot": "2",
+          "type": "t_uint256"
+        },
+        {
+          "astId": 14341,
+          "contract": "contracts/oracles/ManualFeed.sol:ManualFeed",
+          "label": "updatedAt",
+          "offset": 0,
+          "slot": "3",
+          "type": "t_uint256"
+        }
+      ],
+      "numberOfBytes": "128"
+    },
+    "t_uint256": {
+      "encoding": "inplace",
+      "label": "uint256",
+      "numberOfBytes": "32"
+    },
+    "t_uint8": {
+      "encoding": "inplace",
+      "label": "uint8",
+      "numberOfBytes": "1"
+    },
+    "t_uint80": {
+      "encoding": "inplace",
+      "label": "uint80",
+      "numberOfBytes": "10"
+    }
+  }
+}

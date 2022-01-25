@@ -17,4 +17,7 @@ contract Ownable is OwnableUpgradeable {
       _transferOwnership(owner);
     }
   }
+
+  // add padding as storage layout changed in OZ contracts v4
+  uint256[1] private ____gap_Ownable;
 }

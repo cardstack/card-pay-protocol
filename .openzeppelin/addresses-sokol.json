@@ -95,18 +95,6 @@
     "proxy": "0xBbF3aad37298C997a485E270bD465ec3e6aCD2a7",
     "contractName": "VersionManager"
   },
-  "Market": {
-    "proxy": "0xbacB9F2F94D9957Ed39eBc10b20AF8Ab4e0C20e6",
-    "contractName": "Market"
-  },
-  "Inventory": {
-    "proxy": "0xAd02eD619f234c4eb252b8b3636522fA24F7F6A8",
-    "contractName": "Inventory"
-  },
-  "LevelRegistrar": {
-    "proxy": "0x330e167945eb4EC0CB3a28D63533789aba62610B",
-    "contractName": "LevelRegistrar"
-  },
   "AddRewardRuleHandler": {
     "proxy": "0xDDb7cb7a6Ef756f0C5805d71b1c7ae919edCC305",
     "contractName": "AddRewardRuleHandler"

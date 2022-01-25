@@ -1,7 +1,7 @@
 const web3EthAbi = require("web3-eth-abi");
 const gnosisUtils = require("./deprecated-gnosis-utils.js");
 const GnosisSafe = artifacts.require("GnosisSafe");
-const eventABIs = require("./constant/eventABIs.js");
+const eventABIs = require("./constant/eventABIs");
 const { toHex, padLeft, hexToBytes, numberToHex } = require("web3-utils");
 const AbiCoder = require("web3-eth-abi");
 const { BN } = require("web3-utils");

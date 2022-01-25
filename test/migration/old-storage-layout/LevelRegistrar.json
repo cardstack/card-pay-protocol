@@ -1,0 +1,201 @@
+{
+  "storage": [
+    {
+      "astId": 265,
+      "contract": "CardPay-Contracts/contracts/LevelRegistrar.sol:LevelRegistrar",
+      "label": "_initialized",
+      "offset": 0,
+      "slot": "0",
+      "type": "t_bool"
+    },
+    {
+      "astId": 267,
+      "contract": "CardPay-Contracts/contracts/LevelRegistrar.sol:LevelRegistrar",
+      "label": "_initializing",
+      "offset": 1,
+      "slot": "0",
+      "type": "t_bool"
+    },
+    {
+      "astId": 43,
+      "contract": "CardPay-Contracts/contracts/LevelRegistrar.sol:LevelRegistrar",
+      "label": "__gap",
+      "offset": 0,
+      "slot": "1",
+      "type": "t_array(t_uint256)50_storage"
+    },
+    {
+      "astId": 55,
+      "contract": "CardPay-Contracts/contracts/LevelRegistrar.sol:LevelRegistrar",
+      "label": "_owner",
+      "offset": 0,
+      "slot": "51",
+      "type": "t_address"
+    },
+    {
+      "astId": 173,
+      "contract": "CardPay-Contracts/contracts/LevelRegistrar.sol:LevelRegistrar",
+      "label": "__gap",
+      "offset": 0,
+      "slot": "52",
+      "type": "t_array(t_uint256)49_storage"
+    },
+    {
+      "astId": 5086,
+      "contract": "CardPay-Contracts/contracts/LevelRegistrar.sol:LevelRegistrar",
+      "label": "levels",
+      "offset": 0,
+      "slot": "101",
+      "type": "t_mapping(t_address,t_mapping(t_address,t_array(t_struct(Level)6976_storage)dyn_storage))"
+    },
+    {
+      "astId": 5091,
+      "contract": "CardPay-Contracts/contracts/LevelRegistrar.sol:LevelRegistrar",
+      "label": "crossLevels",
+      "offset": 0,
+      "slot": "102",
+      "type": "t_mapping(t_address,t_array(t_struct(CrossLevel)6988_storage)dyn_storage)"
+    }
+  ],
+  "types": {
+    "t_address": {
+      "encoding": "inplace",
+      "label": "address",
+      "numberOfBytes": "20"
+    },
+    "t_array(t_address)dyn_storage": {
+      "base": "t_address",
+      "encoding": "dynamic_array",
+      "label": "address[]",
+      "numberOfBytes": "32"
+    },
+    "t_array(t_string_storage)dyn_storage": {
+      "base": "t_string_storage",
+      "encoding": "dynamic_array",
+      "label": "string[]",
+      "numberOfBytes": "32"
+    },
+    "t_array(t_struct(CrossLevel)6988_storage)dyn_storage": {
+      "base": "t_struct(CrossLevel)6988_storage",
+      "encoding": "dynamic_array",
+      "label": "struct ILevelRegistrar.CrossLevel[]",
+      "numberOfBytes": "32"
+    },
+    "t_array(t_struct(Level)6976_storage)dyn_storage": {
+      "base": "t_struct(Level)6976_storage",
+      "encoding": "dynamic_array",
+      "label": "struct ILevelRegistrar.Level[]",
+      "numberOfBytes": "32"
+    },
+    "t_array(t_uint256)49_storage": {
+      "base": "t_uint256",
+      "encoding": "inplace",
+      "label": "uint256[49]",
+      "numberOfBytes": "1568"
+    },
+    "t_array(t_uint256)50_storage": {
+      "base": "t_uint256",
+      "encoding": "inplace",
+      "label": "uint256[50]",
+      "numberOfBytes": "1600"
+    },
+    "t_bool": {
+      "encoding": "inplace",
+      "label": "bool",
+      "numberOfBytes": "1"
+    },
+    "t_mapping(t_address,t_array(t_struct(CrossLevel)6988_storage)dyn_storage)": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => struct ILevelRegistrar.CrossLevel[])",
+      "numberOfBytes": "32",
+      "value": "t_array(t_struct(CrossLevel)6988_storage)dyn_storage"
+    },
+    "t_mapping(t_address,t_array(t_struct(Level)6976_storage)dyn_storage)": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => struct ILevelRegistrar.Level[])",
+      "numberOfBytes": "32",
+      "value": "t_array(t_struct(Level)6976_storage)dyn_storage"
+    },
+    "t_mapping(t_address,t_mapping(t_address,t_array(t_struct(Level)6976_storage)dyn_storage))": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => mapping(address => struct ILevelRegistrar.Level[]))",
+      "numberOfBytes": "32",
+      "value": "t_mapping(t_address,t_array(t_struct(Level)6976_storage)dyn_storage)"
+    },
+    "t_string_storage": {
+      "encoding": "bytes",
+      "label": "string",
+      "numberOfBytes": "32"
+    },
+    "t_struct(CrossLevel)6988_storage": {
+      "encoding": "inplace",
+      "label": "struct ILevelRegistrar.CrossLevel",
+      "members": [
+        {
+          "astId": 6978,
+          "contract": "CardPay-Contracts/contracts/LevelRegistrar.sol:LevelRegistrar",
+          "label": "globalLevelLabel",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_string_storage"
+        },
+        {
+          "astId": 6981,
+          "contract": "CardPay-Contracts/contracts/LevelRegistrar.sol:LevelRegistrar",
+          "label": "recognisedLevelsByLabel",
+          "offset": 0,
+          "slot": "1",
+          "type": "t_array(t_string_storage)dyn_storage"
+        },
+        {
+          "astId": 6984,
+          "contract": "CardPay-Contracts/contracts/LevelRegistrar.sol:LevelRegistrar",
+          "label": "setters",
+          "offset": 0,
+          "slot": "2",
+          "type": "t_array(t_address)dyn_storage"
+        },
+        {
+          "astId": 6987,
+          "contract": "CardPay-Contracts/contracts/LevelRegistrar.sol:LevelRegistrar",
+          "label": "tokens",
+          "offset": 0,
+          "slot": "3",
+          "type": "t_array(t_address)dyn_storage"
+        }
+      ],
+      "numberOfBytes": "128"
+    },
+    "t_struct(Level)6976_storage": {
+      "encoding": "inplace",
+      "label": "struct ILevelRegistrar.Level",
+      "members": [
+        {
+          "astId": 6973,
+          "contract": "CardPay-Contracts/contracts/LevelRegistrar.sol:LevelRegistrar",
+          "label": "label",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_string_storage"
+        },
+        {
+          "astId": 6975,
+          "contract": "CardPay-Contracts/contracts/LevelRegistrar.sol:LevelRegistrar",
+          "label": "threshold",
+          "offset": 0,
+          "slot": "1",
+          "type": "t_uint256"
+        }
+      ],
+      "numberOfBytes": "64"
+    },
+    "t_uint256": {
+      "encoding": "inplace",
+      "label": "uint256",
+      "numberOfBytes": "32"
+    }
+  }
+}
