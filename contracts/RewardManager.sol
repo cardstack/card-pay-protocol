@@ -13,7 +13,6 @@ import "./core/Versionable.sol";
 import "./ActionDispatcher.sol";
 import "./RewardSafeDelegateImplementation.sol";
 import "./VersionManager.sol";
-import "hardhat/console.sol";
 
 contract RewardManager is Ownable, Versionable, Safe {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
