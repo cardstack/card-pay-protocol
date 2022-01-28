@@ -25,6 +25,7 @@ contract MerchantManager is Ownable, Versionable, Safe {
   mapping(address => address) public merchantSafes; // merchant safe address => merchant address
   mapping(address => string) public merchantSafeInfoDIDs; // merchant safe address => Info DID
   address public versionManager;
+  EnumerableSetUpgradeable.AddressSet internal merchantAddresses;
 
   modifier onlyHandlersOrOwner() {
     require(
@@ -75,6 +76,10 @@ contract MerchantManager is Ownable, Versionable, Safe {
     emit MerchantCreation(merchant, merchantSafe, infoDID);
 
     return merchantSafe;
+  }
+
+  function getMerchantAddresses() public view returns (address[] memory) {
+    return merchantAddresses.values();
   }
 
   function cardpayVersion() external view returns (string memory) {

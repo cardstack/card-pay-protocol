@@ -1,5 +1,11 @@
 import { debug as debugFactory } from "debug";
-import { BigNumber, Contract, ContractFactory, utils } from "ethers";
+import {
+  BigNumber,
+  BigNumberish,
+  Contract,
+  ContractFactory,
+  utils,
+} from "ethers";
 import { readFileSync } from "fs";
 import { artifacts, ethers, network } from "hardhat";
 import { resolve } from "path";
@@ -296,6 +302,8 @@ export function mapSlotForKey(key: string, slot: string): string {
   );
 }
 
+const CHUNK_SIZE = 20;
+
 export type Upgrader =
   | string
   | ((contract: Contract, proxyAdmin: Contract) => Promise<void>);
@@ -315,6 +323,8 @@ export const UPGRADERS: {
       contract.filters.ItemSet(),
       GENESIS_BLOCK
     );
+
+    let skus: string[] = uniq(events.map((e) => e.args.sku));
     await proxyAdmin.upgrade(contract.address, upgraderImplementation.address);
 
     let contractAsUpgrader = await getContractAsOwner(
@@ -323,14 +333,20 @@ export const UPGRADERS: {
       await contract.owner()
     );
 
-    for (let {
-      args: { sku },
-    } of events) {
-      debug(`Upgrading PrepaidCardMarket#inventory address set for sku ${sku}`);
-      await contractAsUpgrader.upgradeEnumerableAddressSet(
-        mapSlotForKey(sku, KnownSlots.PrepaidCardMarket.inventory)
+    while (skus.length > 0) {
+      let chunk = skus.splice(0, CHUNK_SIZE);
+      debug(
+        `Upgrading PrepaidCardMarket#inventory address set for skus ${chunk.join(
+          ", "
+        )}`
       );
+
+      let gas = await contractAsUpgrader.estimateGas.upgradeChunk(chunk);
+      debug(`Gas usage for PrepaidCardMarket#upgradeChunk: ${gas}`);
+
+      await contractAsUpgrader.upgradeChunk(chunk);
     }
+
     await contractAsUpgrader.upgradeFinished();
   },
   MerchantManager: async (contract, proxyAdmin) => {
@@ -342,6 +358,8 @@ export const UPGRADERS: {
       contract.filters.MerchantCreation(),
       GENESIS_BLOCK
     );
+
+    let merchants: string[] = uniq(events.map((e) => e.args.merchant));
     await proxyAdmin.upgrade(contract.address, upgraderImplementation.address);
 
     let contractAsUpgrader = await getContractAsOwner(
@@ -350,22 +368,24 @@ export const UPGRADERS: {
       await contract.owner()
     );
 
-    for (let {
-      args: { merchant },
-    } of events) {
+    while (merchants.length > 0) {
+      let chunk = merchants.splice(0, CHUNK_SIZE);
       debug(
-        `Upgrading MerchantManager#merchants address set for merchant ${merchant}`
+        `Upgrading MerchantManager#merchants address set for merchants ${chunk.join(
+          ", "
+        )}`
       );
 
-      await contractAsUpgrader.upgradeEnumerableAddressSet(
-        mapSlotForKey(merchant, KnownSlots.MerchantManager.merchants)
-      );
+      let gas = await contractAsUpgrader.estimateGas.upgradeChunk(chunk);
+      debug(`Gas usage for MerchantManager#upgradeChunk: ${gas}`);
+      await contractAsUpgrader.upgradeChunk(chunk);
     }
     await contractAsUpgrader.upgradeFinished();
   },
   TokenManager: "TokenManagerUpgrader",
   SPEND: "SPENDUpgrader",
   PrepaidCardManager: "PrepaidCardManagerUpgrader",
+  RevenuePool: "RevenuePoolUpgrader",
 };
 
 export async function getContractAsOwner(
@@ -410,6 +430,15 @@ export async function migrateContract(
       "upgrade",
       []
     );
+
+    let gas = await proxyAdmin.estimateGas.upgradeAndCall(
+      contract.address,
+      upgraderImplementation.address,
+      callData
+    );
+
+    debug(`Gas usage for upgrade of ${contractName}: ${gas}`);
+
     await proxyAdmin.upgradeAndCall(
       contract.address,
       upgraderImplementation.address,
@@ -425,3 +454,36 @@ export async function migrateContract(
 
   await proxyAdmin.upgrade(contract.address, newImplementation.address);
 }
+
+// Upgraded merchant manager implementation relied on for later migrations
+const exceptions = {
+  MerchantManager: 1,
+};
+
+export function sortContracts(contracts: string[]): string[] {
+  return contracts.sort((a, b) => {
+    // https://stackoverflow.com/a/38449645
+    if (exceptions[a] && exceptions[b]) {
+      //if both items are exceptions
+      return exceptions[a] - exceptions[b];
+    } else if (exceptions[a]) {
+      //only `a` is in exceptions, sort it to front
+      return -1;
+    } else if (exceptions[b]) {
+      //only `b` is in exceptions, sort it to back
+      return 1;
+    } else {
+      //no exceptions to account for, return alphabetic sort
+      return a.localeCompare(b);
+    }
+  });
+}
+
+export function uniq<T>(array: Array<T>): Array<T> {
+  return [...new Set(array)];
+}
+
+export type RevenueBalance = {
+  tokens: string[];
+  balance: { [tokenAddress: string]: BigNumberish };
+};

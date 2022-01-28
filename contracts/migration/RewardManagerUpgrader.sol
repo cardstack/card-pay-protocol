@@ -22,13 +22,9 @@ contract RewardManagerUpgrader is EnumerableSetUpgradeUtil {
     // of migration
     for (uint256 i = 0; i < rewardProgramIDs._inner._values.length; i++) {
       _upgradeEnumerableAddressSet(
-        bytes32(
-          keccak256(
-            abi.encode(
-              rewardProgramIDs._inner._values[i],
-              bytes32(rewardSafesSlot)
-            )
-          )
+        _addressSetValueSlot(
+          rewardSafesSlot,
+          rewardProgramIDs._inner._values[i]
         )
       );
     }

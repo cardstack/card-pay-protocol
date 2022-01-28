@@ -218,4 +218,20 @@ contract EnumerableSetUpgradeUtil {
   {
     return set._indexes[value] != 0;
   }
+
+  function _addressSetValueSlot(uint256 setSlot, bytes32 key)
+    public
+    pure
+    returns (bytes32)
+  {
+    return bytes32(keccak256(abi.encode(key, bytes32(setSlot))));
+  }
+
+  function _addressSetValueSlot(uint256 setSlot, address key)
+    public
+    pure
+    returns (bytes32)
+  {
+    return _addressSetValueSlot(setSlot, bytes32(uint256(uint160(key))));
+  }
 }

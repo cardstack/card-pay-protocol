@@ -20,9 +20,12 @@ import {
   migrateContract,
   oldLabelToNewLabel,
   oldTypeToNewType,
+  RevenueBalance,
+  sortContracts,
   StorageLayout,
   StorageLayoutItem,
   switchToReaderImpl,
+  uniq,
   UpgradeSlot,
   ZERO_ADDRESS,
 } from "./util";
@@ -46,12 +49,16 @@ forkedDescribe(
 
     this.timeout(30 * MINUTES);
 
-    for (let contractName of CONTRACTS) {
+    for (let contractName of sortContracts(CONTRACTS)) {
       it(`migrates ${contractName}`, async () => {
+        debug(`Contract: ${contractName}`);
+
+        let blockNumber = await ethers.provider.getBlockNumber();
+        debug(`Current block: ${blockNumber}`);
+
         let { contract, proxyAdmin, owner, oldImplementation } =
           await getDeployedContract(contractName);
 
-        debug(`Contract: ${contractName}`);
         debug(`Contract storage: ${contract.address}`);
         debug(`Old implementation: ${oldImplementation}`);
         debug(`Owner: ${owner}`);
@@ -108,6 +115,15 @@ forkedDescribe(
           (storage) => storage.label !== "____gap_Ownable"
         );
 
+        // new set added to store merchant addresses
+        newStorageSlots = newStorageSlots.filter(
+          (storage) =>
+            !(
+              storage.contract ===
+              "contracts/MerchantManager.sol:MerchantManager" && // eslint-disable-line prettier/prettier
+              storage.label === "merchantAddresses"
+            )
+        );
         expect(newStorageSlots.length).to.eq(oldStorageLayout.storage.length);
 
         for (let i = 0; i < newStorageSlots.length; i++) {
@@ -180,6 +196,9 @@ forkedDescribe(
           }
         }
 
+        let endBlockNumber = await ethers.provider.getBlockNumber();
+        let blocksMined = endBlockNumber - blockNumber;
+        debug(`Total blocks mined for ${contractName}: ${blocksMined}`);
         expect(Array.from(cache._unhandledTypes)).to.eql([]);
       });
     }
@@ -256,7 +275,6 @@ async function readStorage(
       "mapping(address => mapping(uint256 => bytes32))",
       "mapping(address => mapping(address => uint256))",
       "mapping(uint80 => struct ManualFeed.RoundData)",
-      "mapping(address => struct RevenuePool.RevenueBalance)",
       "mapping(address => struct SupplierManager.Supplier)",
       "mapping(bytes32 => struct PrepaidCardMarket.SKU)",
       "mapping(bytes32 => struct Exchange.ExchangeInfo)",
@@ -287,9 +305,12 @@ async function readStorage(
   }
 
   if (typeLabel === "struct EnumerableSet.AddressSet") {
-    return await switchToReaderImplCurried((readerInstance) =>
+    let result = await switchToReaderImplCurried((readerInstance) =>
       readerInstance.readOldAddressSet(bytes32(BigNumber.from(storage.slot)))
     );
+
+    debug(`${readerKey}:`, result);
+    return result;
   }
 
   if (typeLabel === "struct EnumerableSetUpgradeable.AddressSet") {
@@ -309,6 +330,7 @@ async function readStorage(
       return result;
     });
 
+    debug(`${readerKey}:`, result);
     return result;
   }
 
@@ -370,17 +392,19 @@ async function readStorage(
     readerKey ===
     "MerchantManager#merchants: mapping(address => struct EnumerableSet.AddressSet)"
   ) {
-    let events = await contract.queryFilter(
-      contract.filters.MerchantCreation(),
-      GENESIS_BLOCK
+    let merchants: string[] = uniq(
+      (
+        await contract.queryFilter(
+          contract.filters.MerchantCreation(),
+          GENESIS_BLOCK
+        )
+      ).map((e) => e.args.merchant)
     );
 
     let result = {};
 
     await switchToReaderImplCurried(async (readerInstance) => {
-      for (let {
-        args: { merchant },
-      } of events) {
+      for (let merchant of merchants) {
         debug(
           `Reading address set at key ${merchant} for MerchantManager#merchants`
         );
@@ -396,17 +420,12 @@ async function readStorage(
     readerKey ===
     "MerchantManager#merchants: mapping(address => struct EnumerableSetUpgradeable.AddressSet)"
   ) {
-    let events = await contract.queryFilter(
-      contract.filters.MerchantCreation(),
-      GENESIS_BLOCK
-    );
+    let merchants = await contract.getMerchantAddresses();
 
     let result = {};
 
     await switchToReaderImplCurried(async (readerInstance) => {
-      for (let {
-        args: { merchant },
-      } of events) {
+      for (let merchant of merchants) {
         debug(
           `Reading address set at key ${merchant} for MerchantManager#merchants`
         );
@@ -468,6 +487,66 @@ async function readStorage(
         );
       }
     });
+    return result;
+  }
+
+  if (
+    readerKey ===
+    "PrepaidCardMarket#inventory: mapping(bytes32 => struct EnumerableSetUpgradeable.AddressSet)"
+  ) {
+    let events = await contract.queryFilter(
+      contract.filters.ItemSet(),
+      GENESIS_BLOCK
+    );
+
+    let result = {};
+
+    await switchToReaderImplCurried(async (readerInstance) => {
+      for (let {
+        args: { sku },
+      } of events) {
+        debug(
+          `Reading address set at key ${sku} for PrepaidCardMarket#inventory`
+        );
+
+        result[sku] = await readerInstance.readNewAddressSet(
+          mapSlotForKey(sku, storage.slot)
+        );
+      }
+    });
+    return result;
+  }
+
+  if (
+    readerKey ===
+    "RevenuePool#balances: mapping(address => struct RevenuePool.RevenueBalance)"
+  ) {
+    let merchantManagerAddress = await contract.merchantManager();
+
+    let merchantManager = await ethers.getContractAt(
+      "MerchantManager",
+      merchantManagerAddress
+    );
+    let merchants = await merchantManager.getMerchantAddresses();
+
+    let result: {
+      [safeAddress: string]: RevenueBalance;
+    } = {};
+
+    for (let merchant of merchants) {
+      let merchantSafes = await merchantManager.merchantSafesForMerchant(
+        merchant
+      );
+      for (let merchantSafe of merchantSafes) {
+        let balance = {};
+        let tokens = await contract.revenueTokens(merchantSafe);
+        for (let token of tokens) {
+          balance[token] = await contract.revenueBalance(merchantSafe, token);
+        }
+        result[merchantSafe] = { tokens, balance };
+      }
+    }
+
     return result;
   }
 

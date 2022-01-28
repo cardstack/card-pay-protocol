@@ -29,7 +29,7 @@ contract RevenuePool is Ownable, Versionable {
   address public exchangeAddress;
   address public actionDispatcher;
   address public merchantManager;
-  mapping(address => RevenueBalance) internal balances;
+  mapping(address => RevenueBalance) internal balances; // merchant safe address <=> balance info
   address public versionManager;
 
   event Setup();

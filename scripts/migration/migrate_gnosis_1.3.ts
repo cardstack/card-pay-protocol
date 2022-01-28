@@ -1,28 +1,27 @@
-import { debug as debugFactory } from "debug";
-
-import { nextVersion } from "../../lib/release-utils";
 import retry from "async-retry";
-
+import { debug as debugFactory } from "debug";
+import { Contract } from "ethers";
 import hre, { ethers } from "hardhat";
-import {
-  makeFactory,
-  patchNetworks,
-  asyncMain,
-  getSigner,
-} from "../deploy/util";
-import { getAddress } from "../deploy/config-utils";
-const debug = debugFactory("card-protocol.migration");
-
-patchNetworks();
-
 import sokolAddresses from "../../.openzeppelin/addresses-sokol.json";
 import xdaiAddresses from "../../.openzeppelin/addresses-xdai.json";
+import { nextVersion } from "../../lib/release-utils";
 import {
   migrateContract,
   proxyAdminInterface,
   PROXY_ADMIN_SLOT,
+  sortContracts,
 } from "../../test/migration/util";
-import { Contract } from "ethers";
+import { getAddress } from "../deploy/config-utils";
+import {
+  asyncMain,
+  getSigner,
+  makeFactory,
+  patchNetworks,
+} from "../deploy/util";
+
+const debug = debugFactory("card-protocol.migration");
+
+patchNetworks();
 
 const {
   network: { name: network },
@@ -50,9 +49,11 @@ switch (sourceNetwork) {
     break;
 }
 
-const CONTRACTS = Object.keys(addresses || {}).filter(
-  // the delegate implementation is not upgradeable in the same way as other contracts
-  (c) => c !== "RewardSafeDelegateImplementation"
+const CONTRACTS = sortContracts(
+  Object.keys(addresses || {}).filter(
+    // the delegate implementation is not upgradeable in the same way as other contracts
+    (c) => c !== "RewardSafeDelegateImplementation"
+  )
 );
 
 async function main() {
