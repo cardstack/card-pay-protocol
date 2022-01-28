@@ -7,7 +7,6 @@ import "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
 import "./core/Ownable.sol";
 
 import "./token/IERC677.sol";
-import "./libraries/EnumerableSetUnboundedEnumerable.sol";
 import "./IPrepaidCardMarket.sol";
 import "./TokenManager.sol";
 import "./core/Safe.sol";
@@ -19,7 +18,6 @@ import "./VersionManager.sol";
 
 contract PrepaidCardManager is Ownable, Versionable, Safe {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
-  using EnumerableSetUnboundedEnumerable for EnumerableSetUpgradeable.AddressSet;
 
   struct CardDetail {
     address issuer;
@@ -270,7 +268,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
    * @dev get the addresses that are configured as EIP-1271 signers for prepaid cards
    */
   function getContractSigners() external view returns (address[] memory) {
-    return contractSigners.enumerate();
+    return contractSigners.values();
   }
 
   /**

@@ -12,13 +12,11 @@ import "./core/Safe.sol";
 import "./core/Versionable.sol";
 import "./ActionDispatcher.sol";
 import "./RewardSafeDelegateImplementation.sol";
-import "./libraries/EnumerableSetUnboundedEnumerable.sol";
 import "./VersionManager.sol";
 import "hardhat/console.sol";
 
 contract RewardManager is Ownable, Versionable, Safe {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
-  using EnumerableSetUnboundedEnumerable for EnumerableSetUpgradeable.AddressSet;
 
   event Setup();
   event RewardProgramCreated(address rewardProgramID, address admin);
@@ -105,7 +103,7 @@ contract RewardManager is Ownable, Versionable, Safe {
   }
 
   function getEip1271Contracts() public view returns (address[] memory) {
-    return eip1271Contracts.enumerate();
+    return eip1271Contracts.values();
   }
 
   function registerRewardProgram(address admin, address rewardProgramID)

@@ -5,11 +5,8 @@ import "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-import "../libraries/EnumerableSetUnboundedEnumerable.sol";
-
 contract SPENDMinterRole is Initializable, ContextUpgradeable {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
-  using EnumerableSetUnboundedEnumerable for EnumerableSetUpgradeable.AddressSet;
 
   EnumerableSetUpgradeable.AddressSet internal minter;
   address private _owner;
@@ -46,7 +43,7 @@ contract SPENDMinterRole is Initializable, ContextUpgradeable {
   }
 
   function getMinters() external view returns (address[] memory) {
-    return minter.enumerate();
+    return minter.values();
   }
 
   /**

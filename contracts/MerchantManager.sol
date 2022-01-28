@@ -8,11 +8,9 @@ import "./core/Safe.sol";
 import "./core/Versionable.sol";
 import "./ActionDispatcher.sol";
 import "./VersionManager.sol";
-import "./libraries/EnumerableSetUnboundedEnumerable.sol";
 
 contract MerchantManager is Ownable, Versionable, Safe {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
-  using EnumerableSetUnboundedEnumerable for EnumerableSetUpgradeable.AddressSet;
 
   event Setup();
   event MerchantCreation(
@@ -58,7 +56,7 @@ contract MerchantManager is Ownable, Versionable, Safe {
     view
     returns (address[] memory)
   {
-    return merchants[merchant].enumerate();
+    return merchants[merchant].values();
   }
 
   function registerMerchant(address merchant, string calldata infoDID)
