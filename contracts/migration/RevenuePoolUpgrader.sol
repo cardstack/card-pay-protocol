@@ -11,6 +11,7 @@ contract RevenuePoolUpgrader is EnumerableSetUpgradeUtil {
 
   function upgrade() external override upgrader {
     address merchantManagerAddress;
+    // solhint-disable-next-line no-inline-assembly
     assembly {
       merchantManagerAddress := sload(MERCHANT_MANAGER_SLOT)
     }

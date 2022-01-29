@@ -19,5 +19,6 @@ contract Ownable is OwnableUpgradeable {
   }
 
   // add padding as storage layout changed in OZ contracts v4
+  // solhint-disable-next-line var-name-mixedcase
   uint256[1] private ____gap_Ownable;
 }

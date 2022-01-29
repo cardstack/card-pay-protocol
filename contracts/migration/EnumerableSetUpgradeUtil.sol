@@ -1,10 +1,10 @@
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.9;
 
 contract EnumerableSetUpgradeUtil {
   // Store a bool in this slot to indicate if upgrade is complete or not
 
   // bytes32(uint256(keccak256("cardstack.upgraded.gnosis-1-3")) - 1)
-  bytes32 constant UPGRADE_SLOT =
+  bytes32 internal constant UPGRADE_SLOT =
     0x0b1bb611f79d610ce486931d9d82ba0af2f593da3a1bbc64de519121a192be5c;
 
   // * This is the keccak-256 hash of "eip1967.proxy.admin" subtracted by 1, and is
@@ -13,7 +13,7 @@ contract EnumerableSetUpgradeUtil {
   bytes32 internal constant ADMIN_SLOT =
     0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103;
 
-  uint256 constant OWNER_SLOT = 51;
+  uint256 internal constant OWNER_SLOT = 51;
 
   struct OldAddressSet {
     // Position of the value in the `values` array, plus 1 because index 0

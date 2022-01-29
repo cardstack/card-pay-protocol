@@ -9,6 +9,7 @@ contract MerchantManagerUpgrader is EnumerableSetUpgradeUtil {
 
   function upgradeChunk(address[] calldata merchants) external upgrader {
     NewAddressSet storage set;
+    // solhint-disable-next-line no-inline-assembly
     assembly {
       set.slot := MERCHANT_ADDRESSES_SLOT
     }

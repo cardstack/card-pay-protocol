@@ -7,6 +7,7 @@ contract RewardPoolUpgrader is EnumerableSetUpgradeUtil {
   uint256 internal constant REWARD_POOL_OWNER_SLOT = 101;
 
   function owner() public view override returns (address _owner) {
+    // solhint-disable-next-line no-inline-assembly
     assembly {
       _owner := sload(REWARD_POOL_OWNER_SLOT)
     }

@@ -8,6 +8,7 @@ contract SPENDUpgrader is EnumerableSetUpgradeUtil {
   uint256 internal constant SPEND_OWNER_SLOT = 103;
 
   function owner() public view override returns (address _owner) {
+    // solhint-disable-next-line no-inline-assembly
     assembly {
       _owner := sload(SPEND_OWNER_SLOT)
     }

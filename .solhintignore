@@ -1,0 +1,3 @@
+# solidity-parser is not happy about some of the inline assembly in
+# this file even though it compiles and works fine
+./contracts/migration/EnumerableSetUpgradeUtil.sol
