@@ -302,7 +302,7 @@ export function mapSlotForKey(key: string, slot: string): string {
   );
 }
 
-const CHUNK_SIZE = 20;
+const CHUNK_SIZE = 30;
 
 export type Upgrader =
   | string
