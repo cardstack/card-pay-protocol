@@ -13,5 +13,5 @@
     "resolveJsonModule": true
   },
   "include": ["./test", "./scripts"],
-  "files": ["./hardhat.config.ts"]
+  "files": ["./hardhat.config.ts", "./decs.d.ts"]
 }
