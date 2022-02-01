@@ -10,6 +10,7 @@ import {
   proxyAdminInterface,
   PROXY_ADMIN_SLOT,
   sortContracts,
+  UpgradeSlot,
 } from "../../test/migration/util";
 import { getAddress } from "../deploy/config-utils";
 import {
@@ -65,6 +66,7 @@ async function main() {
     debug(`Contract: ${contractName}`);
     debug(`Contract storage: ${contract.address}`);
     debug(`Owner: ${owner}`);
+
     if (network === "localhost") {
       await hre.network.provider.request({
         method: "hardhat_impersonateAccount",
@@ -75,17 +77,47 @@ async function main() {
       proxyAdmin = proxyAdmin.connect(signer);
     }
 
-    await migrateContract(contract, contractName, proxyAdmin);
+    let alreadyUpgraded = await ethers.provider.getStorageAt(
+      contract.address,
+      UpgradeSlot
+    );
+    let oldImplementation;
+    if (
+      alreadyUpgraded ===
+      "0x0000000000000000000000000000000000000000000000000000000000000001"
+    ) {
+      debug(`Already upgraded ${contractName}`);
+    } else {
+      oldImplementation = await proxyAdmin.getProxyImplementation(
+        contract.address
+      );
+
+      await migrateContract(contract, contractName, proxyAdmin);
+    }
+
+    if (oldImplementation) {
+      let newImplementation = await proxyAdmin.getProxyImplementation(
+        contract.address
+      );
+      console.log({ oldImplementation, newImplementation });
+    }
   }
+
   const nextVer = process.env.CARDPAY_VERSION || "patch";
   const version = nextVersion(nextVer);
   console.log(
     `Setting cardpay protocol version to ${version} (${nextVer} release)`
   );
-
   const VersionManager = await makeFactory("VersionManager");
   const versionManagerAddress = getAddress("VersionManager", addresses);
-  const versionManager = await VersionManager.attach(versionManagerAddress);
+  let versionManager = await VersionManager.attach(versionManagerAddress);
+  if (network === "localhost") {
+    let owner = await versionManager.owner();
+    let signer = await ethers.getSigner(owner);
+
+    versionManager = versionManager.connect(signer);
+  }
+
   await retry(async () => await versionManager.setVersion(version), {
     retries: 3,
   });

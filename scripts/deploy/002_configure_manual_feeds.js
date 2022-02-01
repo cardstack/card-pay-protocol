@@ -1,6 +1,7 @@
 const retry = require("async-retry");
 
 const hre = require("hardhat");
+const { ethers } = hre;
 const {
   makeFactory,
   patchNetworks,
@@ -65,6 +66,7 @@ async function main(proxyAddresses) {
 
     proxyAddresses = proxyAddresses || readAddressFile(network);
     let versionManagerAddress = getAddress("VersionManager", proxyAddresses);
+
     for (let [contractId, feedConfig] of Object.entries(config)) {
       let { contractName, proxy } = proxyAddresses[contractId] ?? {};
       if (!contractName || !proxy) {
@@ -74,13 +76,14 @@ async function main(proxyAddresses) {
       let factory = await makeFactory(contractName);
       await retry(
         async () => {
-          let instance = await factory.attach(proxy);
+          let instance = await attach(factory, proxy);
           console.log(`
 ==================================================
 Configuring ${contractId} ${proxy}
   setting description as '${feedConfig.description}'
   setting decimals as '${feedConfig.decimals}'
   setting VersionManager to: ${versionManagerAddress}`);
+
           await instance.setup(
             feedConfig.description,
             feedConfig.decimals,
@@ -96,7 +99,7 @@ Configuring ${contractId} ${proxy}
               `  adding round: price ${price}, startedAt(unix) ${startedAt}, updatedAt(unix) ${updatedAt}`
             );
 
-            let instance = await factory.attach(proxy);
+            let instance = await attach(factory, proxy);
             await instance.addRound(price, startedAt, updatedAt);
           },
           {
@@ -105,6 +108,22 @@ Configuring ${contractId} ${proxy}
         );
       }
     }
+  }
+}
+
+async function attach(factory, proxy) {
+  let instance = await factory.attach(proxy);
+
+  if (process.env.HARDHAT_FORKING && network === "localhost") {
+    let owner = await instance.owner();
+    await hre.network.provider.request({
+      method: "hardhat_impersonateAccount",
+      params: [owner],
+    });
+    let signer = await ethers.getSigner(owner);
+    instance = instance.connect(signer);
+
+    return instance;
   }
 }
 

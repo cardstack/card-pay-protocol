@@ -130,21 +130,25 @@ async function retry(cb, maxAttempts = 5) {
   throw new Error("Reached max retry attempts");
 }
 
+async function deployedCodeMatches(contractName, proxyAddress) {
+  let currentImplementationAddress = await getImplementationAddress(
+    proxyAddress
+  );
+
+  let artifact = artifacts.require(contractName);
+
+  let deployedCode = await getProvider().getCode(currentImplementationAddress);
+
+  return (
+    deployedCode &&
+    deployedCode != "0x" &&
+    deployedCode === artifact.deployedBytecode
+  );
+}
+
 async function upgradeImplementation(contractName, proxyAddress) {
   await retry(async () => {
-    let currentImplementationAddress = await getImplementationAddress(
-      proxyAddress
-    );
-    let deployedCode = await getProvider().getCode(
-      currentImplementationAddress
-    );
-    let artifact = artifacts.require(contractName);
-
-    if (
-      deployedCode &&
-      deployedCode != "0x" &&
-      deployedCode === artifact.deployedBytecode
-    ) {
+    if (deployedCodeMatches(contractName, proxyAddress)) {
       console.log(
         `Deployed bytecode already matches for ${contractName}@${proxyAddress} - no need to deploy new version`
       );

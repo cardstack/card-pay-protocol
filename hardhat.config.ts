@@ -15,18 +15,29 @@ import "./lib/hardhat-use-local-compiler";
 const SOKOL_RPC_URL = "https://sokol.poa.network";
 const XDAI_RPC_URL = "https://rpc.xdaichain.com/";
 
-let forking: { url: string },
+let forking: { url: string; blockNumber?: number },
   forkingChainId: number,
   forkingBlockGasLimit: number;
 
-if (process.env.HARDHAT_FORKING === "sokol") {
-  forking = { url: SOKOL_RPC_URL };
+if (process.env.HARDHAT_FORKING && !process.env.FORK_BLOCK_NUMBER) {
+  throw new Error(
+    "Provide FORK_BLOCK_NUMBER env var when forking otherwise cache will not be used"
+  );
+}
 
+if (process.env.HARDHAT_FORKING === "sokol") {
+  forking = {
+    url: SOKOL_RPC_URL,
+    blockNumber: parseInt(process.env.FORK_BLOCK_NUMBER),
+  };
   forkingChainId = 77;
   forkingBlockGasLimit = 12500000;
 } else if (process.env.HARDHAT_FORKING === "xdai") {
+  forking = {
+    url: XDAI_RPC_URL,
+    blockNumber: parseInt(process.env.FORK_BLOCK_NUMBER),
+  };
   forkingChainId = 100;
-  forking = { url: XDAI_RPC_URL };
   forkingBlockGasLimit = 30000000;
 }
 
@@ -111,3 +122,5 @@ let config = {
     },
   },
 };
+
+export default config;
