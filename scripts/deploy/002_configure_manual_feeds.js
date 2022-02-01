@@ -41,7 +41,10 @@ async function main(proxyAddresses) {
         ],
       },
     };
-    if (["hardhat", "localhost"].includes(network)) {
+    if (
+      ["hardhat", "localhost"].includes(network) &&
+      !process.env.HARDHAT_FORKING
+    ) {
       config = {
         ...config,
         ...{

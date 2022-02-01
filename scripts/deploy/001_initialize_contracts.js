@@ -137,7 +137,10 @@ async function main() {
     };
   }
   // only use mock DIA for private networks
-  if (["hardhat", "localhost"].includes(network)) {
+  if (
+    ["hardhat", "localhost"].includes(network) &&
+    !process.env.HARDHAT_FORKING
+  ) {
     contracts["CARDOracle"] = {
       contractName: "ChainlinkFeedAdapter",
       init: [owner],

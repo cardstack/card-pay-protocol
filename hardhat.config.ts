@@ -43,14 +43,13 @@ let hardhat = {
   forking,
 };
 
-if (forkingChainId) {
+if (process.env.HARDHAT_FORKING) {
   hardhat["chainId"] = forkingChainId;
-}
-if (forkingBlockGasLimit) {
   hardhat["blockGasLimit"] = forkingBlockGasLimit;
+  hardhat["timeout"] = 5 * 60 * 1000;
 }
 
-export default {
+let config = {
   solidity: {
     compilers: [
       {

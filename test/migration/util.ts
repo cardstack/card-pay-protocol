@@ -12,7 +12,7 @@ import { resolve } from "path";
 import sokolAddresses from "../../.openzeppelin/addresses-sokol.json";
 import xdaiAddresses from "../../.openzeppelin/addresses-xdai.json";
 
-export const debug = debugFactory("card-protocol.migration.test");
+export const debug = debugFactory("card-protocol.migration");
 
 // bytes32(uint256(keccak256("eip1967.proxy.admin")) - 1)
 export const PROXY_ADMIN_SLOT =
@@ -353,6 +353,8 @@ export const UPGRADERS: {
     let upgraderFactory = await ethers.getContractFactory(
       "MerchantManagerUpgrader"
     );
+
+    debug("Deploying upgrader");
     let upgraderImplementation = await upgraderFactory.deploy();
     let events = await contract.queryFilter(
       contract.filters.MerchantCreation(),
@@ -360,6 +362,7 @@ export const UPGRADERS: {
     );
 
     let merchants: string[] = uniq(events.map((e) => e.args.merchant));
+    debug("Upgrading to upgrader");
     await proxyAdmin.upgrade(contract.address, upgraderImplementation.address);
 
     let contractAsUpgrader = await getContractAsOwner(
@@ -424,6 +427,7 @@ export async function migrateContract(
     await upgrader(contract, proxyAdmin);
   } else {
     let upgraderFactory = await ethers.getContractFactory(upgrader);
+    debug(`Deploying new implementation ${upgrader}`);
     let upgraderImplementation = await upgraderFactory.deploy();
 
     const callData = upgraderImplementation.interface.encodeFunctionData(
@@ -431,6 +435,7 @@ export async function migrateContract(
       []
     );
 
+    debug("Estimating gas");
     let gas = await proxyAdmin.estimateGas.upgradeAndCall(
       contract.address,
       upgraderImplementation.address,

@@ -50,7 +50,7 @@
     "deploy:smoketest:upgrade": "rm -f .openzeppelin/addresses-localhost.json .openzeppelin/unknown-31337.json && yarn deploy:localhost:contracts && yarn deploy:localhost:contracts",
     "deploy:smoketest:config": "rm -f .openzeppelin/addresses-localhost.json .openzeppelin/unknown-31337.json && yarn deploy:localhost",
     "migrate:localhost": "env HARDHAT_FORKING=sokol HARDHAT_NETWORK=localhost yarn migrate",
-    "migrate": "env DEBUG=card-protocol.migration ./node_modules/.bin/hardhat run scripts/migration/migrate_gnosis_1.3.ts",
+    "migrate": "env DEBUG=card-protocol.migration* ./node_modules/.bin/hardhat run scripts/migration/migrate_gnosis_1.3.ts",
     "verify": "./node_modules/.bin/hardhat run scripts/verify.js",
     "verify:sokol": "env HARDHAT_NETWORK=sokol yarn verify",
     "verify:xdai": "env HARDHAT_NETWORK=xdai yarn verify",
