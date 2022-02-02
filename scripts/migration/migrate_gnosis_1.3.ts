@@ -140,13 +140,14 @@ async function main() {
         throw new Error(`Could not find impl meta for ${implKey}`);
       }
 
-      let { newImplementation } = await migrateContract(
+      let { newImplementation, result } = await migrateContract(
         contract,
         contractName,
         proxyAdmin
       );
 
       metadata.impls[implKey].address = newImplementation.address;
+      metadata.impls[implKey].txHash = result.hash;
 
       writeFileSync(metaFile, JSON.stringify(metadata, null, 2));
     }
