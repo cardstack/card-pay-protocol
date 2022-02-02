@@ -4,7 +4,7 @@ import {
   BigNumberish,
   Contract,
   ContractFactory,
-  utils
+  utils,
 } from "ethers";
 import { readFileSync } from "fs";
 import { artifacts, ethers, network } from "hardhat";
@@ -408,7 +408,7 @@ export async function migrateContract(
   contract: Contract,
   contractName: string,
   proxyAdmin: Contract
-): Promise<{ result: any; newImplementation: Contract }> {
+): Promise<{ result: unknown; newImplementation: Contract }> {
   debug("Deploying new implementation");
   let factory = await getContractFactory(contractName);
   let newImplementation = await factory.deploy();

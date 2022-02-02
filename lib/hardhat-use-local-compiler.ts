@@ -3,7 +3,7 @@ import { subtask } from "hardhat/config";
 
 subtask(
   TASK_COMPILE_SOLIDITY_GET_SOLC_BUILD,
-  async ({ solcVersion }: { solcVersion: string }, hre, runSuper) => {
+  async ({ solcVersion }: { solcVersion: string }, _hre, runSuper) => {
     if (
       process.env.OVERRIDE_SOLC_COMPILER_PATH &&
       process.env.OVERRIDE_SOLC_COMPILER_VERSION
