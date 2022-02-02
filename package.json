@@ -1,6 +1,6 @@
 {
   "name": "card-protocol-xdai",
-  "version": "0.8.7",
+  "version": "0.8.8",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -56,7 +56,7 @@
     "migrate:sokol": "env HARDHAT_NETWORK=sokol yarn migrate",
     "migrate:fork:xdai": "env HARDHAT_FORKING=xdai FORK_BLOCK_NUMBER=$XDAI_FORK_BLOCK_NUMBER yarn migrate:localhost",
     "migrate:localhost": "env HARDHAT_NETWORK=localhost DO_NOT_SET_THIS_ENV_VAR____IS_HARDHAT_CI=true yarn migrate",
-    "migrate": "env DEBUG=card-protocol.migration* ./node_modules/.bin/hardhat run scripts/migration/migrate_gnosis_1.3.ts",
+    "migrate": "env DEBUG=card-protocol.migration* ./node_modules/.bin/hardhat run scripts/migration/migrate_gnosis_1.3.ts && node ./lib/release.js $HARDHAT_NETWORK patch",
     "start-forked-node": "./node_modules/.bin/hardhat node --fork $FORK_RPC_URL --fork-block-number $FORK_BLOCK_NUMBER",
     "start-forked-node:sokol": "env FORK_BLOCK_NUMBER=$SOKOL_FORK_BLOCK_NUMBER FORK_RPC_URL=https://sokol.poa.network HARDHAT_FORKING=sokol yarn start-forked-node",
     "start-forked-node:xdai": "env FORK_BLOCK_NUMBER=$XDAI_FORK_BLOCK_NUMBER FORK_RPC_URL=https://rpc.xdaichain.com HARDHAT_FORKING=xdai yarn start-forked-node",
@@ -67,7 +67,7 @@
     "version:sokol:minor": "env CARDPAY_VERSION=minor yarn deploy:sokol:version",
     "version:sokol:major": "env CARDPAY_VERSION=major yarn deploy:sokol:version",
     "version:xdai:promote": "env CARDPAY_VERSION=promote yarn deploy:xdai:version",
-    "release:sokol:patch": "yarn deploy:sokol && yarn version:sokol:patch && node ./lib/release.js sokol patch",
+    "TODO!release:sokol:patch": "yarn deploy:sokol && yarn version:sokol:patch && node ./lib/release.js sokol patch",
     "release:sokol:patch:skip-verify": "yarn deploy:sokol:skip-verify && yarn version:sokol:patch && node ./lib/release.js sokol patch",
     "release:sokol:patch:config-only": "yarn deploy:sokol:config-only && yarn version:sokol:patch && node ./lib/release.js sokol patch",
     "release:sokol:patch:upgrade-only": "yarn deploy:sokol:upgrade-only && yarn version:sokol:patch && node ./lib/release.js sokol patch",
