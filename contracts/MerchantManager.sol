@@ -70,6 +70,7 @@ contract MerchantManager is Ownable, Versionable, Safe {
     address merchantSafe = createSafe(merchant);
 
     merchantSafes[merchantSafe] = merchant;
+    merchantAddresses.add(merchant);
     merchants[merchant].add(merchantSafe);
     merchantSafeInfoDIDs[merchantSafe] = infoDID;
 
