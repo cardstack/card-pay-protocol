@@ -11,16 +11,16 @@ subtask(
       console.log(
         `Using override solc compiler at ${process.env.OVERRIDE_SOLC_COMPILER_PATH}`
       );
-    }
 
-    return {
-      compilerPath: process.env.OVERRIDE_SOLC_COMPILER_PATH,
-      isSolcJs: false, // if you are using a native compiler, set this to false
-      version: solcVersion,
-      // this is used as extra information in the build-info files, but other than
-      // that is not important
-      longVersion: process.env.OVERRIDE_SOLC_COMPILER_VERSION,
-    };
+      return {
+        compilerPath: process.env.OVERRIDE_SOLC_COMPILER_PATH,
+        isSolcJs: false, // if you are using a native compiler, set this to false
+        version: solcVersion,
+        // this is used as extra information in the build-info files, but other than
+        // that is not important
+        longVersion: process.env.OVERRIDE_SOLC_COMPILER_VERSION,
+      };
+    }
 
     // we just use the default subtask if the version is not 0.8.5
     return runSuper();
