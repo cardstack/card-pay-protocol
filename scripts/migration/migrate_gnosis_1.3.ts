@@ -146,8 +146,10 @@ async function main() {
         proxyAdmin
       );
 
+      debug(`New implementation: ${newImplementation.address}`);
+
       metadata.impls[implKey].address = newImplementation.address;
-      metadata.impls[implKey].txHash = result.hash;
+      metadata.impls[implKey].txHash = result["hash"];
 
       writeFileSync(metaFile, JSON.stringify(metadata, null, 2));
     }

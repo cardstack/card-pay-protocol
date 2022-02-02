@@ -66,7 +66,7 @@ let hardhat = {
 if (process.env.HARDHAT_FORKING) {
   hardhat["chainId"] = forkingChainId;
   hardhat["blockGasLimit"] = forkingBlockGasLimit;
-  hardhat["timeout"] = 5 * 60 * 1000;
+  hardhat["timeout"] = 20 * 60 * 1000;
 }
 
 let config = {

@@ -48,7 +48,7 @@ forkedDescribe(
       cache._unhandledTypes = new Set();
     });
 
-    this.timeout(30 * MINUTES);
+    this.timeout(60 * MINUTES);
 
     for (let contractName of sortContracts(CONTRACTS)) {
       it(`migrates ${contractName}`, async () => {
