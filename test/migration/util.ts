@@ -4,7 +4,7 @@ import {
   BigNumberish,
   Contract,
   ContractFactory,
-  utils,
+  utils
 } from "ethers";
 import { readFileSync } from "fs";
 import { artifacts, ethers, network } from "hardhat";
@@ -408,7 +408,7 @@ export async function migrateContract(
   contract: Contract,
   contractName: string,
   proxyAdmin: Contract
-): Promise<void> {
+): Promise<{ result: any; newImplementation: Contract }> {
   debug("Deploying new implementation");
   let factory = await getContractFactory(contractName);
   let newImplementation = await factory.deploy();
@@ -457,7 +457,14 @@ export async function migrateContract(
     );
   }
 
-  await proxyAdmin.upgrade(contract.address, newImplementation.address);
+  let result = await proxyAdmin.upgrade(
+    contract.address,
+    newImplementation.address
+  );
+  return {
+    result,
+    newImplementation,
+  };
 }
 
 // Upgraded merchant manager implementation relied on for later migrations

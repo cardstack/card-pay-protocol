@@ -1,7 +1,9 @@
 import retry from "async-retry";
 import { debug as debugFactory } from "debug";
 import { Contract } from "ethers";
+import { readFileSync, writeFileSync } from "fs";
 import hre, { ethers } from "hardhat";
+import { resolve } from "path";
 import sokolAddresses from "../../.openzeppelin/addresses-sokol.json";
 import xdaiAddresses from "../../.openzeppelin/addresses-xdai.json";
 import { nextVersion } from "../../lib/release-utils";
@@ -60,6 +62,36 @@ const CONTRACTS = sortContracts(
 async function main() {
   debug(`Migrating ${CONTRACTS.length} contracts`);
 
+  let chainId = getChainId();
+  const metaFile = resolve(
+    __dirname,
+    "..",
+    "..",
+    ".openzeppelin",
+    `unknown-${chainId}.json`
+  );
+
+  const metaBackupFile = resolve(
+    __dirname,
+    "..",
+    "..",
+    ".openzeppelin",
+    `unknown-${chainId}-${Date.now()}.json.bak`
+  );
+
+  const mappingFile = resolve(
+    __dirname,
+    "..",
+    "..",
+    ".openzeppelin",
+    `upgrade-mapping-${chainId}.json`
+  );
+
+  let metadata = JSON.parse(readFileSync(metaFile, "utf-8"));
+  writeFileSync(metaBackupFile, JSON.stringify(metadata, null, 2));
+
+  const mapping = JSON.parse(readFileSync(mappingFile, "utf-8"));
+
   for (let contractName of CONTRACTS) {
     let { contract, proxyAdmin } = await getDeployedContract(contractName);
     let owner = await contract.owner();
@@ -72,6 +104,11 @@ async function main() {
         method: "hardhat_impersonateAccount",
         params: [owner],
       });
+      await hre.network.provider.request({
+        method: "hardhat_setBalance",
+        params: [owner, "0xfffffffffffffffffffffffffffffff"],
+      });
+
       let signer = await ethers.getSigner(owner);
       contract = contract.connect(signer);
       proxyAdmin = proxyAdmin.connect(signer);
@@ -81,7 +118,7 @@ async function main() {
       contract.address,
       UpgradeSlot
     );
-    let oldImplementation;
+    let oldImplementation: string;
     if (
       alreadyUpgraded ===
       "0x0000000000000000000000000000000000000000000000000000000000000001"
@@ -92,14 +129,26 @@ async function main() {
         contract.address
       );
 
-      await migrateContract(contract, contractName, proxyAdmin);
-    }
+      debug(`Old implementation: ${oldImplementation}`);
+      let implKey = mapping[oldImplementation];
+      if (!implKey) {
+        throw new Error(`Could not find implKey for ${contractName}`);
+      }
+      let impl = metadata.impls[implKey];
 
-    if (oldImplementation) {
-      let newImplementation = await proxyAdmin.getProxyImplementation(
-        contract.address
+      if (!impl) {
+        throw new Error(`Could not find impl meta for ${implKey}`);
+      }
+
+      let { newImplementation } = await migrateContract(
+        contract,
+        contractName,
+        proxyAdmin
       );
-      console.log({ oldImplementation, newImplementation });
+
+      metadata.impls[implKey].address = newImplementation.address;
+
+      writeFileSync(metaFile, JSON.stringify(metadata, null, 2));
     }
   }
 
@@ -150,6 +199,18 @@ export async function getDeployedContract(label: string): Promise<{
     contract,
     proxyAdmin,
   };
+}
+
+function getChainId() {
+  if (hre.network.config.chainId) {
+    return hre.network.config.chainId;
+  } else if (process.env.HARDHAT_FORKING === "sokol") {
+    return 77;
+  } else if (process.env.HARDHAT_FORKING === "xdai") {
+    return 100;
+  } else {
+    throw new Error("Unknown chainId");
+  }
 }
 
 asyncMain(main);

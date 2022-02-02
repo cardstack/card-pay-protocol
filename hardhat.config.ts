@@ -2,13 +2,13 @@
  * @type import('hardhat/config').HardhatUserConfig
  */
 
-import "@nomiclabs/hardhat-truffle5";
-import "solidity-coverage";
-import "hardhat-contract-sizer";
-import "@openzeppelin/hardhat-upgrades";
-import "@nomiclabs/hardhat-waffle";
 import "@nomiclabs/hardhat-ethers";
+import "@nomiclabs/hardhat-truffle5";
+import "@nomiclabs/hardhat-waffle";
+import "@openzeppelin/hardhat-upgrades";
+import "hardhat-contract-sizer";
 import "hardhat-watcher";
+import "solidity-coverage";
 import "./lib/hardhat-error-on-compiler-warnings";
 import "./lib/hardhat-use-local-compiler";
 
