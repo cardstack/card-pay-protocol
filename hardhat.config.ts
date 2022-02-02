@@ -20,8 +20,8 @@ let forking: { url: string; blockNumber?: number },
   forkingBlockGasLimit: number;
 
 if (process.env.HARDHAT_FORKING && !process.env.FORK_BLOCK_NUMBER) {
-  throw new Error(
-    "Provide FORK_BLOCK_NUMBER env var when forking otherwise cache will not be used"
+  console.warn(
+    "Provide FORK_BLOCK_NUMBER env var when forking otherwise cache will not be used and it will be very very slow!"
   );
 }
 
