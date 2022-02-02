@@ -29,6 +29,7 @@ import {
   UpgradeSlot,
   ZERO_ADDRESS,
 } from "./util";
+import retry from "async-retry";
 
 const MINUTES = 60 * 1000;
 
@@ -51,155 +52,162 @@ forkedDescribe(
 
     for (let contractName of sortContracts(CONTRACTS)) {
       it(`migrates ${contractName}`, async () => {
-        debug(`Contract: ${contractName}`);
+        await retry(
+          async () => {
+            debug(`Contract: ${contractName}`);
 
-        let blockNumber = await ethers.provider.getBlockNumber();
-        debug(`Current block: ${blockNumber}`);
+            let blockNumber = await ethers.provider.getBlockNumber();
+            debug(`Current block: ${blockNumber}`);
 
-        let { contract, proxyAdmin, owner, oldImplementation } =
-          await getDeployedContract(contractName);
+            let { contract, proxyAdmin, owner, oldImplementation } =
+              await getDeployedContract(contractName);
 
-        debug(`Contract storage: ${contract.address}`);
-        debug(`Old implementation: ${oldImplementation}`);
-        debug(`Owner: ${owner}`);
+            debug(`Contract storage: ${contract.address}`);
+            debug(`Old implementation: ${oldImplementation}`);
+            debug(`Owner: ${owner}`);
 
-        await network.provider.request({
-          method: "hardhat_impersonateAccount",
-          params: [owner],
-        });
+            await network.provider.request({
+              method: "hardhat_impersonateAccount",
+              params: [owner],
+            });
 
-        let oldStorageLayout = await getOldStorageLayout(contractName);
+            let oldStorageLayout = await getOldStorageLayout(contractName);
 
-        let oldValues = {};
+            let oldValues = {};
 
-        if (CHECK_VALUES) {
-          debug("Reading old values");
-          for (let storage of oldStorageLayout.storage) {
-            oldValues[storage.label] = await readStorage(
-              contract,
-              contractName,
-              storage,
-              oldStorageLayout,
-              setReader,
-              oldImplementation,
-              cache
-            );
-          }
-        }
-        let oldOwner = await contract.owner();
-        expect(
-          await ethers.provider.getStorageAt(contract.address, UpgradeSlot)
-        ).to.eq(
-          "0x0000000000000000000000000000000000000000000000000000000000000000"
-        );
-
-        await migrateContract(contract, contractName, proxyAdmin);
-
-        expect(
-          await ethers.provider.getStorageAt(contract.address, UpgradeSlot)
-        ).to.eq(
-          "0x0000000000000000000000000000000000000000000000000000000000000001",
-          "Upgrade completion flag not set after upgrade"
-        );
-        expect(await contract.owner()).to.eq(
-          oldOwner,
-          "Owner is not correct after upgrade process"
-        );
-
-        let newStorageLayout = await getCurrentStorageLayout(contractName);
-
-        // filter out this added padding so the storage layout length check is correct
-        // - actual slot numbers are checked later so this being filtered won't affect
-        // property access
-        let newStorageSlots = newStorageLayout.storage.filter(
-          (storage) => storage.label !== "____gap_Ownable"
-        );
-
-        // new set added to store merchant addresses
-        newStorageSlots = newStorageSlots.filter(
-          (storage) =>
-            !(
-              storage.contract ===
-              "contracts/MerchantManager.sol:MerchantManager" && // eslint-disable-line prettier/prettier
-              storage.label === "merchantAddresses"
-            )
-        );
-        expect(newStorageSlots.length).to.eq(oldStorageLayout.storage.length);
-
-        for (let i = 0; i < newStorageSlots.length; i++) {
-          let oldStorage = oldStorageLayout.storage[i];
-          let newStorage = newStorageSlots[i];
-
-          if (!isGap(oldStorage, newStorage)) {
-            // Labels for gaps are all over the place with the number of underscores for some reason
-
-            expect(newStorage.label).to.eq(
-              oldLabelToNewLabel(oldStorage.label),
-              `Old label: ${oldStorage.label}, new label: ${newStorage.label}`
-            );
-          }
-
-          expect(newStorage.slot).to.eq(
-            oldStorage.slot,
-            `Bad slot for ${newStorage.label}`
-          );
-
-          let knownSlot: string;
-
-          if (
-            (KnownSlots[contractName] &&
-              (knownSlot = KnownSlots[contractName][newStorage.label])) ||
-            (knownSlot = KnownSlots["*"][newStorage.label])
-          ) {
-            // this is checking that the KnownSlots metadata is populated correctly,
-            // as it is relied upon for upgrade data reading
-            expect(knownSlot).to.eq(
-              newStorage.slot,
-              `Bad slot location for ${contractName}#${newStorage.label}`
-            );
-          }
-
-          expect(newStorage.offset).to.eq(
-            oldStorage.offset,
-            `Bad offset for ${newStorage.label}`
-          );
-
-          let oldTypeLabel = getTypeLabel(oldStorageLayout, oldStorage);
-          let newTypeLabel = getTypeLabel(newStorageLayout, newStorage);
-
-          if (shouldCheckType(oldStorage, newStorage)) {
-            expect(newTypeLabel).to.eq(
-              oldTypeToNewType(oldTypeLabel),
-              `Bad type for ${newStorage.label}`
-            );
-          }
-
-          if (CHECK_VALUES) {
+            if (CHECK_VALUES) {
+              debug("Reading old values");
+              for (let storage of oldStorageLayout.storage) {
+                oldValues[storage.label] = await readStorage(
+                  contract,
+                  contractName,
+                  storage,
+                  oldStorageLayout,
+                  setReader,
+                  oldImplementation,
+                  cache
+                );
+              }
+            }
+            let oldOwner = await contract.owner();
             expect(
-              await readStorage(
-                contract,
-                contractName,
-                newStorage,
-                newStorageLayout,
-                setReader,
-                oldImplementation,
-                cache
-              )
-            ).to.eql(
-              oldValues[oldStorage.label],
-              `Mismatch for ${newStorage.label} - ${JSON.stringify(
-                newStorage,
-                null,
-                2
-              )}`
+              await ethers.provider.getStorageAt(contract.address, UpgradeSlot)
+            ).to.eq(
+              "0x0000000000000000000000000000000000000000000000000000000000000000"
             );
-          }
-        }
 
-        let endBlockNumber = await ethers.provider.getBlockNumber();
-        let blocksMined = endBlockNumber - blockNumber;
-        debug(`Total blocks mined for ${contractName}: ${blocksMined}`);
-        expect(Array.from(cache._unhandledTypes)).to.eql([]);
+            await migrateContract(contract, contractName, proxyAdmin);
+
+            expect(
+              await ethers.provider.getStorageAt(contract.address, UpgradeSlot)
+            ).to.eq(
+              "0x0000000000000000000000000000000000000000000000000000000000000001",
+              "Upgrade completion flag not set after upgrade"
+            );
+            expect(await contract.owner()).to.eq(
+              oldOwner,
+              "Owner is not correct after upgrade process"
+            );
+
+            let newStorageLayout = await getCurrentStorageLayout(contractName);
+
+            // filter out this added padding so the storage layout length check is correct
+            // - actual slot numbers are checked later so this being filtered won't affect
+            // property access
+            let newStorageSlots = newStorageLayout.storage.filter(
+              (storage) => storage.label !== "____gap_Ownable"
+            );
+
+            // new set added to store merchant addresses
+            newStorageSlots = newStorageSlots.filter(
+              (storage) =>
+                !(
+                  storage.contract ===
+                  "contracts/MerchantManager.sol:MerchantManager" && // eslint-disable-line prettier/prettier
+                  storage.label === "merchantAddresses"
+                )
+            );
+            expect(newStorageSlots.length).to.eq(
+              oldStorageLayout.storage.length
+            );
+
+            for (let i = 0; i < newStorageSlots.length; i++) {
+              let oldStorage = oldStorageLayout.storage[i];
+              let newStorage = newStorageSlots[i];
+
+              if (!isGap(oldStorage, newStorage)) {
+                // Labels for gaps are all over the place with the number of underscores for some reason
+
+                expect(newStorage.label).to.eq(
+                  oldLabelToNewLabel(oldStorage.label),
+                  `Old label: ${oldStorage.label}, new label: ${newStorage.label}`
+                );
+              }
+
+              expect(newStorage.slot).to.eq(
+                oldStorage.slot,
+                `Bad slot for ${newStorage.label}`
+              );
+
+              let knownSlot: string;
+
+              if (
+                (KnownSlots[contractName] &&
+                  (knownSlot = KnownSlots[contractName][newStorage.label])) ||
+                (knownSlot = KnownSlots["*"][newStorage.label])
+              ) {
+                // this is checking that the KnownSlots metadata is populated correctly,
+                // as it is relied upon for upgrade data reading
+                expect(knownSlot).to.eq(
+                  newStorage.slot,
+                  `Bad slot location for ${contractName}#${newStorage.label}`
+                );
+              }
+
+              expect(newStorage.offset).to.eq(
+                oldStorage.offset,
+                `Bad offset for ${newStorage.label}`
+              );
+
+              let oldTypeLabel = getTypeLabel(oldStorageLayout, oldStorage);
+              let newTypeLabel = getTypeLabel(newStorageLayout, newStorage);
+
+              if (shouldCheckType(oldStorage, newStorage)) {
+                expect(newTypeLabel).to.eq(
+                  oldTypeToNewType(oldTypeLabel),
+                  `Bad type for ${newStorage.label}`
+                );
+              }
+
+              if (CHECK_VALUES) {
+                expect(
+                  await readStorage(
+                    contract,
+                    contractName,
+                    newStorage,
+                    newStorageLayout,
+                    setReader,
+                    oldImplementation,
+                    cache
+                  )
+                ).to.eql(
+                  oldValues[oldStorage.label],
+                  `Mismatch for ${newStorage.label} - ${JSON.stringify(
+                    newStorage,
+                    null,
+                    2
+                  )}`
+                );
+              }
+            }
+
+            let endBlockNumber = await ethers.provider.getBlockNumber();
+            let blocksMined = endBlockNumber - blockNumber;
+            debug(`Total blocks mined for ${contractName}: ${blocksMined}`);
+            expect(Array.from(cache._unhandledTypes)).to.eql([]);
+          },
+          { retries: 3 }
+        );
       });
     }
   }
