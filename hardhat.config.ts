@@ -28,17 +28,26 @@ if (process.env.HARDHAT_FORKING && !process.env.FORK_BLOCK_NUMBER) {
 if (process.env.HARDHAT_FORKING === "sokol") {
   forking = {
     url: SOKOL_RPC_URL,
-    blockNumber: parseInt(process.env.FORK_BLOCK_NUMBER),
   };
+
   forkingChainId = 77;
   forkingBlockGasLimit = 12500000;
 } else if (process.env.HARDHAT_FORKING === "xdai") {
   forking = {
     url: XDAI_RPC_URL,
-    blockNumber: parseInt(process.env.FORK_BLOCK_NUMBER),
   };
   forkingChainId = 100;
   forkingBlockGasLimit = 30000000;
+}
+
+if (process.env.HARDHAT_FORKING && !process.env.FORK_BLOCK_NUMBER) {
+  console.warn(
+    "Provide FORK_BLOCK_NUMBER env var when forking otherwise cache will not be used and it will be very very slow!"
+  );
+}
+
+if (process.env.FORK_BLOCK_NUMBER && process.env.FORK_BLOCK_NUMBER) {
+  forking["blockNumber"] = parseInt(process.env.FORK_BLOCK_NUMBER);
 }
 
 let hardhat = {
