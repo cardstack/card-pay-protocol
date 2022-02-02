@@ -122,9 +122,9 @@ async function attach(factory, proxy) {
     });
     let signer = await ethers.getSigner(owner);
     instance = instance.connect(signer);
-
-    return instance;
   }
+
+  return instance;
 }
 
 asyncMain(main);
