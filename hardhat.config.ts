@@ -13,7 +13,8 @@ import "./lib/hardhat-error-on-compiler-warnings";
 import "./lib/hardhat-use-local-compiler";
 
 const SOKOL_RPC_URL = "https://sokol.poa.network";
-const XDAI_RPC_URL = "https://rpc.xdaichain.com/";
+const XDAI_RPC_URL =
+  "https://polished-still-thunder.xdai.quiknode.pro/474f8faa313d36e0dc2604c1373655f7e26fdfb6/";
 
 let forking: { url: string; blockNumber?: number },
   forkingChainId: number,
