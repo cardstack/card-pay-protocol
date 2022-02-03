@@ -154,25 +154,6 @@ async function main() {
       writeFileSync(metaFile, JSON.stringify(metadata, null, 2));
     }
   }
-
-  const nextVer = process.env.CARDPAY_VERSION || "patch";
-  const version = nextVersion(nextVer);
-  console.log(
-    `Setting cardpay protocol version to ${version} (${nextVer} release)`
-  );
-  const VersionManager = await makeFactory("VersionManager");
-  const versionManagerAddress = getAddress("VersionManager", addresses);
-  let versionManager = await VersionManager.attach(versionManagerAddress);
-  if (network === "localhost") {
-    let owner = await versionManager.owner();
-    let signer = await ethers.getSigner(owner);
-
-    versionManager = versionManager.connect(signer);
-  }
-
-  await retry(async () => await versionManager.setVersion(version), {
-    retries: 3,
-  });
 }
 
 export async function getDeployedContract(label: string): Promise<{
