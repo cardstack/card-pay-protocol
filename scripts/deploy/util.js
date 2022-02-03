@@ -8,7 +8,7 @@ const {
   upgrades: {
     deployProxy,
     upgradeProxy,
-    erc1967: { getImplementationAddress },
+    erc1967: { getImplementationAddress, getAdminAddress },
   },
   ethers,
   config: {
@@ -61,12 +61,15 @@ function getHardhatTestWallet() {
 async function makeFactory(contractName) {
   if (hre.network.name === "hardhat") {
     return await ethers.getContractFactory(contractName);
-  } else if (hre.network.name === "localhost") {
+  } else if (hre.network.name === "localhost" && !process.env.HARDHAT_FORKING) {
     return (await ethers.getContractFactory(contractName)).connect(
       getHardhatTestWallet()
     );
   }
-  return (await ethers.getContractFactory(contractName)).connect(getSigner());
+
+  return (await ethers.getContractFactory(contractName)).connect(
+    getProvider().getSigner(await getDeployAddress())
+  );
 }
 
 function getSigner() {
@@ -99,7 +102,29 @@ async function getDeployAddress() {
     let [signer] = await ethers.getSigners();
     return signer.address;
   } else if (hre.network.name === "localhost") {
-    return getHardhatTestWallet().address;
+    if (process.env.HARDHAT_FORKING) {
+      const addressesFile = `./.openzeppelin/addresses-${process.env.HARDHAT_FORKING}.json`;
+      console.log(
+        "Determining deploy address for forked deploy from addresses file",
+        addressesFile
+      );
+
+      let addresses = readJSONSync(addressesFile);
+      let versionManagerAddress = addresses.VersionManager.proxy;
+      let versionManager = await ethers.getContractAt(
+        "VersionManager",
+        versionManagerAddress
+      );
+
+      let owner = await versionManager.owner();
+      await hre.network.provider.request({
+        method: "hardhat_impersonateAccount",
+        params: [owner],
+      });
+      return owner;
+    } else {
+      return getHardhatTestWallet().address;
+    }
   }
   const trezorSigner = getSigner();
   return await trezorSigner.getAddress();
@@ -135,9 +160,16 @@ async function deployedCodeMatches(contractName, proxyAddress) {
     proxyAddress
   );
 
+  return await deployedImplementationMatches(contractName, proxyAddress);
+}
+
+async function deployedImplementationMatches(
+  contractName,
+  implementationAddress
+) {
   let artifact = artifacts.require(contractName);
 
-  let deployedCode = await getProvider().getCode(currentImplementationAddress);
+  let deployedCode = await getProvider().getCode(implementationAddress);
 
   return (
     deployedCode &&
@@ -148,7 +180,7 @@ async function deployedCodeMatches(contractName, proxyAddress) {
 
 async function upgradeImplementation(contractName, proxyAddress) {
   await retry(async () => {
-    if (deployedCodeMatches(contractName, proxyAddress)) {
+    if (await deployedCodeMatches(contractName, proxyAddress)) {
       console.log(
         `Deployed bytecode already matches for ${contractName}@${proxyAddress} - no need to deploy new version`
       );
@@ -190,4 +222,5 @@ module.exports = {
   retry,
   upgradeImplementation,
   deployNewProxyAndImplementation,
+  deployedImplementationMatches,
 };

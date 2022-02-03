@@ -11,17 +11,22 @@ const {
   asyncMain,
   upgradeImplementation,
   deployNewProxyAndImplementation,
+  deployedImplementationMatches,
   makeFactory,
 } = require("./util");
 
 patchNetworks();
 
 async function main() {
-  const {
+  let {
     network: { name: network },
   } = hre;
 
   console.log(`Deploying to ${network}`);
+  if (process.env.HARDHAT_FORKING) {
+    network = process.env.HARDHAT_FORKING;
+    console.log(`(Deploying to forked copy of ${network})`);
+  }
 
   const owner = await getDeployAddress();
   console.log(`Deploying from address ${owner}`);
@@ -209,16 +214,30 @@ async function main() {
 
       // This behaviour makes sense for RewardSafeDelegateImplementation,
       // however it may not make sense for other non-upgradeable contracts in the future
-      console.log(
-        `Deploying new non upgradeable contract ${contractId} (${contractName})...`
-      );
+      if (
+        proxyAddresses[contractId] &&
+        (await deployedImplementationMatches(
+          contractName,
+          proxyAddresses[contractId].proxy
+        ))
+      ) {
+        console.log(
+          "Deployed implementation of",
+          contractName,
+          "is already up to date"
+        );
+      } else {
+        console.log(
+          `Deploying new non upgradeable contract ${contractId} (${contractName})...`
+        );
 
-      let factory = await makeFactory(contractName);
-      let instance = await factory.deploy(...init);
-      proxyAddresses[contractId] = {
-        proxy: instance.address, // it's misleading to use the proxy field here, however it's the address used later to refer to the contract
-        contractName,
-      };
+        let factory = await makeFactory(contractName);
+        let instance = await factory.deploy(...init);
+        proxyAddresses[contractId] = {
+          proxy: instance.address, // it's misleading to use the proxy field here, however it's the address used later to refer to the contract
+          contractName,
+        };
+      }
     } else {
       console.log(`Deploying new contract ${contractId} (${contractName})...`);
 
