@@ -8,7 +8,7 @@ const {
   upgrades: {
     deployProxy,
     upgradeProxy,
-    erc1967: { getImplementationAddress, getAdminAddress },
+    erc1967: { getImplementationAddress },
   },
   ethers,
   config: {
@@ -160,7 +160,10 @@ async function deployedCodeMatches(contractName, proxyAddress) {
     proxyAddress
   );
 
-  return await deployedImplementationMatches(contractName, proxyAddress);
+  return await deployedImplementationMatches(
+    contractName,
+    currentImplementationAddress
+  );
 }
 
 async function deployedImplementationMatches(
