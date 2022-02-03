@@ -1,4 +1,3 @@
-import retry from "async-retry";
 import { debug as debugFactory } from "debug";
 import { Contract } from "ethers";
 import { readFileSync, writeFileSync } from "fs";
@@ -6,7 +5,6 @@ import hre, { ethers } from "hardhat";
 import { resolve } from "path";
 import sokolAddresses from "../../.openzeppelin/addresses-sokol.json";
 import xdaiAddresses from "../../.openzeppelin/addresses-xdai.json";
-import { nextVersion } from "../../lib/release-utils";
 import {
   migrateContract,
   proxyAdminInterface,
@@ -14,13 +12,7 @@ import {
   sortContracts,
   UpgradeSlot,
 } from "../../test/migration/util";
-import { getAddress } from "../deploy/config-utils";
-import {
-  asyncMain,
-  getSigner,
-  makeFactory,
-  patchNetworks,
-} from "../deploy/util";
+import { asyncMain, getSigner, patchNetworks } from "../deploy/util";
 
 const debug = debugFactory("card-protocol.migration");
 
