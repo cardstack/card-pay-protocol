@@ -13,7 +13,14 @@ import "./lib/hardhat-error-on-compiler-warnings";
 import "./lib/hardhat-use-local-compiler";
 
 const SOKOL_RPC_URL = "https://sokol.poa.network";
-const XDAI_RPC_URL = "https://xdai-archive.blockscout.com";
+let XDAI_RPC_URL;
+
+if (process.env.HARDHAT_FORKING) {
+  // To read old blocks for events for migration test an archive node is needed
+  XDAI_RPC_URL = "https://xdai-archive.blockscout.com";
+} else {
+  XDAI_RPC_URL = "https://rpc.xdaichain.com/";
+}
 
 let forking: { url: string; blockNumber?: number },
   forkingChainId: number,
