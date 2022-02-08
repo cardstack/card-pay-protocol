@@ -1,9 +1,11 @@
 import { debug as debugFactory } from "debug";
+import TrezorWalletProvider from "trezor-cli-wallet-provider";
 import {
   BigNumber,
   BigNumberish,
   Contract,
   ContractFactory,
+  Signer,
   utils,
 } from "ethers";
 import { readFileSync } from "fs";
@@ -11,6 +13,7 @@ import { artifacts, ethers, network } from "hardhat";
 import { resolve } from "path";
 import sokolAddresses from "../../.openzeppelin/addresses-sokol.json";
 import xdaiAddresses from "../../.openzeppelin/addresses-xdai.json";
+import { Provider } from "@ethersproject/abstract-provider";
 
 export const debug = debugFactory("card-protocol.migration");
 
@@ -20,7 +23,7 @@ export const PROXY_ADMIN_SLOT =
 
 let addresses: { [x: string]: { contractName: string; proxy: string } };
 
-switch (process.env.HARDHAT_FORKING) {
+switch (process.env.HARDHAT_FORKING || network.name) {
   case "sokol":
     addresses = sokolAddresses;
     break;
@@ -56,7 +59,9 @@ export async function getDeployedContract(label: string): Promise<{
   let name = addresses[label].contractName;
   let proxyAddress = addresses[label].proxy;
 
-  let contract = await ethers.getContractAt(name, proxyAddress);
+  let contract = connectContractToProvider(
+    await ethers.getContractAt(name, proxyAddress)
+  );
 
   let proxyAdminAddress =
     "0x" +
@@ -64,14 +69,12 @@ export async function getDeployedContract(label: string): Promise<{
       await ethers.provider.getStorageAt(contract.address, PROXY_ADMIN_SLOT)
     ).slice(26);
 
-  let proxyAdmin = await ethers.getContractAt(
-    proxyAdminInterface,
-    proxyAdminAddress
+  let proxyAdmin = connectContractToProvider(
+    await ethers.getContractAt(proxyAdminInterface, proxyAdminAddress)
   );
 
   let owner = await proxyAdmin.owner();
-  let signer = await ethers.getSigner(owner);
-  proxyAdmin = proxyAdmin.connect(signer);
+  proxyAdmin = await getContractAsOwner(proxyAdmin, proxyAdminInterface, owner);
 
   let oldImplementation = await proxyAdmin.getProxyImplementation(
     contract.address
@@ -153,8 +156,10 @@ export async function getCurrentStorageLayout(
 export async function getContractFactory(
   label: string
 ): Promise<ContractFactory> {
-  let contractName = addresses[label].contractName;
-  return await ethers.getContractFactory(contractName);
+  let contractName = addresses[label]?.contractName || label;
+  return connectFactoryToProvider(
+    await ethers.getContractFactory(contractName)
+  );
 }
 
 export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
@@ -315,9 +320,10 @@ export const UPGRADERS: {
   RewardPool: "RewardPoolUpgrader",
 
   PrepaidCardMarket: async (contract, proxyAdmin) => {
-    let upgraderFactory = await ethers.getContractFactory(
-      "PrepaidCardMarketUpgrader"
+    let upgraderFactory = connectFactoryToProvider(
+      await ethers.getContractFactory("PrepaidCardMarketUpgrader")
     );
+
     let upgraderImplementation = await upgraderFactory.deploy();
     let events = await contract.queryFilter(
       contract.filters.ItemSet(),
@@ -350,9 +356,7 @@ export const UPGRADERS: {
     await contractAsUpgrader.upgradeFinished();
   },
   MerchantManager: async (contract, proxyAdmin) => {
-    let upgraderFactory = await ethers.getContractFactory(
-      "MerchantManagerUpgrader"
-    );
+    let upgraderFactory = await getContractFactory("MerchantManagerUpgrader");
 
     debug("Deploying upgrader");
     let upgraderImplementation = await upgraderFactory.deploy();
@@ -393,14 +397,21 @@ export const UPGRADERS: {
 
 export async function getContractAsOwner(
   contract: Contract,
-  contractName: string,
+  contractNameOrAbi: string | unknown[],
   owner: string
 ): Promise<Contract> {
-  let contractAsNew = await ethers.getContractAt(
-    contractName,
-    contract.address
+  let contractAsNew = connectContractToProvider(
+    await ethers.getContractAt(contractNameOrAbi, contract.address)
   );
-  let signer = await ethers.getSigner(owner);
+
+  let signer: Signer;
+
+  if (useTrezorProvider()) {
+    signer = await getProvider().getSigner(owner);
+  } else {
+    signer = await ethers.getSigner(owner);
+  }
+
   return contractAsNew.connect(signer);
 }
 
@@ -426,7 +437,9 @@ export async function migrateContract(
   if (typeof upgrader === "function") {
     await upgrader(contract, proxyAdmin);
   } else {
-    let upgraderFactory = await ethers.getContractFactory(upgrader);
+    let upgraderFactory = connectFactoryToProvider(
+      await ethers.getContractFactory(upgrader)
+    );
     debug(`Deploying new implementation ${upgrader}`);
     let upgraderImplementation = await upgraderFactory.deploy();
 
@@ -499,3 +512,57 @@ export type RevenueBalance = {
   tokens: string[];
   balance: { [tokenAddress: string]: BigNumberish };
 };
+
+let trezorProvider: TrezorWalletProvider;
+
+function getTrezorProvider() {
+  if (trezorProvider) {
+    return trezorProvider;
+  }
+  const { config } = network;
+
+  let walletProvider = new TrezorWalletProvider(config["url"], {
+    chainId: config["chainId"],
+    numberOfAccounts: 3,
+    derivationPath: config["derivationPath"],
+  });
+
+  trezorProvider = new ethers.providers.Web3Provider(
+    walletProvider,
+    network.name
+  );
+
+  return trezorProvider;
+}
+
+export function connectContractToProvider(contract: Contract): Contract {
+  if (useTrezorProvider()) {
+    return contract.connect(getTrezorProvider());
+  } else {
+    return contract;
+  }
+}
+
+export function connectFactoryToProvider(
+  contractFactory: ContractFactory
+): ContractFactory {
+  if (useTrezorProvider()) {
+    return contractFactory.connect(getTrezorProvider().getSigner());
+  } else {
+    return contractFactory;
+  }
+}
+
+function getProvider() {
+  if (useTrezorProvider()) {
+    return getTrezorProvider();
+  } else {
+    return ethers.getDefaultProvider();
+  }
+}
+
+function useTrezorProvider() {
+  return (
+    ["sokol", "xdai"].includes(network.name) && !process.env.HARDHAT_FORKING
+  );
+}
