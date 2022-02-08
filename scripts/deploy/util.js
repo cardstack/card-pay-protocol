@@ -218,6 +218,7 @@ async function deployNewProxyAndImplementation(contractName, constructorArgs) {
 module.exports = {
   makeFactory,
   getSigner,
+  getProvider,
   getDeployAddress,
   patchNetworks,
   asyncMain,

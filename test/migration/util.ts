@@ -13,7 +13,6 @@ import { artifacts, ethers, network } from "hardhat";
 import { resolve } from "path";
 import sokolAddresses from "../../.openzeppelin/addresses-sokol.json";
 import xdaiAddresses from "../../.openzeppelin/addresses-xdai.json";
-import { Provider } from "@ethersproject/abstract-provider";
 
 export const debug = debugFactory("card-protocol.migration");
 
@@ -68,6 +67,8 @@ export async function getDeployedContract(label: string): Promise<{
     (
       await ethers.provider.getStorageAt(contract.address, PROXY_ADMIN_SLOT)
     ).slice(26);
+
+  debug(`Proxy admin: ${proxyAdminAddress}`);
 
   let proxyAdmin = connectContractToProvider(
     await ethers.getContractAt(proxyAdminInterface, proxyAdminAddress)
@@ -331,7 +332,9 @@ export const UPGRADERS: {
     );
 
     let skus: string[] = uniq(events.map((e) => e.args.sku));
-    await proxyAdmin.upgrade(contract.address, upgraderImplementation.address);
+    await retry(() =>
+      proxyAdmin.upgrade(contract.address, upgraderImplementation.address)
+    );
 
     let contractAsUpgrader = await getContractAsOwner(
       contract,
@@ -350,10 +353,10 @@ export const UPGRADERS: {
       let gas = await contractAsUpgrader.estimateGas.upgradeChunk(chunk);
       debug(`Gas usage for PrepaidCardMarket#upgradeChunk: ${gas}`);
 
-      await contractAsUpgrader.upgradeChunk(chunk);
+      await retry(() => contractAsUpgrader.upgradeChunk(chunk));
     }
 
-    await contractAsUpgrader.upgradeFinished();
+    await retry(() => contractAsUpgrader.upgradeFinished());
   },
   MerchantManager: async (contract, proxyAdmin) => {
     let upgraderFactory = await getContractFactory("MerchantManagerUpgrader");
@@ -367,7 +370,9 @@ export const UPGRADERS: {
 
     let merchants: string[] = uniq(events.map((e) => e.args.merchant));
     debug("Upgrading to upgrader");
-    await proxyAdmin.upgrade(contract.address, upgraderImplementation.address);
+    await retry(() =>
+      proxyAdmin.upgrade(contract.address, upgraderImplementation.address)
+    );
 
     let contractAsUpgrader = await getContractAsOwner(
       contract,
@@ -385,9 +390,9 @@ export const UPGRADERS: {
 
       let gas = await contractAsUpgrader.estimateGas.upgradeChunk(chunk);
       debug(`Gas usage for MerchantManager#upgradeChunk: ${gas}`);
-      await contractAsUpgrader.upgradeChunk(chunk);
+      await retry(() => contractAsUpgrader.upgradeChunk(chunk));
     }
-    await contractAsUpgrader.upgradeFinished();
+    await retry(() => contractAsUpgrader.upgradeFinished());
   },
   TokenManager: "TokenManagerUpgrader",
   SPEND: "SPENDUpgrader",
@@ -407,7 +412,7 @@ export async function getContractAsOwner(
   let signer: Signer;
 
   if (useTrezorProvider()) {
-    signer = await getProvider().getSigner(owner);
+    signer = getTrezorProvider().getSigner(owner);
   } else {
     signer = await ethers.getSigner(owner);
   }
@@ -513,12 +518,7 @@ export type RevenueBalance = {
   balance: { [tokenAddress: string]: BigNumberish };
 };
 
-let trezorProvider: TrezorWalletProvider;
-
 function getTrezorProvider() {
-  if (trezorProvider) {
-    return trezorProvider;
-  }
   const { config } = network;
 
   let walletProvider = new TrezorWalletProvider(config["url"], {
@@ -527,12 +527,7 @@ function getTrezorProvider() {
     derivationPath: config["derivationPath"],
   });
 
-  trezorProvider = new ethers.providers.Web3Provider(
-    walletProvider,
-    network.name
-  );
-
-  return trezorProvider;
+  return new ethers.providers.Web3Provider(walletProvider, network.name);
 }
 
 export function connectContractToProvider(contract: Contract): Contract {
@@ -553,16 +548,24 @@ export function connectFactoryToProvider(
   }
 }
 
-function getProvider() {
-  if (useTrezorProvider()) {
-    return getTrezorProvider();
-  } else {
-    return ethers.getDefaultProvider();
-  }
-}
-
 function useTrezorProvider() {
   return (
     ["sokol", "xdai"].includes(network.name) && !process.env.HARDHAT_FORKING
   );
+}
+
+async function retry(cb, maxAttempts = 5): Promise<unknown> {
+  let attempts = 0;
+  do {
+    try {
+      attempts++;
+      return await cb();
+    } catch (e) {
+      console.log(
+        `received ${e.message}, trying again (${attempts} of ${maxAttempts} attempts)`
+      );
+    }
+  } while (attempts < maxAttempts);
+
+  throw new Error("Reached max retry attempts");
 }
