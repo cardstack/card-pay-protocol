@@ -350,8 +350,14 @@ export const UPGRADERS: {
         )}`
       );
 
-      let gas = await contractAsUpgrader.estimateGas.upgradeChunk(chunk);
-      debug(`Gas usage for PrepaidCardMarket#upgradeChunk: ${gas}`);
+      try {
+        let gas = await retry(() =>
+          contractAsUpgrader.estimateGas.upgradeChunk(chunk)
+        );
+        debug(`Gas usage for PrepaidCardMarket#upgradeChunk: ${gas}`);
+      } catch (e) {
+        debug("Gas estimation failed, continuing anyway");
+      }
 
       await retry(() => contractAsUpgrader.upgradeChunk(chunk));
     }
@@ -388,8 +394,14 @@ export const UPGRADERS: {
         )}`
       );
 
-      let gas = await contractAsUpgrader.estimateGas.upgradeChunk(chunk);
-      debug(`Gas usage for MerchantManager#upgradeChunk: ${gas}`);
+      try {
+        let gas = await retry(() =>
+          contractAsUpgrader.estimateGas.upgradeChunk(chunk)
+        );
+        debug(`Gas usage for MerchantManager#upgradeChunk: ${gas}`);
+      } catch (e) {
+        debug("Gas estimation failed, continuing anyway");
+      }
       await retry(() => contractAsUpgrader.upgradeChunk(chunk));
     }
     await retry(() => contractAsUpgrader.upgradeFinished());
@@ -425,9 +437,10 @@ export async function migrateContract(
   contractName: string,
   proxyAdmin: Contract
 ): Promise<{ result: unknown; newImplementation: Contract }> {
+  debug(`ProxyAdmin: ${proxyAdmin.address}`);
   debug("Deploying new implementation");
   let factory = await getContractFactory(contractName);
-  let newImplementation = await factory.deploy();
+  let newImplementation = (await retry(() => factory.deploy())) as Contract;
   debug(`Deployed new implementation at ${newImplementation.address}`);
 
   let upgrader: Upgrader = UPGRADERS[contractName];
@@ -450,24 +463,39 @@ export async function migrateContract(
       upgraderFactory.deploy()
     )) as Contract;
 
+    debug(
+      `Upgrader implementation deployed to ${upgraderImplementation.address}`
+    );
+
     const callData = upgraderImplementation.interface.encodeFunctionData(
       "upgrade",
       []
     );
 
-    debug("Estimating gas");
-    let gas = await proxyAdmin.estimateGas.upgradeAndCall(
-      contract.address,
-      upgraderImplementation.address,
-      callData
+    try {
+      debug("Estimating gas");
+
+      let gas = proxyAdmin.estimateGas.upgradeAndCall(
+        contract.address,
+        upgraderImplementation.address,
+        callData
+      );
+
+      debug(`Gas usage for upgrade of ${contractName}: ${gas}`);
+    } catch (e) {
+      debug("Gas estimation failed, continuing anyway");
+    }
+
+    debug(
+      `Attempting to upgrade contract at ${contract.address} to upgrader ${upgrader}implementation at ${upgraderImplementation.address} and call upgrade()`
     );
 
-    debug(`Gas usage for upgrade of ${contractName}: ${gas}`);
-
-    await proxyAdmin.upgradeAndCall(
-      contract.address,
-      upgraderImplementation.address,
-      callData
+    await retry(() =>
+      proxyAdmin.upgradeAndCall(
+        contract.address,
+        upgraderImplementation.address,
+        callData
+      )
     );
   }
 
@@ -477,9 +505,12 @@ export async function migrateContract(
     );
   }
 
-  let result = await proxyAdmin.upgrade(
-    contract.address,
-    newImplementation.address
+  debug(
+    `Upgrading contract to new implementation at ${newImplementation.address}`
+  );
+
+  let result = await retry(() =>
+    proxyAdmin.upgrade(contract.address, newImplementation.address)
   );
   return {
     result,
