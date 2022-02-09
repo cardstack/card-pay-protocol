@@ -446,7 +446,9 @@ export async function migrateContract(
       await ethers.getContractFactory(upgrader)
     );
     debug(`Deploying new implementation ${upgrader}`);
-    let upgraderImplementation = await upgraderFactory.deploy();
+    let upgraderImplementation = (await retry(() =>
+      upgraderFactory.deploy()
+    )) as Contract;
 
     const callData = upgraderImplementation.interface.encodeFunctionData(
       "upgrade",
@@ -554,7 +556,7 @@ function useTrezorProvider() {
   );
 }
 
-async function retry(cb, maxAttempts = 5): Promise<unknown> {
+async function retry(cb: () => unknown, maxAttempts = 5): Promise<unknown> {
   let attempts = 0;
   do {
     try {
