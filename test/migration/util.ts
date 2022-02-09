@@ -13,6 +13,7 @@ import { artifacts, ethers, network } from "hardhat";
 import { resolve } from "path";
 import sokolAddresses from "../../.openzeppelin/addresses-sokol.json";
 import xdaiAddresses from "../../.openzeppelin/addresses-xdai.json";
+import { setTimeout as delay } from "timers/promises";
 
 export const debug = debugFactory("card-protocol.migration");
 
@@ -325,7 +326,9 @@ export const UPGRADERS: {
       await ethers.getContractFactory("PrepaidCardMarketUpgrader")
     );
 
-    let upgraderImplementation = await upgraderFactory.deploy();
+    let upgraderImplementation = (await retry(() =>
+      upgraderFactory.deploy()
+    )) as Contract;
     let events = await contract.queryFilter(
       contract.filters.ItemSet(),
       GENESIS_BLOCK
@@ -475,7 +478,7 @@ export async function migrateContract(
     try {
       debug("Estimating gas");
 
-      let gas = proxyAdmin.estimateGas.upgradeAndCall(
+      let gas = await proxyAdmin.estimateGas.upgradeAndCall(
         contract.address,
         upgraderImplementation.address,
         callData
@@ -587,7 +590,7 @@ function useTrezorProvider() {
   );
 }
 
-async function retry(cb: () => unknown, maxAttempts = 5): Promise<unknown> {
+async function retry(cb: () => unknown, maxAttempts = 10): Promise<unknown> {
   let attempts = 0;
   do {
     try {
@@ -597,6 +600,8 @@ async function retry(cb: () => unknown, maxAttempts = 5): Promise<unknown> {
       console.log(
         `received ${e.message}, trying again (${attempts} of ${maxAttempts} attempts)`
       );
+
+      await delay(2000);
     }
   } while (attempts < maxAttempts);
 

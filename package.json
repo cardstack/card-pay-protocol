@@ -111,7 +111,7 @@
     "@types/chai": "^4.2.14",
     "@types/chai-as-promised": "^7.1.3",
     "@types/mocha": "^8.0.3",
-    "@types/node": "^14.14.2",
+    "@types/node": "^16.11.22",
     "@typescript-eslint/eslint-plugin": "^4.31.0",
     "@typescript-eslint/parser": "^4.31.0",
     "CardPay-Contracts": "github:cardstack/card-commerce-protocol#6dd4d470e98f7b94881e3fe256b7b677bbedd3e7",
