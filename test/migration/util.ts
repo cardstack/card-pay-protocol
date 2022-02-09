@@ -329,6 +329,8 @@ export const UPGRADERS: {
     let upgraderImplementation = (await retry(() =>
       upgraderFactory.deploy()
     )) as Contract;
+    await upgraderImplementation.deployTransaction.wait();
+
     let events = await contract.queryFilter(
       contract.filters.ItemSet(),
       GENESIS_BLOCK
@@ -371,7 +373,11 @@ export const UPGRADERS: {
     let upgraderFactory = await getContractFactory("MerchantManagerUpgrader");
 
     debug("Deploying upgrader");
-    let upgraderImplementation = await upgraderFactory.deploy();
+    let upgraderImplementation = (await retry(() =>
+      upgraderFactory.deploy()
+    )) as Contract;
+    await upgraderImplementation.deployTransaction.wait();
+
     let events = await contract.queryFilter(
       contract.filters.MerchantCreation(),
       GENESIS_BLOCK
@@ -444,6 +450,8 @@ export async function migrateContract(
   debug("Deploying new implementation");
   let factory = await getContractFactory(contractName);
   let newImplementation = (await retry(() => factory.deploy())) as Contract;
+  await newImplementation.deployTransaction.wait();
+
   debug(`Deployed new implementation at ${newImplementation.address}`);
 
   let upgrader: Upgrader = UPGRADERS[contractName];
@@ -465,6 +473,8 @@ export async function migrateContract(
     let upgraderImplementation = (await retry(() =>
       upgraderFactory.deploy()
     )) as Contract;
+
+    await upgraderImplementation.deployTransaction.wait();
 
     debug(
       `Upgrader implementation deployed to ${upgraderImplementation.address}`
