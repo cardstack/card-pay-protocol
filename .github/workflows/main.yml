@@ -38,21 +38,6 @@ jobs:
       - name: Test
         run: yarn test:migration:xdai
 
-  test-migration-sokol:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2-beta
-
-      - name: Install dependencies
-        run: yarn install
-
-      - name: Build
-        run: yarn build:clean
-
-      - name: Test
-        run: yarn test:migration:sokol
-
   size-check:
     runs-on: ubuntu-latest
     steps:
