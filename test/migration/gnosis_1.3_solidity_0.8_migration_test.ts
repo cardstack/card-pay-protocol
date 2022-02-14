@@ -33,6 +33,10 @@ import retry from "async-retry";
 
 const MINUTES = 60 * 1000;
 
+// Note: the migration has now been completed, so these tests will no longer pass.
+
+// Leaving in place as an example of how to test a migration.
+
 forkedDescribe(
   "Gnosis 1.3 / Solidity 0.8 migration test (expected to fail after upgrade is complete)",
   function () {
