@@ -11403,8 +11403,8 @@
       }
     },
     "4a24cd2d7116b6fe9c7d42008d8a6344b31d9542618c02e42bb344cd50dbed82": {
-      "address": "0xe23E029b8eD263EEe548a9cF64885DA65146897e",
-      "txHash": "0x3fe9d6a140f502b14090e482d6028d47f325dcc087101361f534ad24905fe484",
+      "address": "0xb7f68b56a86d94030111415A8655c0588BC6F60E",
+      "txHash": "0x6b093066bb951d1d4bd58f1153feddaa5f661e45ac13f809f89003affd1d5776",
       "layout": {
         "storage": [
           {
