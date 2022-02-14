@@ -1,0 +1,32 @@
+{
+  "storage": [
+    {
+      "astId": 2025,
+      "contract": "@gnosis.pm/safe-contracts/contracts/base/Module.sol:Module",
+      "label": "masterCopy",
+      "offset": 0,
+      "slot": "0",
+      "type": "t_address"
+    },
+    {
+      "astId": 1114,
+      "contract": "@gnosis.pm/safe-contracts/contracts/base/Module.sol:Module",
+      "label": "manager",
+      "offset": 0,
+      "slot": "1",
+      "type": "t_contract(ModuleManager)1542"
+    }
+  ],
+  "types": {
+    "t_address": {
+      "encoding": "inplace",
+      "label": "address",
+      "numberOfBytes": "20"
+    },
+    "t_contract(ModuleManager)1542": {
+      "encoding": "inplace",
+      "label": "contract ModuleManager",
+      "numberOfBytes": "20"
+    }
+  }
+}

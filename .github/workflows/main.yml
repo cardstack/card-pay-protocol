@@ -5,7 +5,7 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+    branches: [main, generic-safe-architecture-cs-2520]
 
 jobs:
   test:

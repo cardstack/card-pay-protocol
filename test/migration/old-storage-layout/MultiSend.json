@@ -1,0 +1,19 @@
+{
+  "storage": [
+    {
+      "astId": 2321,
+      "contract": "@gnosis.pm/safe-contracts/contracts/libraries/MultiSend.sol:MultiSend",
+      "label": "guard",
+      "offset": 0,
+      "slot": "0",
+      "type": "t_bytes32"
+    }
+  ],
+  "types": {
+    "t_bytes32": {
+      "encoding": "inplace",
+      "label": "bytes32",
+      "numberOfBytes": "32"
+    }
+  }
+}

@@ -1,0 +1,112 @@
+{
+  "storage": [
+    {
+      "astId": 4131,
+      "contract": "contracts/oracles/DIAOracleAdapter.sol:DIAOracleAdapter",
+      "label": "initialized",
+      "offset": 0,
+      "slot": "0",
+      "type": "t_bool"
+    },
+    {
+      "astId": 4133,
+      "contract": "contracts/oracles/DIAOracleAdapter.sol:DIAOracleAdapter",
+      "label": "initializing",
+      "offset": 1,
+      "slot": "0",
+      "type": "t_bool"
+    },
+    {
+      "astId": 4195,
+      "contract": "contracts/oracles/DIAOracleAdapter.sol:DIAOracleAdapter",
+      "label": "______gap",
+      "offset": 0,
+      "slot": "1",
+      "type": "t_array(t_uint256)50_storage"
+    },
+    {
+      "astId": 3121,
+      "contract": "contracts/oracles/DIAOracleAdapter.sol:DIAOracleAdapter",
+      "label": "_owner",
+      "offset": 0,
+      "slot": "51",
+      "type": "t_address"
+    },
+    {
+      "astId": 3234,
+      "contract": "contracts/oracles/DIAOracleAdapter.sol:DIAOracleAdapter",
+      "label": "______gap",
+      "offset": 0,
+      "slot": "52",
+      "type": "t_array(t_uint256)50_storage"
+    },
+    {
+      "astId": 13407,
+      "contract": "contracts/oracles/DIAOracleAdapter.sol:DIAOracleAdapter",
+      "label": "____gap",
+      "offset": 0,
+      "slot": "102",
+      "type": "t_array(t_uint256)50_storage"
+    },
+    {
+      "astId": 14035,
+      "contract": "contracts/oracles/DIAOracleAdapter.sol:DIAOracleAdapter",
+      "label": "oracle",
+      "offset": 0,
+      "slot": "152",
+      "type": "t_address"
+    },
+    {
+      "astId": 14037,
+      "contract": "contracts/oracles/DIAOracleAdapter.sol:DIAOracleAdapter",
+      "label": "tokenSymbol",
+      "offset": 0,
+      "slot": "153",
+      "type": "t_string_storage"
+    },
+    {
+      "astId": 14039,
+      "contract": "contracts/oracles/DIAOracleAdapter.sol:DIAOracleAdapter",
+      "label": "daiUsdFeed",
+      "offset": 0,
+      "slot": "154",
+      "type": "t_address"
+    },
+    {
+      "astId": 14041,
+      "contract": "contracts/oracles/DIAOracleAdapter.sol:DIAOracleAdapter",
+      "label": "versionManager",
+      "offset": 0,
+      "slot": "155",
+      "type": "t_address"
+    }
+  ],
+  "types": {
+    "t_address": {
+      "encoding": "inplace",
+      "label": "address",
+      "numberOfBytes": "20"
+    },
+    "t_array(t_uint256)50_storage": {
+      "base": "t_uint256",
+      "encoding": "inplace",
+      "label": "uint256[50]",
+      "numberOfBytes": "1600"
+    },
+    "t_bool": {
+      "encoding": "inplace",
+      "label": "bool",
+      "numberOfBytes": "1"
+    },
+    "t_string_storage": {
+      "encoding": "bytes",
+      "label": "string",
+      "numberOfBytes": "32"
+    },
+    "t_uint256": {
+      "encoding": "inplace",
+      "label": "uint256",
+      "numberOfBytes": "32"
+    }
+  }
+}

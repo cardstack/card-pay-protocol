@@ -1,0 +1,105 @@
+{
+  "storage": [
+    {
+      "astId": 4131,
+      "contract": "@openzeppelin/contract-upgradeable/contracts/token/ERC20/ERC20Burnable.sol:ERC20Burnable",
+      "label": "initialized",
+      "offset": 0,
+      "slot": "0",
+      "type": "t_bool"
+    },
+    {
+      "astId": 4133,
+      "contract": "@openzeppelin/contract-upgradeable/contracts/token/ERC20/ERC20Burnable.sol:ERC20Burnable",
+      "label": "initializing",
+      "offset": 1,
+      "slot": "0",
+      "type": "t_bool"
+    },
+    {
+      "astId": 4195,
+      "contract": "@openzeppelin/contract-upgradeable/contracts/token/ERC20/ERC20Burnable.sol:ERC20Burnable",
+      "label": "______gap",
+      "offset": 0,
+      "slot": "1",
+      "type": "t_array(t_uint256)50_storage"
+    },
+    {
+      "astId": 3254,
+      "contract": "@openzeppelin/contract-upgradeable/contracts/token/ERC20/ERC20Burnable.sol:ERC20Burnable",
+      "label": "_balances",
+      "offset": 0,
+      "slot": "51",
+      "type": "t_mapping(t_address,t_uint256)"
+    },
+    {
+      "astId": 3260,
+      "contract": "@openzeppelin/contract-upgradeable/contracts/token/ERC20/ERC20Burnable.sol:ERC20Burnable",
+      "label": "_allowances",
+      "offset": 0,
+      "slot": "52",
+      "type": "t_mapping(t_address,t_mapping(t_address,t_uint256))"
+    },
+    {
+      "astId": 3262,
+      "contract": "@openzeppelin/contract-upgradeable/contracts/token/ERC20/ERC20Burnable.sol:ERC20Burnable",
+      "label": "_totalSupply",
+      "offset": 0,
+      "slot": "53",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 3646,
+      "contract": "@openzeppelin/contract-upgradeable/contracts/token/ERC20/ERC20Burnable.sol:ERC20Burnable",
+      "label": "______gap",
+      "offset": 0,
+      "slot": "54",
+      "type": "t_array(t_uint256)50_storage"
+    },
+    {
+      "astId": 3687,
+      "contract": "@openzeppelin/contract-upgradeable/contracts/token/ERC20/ERC20Burnable.sol:ERC20Burnable",
+      "label": "______gap",
+      "offset": 0,
+      "slot": "104",
+      "type": "t_array(t_uint256)50_storage"
+    }
+  ],
+  "types": {
+    "t_address": {
+      "encoding": "inplace",
+      "label": "address",
+      "numberOfBytes": "20"
+    },
+    "t_array(t_uint256)50_storage": {
+      "base": "t_uint256",
+      "encoding": "inplace",
+      "label": "uint256[50]",
+      "numberOfBytes": "1600"
+    },
+    "t_bool": {
+      "encoding": "inplace",
+      "label": "bool",
+      "numberOfBytes": "1"
+    },
+    "t_mapping(t_address,t_mapping(t_address,t_uint256))": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => mapping(address => uint256))",
+      "numberOfBytes": "32",
+      "value": "t_mapping(t_address,t_uint256)"
+    },
+    "t_mapping(t_address,t_uint256)": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => uint256)",
+      "numberOfBytes": "32",
+      "value": "t_uint256"
+    },
+    "t_uint256": {
+      "encoding": "inplace",
+      "label": "uint256",
+      "numberOfBytes": "32"
+    }
+  }
+}

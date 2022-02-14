@@ -1,0 +1,46 @@
+{
+  "storage": [
+    {
+      "astId": 13302,
+      "contract": "contracts/core/Safe.sol:Safe",
+      "label": "gnosisSafe",
+      "offset": 0,
+      "slot": "0",
+      "type": "t_address"
+    },
+    {
+      "astId": 13304,
+      "contract": "contracts/core/Safe.sol:Safe",
+      "label": "gnosisProxyFactory",
+      "offset": 0,
+      "slot": "1",
+      "type": "t_address"
+    },
+    {
+      "astId": 13400,
+      "contract": "contracts/core/Safe.sol:Safe",
+      "label": "____gap",
+      "offset": 0,
+      "slot": "2",
+      "type": "t_array(t_uint256)50_storage"
+    }
+  ],
+  "types": {
+    "t_address": {
+      "encoding": "inplace",
+      "label": "address",
+      "numberOfBytes": "20"
+    },
+    "t_array(t_uint256)50_storage": {
+      "base": "t_uint256",
+      "encoding": "inplace",
+      "label": "uint256[50]",
+      "numberOfBytes": "1600"
+    },
+    "t_uint256": {
+      "encoding": "inplace",
+      "label": "uint256",
+      "numberOfBytes": "32"
+    }
+  }
+}

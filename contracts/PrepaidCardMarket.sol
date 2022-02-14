@@ -9,12 +9,10 @@ import "./core/Versionable.sol";
 import "./IPrepaidCardMarket.sol";
 import "./PrepaidCardManager.sol";
 import "./ActionDispatcher.sol";
-import "./libraries/EnumerableSetUnboundedEnumerable.sol";
 import "./VersionManager.sol";
 
 contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
-  using EnumerableSetUnboundedEnumerable for EnumerableSetUpgradeable.AddressSet;
 
   struct SKU {
     address issuer;
@@ -275,7 +273,7 @@ contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
   }
 
   function getInventory(bytes32 sku) public view returns (address[] memory) {
-    return inventory[sku].enumerate();
+    return inventory[sku].values();
   }
 
   function getQuantity(bytes32 sku) public view returns (uint256) {

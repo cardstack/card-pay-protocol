@@ -11,12 +11,10 @@ import "./core/Versionable.sol";
 import "./MerchantManager.sol";
 import "./PrepaidCardManager.sol";
 import "./ActionDispatcher.sol";
-import "./libraries/EnumerableSetUnboundedEnumerable.sol";
 import "./VersionManager.sol";
 
 contract RevenuePool is Ownable, Versionable {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
-  using EnumerableSetUnboundedEnumerable for EnumerableSetUpgradeable.AddressSet;
 
   struct RevenueBalance {
     EnumerableSetUpgradeable.AddressSet tokens;
@@ -31,7 +29,7 @@ contract RevenuePool is Ownable, Versionable {
   address public exchangeAddress;
   address public actionDispatcher;
   address public merchantManager;
-  mapping(address => RevenueBalance) internal balances;
+  mapping(address => RevenueBalance) internal balances; // merchant safe address <=> balance info
   address public versionManager;
 
   event Setup();
@@ -113,7 +111,7 @@ contract RevenuePool is Ownable, Versionable {
     view
     returns (address[] memory)
   {
-    return balances[merchantSafe].tokens.enumerate();
+    return balances[merchantSafe].tokens.values();
   }
 
   /**

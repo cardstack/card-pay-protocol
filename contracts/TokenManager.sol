@@ -4,13 +4,11 @@ pragma abicoder v1;
 import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
 
 import "./core/Ownable.sol";
-import "./libraries/EnumerableSetUnboundedEnumerable.sol";
 import "./core/Versionable.sol";
 import "./VersionManager.sol";
 
 contract TokenManager is Ownable, Versionable {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
-  using EnumerableSetUnboundedEnumerable for EnumerableSetUpgradeable.AddressSet;
 
   EnumerableSetUpgradeable.AddressSet internal payableTokens;
   address public bridgeUtils;
@@ -58,7 +56,7 @@ contract TokenManager is Ownable, Versionable {
   }
 
   function getTokens() external view returns (address[] memory) {
-    return payableTokens.enumerate();
+    return payableTokens.values();
   }
 
   function isBridgeUtils() public view returns (bool) {

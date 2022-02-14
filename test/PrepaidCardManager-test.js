@@ -1361,12 +1361,15 @@ contract("PrepaidCardManager", (accounts) => {
         undefined,
         "did:cardstack:another-merchant-safe"
       );
+
       let merchantCreation = await getParamsFromEvent(
         merchantTx,
         eventABIs.MERCHANT_CREATION,
         merchantManager.address
       );
       merchantSafe = merchantCreation[0]["merchantSafe"];
+
+      expect(await merchantManager.getMerchantAddresses()).to.include(merchant);
     });
 
     after(async () => {
