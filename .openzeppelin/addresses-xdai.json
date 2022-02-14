@@ -112,7 +112,7 @@
     "contractName": "RewardManager"
   },
   "RewardSafeDelegateImplementation": {
-    "proxy": "0xD4dc5B151D213674c77441EFDfBd577e46831964",
+    "proxy": "0xf87B79b7df8550Fd2463157E3E76e89140cE5221",
     "contractName": "RewardSafeDelegateImplementation"
   }
 }
