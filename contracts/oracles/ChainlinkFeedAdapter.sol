@@ -1,14 +1,14 @@
-pragma solidity 0.5.17;
+pragma solidity ^0.8.9;
+pragma abicoder v1;
 
 import "@chainlink/contracts/src/v0.5/interfaces/AggregatorV3Interface.sol";
-import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
-import "@openzeppelin/contract-upgradeable/contracts/math/SafeMath.sol";
+
+import "../core/Ownable.sol";
 import "./IPriceOracle.sol";
 import "../core/Versionable.sol";
 import "../VersionManager.sol";
 
 contract ChainlinkFeedAdapter is Ownable, Versionable, IPriceOracle {
-  using SafeMath for uint256;
   address public tokenUsdFeed;
   address public ethUsdFeed;
   address public daiUsdFeed;
@@ -51,11 +51,11 @@ contract ChainlinkFeedAdapter is Ownable, Versionable, IPriceOracle {
     emit ChainlinkFeedSetup(_tokenUsdFeed, _ethUsdFeed, _daiUsdFeed);
   }
 
-  function decimals() public view returns (uint8) {
+  function decimals() public view override returns (uint8) {
     return AggregatorV3Interface(tokenUsdFeed).decimals();
   }
 
-  function description() external view returns (string memory) {
+  function description() external view override returns (string memory) {
     return AggregatorV3Interface(tokenUsdFeed).description();
   }
 
@@ -66,8 +66,8 @@ contract ChainlinkFeedAdapter is Ownable, Versionable, IPriceOracle {
     uint256 _oneDollar = oneDollar();
     return
       currentUsdPrice >= _oneDollar
-        ? currentUsdPrice.sub(_oneDollar)
-        : _oneDollar.sub(currentUsdPrice);
+        ? currentUsdPrice - _oneDollar
+        : _oneDollar - currentUsdPrice;
   }
 
   function isSnappedToUSD() public view returns (bool) {
@@ -75,7 +75,12 @@ contract ChainlinkFeedAdapter is Ownable, Versionable, IPriceOracle {
     return usdDelta() <= snapThreshold;
   }
 
-  function usdPrice() public view returns (uint256 price, uint256 updatedAt) {
+  function usdPrice()
+    public
+    view
+    override
+    returns (uint256 price, uint256 updatedAt)
+  {
     require(tokenUsdFeed != address(0), "feed address is not specified");
     (, int256 _price, , uint256 _updatedAt, ) = AggregatorV3Interface(
       tokenUsdFeed
@@ -88,7 +93,12 @@ contract ChainlinkFeedAdapter is Ownable, Versionable, IPriceOracle {
     }
   }
 
-  function ethPrice() external view returns (uint256 price, uint256 updatedAt) {
+  function ethPrice()
+    external
+    view
+    override
+    returns (uint256 price, uint256 updatedAt)
+  {
     require(
       tokenUsdFeed != address(0) && ethUsdFeed != address(0),
       "feed address is not specified"
@@ -103,13 +113,16 @@ contract ChainlinkFeedAdapter is Ownable, Versionable, IPriceOracle {
     // of the base, so in order to prevent overflows you should use a base of
     // uint256
     uint256 ten = 10;
-    price = ((usdTokenPrice).mul(ten**tokenUsdDecimals)).div(
-      uint256(ethUsdPrice)
-    );
+    price = (usdTokenPrice * (ten**tokenUsdDecimals)) / uint256(ethUsdPrice);
     updatedAt = _updatedAt;
   }
 
-  function daiPrice() external view returns (uint256 price, uint256 updatedAt) {
+  function daiPrice()
+    external
+    view
+    override
+    returns (uint256 price, uint256 updatedAt)
+  {
     require(
       tokenUsdFeed != address(0) && daiUsdFeed != address(0),
       "feed address is not specified"
@@ -118,10 +131,11 @@ contract ChainlinkFeedAdapter is Ownable, Versionable, IPriceOracle {
     AggregatorV3Interface daiUsd = AggregatorV3Interface(daiUsdFeed);
     // the token is question actually is DAI, so the price is just 1 DAI
     if (tokenUsdFeed == daiUsdFeed) {
-      (, , , uint256 _updatedAt, ) = daiUsd.latestRoundData();
+      (, , , uint256 _updatedAtDai, ) = daiUsd.latestRoundData();
       uint8 daiDecimals = daiUsd.decimals();
       price = ten**daiDecimals;
-      updatedAt = _updatedAt;
+      updatedAt = _updatedAtDai;
+      return (price, updatedAt);
     }
 
     AggregatorV3Interface tokenUsd = AggregatorV3Interface(tokenUsdFeed);
@@ -132,9 +146,9 @@ contract ChainlinkFeedAdapter is Ownable, Versionable, IPriceOracle {
     (, int256 tokenUsdPrice, , uint256 _updatedAt, ) = tokenUsd
       .latestRoundData();
     (, int256 daiUsdPrice, , , ) = daiUsd.latestRoundData();
-    price = (uint256(tokenUsdPrice).mul(ten**tokenUsdDecimals)).div(
-      uint256(daiUsdPrice)
-    );
+    price =
+      (uint256(tokenUsdPrice) * (ten**tokenUsdDecimals)) /
+      uint256(daiUsdPrice);
     updatedAt = _updatedAt;
   }
 

@@ -1,7 +1,8 @@
-pragma solidity 0.5.17;
+pragma solidity ^0.8.9;
+pragma abicoder v1;
 
-import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
 import "../core/Versionable.sol";
+import "../core/Ownable.sol";
 import "../token/IERC677.sol";
 import "../PrepaidCardManager.sol";
 import "../TokenManager.sol";
@@ -34,13 +35,12 @@ contract SetPrepaidCardInventoryHandler is Ownable, Versionable {
    * @dev onTokenTransfer(ERC677) - this is the ERC677 token transfer callback.
    * handle setting prepaid cards in market inventory
    * @param from the token sender (should be the revenue pool)
-   * @param amount the amount of tokens being transferred
    * @param data the data encoded as (address prepaidCard, uint256 spendAmount, bytes actionData)
    * where actionData is encoded as (address prepaidCard, address marketAddress, bytes previousOwnerSignature)
    */
   function onTokenTransfer(
     address payable from,
-    uint256 amount, // solhint-disable-line no-unused-vars
+    uint256, // amount
     bytes calldata data
   ) external returns (bool) {
     require(
@@ -66,7 +66,7 @@ contract SetPrepaidCardInventoryHandler is Ownable, Versionable {
       prepaidCardManagerAddress
     );
     address owner = prepaidCardMgr.getPrepaidCardOwner(
-      address(uint160(prepaidCardForInventory))
+      payable(prepaidCardForInventory)
     );
     address issuer = prepaidCardMgr.getPrepaidCardIssuer(
       prepaidCardForInventory
@@ -75,13 +75,19 @@ contract SetPrepaidCardInventoryHandler is Ownable, Versionable {
 
     prepaidCardMgr.setPrepaidCardUsed(prepaidCard);
 
-    PrepaidCardManager(prepaidCardManagerAddress).transfer(
-      address(uint160(prepaidCardForInventory)),
-      marketAddress,
-      previousOwnerSignature
+    assert(
+      PrepaidCardManager(prepaidCardManagerAddress).transfer(
+        payable(prepaidCardForInventory),
+        marketAddress,
+        previousOwnerSignature
+      )
     );
 
-    IPrepaidCardMarket(marketAddress).setItem(issuer, prepaidCardForInventory);
+    return
+      IPrepaidCardMarket(marketAddress).setItem(
+        issuer,
+        prepaidCardForInventory
+      );
   }
 
   function cardpayVersion() external view returns (string memory) {

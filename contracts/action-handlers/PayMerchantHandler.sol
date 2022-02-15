@@ -1,7 +1,7 @@
-pragma solidity 0.5.17;
+pragma solidity ^0.8.9;
+pragma abicoder v1;
 
-import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
-import "@openzeppelin/contract-upgradeable/contracts/math/SafeMath.sol";
+import "../core/Ownable.sol";
 import "../PrepaidCardManager.sol";
 import "../RevenuePool.sol";
 import "../MerchantManager.sol";
@@ -10,8 +10,6 @@ import "../TokenManager.sol";
 import "../VersionManager.sol";
 
 contract PayMerchantHandler is Ownable, Versionable {
-  using SafeMath for uint256;
-
   event MerchantFeeCollected(
     address merchantSafe,
     address card,
@@ -101,11 +99,10 @@ contract PayMerchantHandler is Ownable, Versionable {
 
     uint256 ten = 10;
     uint256 merchantFee = revenuePool.merchantFeePercentage() > 0
-      ? (amount.mul(revenuePool.merchantFeePercentage())).div(
-        ten**revenuePool.merchantFeeDecimals()
-      )
+      ? (amount * (revenuePool.merchantFeePercentage())) /
+        (ten**revenuePool.merchantFeeDecimals())
       : 0;
-    uint256 merchantProceeds = amount.sub(merchantFee);
+    uint256 merchantProceeds = amount - merchantFee;
     PrepaidCardManager(prepaidCardManager).setPrepaidCardUsed(prepaidCard);
     revenuePool.addToMerchantBalance(
       merchantSafe,

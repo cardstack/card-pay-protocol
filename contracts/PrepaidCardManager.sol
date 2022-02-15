@@ -1,9 +1,10 @@
-pragma solidity 0.5.17;
+pragma solidity ^0.8.9;
+pragma abicoder v1;
 
 import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 import "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
-import "@openzeppelin/contract-upgradeable/contracts/math/SafeMath.sol";
-import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
+
+import "./core/Ownable.sol";
 
 import "./token/IERC677.sol";
 import "./IPrepaidCardMarket.sol";
@@ -16,8 +17,7 @@ import "./ActionDispatcher.sol";
 import "./VersionManager.sol";
 
 contract PrepaidCardManager is Ownable, Versionable, Safe {
-  using SafeMath for uint256;
-  using EnumerableSet for EnumerableSet.AddressSet;
+  using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
 
   struct CardDetail {
     address issuer;
@@ -93,7 +93,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
   mapping(string => GasPolicy) public gasPolicies; // this is deprecated, remove it when possible
   mapping(address => bool) public hasBeenSplit; // this is deprecated, remove it when possible
   mapping(address => bool) public hasBeenUsed;
-  EnumerableSet.AddressSet internal contractSigners;
+  EnumerableSetUpgradeable.AddressSet internal contractSigners;
   mapping(string => GasPolicyV2) public gasPoliciesV2;
   address public versionManager;
 
@@ -259,16 +259,16 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     returns (uint256)
   {
     return
-      (Exchange(exchangeAddress).convertFromSpend(token, spendFaceValue))
-        .add(gasFee(token))
-        .add(100); // this is to deal with any rounding errors
+      Exchange(exchangeAddress).convertFromSpend(token, spendFaceValue) +
+      gasFee(token) +
+      100; // this is to deal with any rounding errors
   }
 
   /**
    * @dev get the addresses that are configured as EIP-1271 signers for prepaid cards
    */
   function getContractSigners() external view returns (address[] memory) {
-    return contractSigners.enumerate();
+    return contractSigners.values();
   }
 
   /**
@@ -423,7 +423,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
   {
     uint256 amountInSPEND = Exchange(exchangeAddress).convertToSpend(
       token,
-      amount.sub(gasFee(token))
+      amount - gasFee(token)
     );
     return (minimumFaceValue <= amountInSPEND &&
       amountInSPEND <= maximumFaceValue);
@@ -476,15 +476,9 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     return
       ExecTransactionData(
         action,
-        address(uint160(prepaidCard)),
+        payable(prepaidCard),
         cardDetails[prepaidCard].issueToken,
-        getSendData(
-          address(uint160(prepaidCard)),
-          spendAmount,
-          rateLock,
-          action,
-          data
-        )
+        getSendData(payable(prepaidCard), spendAmount, rateLock, action, data)
       );
   }
 
@@ -520,7 +514,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
         isValidAmount(token, issuingTokenAmounts[i]),
         "Amount below threshold"
       );
-      neededAmount = neededAmount.add(issuingTokenAmounts[i]);
+      neededAmount = neededAmount + issuingTokenAmounts[i];
     }
 
     require(
@@ -547,7 +541,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
       SupplierManager(supplierManager).safes(depot) != address(0)
     ) {
       // the owner safe is a trusted contract (gnosis safe)
-      IERC677(token).transfer(depot, amountReceived.sub(neededAmount));
+      IERC677(token).transfer(depot, amountReceived - neededAmount);
     }
 
     return true;
@@ -591,14 +585,14 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
       IERC677(token).transfer(gasFeeReceiver, _gasFee);
     }
     // The card is a trusted contract (gnosis safe)
-    IERC677(token).transfer(card, issuingTokenAmount.sub(_gasFee));
+    IERC677(token).transfer(card, issuingTokenAmount - _gasFee);
 
     emit CreatePrepaidCard(
       owner,
       card,
       token,
       depot,
-      issuingTokenAmount.sub(_gasFee),
+      issuingTokenAmount - _gasFee,
       spendAmount,
       _gasFee,
       customizationDID
@@ -643,7 +637,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
         baseGas,
         gasPolicy.gasPrice,
         gasPolicy.gasToken,
-        address(0),
+        payable(address(0)),
         signatures
       ),
       "safe transaction was reverted"
@@ -691,7 +685,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     contractSignature = new bytes(65);
     bytes memory encodeData = abi.encode(this, address(0));
     for (uint256 i = 1; i <= 64; i++) {
-      contractSignature[64 - i] = encodeData[encodeData.length.sub(i)];
+      contractSignature[64 - i] = encodeData[encodeData.length - i];
     }
     bytes1 v = 0x01;
     contractSignature[64] = v;

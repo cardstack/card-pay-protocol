@@ -1,7 +1,8 @@
-pragma solidity 0.5.17;
+pragma solidity ^0.8.9;
+pragma abicoder v1;
 
-import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
 import "../core/Versionable.sol";
+import "../core/Ownable.sol";
 import "../token/IERC677.sol";
 import "../PrepaidCardManager.sol";
 import "../TokenManager.sol";
@@ -92,17 +93,18 @@ contract SplitPrepaidCardHandler is Ownable, Versionable {
       customizationDID
     );
 
-    IERC677(msg.sender).transferAndCall(
-      prepaidCardManagerAddress,
-      amount,
-      abi.encode(
-        owner,
-        issuingTokenAmounts,
-        spendAmounts,
-        customizationDID,
-        marketAddress == address(0) ? defaultMarketAddress : marketAddress
-      )
-    );
+    return
+      IERC677(msg.sender).transferAndCall(
+        prepaidCardManagerAddress,
+        amount,
+        abi.encode(
+          owner,
+          issuingTokenAmounts,
+          spendAmounts,
+          customizationDID,
+          marketAddress == address(0) ? defaultMarketAddress : marketAddress
+        )
+      );
   }
 
   function cardpayVersion() external view returns (string memory) {

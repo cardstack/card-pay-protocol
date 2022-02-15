@@ -1,7 +1,8 @@
-pragma solidity 0.5.17;
+pragma solidity ^0.8.9;
+pragma abicoder v1;
 
-import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
 import "../core/Versionable.sol";
+import "../core/Ownable.sol";
 import "../PrepaidCardManager.sol";
 import "../TokenManager.sol";
 import "../VersionManager.sol";
@@ -57,11 +58,12 @@ contract TransferPrepaidCardHandler is Ownable, Versionable {
       actionData,
       (address, bytes)
     );
-    PrepaidCardManager(prepaidCardManagerAddress).transfer(
-      prepaidCard,
-      newOwner,
-      previousOwnerSignature
-    );
+    return
+      PrepaidCardManager(prepaidCardManagerAddress).transfer(
+        prepaidCard,
+        newOwner,
+        previousOwnerSignature
+      );
   }
 
   function cardpayVersion() external view returns (string memory) {

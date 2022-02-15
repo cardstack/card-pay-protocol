@@ -1,9 +1,9 @@
-pragma solidity 0.5.17;
+pragma solidity ^0.8.9;
+pragma abicoder v1;
 
-import "@openzeppelin/contract-upgradeable/contracts/utils/EnumerableSet.sol";
-import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
-import "@openzeppelin/contract-upgradeable/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
 
+import "./core/Ownable.sol";
 import "./token/IERC677.sol";
 import "./token/ISPEND.sol";
 import "./Exchange.sol";
@@ -14,11 +14,10 @@ import "./ActionDispatcher.sol";
 import "./VersionManager.sol";
 
 contract RevenuePool is Ownable, Versionable {
-  using EnumerableSet for EnumerableSet.AddressSet;
-  using SafeMath for uint256;
+  using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
 
   struct RevenueBalance {
-    EnumerableSet.AddressSet tokens;
+    EnumerableSetUpgradeable.AddressSet tokens;
     // mapping from token address to revenue pool balance for merchant in that
     // token
     mapping(address => uint256) balance;
@@ -30,7 +29,7 @@ contract RevenuePool is Ownable, Versionable {
   address public exchangeAddress;
   address public actionDispatcher;
   address public merchantManager;
-  mapping(address => RevenueBalance) internal balances;
+  mapping(address => RevenueBalance) internal balances; // merchant safe address <=> balance info
   address public versionManager;
 
   event Setup();
@@ -112,7 +111,7 @@ contract RevenuePool is Ownable, Versionable {
     view
     returns (address[] memory)
   {
-    return balances[merchantSafe].tokens.enumerate();
+    return balances[merchantSafe].tokens.values();
   }
 
   /**
@@ -142,7 +141,7 @@ contract RevenuePool is Ownable, Versionable {
     uint256 amount
   ) external onlyHandlers returns (uint256) {
     uint256 balance = balances[merchantSafe].balance[token];
-    balances[merchantSafe].balance[token] = balance.add(amount);
+    balances[merchantSafe].balance[token] = balance + amount;
     balances[merchantSafe].tokens.add(token);
     return balances[merchantSafe].balance[token];
   }
@@ -163,7 +162,7 @@ contract RevenuePool is Ownable, Versionable {
     require(amount <= balance, "Insufficient funds");
 
     // unlock token of merchant
-    balance = balance.sub(amount);
+    balance = balance - amount;
 
     // update new balance
     balances[merchantSafe].balance[token] = balance;

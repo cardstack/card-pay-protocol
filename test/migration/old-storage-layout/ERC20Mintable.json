@@ -1,0 +1,143 @@
+{
+  "storage": [
+    {
+      "astId": 4131,
+      "contract": "@openzeppelin/contract-upgradeable/contracts/token/ERC20/ERC20Mintable.sol:ERC20Mintable",
+      "label": "initialized",
+      "offset": 0,
+      "slot": "0",
+      "type": "t_bool"
+    },
+    {
+      "astId": 4133,
+      "contract": "@openzeppelin/contract-upgradeable/contracts/token/ERC20/ERC20Mintable.sol:ERC20Mintable",
+      "label": "initializing",
+      "offset": 1,
+      "slot": "0",
+      "type": "t_bool"
+    },
+    {
+      "astId": 4195,
+      "contract": "@openzeppelin/contract-upgradeable/contracts/token/ERC20/ERC20Mintable.sol:ERC20Mintable",
+      "label": "______gap",
+      "offset": 0,
+      "slot": "1",
+      "type": "t_array(t_uint256)50_storage"
+    },
+    {
+      "astId": 3254,
+      "contract": "@openzeppelin/contract-upgradeable/contracts/token/ERC20/ERC20Mintable.sol:ERC20Mintable",
+      "label": "_balances",
+      "offset": 0,
+      "slot": "51",
+      "type": "t_mapping(t_address,t_uint256)"
+    },
+    {
+      "astId": 3260,
+      "contract": "@openzeppelin/contract-upgradeable/contracts/token/ERC20/ERC20Mintable.sol:ERC20Mintable",
+      "label": "_allowances",
+      "offset": 0,
+      "slot": "52",
+      "type": "t_mapping(t_address,t_mapping(t_address,t_uint256))"
+    },
+    {
+      "astId": 3262,
+      "contract": "@openzeppelin/contract-upgradeable/contracts/token/ERC20/ERC20Mintable.sol:ERC20Mintable",
+      "label": "_totalSupply",
+      "offset": 0,
+      "slot": "53",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 3646,
+      "contract": "@openzeppelin/contract-upgradeable/contracts/token/ERC20/ERC20Mintable.sol:ERC20Mintable",
+      "label": "______gap",
+      "offset": 0,
+      "slot": "54",
+      "type": "t_array(t_uint256)50_storage"
+    },
+    {
+      "astId": 2744,
+      "contract": "@openzeppelin/contract-upgradeable/contracts/token/ERC20/ERC20Mintable.sol:ERC20Mintable",
+      "label": "_minters",
+      "offset": 0,
+      "slot": "104",
+      "type": "t_struct(Role)2648_storage"
+    },
+    {
+      "astId": 2844,
+      "contract": "@openzeppelin/contract-upgradeable/contracts/token/ERC20/ERC20Mintable.sol:ERC20Mintable",
+      "label": "______gap",
+      "offset": 0,
+      "slot": "105",
+      "type": "t_array(t_uint256)50_storage"
+    },
+    {
+      "astId": 3736,
+      "contract": "@openzeppelin/contract-upgradeable/contracts/token/ERC20/ERC20Mintable.sol:ERC20Mintable",
+      "label": "______gap",
+      "offset": 0,
+      "slot": "155",
+      "type": "t_array(t_uint256)50_storage"
+    }
+  ],
+  "types": {
+    "t_address": {
+      "encoding": "inplace",
+      "label": "address",
+      "numberOfBytes": "20"
+    },
+    "t_array(t_uint256)50_storage": {
+      "base": "t_uint256",
+      "encoding": "inplace",
+      "label": "uint256[50]",
+      "numberOfBytes": "1600"
+    },
+    "t_bool": {
+      "encoding": "inplace",
+      "label": "bool",
+      "numberOfBytes": "1"
+    },
+    "t_mapping(t_address,t_bool)": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => bool)",
+      "numberOfBytes": "32",
+      "value": "t_bool"
+    },
+    "t_mapping(t_address,t_mapping(t_address,t_uint256))": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => mapping(address => uint256))",
+      "numberOfBytes": "32",
+      "value": "t_mapping(t_address,t_uint256)"
+    },
+    "t_mapping(t_address,t_uint256)": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => uint256)",
+      "numberOfBytes": "32",
+      "value": "t_uint256"
+    },
+    "t_struct(Role)2648_storage": {
+      "encoding": "inplace",
+      "label": "struct Roles.Role",
+      "members": [
+        {
+          "astId": 2647,
+          "contract": "@openzeppelin/contract-upgradeable/contracts/token/ERC20/ERC20Mintable.sol:ERC20Mintable",
+          "label": "bearer",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_mapping(t_address,t_bool)"
+        }
+      ],
+      "numberOfBytes": "32"
+    },
+    "t_uint256": {
+      "encoding": "inplace",
+      "label": "uint256",
+      "numberOfBytes": "32"
+    }
+  }
+}

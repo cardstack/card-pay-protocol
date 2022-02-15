@@ -1,7 +1,8 @@
-pragma solidity 0.5.17;
+pragma solidity ^0.8.9;
+pragma abicoder v1;
 
-import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
-import "@openzeppelin/contract-upgradeable/contracts/utils/EnumerableSet.sol";
+import "./core/Ownable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
 
 import "./core/Safe.sol";
 import "./core/Versionable.sol";
@@ -9,7 +10,7 @@ import "./ActionDispatcher.sol";
 import "./VersionManager.sol";
 
 contract MerchantManager is Ownable, Versionable, Safe {
-  using EnumerableSet for EnumerableSet.AddressSet;
+  using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
 
   event Setup();
   event MerchantCreation(
@@ -20,14 +21,16 @@ contract MerchantManager is Ownable, Versionable, Safe {
 
   address public deprecatedMerchantManager;
   address public actionDispatcher;
-  mapping(address => EnumerableSet.AddressSet) internal merchants; // merchant address => enumeration of merchant safe addresses
+  mapping(address => EnumerableSetUpgradeable.AddressSet) internal merchants; // merchant address => enumeration of merchant safe addresses
   mapping(address => address) public merchantSafes; // merchant safe address => merchant address
   mapping(address => string) public merchantSafeInfoDIDs; // merchant safe address => Info DID
   address public versionManager;
+  EnumerableSetUpgradeable.AddressSet internal merchantAddresses;
 
   modifier onlyHandlersOrOwner() {
     require(
-      isOwner() || ActionDispatcher(actionDispatcher).isHandler(msg.sender),
+      (owner() == _msgSender()) ||
+        ActionDispatcher(actionDispatcher).isHandler(msg.sender),
       "caller is not a registered action handler nor an owner"
     );
     _;
@@ -54,7 +57,7 @@ contract MerchantManager is Ownable, Versionable, Safe {
     view
     returns (address[] memory)
   {
-    return merchants[merchant].enumerate();
+    return merchants[merchant].values();
   }
 
   function registerMerchant(address merchant, string calldata infoDID)
@@ -67,12 +70,17 @@ contract MerchantManager is Ownable, Versionable, Safe {
     address merchantSafe = createSafe(merchant);
 
     merchantSafes[merchantSafe] = merchant;
+    merchantAddresses.add(merchant);
     merchants[merchant].add(merchantSafe);
     merchantSafeInfoDIDs[merchantSafe] = infoDID;
 
     emit MerchantCreation(merchant, merchantSafe, infoDID);
 
     return merchantSafe;
+  }
+
+  function getMerchantAddresses() public view returns (address[] memory) {
+    return merchantAddresses.values();
   }
 
   function cardpayVersion() external view returns (string memory) {

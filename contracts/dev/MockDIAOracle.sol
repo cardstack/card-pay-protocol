@@ -1,11 +1,13 @@
-pragma solidity 0.5.17;
+pragma solidity ^0.8.9;
+pragma abicoder v1;
 
 import "../oracles/IDIAOracle.sol";
 import "../core/Versionable.sol";
-import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
+import "../core/Ownable.sol";
 import "../VersionManager.sol";
 
 // This contract is purely for testing and not meant to be deployed
+
 contract MockDIAOracle is Ownable, Versionable, IDIAOracle {
   struct PriceData {
     uint128 price;
@@ -36,6 +38,7 @@ contract MockDIAOracle is Ownable, Versionable, IDIAOracle {
   function getValue(string calldata pair)
     external
     view
+    override
     returns (uint128, uint128)
   {
     PriceData memory priceData = data[keccak256(bytes(pair))];

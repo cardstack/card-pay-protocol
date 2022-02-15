@@ -1,0 +1,131 @@
+{
+  "storage": [
+    {
+      "astId": 4131,
+      "contract": "contracts/action-handlers/PayMerchantHandler.sol:PayMerchantHandler",
+      "label": "initialized",
+      "offset": 0,
+      "slot": "0",
+      "type": "t_bool"
+    },
+    {
+      "astId": 4133,
+      "contract": "contracts/action-handlers/PayMerchantHandler.sol:PayMerchantHandler",
+      "label": "initializing",
+      "offset": 1,
+      "slot": "0",
+      "type": "t_bool"
+    },
+    {
+      "astId": 4195,
+      "contract": "contracts/action-handlers/PayMerchantHandler.sol:PayMerchantHandler",
+      "label": "______gap",
+      "offset": 0,
+      "slot": "1",
+      "type": "t_array(t_uint256)50_storage"
+    },
+    {
+      "astId": 3121,
+      "contract": "contracts/action-handlers/PayMerchantHandler.sol:PayMerchantHandler",
+      "label": "_owner",
+      "offset": 0,
+      "slot": "51",
+      "type": "t_address"
+    },
+    {
+      "astId": 3234,
+      "contract": "contracts/action-handlers/PayMerchantHandler.sol:PayMerchantHandler",
+      "label": "______gap",
+      "offset": 0,
+      "slot": "52",
+      "type": "t_array(t_uint256)50_storage"
+    },
+    {
+      "astId": 13407,
+      "contract": "contracts/action-handlers/PayMerchantHandler.sol:PayMerchantHandler",
+      "label": "____gap",
+      "offset": 0,
+      "slot": "102",
+      "type": "t_array(t_uint256)50_storage"
+    },
+    {
+      "astId": 11027,
+      "contract": "contracts/action-handlers/PayMerchantHandler.sol:PayMerchantHandler",
+      "label": "revenuePoolAddress",
+      "offset": 0,
+      "slot": "152",
+      "type": "t_address"
+    },
+    {
+      "astId": 11029,
+      "contract": "contracts/action-handlers/PayMerchantHandler.sol:PayMerchantHandler",
+      "label": "merchantManager",
+      "offset": 0,
+      "slot": "153",
+      "type": "t_address"
+    },
+    {
+      "astId": 11031,
+      "contract": "contracts/action-handlers/PayMerchantHandler.sol:PayMerchantHandler",
+      "label": "spendTokenAddress",
+      "offset": 0,
+      "slot": "154",
+      "type": "t_address"
+    },
+    {
+      "astId": 11033,
+      "contract": "contracts/action-handlers/PayMerchantHandler.sol:PayMerchantHandler",
+      "label": "actionDispatcher",
+      "offset": 0,
+      "slot": "155",
+      "type": "t_address"
+    },
+    {
+      "astId": 11035,
+      "contract": "contracts/action-handlers/PayMerchantHandler.sol:PayMerchantHandler",
+      "label": "prepaidCardManager",
+      "offset": 0,
+      "slot": "156",
+      "type": "t_address"
+    },
+    {
+      "astId": 11037,
+      "contract": "contracts/action-handlers/PayMerchantHandler.sol:PayMerchantHandler",
+      "label": "tokenManagerAddress",
+      "offset": 0,
+      "slot": "157",
+      "type": "t_address"
+    },
+    {
+      "astId": 11039,
+      "contract": "contracts/action-handlers/PayMerchantHandler.sol:PayMerchantHandler",
+      "label": "versionManager",
+      "offset": 0,
+      "slot": "158",
+      "type": "t_address"
+    }
+  ],
+  "types": {
+    "t_address": {
+      "encoding": "inplace",
+      "label": "address",
+      "numberOfBytes": "20"
+    },
+    "t_array(t_uint256)50_storage": {
+      "base": "t_uint256",
+      "encoding": "inplace",
+      "label": "uint256[50]",
+      "numberOfBytes": "1600"
+    },
+    "t_bool": {
+      "encoding": "inplace",
+      "label": "bool",
+      "numberOfBytes": "1"
+    },
+    "t_uint256": {
+      "encoding": "inplace",
+      "label": "uint256",
+      "numberOfBytes": "32"
+    }
+  }
+}

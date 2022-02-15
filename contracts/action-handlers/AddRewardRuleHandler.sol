@@ -1,7 +1,7 @@
-pragma solidity 0.5.17;
+pragma solidity ^0.8.9;
+pragma abicoder v1;
 
-import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
-import "@openzeppelin/contract-upgradeable/contracts/math/SafeMath.sol";
+import "../core/Ownable.sol";
 import "../core/Versionable.sol";
 import "../PrepaidCardManager.sol";
 import "../Exchange.sol";
@@ -9,7 +9,6 @@ import "../RewardManager.sol";
 import "../VersionManager.sol";
 
 contract AddRewardRuleHandler is Ownable, Versionable {
-  using SafeMath for uint256;
   event Setup();
   event RewardRuleAdded(
     address prepaidCard,
@@ -44,7 +43,7 @@ contract AddRewardRuleHandler is Ownable, Versionable {
 
   function onTokenTransfer(
     address payable from,
-    uint256 amount, // solhint-disable-line no-unused-vars
+    uint256, // amount
     bytes calldata data
   ) external returns (bool) {
     require(
@@ -60,10 +59,10 @@ contract AddRewardRuleHandler is Ownable, Versionable {
       (address, uint256, bytes)
     );
 
-    (
-      address rewardProgramID,
-      bytes memory blob
-    ) = abi.decode(actionData, (address, bytes));
+    (address rewardProgramID, bytes memory blob) = abi.decode(
+      actionData,
+      (address, bytes)
+    );
 
     require(
       RewardManager(rewardManagerAddress).isRewardProgram(rewardProgramID),
@@ -79,15 +78,8 @@ contract AddRewardRuleHandler is Ownable, Versionable {
       ) == prepaidCardOwner,
       "can only be called by reward program admin"
     );
-    RewardManager(rewardManagerAddress).addRewardRule(
-      rewardProgramID,
-      blob
-    );
-    emit RewardRuleAdded(
-      prepaidCard,
-      rewardProgramID,
-      blob
-    );
+    RewardManager(rewardManagerAddress).addRewardRule(rewardProgramID, blob);
+    emit RewardRuleAdded(prepaidCard, rewardProgramID, blob);
     return true;
   }
 

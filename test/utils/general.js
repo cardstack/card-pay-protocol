@@ -1,10 +1,15 @@
-const gnosisUtils = require("@gnosis.pm/safe-contracts/test/utils/general");
 const web3EthAbi = require("web3-eth-abi");
+const gnosisUtils = require("./deprecated-gnosis-utils.js");
 const GnosisSafe = artifacts.require("GnosisSafe");
-const eventABIs = require("./constant/eventABIs.js");
+const eventABIs = require("./constant/eventABIs");
 const { toHex, padLeft, hexToBytes, numberToHex } = require("web3-utils");
 const AbiCoder = require("web3-eth-abi");
 const { BN } = require("web3-utils");
+const {
+  network: {
+    config: { chainId },
+  },
+} = require("hardhat");
 
 exports = Object.assign({}, gnosisUtils);
 
@@ -71,7 +76,12 @@ async function signSafeTransaction(
 ) {
   const typedData = {
     types: {
+      // EIP712Domain(uint256 chainId,address verifyingContract)
       EIP712Domain: [
+        {
+          type: "uint256",
+          name: "chainId",
+        },
         {
           type: "address",
           name: "verifyingContract",
@@ -123,6 +133,7 @@ async function signSafeTransaction(
     },
     domain: {
       verifyingContract: gnosisSafe.address,
+      chainId,
     },
     primaryType: "SafeTx",
     message: {
@@ -324,6 +335,13 @@ const checkGnosisExecution = (safeTx, safeAddress) => {
     : { success: true, gasFee: new BN(executionSucceeded[0].payment) };
 };
 
+const gnosisErrors = {
+  SAFE_TRANSACTION_FAILED_WITHOUT_GAS_SET: "GS013",
+  INVALID_OWNER_PROVIDED: "GS026",
+  SIGNATURES_DATA_TOO_SHORT: "GS020",
+  INVALID_CONTRACT_SIGNATURE_PROVIDED: "GS024",
+};
+
 Object.assign(exports, {
   ZERO_ADDRESS,
   encodeMultiSendCall,
@@ -335,6 +353,7 @@ Object.assign(exports, {
   signTypedData,
   rewardEIP1271Signature,
   checkGnosisExecution,
+  gnosisErrors,
 });
 
 module.exports = exports;

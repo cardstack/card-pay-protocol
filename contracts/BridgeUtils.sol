@@ -1,6 +1,7 @@
-pragma solidity 0.5.17;
+pragma solidity ^0.8.9;
+pragma abicoder v1;
 
-import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
+import "./core/Ownable.sol";
 import "./core/Versionable.sol";
 import "./TokenManager.sol";
 import "./Exchange.sol";

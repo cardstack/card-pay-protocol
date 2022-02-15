@@ -1,4 +1,5 @@
-pragma solidity 0.5.17;
+pragma solidity ^0.8.9;
+pragma abicoder v1;
 
 interface IPriceOracle {
   function decimals() external view returns (uint8);

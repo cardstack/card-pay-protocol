@@ -1,0 +1,218 @@
+{
+  "storage": [
+    {
+      "astId": 4131,
+      "contract": "contracts/RevenuePool.sol:RevenuePool",
+      "label": "initialized",
+      "offset": 0,
+      "slot": "0",
+      "type": "t_bool"
+    },
+    {
+      "astId": 4133,
+      "contract": "contracts/RevenuePool.sol:RevenuePool",
+      "label": "initializing",
+      "offset": 1,
+      "slot": "0",
+      "type": "t_bool"
+    },
+    {
+      "astId": 4195,
+      "contract": "contracts/RevenuePool.sol:RevenuePool",
+      "label": "______gap",
+      "offset": 0,
+      "slot": "1",
+      "type": "t_array(t_uint256)50_storage"
+    },
+    {
+      "astId": 3121,
+      "contract": "contracts/RevenuePool.sol:RevenuePool",
+      "label": "_owner",
+      "offset": 0,
+      "slot": "51",
+      "type": "t_address"
+    },
+    {
+      "astId": 3234,
+      "contract": "contracts/RevenuePool.sol:RevenuePool",
+      "label": "______gap",
+      "offset": 0,
+      "slot": "52",
+      "type": "t_array(t_uint256)50_storage"
+    },
+    {
+      "astId": 13407,
+      "contract": "contracts/RevenuePool.sol:RevenuePool",
+      "label": "____gap",
+      "offset": 0,
+      "slot": "102",
+      "type": "t_array(t_uint256)50_storage"
+    },
+    {
+      "astId": 8016,
+      "contract": "contracts/RevenuePool.sol:RevenuePool",
+      "label": "merchantFeeReceiver",
+      "offset": 0,
+      "slot": "152",
+      "type": "t_address_payable"
+    },
+    {
+      "astId": 8018,
+      "contract": "contracts/RevenuePool.sol:RevenuePool",
+      "label": "merchantFeePercentage",
+      "offset": 0,
+      "slot": "153",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 8020,
+      "contract": "contracts/RevenuePool.sol:RevenuePool",
+      "label": "merchantRegistrationFeeInSPEND",
+      "offset": 0,
+      "slot": "154",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 8022,
+      "contract": "contracts/RevenuePool.sol:RevenuePool",
+      "label": "prepaidCardManager",
+      "offset": 0,
+      "slot": "155",
+      "type": "t_address_payable"
+    },
+    {
+      "astId": 8024,
+      "contract": "contracts/RevenuePool.sol:RevenuePool",
+      "label": "exchangeAddress",
+      "offset": 0,
+      "slot": "156",
+      "type": "t_address"
+    },
+    {
+      "astId": 8026,
+      "contract": "contracts/RevenuePool.sol:RevenuePool",
+      "label": "actionDispatcher",
+      "offset": 0,
+      "slot": "157",
+      "type": "t_address"
+    },
+    {
+      "astId": 8028,
+      "contract": "contracts/RevenuePool.sol:RevenuePool",
+      "label": "merchantManager",
+      "offset": 0,
+      "slot": "158",
+      "type": "t_address"
+    },
+    {
+      "astId": 8032,
+      "contract": "contracts/RevenuePool.sol:RevenuePool",
+      "label": "balances",
+      "offset": 0,
+      "slot": "159",
+      "type": "t_mapping(t_address,t_struct(RevenueBalance)8014_storage)"
+    },
+    {
+      "astId": 8034,
+      "contract": "contracts/RevenuePool.sol:RevenuePool",
+      "label": "versionManager",
+      "offset": 0,
+      "slot": "160",
+      "type": "t_address"
+    }
+  ],
+  "types": {
+    "t_address": {
+      "encoding": "inplace",
+      "label": "address",
+      "numberOfBytes": "20"
+    },
+    "t_address_payable": {
+      "encoding": "inplace",
+      "label": "address payable",
+      "numberOfBytes": "20"
+    },
+    "t_array(t_address)dyn_storage": {
+      "base": "t_address",
+      "encoding": "dynamic_array",
+      "label": "address[]",
+      "numberOfBytes": "32"
+    },
+    "t_array(t_uint256)50_storage": {
+      "base": "t_uint256",
+      "encoding": "inplace",
+      "label": "uint256[50]",
+      "numberOfBytes": "1600"
+    },
+    "t_bool": {
+      "encoding": "inplace",
+      "label": "bool",
+      "numberOfBytes": "1"
+    },
+    "t_mapping(t_address,t_struct(RevenueBalance)8014_storage)": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => struct RevenuePool.RevenueBalance)",
+      "numberOfBytes": "32",
+      "value": "t_struct(RevenueBalance)8014_storage"
+    },
+    "t_mapping(t_address,t_uint256)": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => uint256)",
+      "numberOfBytes": "32",
+      "value": "t_uint256"
+    },
+    "t_struct(AddressSet)3922_storage": {
+      "encoding": "inplace",
+      "label": "struct EnumerableSet.AddressSet",
+      "members": [
+        {
+          "astId": 3918,
+          "contract": "contracts/RevenuePool.sol:RevenuePool",
+          "label": "index",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_mapping(t_address,t_uint256)"
+        },
+        {
+          "astId": 3921,
+          "contract": "contracts/RevenuePool.sol:RevenuePool",
+          "label": "values",
+          "offset": 0,
+          "slot": "1",
+          "type": "t_array(t_address)dyn_storage"
+        }
+      ],
+      "numberOfBytes": "64"
+    },
+    "t_struct(RevenueBalance)8014_storage": {
+      "encoding": "inplace",
+      "label": "struct RevenuePool.RevenueBalance",
+      "members": [
+        {
+          "astId": 8009,
+          "contract": "contracts/RevenuePool.sol:RevenuePool",
+          "label": "tokens",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_struct(AddressSet)3922_storage"
+        },
+        {
+          "astId": 8013,
+          "contract": "contracts/RevenuePool.sol:RevenuePool",
+          "label": "balance",
+          "offset": 0,
+          "slot": "2",
+          "type": "t_mapping(t_address,t_uint256)"
+        }
+      ],
+      "numberOfBytes": "96"
+    },
+    "t_uint256": {
+      "encoding": "inplace",
+      "label": "uint256",
+      "numberOfBytes": "32"
+    }
+  }
+}

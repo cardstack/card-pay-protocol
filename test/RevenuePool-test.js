@@ -11,6 +11,8 @@ const SupplierManager = artifacts.require("SupplierManager");
 const MerchantManager = artifacts.require("MerchantManager");
 
 const utils = require("./utils/general");
+const { SAFE_TRANSACTION_FAILED_WITHOUT_GAS_SET, INVALID_OWNER_PROVIDED } =
+  utils.gnosisErrors;
 const eventABIs = require("./utils/constant/eventABIs");
 
 const { ZERO_ADDRESS, getParamsFromEvent, signSafeTransaction } = utils;
@@ -458,7 +460,7 @@ contract("RevenuePool", (accounts) => {
         Error,
         // the real revert reason is behind the gnosis safe execTransaction
         // boundary, so we just get this generic error
-        "safe transaction was reverted"
+        SAFE_TRANSACTION_FAILED_WITHOUT_GAS_SET
       );
       await shouldBeSameBalance(
         daicpxdToken,
@@ -509,7 +511,7 @@ contract("RevenuePool", (accounts) => {
         Error,
         // the real revert reason is behind the gnosis safe execTransaction
         // boundary, so we just get this generic error
-        "safe transaction was reverted"
+        SAFE_TRANSACTION_FAILED_WITHOUT_GAS_SET
       );
       await shouldBeSameBalance(
         daicpxdToken,
@@ -659,7 +661,7 @@ contract("RevenuePool", (accounts) => {
         Error,
         // the real revert reason is behind the gnosis safe execTransaction
         // boundary, so we just get this generic error
-        "safe transaction was reverted"
+        SAFE_TRANSACTION_FAILED_WITHOUT_GAS_SET
       );
     });
   });
@@ -844,7 +846,7 @@ contract("RevenuePool", (accounts) => {
         Error,
         // the real revert reason is behind the gnosis safe execTransaction
         // boundary, so we just get this generic error
-        "safe transaction was reverted"
+        SAFE_TRANSACTION_FAILED_WITHOUT_GAS_SET
       );
 
       await shouldBeSameBalance(
@@ -1098,7 +1100,7 @@ contract("RevenuePool", (accounts) => {
           // that the owner of the safe is different than the signer. This is
           // totally a legit reason to fail, since it is indicative of signature
           // mismatch
-          "Invalid owner provided"
+          INVALID_OWNER_PROVIDED
         );
 
       await shouldBeSameBalance(
@@ -1159,7 +1161,7 @@ contract("RevenuePool", (accounts) => {
           Error,
           // the real revert reason is behind the gnosis safe execTransaction
           // boundary, so we just get this generic error
-          "safe transaction was reverted"
+          SAFE_TRANSACTION_FAILED_WITHOUT_GAS_SET
         );
     });
   });

@@ -1,21 +1,21 @@
-pragma solidity ^0.5.17;
+pragma solidity ^0.8.9;
+pragma abicoder v1;
 
-import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
-import "@openzeppelin/contract-upgradeable/contracts/utils/EnumerableSet.sol";
+import "./core/Ownable.sol";
 import "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
-import "@openzeppelin/contract-upgradeable/contracts/math/SafeMath.sol";
+
 import "@gnosis.pm/safe-contracts/contracts/interfaces/ISignatureValidator.sol";
 import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
+import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
 
 import "./core/Safe.sol";
 import "./core/Versionable.sol";
 import "./ActionDispatcher.sol";
-import "./VersionManager.sol";
 import "./RewardSafeDelegateImplementation.sol";
+import "./VersionManager.sol";
 
 contract RewardManager is Ownable, Versionable, Safe {
-  using EnumerableSet for EnumerableSet.AddressSet;
-  using SafeMath for uint256;
+  using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
 
   event Setup();
   event RewardProgramCreated(address rewardProgramID, address admin);
@@ -29,7 +29,6 @@ contract RewardManager is Ownable, Versionable, Safe {
     address rewardSafe
   );
 
-  address internal constant ZERO_ADDRESS = address(0);
   bytes4 internal constant EIP1271_MAGIC_VALUE = 0x20c13b0b;
   uint256 internal _nonce;
 
@@ -38,9 +37,9 @@ contract RewardManager is Ownable, Versionable, Safe {
   address payable public rewardFeeReceiver; // will receive receive all fees
   address public governanceAdmin; // eoa with governance powers
 
-  EnumerableSet.AddressSet internal rewardProgramIDs;
-  EnumerableSet.AddressSet internal eip1271Contracts;
-  mapping(address => EnumerableSet.AddressSet) internal rewardSafes; //reward program id <> reward safes
+  EnumerableSetUpgradeable.AddressSet internal rewardProgramIDs;
+  EnumerableSetUpgradeable.AddressSet internal eip1271Contracts;
+  mapping(address => EnumerableSetUpgradeable.AddressSet) internal rewardSafes; //reward program id <> reward safes
   mapping(address => bytes) public rule; //reward program id <> bytes
   mapping(address => address) public rewardProgramAdmins; //reward program id <> reward program admins
   mapping(address => bool) public rewardProgramLocked; //reward program id <> locked
@@ -64,9 +63,9 @@ contract RewardManager is Ownable, Versionable, Safe {
     _;
   }
 
-  function initialize(address owner) public initializer {
+  function initialize(address owner) public override initializer {
     _nonce = 0;
-    Ownable.initialize(owner);
+    OwnableInitialize(owner);
   }
 
   function setup(
@@ -103,7 +102,7 @@ contract RewardManager is Ownable, Versionable, Safe {
   }
 
   function getEip1271Contracts() public view returns (address[] memory) {
-    return eip1271Contracts.enumerate();
+    return eip1271Contracts.values();
   }
 
   function registerRewardProgram(address admin, address rewardProgramID)
@@ -173,7 +172,7 @@ contract RewardManager is Ownable, Versionable, Safe {
   }
 
   function willTransferRewardSafe(address newOwner) external {
-    address oldOwner = getRewardSafeOwner(msg.sender);
+    address oldOwner = getRewardSafeOwner(payable(msg.sender));
     address rewardProgramID = rewardProgramsForRewardSafes[msg.sender];
     require(
       ownedRewardSafes[newOwner][rewardProgramID] == address(0),
@@ -246,7 +245,7 @@ contract RewardManager is Ownable, Versionable, Safe {
       );
     return (
       to,
-      GnosisSafe(msg.sender).encodeTransactionData(
+      GnosisSafe(payable(msg.sender)).encodeTransactionData(
         to,
         value,
         payload,

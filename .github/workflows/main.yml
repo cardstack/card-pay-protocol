@@ -5,7 +5,7 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+    branches: [main, generic-safe-architecture-cs-2520]
 
 jobs:
   test:
@@ -18,7 +18,7 @@ jobs:
         run: yarn install
 
       - name: Build
-        run: yarn build
+        run: yarn build:clean
 
       - name: Test
         run: yarn test

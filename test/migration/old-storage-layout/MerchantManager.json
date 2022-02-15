@@ -1,0 +1,209 @@
+{
+  "storage": [
+    {
+      "astId": 4131,
+      "contract": "contracts/MerchantManager.sol:MerchantManager",
+      "label": "initialized",
+      "offset": 0,
+      "slot": "0",
+      "type": "t_bool"
+    },
+    {
+      "astId": 4133,
+      "contract": "contracts/MerchantManager.sol:MerchantManager",
+      "label": "initializing",
+      "offset": 1,
+      "slot": "0",
+      "type": "t_bool"
+    },
+    {
+      "astId": 4195,
+      "contract": "contracts/MerchantManager.sol:MerchantManager",
+      "label": "______gap",
+      "offset": 0,
+      "slot": "1",
+      "type": "t_array(t_uint256)50_storage"
+    },
+    {
+      "astId": 3121,
+      "contract": "contracts/MerchantManager.sol:MerchantManager",
+      "label": "_owner",
+      "offset": 0,
+      "slot": "51",
+      "type": "t_address"
+    },
+    {
+      "astId": 3234,
+      "contract": "contracts/MerchantManager.sol:MerchantManager",
+      "label": "______gap",
+      "offset": 0,
+      "slot": "52",
+      "type": "t_array(t_uint256)50_storage"
+    },
+    {
+      "astId": 13407,
+      "contract": "contracts/MerchantManager.sol:MerchantManager",
+      "label": "____gap",
+      "offset": 0,
+      "slot": "102",
+      "type": "t_array(t_uint256)50_storage"
+    },
+    {
+      "astId": 13302,
+      "contract": "contracts/MerchantManager.sol:MerchantManager",
+      "label": "gnosisSafe",
+      "offset": 0,
+      "slot": "152",
+      "type": "t_address"
+    },
+    {
+      "astId": 13304,
+      "contract": "contracts/MerchantManager.sol:MerchantManager",
+      "label": "gnosisProxyFactory",
+      "offset": 0,
+      "slot": "153",
+      "type": "t_address"
+    },
+    {
+      "astId": 13400,
+      "contract": "contracts/MerchantManager.sol:MerchantManager",
+      "label": "____gap",
+      "offset": 0,
+      "slot": "154",
+      "type": "t_array(t_uint256)50_storage"
+    },
+    {
+      "astId": 5413,
+      "contract": "contracts/MerchantManager.sol:MerchantManager",
+      "label": "deprecatedMerchantManager",
+      "offset": 0,
+      "slot": "204",
+      "type": "t_address"
+    },
+    {
+      "astId": 5415,
+      "contract": "contracts/MerchantManager.sol:MerchantManager",
+      "label": "actionDispatcher",
+      "offset": 0,
+      "slot": "205",
+      "type": "t_address"
+    },
+    {
+      "astId": 5419,
+      "contract": "contracts/MerchantManager.sol:MerchantManager",
+      "label": "merchants",
+      "offset": 0,
+      "slot": "206",
+      "type": "t_mapping(t_address,t_struct(AddressSet)3922_storage)"
+    },
+    {
+      "astId": 5423,
+      "contract": "contracts/MerchantManager.sol:MerchantManager",
+      "label": "merchantSafes",
+      "offset": 0,
+      "slot": "207",
+      "type": "t_mapping(t_address,t_address)"
+    },
+    {
+      "astId": 5427,
+      "contract": "contracts/MerchantManager.sol:MerchantManager",
+      "label": "merchantSafeInfoDIDs",
+      "offset": 0,
+      "slot": "208",
+      "type": "t_mapping(t_address,t_string_storage)"
+    },
+    {
+      "astId": 5429,
+      "contract": "contracts/MerchantManager.sol:MerchantManager",
+      "label": "versionManager",
+      "offset": 0,
+      "slot": "209",
+      "type": "t_address"
+    }
+  ],
+  "types": {
+    "t_address": {
+      "encoding": "inplace",
+      "label": "address",
+      "numberOfBytes": "20"
+    },
+    "t_array(t_address)dyn_storage": {
+      "base": "t_address",
+      "encoding": "dynamic_array",
+      "label": "address[]",
+      "numberOfBytes": "32"
+    },
+    "t_array(t_uint256)50_storage": {
+      "base": "t_uint256",
+      "encoding": "inplace",
+      "label": "uint256[50]",
+      "numberOfBytes": "1600"
+    },
+    "t_bool": {
+      "encoding": "inplace",
+      "label": "bool",
+      "numberOfBytes": "1"
+    },
+    "t_mapping(t_address,t_address)": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => address)",
+      "numberOfBytes": "32",
+      "value": "t_address"
+    },
+    "t_mapping(t_address,t_string_storage)": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => string)",
+      "numberOfBytes": "32",
+      "value": "t_string_storage"
+    },
+    "t_mapping(t_address,t_struct(AddressSet)3922_storage)": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => struct EnumerableSet.AddressSet)",
+      "numberOfBytes": "32",
+      "value": "t_struct(AddressSet)3922_storage"
+    },
+    "t_mapping(t_address,t_uint256)": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => uint256)",
+      "numberOfBytes": "32",
+      "value": "t_uint256"
+    },
+    "t_string_storage": {
+      "encoding": "bytes",
+      "label": "string",
+      "numberOfBytes": "32"
+    },
+    "t_struct(AddressSet)3922_storage": {
+      "encoding": "inplace",
+      "label": "struct EnumerableSet.AddressSet",
+      "members": [
+        {
+          "astId": 3918,
+          "contract": "contracts/MerchantManager.sol:MerchantManager",
+          "label": "index",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_mapping(t_address,t_uint256)"
+        },
+        {
+          "astId": 3921,
+          "contract": "contracts/MerchantManager.sol:MerchantManager",
+          "label": "values",
+          "offset": 0,
+          "slot": "1",
+          "type": "t_array(t_address)dyn_storage"
+        }
+      ],
+      "numberOfBytes": "64"
+    },
+    "t_uint256": {
+      "encoding": "inplace",
+      "label": "uint256",
+      "numberOfBytes": "32"
+    }
+  }
+}

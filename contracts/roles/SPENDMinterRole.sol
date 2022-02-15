@@ -1,13 +1,14 @@
-pragma solidity 0.5.17;
+pragma solidity ^0.8.9;
+pragma abicoder v1;
 
-import "@openzeppelin/contract-upgradeable/contracts/utils/EnumerableSet.sol";
-import "@openzeppelin/upgrades/contracts/Initializable.sol";
-import "@openzeppelin/contract-upgradeable/contracts/GSN/Context.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-contract SPENDMinterRole is Initializable, Context {
-  using EnumerableSet for EnumerableSet.AddressSet;
+contract SPENDMinterRole is Initializable, ContextUpgradeable {
+  using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
 
-  EnumerableSet.AddressSet internal minter;
+  EnumerableSetUpgradeable.AddressSet internal minter;
   address private _owner;
 
   event OwnershipTransferred(
@@ -42,13 +43,13 @@ contract SPENDMinterRole is Initializable, Context {
   }
 
   function getMinters() external view returns (address[] memory) {
-    return minter.enumerate();
+    return minter.values();
   }
 
   /**
    * @dev Initializes the contract setting the deployer as the initial owner.
    */
-  function initializeMinterRole(address sender) internal initializer {
+  function initializeMinterRole(address sender) internal onlyInitializing {
     _owner = sender;
     emit OwnershipTransferred(address(0), _owner);
   }

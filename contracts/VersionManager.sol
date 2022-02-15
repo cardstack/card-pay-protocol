@@ -1,17 +1,18 @@
-pragma solidity 0.5.17;
+pragma solidity ^0.8.9;
+pragma abicoder v1;
 
-import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
+import "./core/Ownable.sol";
 
 contract VersionManager is Ownable {
   string public version;
 
   event VersionUpdate(string version);
 
-  function initialize(address owner) public initializer {
+  function initialize(address owner) public override initializer {
     // this is the version of the protocol that this contract is being
     // introduced at.
     version = "0.8.3";
-    Ownable.initialize(owner);
+    OwnableInitialize(owner);
   }
 
   function setVersion(string calldata _version) external onlyOwner {

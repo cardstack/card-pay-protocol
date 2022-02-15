@@ -1,14 +1,13 @@
-pragma solidity 0.5.17;
+pragma solidity ^0.8.9;
+pragma abicoder v1;
 
-import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
-import "@openzeppelin/contract-upgradeable/contracts/math/SafeMath.sol";
+import "../core/Ownable.sol";
 import "../TokenManager.sol";
 import "../core/Versionable.sol";
 import "../token/IERC677.sol";
 import "../VersionManager.sol";
 
 contract PayRewardTokensHandler is Ownable, Versionable {
-  using SafeMath for uint256;
   event Setup();
   event RewardTokensPaid(
     address prepaidCard,

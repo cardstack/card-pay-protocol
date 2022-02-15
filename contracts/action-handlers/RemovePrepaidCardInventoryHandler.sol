@@ -1,6 +1,7 @@
-pragma solidity 0.5.17;
+pragma solidity ^0.8.9;
+pragma abicoder v1;
 
-import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
+import "../core/Ownable.sol";
 import "../core/Versionable.sol";
 import "../token/IERC677.sol";
 import "../PrepaidCardManager.sol";
@@ -34,13 +35,12 @@ contract RemovePrepaidCardInventoryHandler is Ownable, Versionable {
    * @dev onTokenTransfer(ERC677) - this is the ERC677 token transfer callback.
    * handle setting prepaid cards in market inventory
    * @param from the token sender (should be the revenue pool)
-   * @param amount the amount of tokens being transferred
    * @param data the data encoded as (address prepaidCard, uint256 spendAmount, bytes actionData)
    * where actionData is encoded as (address[] prepaidCards, address marketAddress)
    */
   function onTokenTransfer(
     address payable from,
-    uint256 amount, // solhint-disable-line no-unused-vars
+    uint256, // amount
     bytes calldata data
   ) external returns (bool) {
     require(
@@ -75,7 +75,7 @@ contract RemovePrepaidCardInventoryHandler is Ownable, Versionable {
     }
 
     prepaidCardMgr.setPrepaidCardUsed(prepaidCard);
-    IPrepaidCardMarket(marketAddress).removeItems(owner, prepaidCards);
+    return IPrepaidCardMarket(marketAddress).removeItems(owner, prepaidCards);
   }
 
   function cardpayVersion() external view returns (string memory) {

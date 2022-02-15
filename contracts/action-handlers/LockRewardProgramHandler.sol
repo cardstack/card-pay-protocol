@@ -1,7 +1,7 @@
-pragma solidity 0.5.17;
+pragma solidity ^0.8.9;
+pragma abicoder v1;
 
-import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
-import "@openzeppelin/contract-upgradeable/contracts/math/SafeMath.sol";
+import "../core/Ownable.sol";
 import "../core/Versionable.sol";
 import "../PrepaidCardManager.sol";
 import "../Exchange.sol";
@@ -9,7 +9,6 @@ import "../RewardManager.sol";
 import "../VersionManager.sol";
 
 contract LockRewardProgramHandler is Ownable, Versionable {
-  using SafeMath for uint256;
   event Setup();
   event RewardProgramLocked(address prepaidCard, address rewardProgramID);
   address public actionDispatcher;
@@ -39,7 +38,7 @@ contract LockRewardProgramHandler is Ownable, Versionable {
 
   function onTokenTransfer(
     address payable from,
-    uint256 amount, // solhint-disable-line no-unused-vars
+    uint256, // amount
     bytes calldata data
   ) external returns (bool) {
     require(

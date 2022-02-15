@@ -1,6 +1,7 @@
-pragma solidity 0.5.17;
+pragma solidity ^0.8.9;
+pragma abicoder v1;
 
-import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
+import "./core/Ownable.sol";
 import "./core/Safe.sol";
 import "./core/Versionable.sol";
 import "./TokenManager.sol";
@@ -60,7 +61,7 @@ contract SupplierManager is Ownable, Versionable, Safe {
 
   function registerSupplier(address supplier) external returns (address) {
     require(
-      msg.sender == bridgeUtils || isOwner(),
+      msg.sender == bridgeUtils || (owner() == _msgSender()),
       "caller is not BridgeUtils nor owner"
     );
     return _registerSupplier(supplier);

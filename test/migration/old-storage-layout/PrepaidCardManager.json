@@ -1,0 +1,399 @@
+{
+  "storage": [
+    {
+      "astId": 4131,
+      "contract": "contracts/PrepaidCardManager.sol:PrepaidCardManager",
+      "label": "initialized",
+      "offset": 0,
+      "slot": "0",
+      "type": "t_bool"
+    },
+    {
+      "astId": 4133,
+      "contract": "contracts/PrepaidCardManager.sol:PrepaidCardManager",
+      "label": "initializing",
+      "offset": 1,
+      "slot": "0",
+      "type": "t_bool"
+    },
+    {
+      "astId": 4195,
+      "contract": "contracts/PrepaidCardManager.sol:PrepaidCardManager",
+      "label": "______gap",
+      "offset": 0,
+      "slot": "1",
+      "type": "t_array(t_uint256)50_storage"
+    },
+    {
+      "astId": 3121,
+      "contract": "contracts/PrepaidCardManager.sol:PrepaidCardManager",
+      "label": "_owner",
+      "offset": 0,
+      "slot": "51",
+      "type": "t_address"
+    },
+    {
+      "astId": 3234,
+      "contract": "contracts/PrepaidCardManager.sol:PrepaidCardManager",
+      "label": "______gap",
+      "offset": 0,
+      "slot": "52",
+      "type": "t_array(t_uint256)50_storage"
+    },
+    {
+      "astId": 13407,
+      "contract": "contracts/PrepaidCardManager.sol:PrepaidCardManager",
+      "label": "____gap",
+      "offset": 0,
+      "slot": "102",
+      "type": "t_array(t_uint256)50_storage"
+    },
+    {
+      "astId": 13302,
+      "contract": "contracts/PrepaidCardManager.sol:PrepaidCardManager",
+      "label": "gnosisSafe",
+      "offset": 0,
+      "slot": "152",
+      "type": "t_address"
+    },
+    {
+      "astId": 13304,
+      "contract": "contracts/PrepaidCardManager.sol:PrepaidCardManager",
+      "label": "gnosisProxyFactory",
+      "offset": 0,
+      "slot": "153",
+      "type": "t_address"
+    },
+    {
+      "astId": 13400,
+      "contract": "contracts/PrepaidCardManager.sol:PrepaidCardManager",
+      "label": "____gap",
+      "offset": 0,
+      "slot": "154",
+      "type": "t_array(t_uint256)50_storage"
+    },
+    {
+      "astId": 5711,
+      "contract": "contracts/PrepaidCardManager.sol:PrepaidCardManager",
+      "label": "actionDispatcher",
+      "offset": 0,
+      "slot": "204",
+      "type": "t_address_payable"
+    },
+    {
+      "astId": 5713,
+      "contract": "contracts/PrepaidCardManager.sol:PrepaidCardManager",
+      "label": "gasFeeReceiver",
+      "offset": 0,
+      "slot": "205",
+      "type": "t_address_payable"
+    },
+    {
+      "astId": 5717,
+      "contract": "contracts/PrepaidCardManager.sol:PrepaidCardManager",
+      "label": "cardDetails",
+      "offset": 0,
+      "slot": "206",
+      "type": "t_mapping(t_address,t_struct(CardDetail)5617_storage)"
+    },
+    {
+      "astId": 5719,
+      "contract": "contracts/PrepaidCardManager.sol:PrepaidCardManager",
+      "label": "gasFeeInCARD",
+      "offset": 0,
+      "slot": "207",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 5721,
+      "contract": "contracts/PrepaidCardManager.sol:PrepaidCardManager",
+      "label": "maximumFaceValue",
+      "offset": 0,
+      "slot": "208",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 5723,
+      "contract": "contracts/PrepaidCardManager.sol:PrepaidCardManager",
+      "label": "minimumFaceValue",
+      "offset": 0,
+      "slot": "209",
+      "type": "t_uint256"
+    },
+    {
+      "astId": 5725,
+      "contract": "contracts/PrepaidCardManager.sol:PrepaidCardManager",
+      "label": "gasToken",
+      "offset": 0,
+      "slot": "210",
+      "type": "t_address"
+    },
+    {
+      "astId": 5727,
+      "contract": "contracts/PrepaidCardManager.sol:PrepaidCardManager",
+      "label": "exchangeAddress",
+      "offset": 0,
+      "slot": "211",
+      "type": "t_address"
+    },
+    {
+      "astId": 5729,
+      "contract": "contracts/PrepaidCardManager.sol:PrepaidCardManager",
+      "label": "tokenManager",
+      "offset": 0,
+      "slot": "212",
+      "type": "t_address"
+    },
+    {
+      "astId": 5731,
+      "contract": "contracts/PrepaidCardManager.sol:PrepaidCardManager",
+      "label": "supplierManager",
+      "offset": 0,
+      "slot": "213",
+      "type": "t_address"
+    },
+    {
+      "astId": 5735,
+      "contract": "contracts/PrepaidCardManager.sol:PrepaidCardManager",
+      "label": "gasPolicies",
+      "offset": 0,
+      "slot": "214",
+      "type": "t_mapping(t_string_memory,t_struct(GasPolicy)5622_storage)"
+    },
+    {
+      "astId": 5739,
+      "contract": "contracts/PrepaidCardManager.sol:PrepaidCardManager",
+      "label": "hasBeenSplit",
+      "offset": 0,
+      "slot": "215",
+      "type": "t_mapping(t_address,t_bool)"
+    },
+    {
+      "astId": 5743,
+      "contract": "contracts/PrepaidCardManager.sol:PrepaidCardManager",
+      "label": "hasBeenUsed",
+      "offset": 0,
+      "slot": "216",
+      "type": "t_mapping(t_address,t_bool)"
+    },
+    {
+      "astId": 5745,
+      "contract": "contracts/PrepaidCardManager.sol:PrepaidCardManager",
+      "label": "contractSigners",
+      "offset": 0,
+      "slot": "217",
+      "type": "t_struct(AddressSet)3922_storage"
+    },
+    {
+      "astId": 5749,
+      "contract": "contracts/PrepaidCardManager.sol:PrepaidCardManager",
+      "label": "gasPoliciesV2",
+      "offset": 0,
+      "slot": "219",
+      "type": "t_mapping(t_string_memory,t_struct(GasPolicyV2)5625_storage)"
+    },
+    {
+      "astId": 5751,
+      "contract": "contracts/PrepaidCardManager.sol:PrepaidCardManager",
+      "label": "versionManager",
+      "offset": 0,
+      "slot": "220",
+      "type": "t_address"
+    }
+  ],
+  "types": {
+    "t_address": {
+      "encoding": "inplace",
+      "label": "address",
+      "numberOfBytes": "20"
+    },
+    "t_address_payable": {
+      "encoding": "inplace",
+      "label": "address payable",
+      "numberOfBytes": "20"
+    },
+    "t_array(t_address)dyn_storage": {
+      "base": "t_address",
+      "encoding": "dynamic_array",
+      "label": "address[]",
+      "numberOfBytes": "32"
+    },
+    "t_array(t_uint256)50_storage": {
+      "base": "t_uint256",
+      "encoding": "inplace",
+      "label": "uint256[50]",
+      "numberOfBytes": "1600"
+    },
+    "t_bool": {
+      "encoding": "inplace",
+      "label": "bool",
+      "numberOfBytes": "1"
+    },
+    "t_mapping(t_address,t_bool)": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => bool)",
+      "numberOfBytes": "32",
+      "value": "t_bool"
+    },
+    "t_mapping(t_address,t_struct(CardDetail)5617_storage)": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => struct PrepaidCardManager.CardDetail)",
+      "numberOfBytes": "32",
+      "value": "t_struct(CardDetail)5617_storage"
+    },
+    "t_mapping(t_address,t_uint256)": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => uint256)",
+      "numberOfBytes": "32",
+      "value": "t_uint256"
+    },
+    "t_mapping(t_string_memory,t_struct(GasPolicy)5622_storage)": {
+      "encoding": "mapping",
+      "key": "t_string_memory",
+      "label": "mapping(string => struct PrepaidCardManager.GasPolicy)",
+      "numberOfBytes": "32",
+      "value": "t_struct(GasPolicy)5622_storage"
+    },
+    "t_mapping(t_string_memory,t_struct(GasPolicyV2)5625_storage)": {
+      "encoding": "mapping",
+      "key": "t_string_memory",
+      "label": "mapping(string => struct PrepaidCardManager.GasPolicyV2)",
+      "numberOfBytes": "32",
+      "value": "t_struct(GasPolicyV2)5625_storage"
+    },
+    "t_string_memory": {
+      "encoding": "bytes",
+      "label": "string",
+      "numberOfBytes": "32"
+    },
+    "t_string_storage": {
+      "encoding": "bytes",
+      "label": "string",
+      "numberOfBytes": "32"
+    },
+    "t_struct(AddressSet)3922_storage": {
+      "encoding": "inplace",
+      "label": "struct EnumerableSet.AddressSet",
+      "members": [
+        {
+          "astId": 3918,
+          "contract": "contracts/PrepaidCardManager.sol:PrepaidCardManager",
+          "label": "index",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_mapping(t_address,t_uint256)"
+        },
+        {
+          "astId": 3921,
+          "contract": "contracts/PrepaidCardManager.sol:PrepaidCardManager",
+          "label": "values",
+          "offset": 0,
+          "slot": "1",
+          "type": "t_array(t_address)dyn_storage"
+        }
+      ],
+      "numberOfBytes": "64"
+    },
+    "t_struct(CardDetail)5617_storage": {
+      "encoding": "inplace",
+      "label": "struct PrepaidCardManager.CardDetail",
+      "members": [
+        {
+          "astId": 5606,
+          "contract": "contracts/PrepaidCardManager.sol:PrepaidCardManager",
+          "label": "issuer",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_address"
+        },
+        {
+          "astId": 5608,
+          "contract": "contracts/PrepaidCardManager.sol:PrepaidCardManager",
+          "label": "issueToken",
+          "offset": 0,
+          "slot": "1",
+          "type": "t_address"
+        },
+        {
+          "astId": 5610,
+          "contract": "contracts/PrepaidCardManager.sol:PrepaidCardManager",
+          "label": "blockNumber",
+          "offset": 0,
+          "slot": "2",
+          "type": "t_uint256"
+        },
+        {
+          "astId": 5612,
+          "contract": "contracts/PrepaidCardManager.sol:PrepaidCardManager",
+          "label": "customizationDID",
+          "offset": 0,
+          "slot": "3",
+          "type": "t_string_storage"
+        },
+        {
+          "astId": 5614,
+          "contract": "contracts/PrepaidCardManager.sol:PrepaidCardManager",
+          "label": "reloadable",
+          "offset": 0,
+          "slot": "4",
+          "type": "t_bool"
+        },
+        {
+          "astId": 5616,
+          "contract": "contracts/PrepaidCardManager.sol:PrepaidCardManager",
+          "label": "canPayNonMerchants",
+          "offset": 1,
+          "slot": "4",
+          "type": "t_bool"
+        }
+      ],
+      "numberOfBytes": "160"
+    },
+    "t_struct(GasPolicy)5622_storage": {
+      "encoding": "inplace",
+      "label": "struct PrepaidCardManager.GasPolicy",
+      "members": [
+        {
+          "astId": 5619,
+          "contract": "contracts/PrepaidCardManager.sol:PrepaidCardManager",
+          "label": "useIssuingTokenForGas",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_bool"
+        },
+        {
+          "astId": 5621,
+          "contract": "contracts/PrepaidCardManager.sol:PrepaidCardManager",
+          "label": "payGasRecipient",
+          "offset": 1,
+          "slot": "0",
+          "type": "t_bool"
+        }
+      ],
+      "numberOfBytes": "32"
+    },
+    "t_struct(GasPolicyV2)5625_storage": {
+      "encoding": "inplace",
+      "label": "struct PrepaidCardManager.GasPolicyV2",
+      "members": [
+        {
+          "astId": 5624,
+          "contract": "contracts/PrepaidCardManager.sol:PrepaidCardManager",
+          "label": "useGasPrice",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_bool"
+        }
+      ],
+      "numberOfBytes": "32"
+    },
+    "t_uint256": {
+      "encoding": "inplace",
+      "label": "uint256",
+      "numberOfBytes": "32"
+    }
+  }
+}

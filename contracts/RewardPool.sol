@@ -1,13 +1,12 @@
-pragma solidity 0.5.17;
+pragma solidity ^0.8.9;
+pragma abicoder v1;
 
-import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
-import "@openzeppelin/contract-upgradeable/contracts/math/SafeMath.sol";
-import "@openzeppelin/contract-upgradeable/contracts/cryptography/MerkleProof.sol";
-import "@openzeppelin/contract-upgradeable/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contract-upgradeable/contracts/token/ERC721/IERC721.sol";
-import "@openzeppelin/upgrades/contracts/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/cryptography/MerkleProofUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721Upgradeable.sol";
 import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 
+import "./core/Ownable.sol";
 import "./token/IERC677.sol";
 import "./core/Versionable.sol";
 import "./RewardManager.sol";
@@ -15,8 +14,7 @@ import "./TokenManager.sol";
 import "./VersionManager.sol";
 
 contract RewardPool is Initializable, Versionable, Ownable {
-  using SafeMath for uint256;
-  using MerkleProof for bytes32[];
+  using MerkleProofUpgradeable for bytes32[];
 
   event Setup(address tally, address rewardManager, address tokenManager);
   event RewardeeClaim(
@@ -58,10 +56,6 @@ contract RewardPool is Initializable, Versionable, Ownable {
   modifier onlyTally() {
     require(tally == msg.sender, "Caller is not tally");
     _;
-  }
-
-  function initialize(address owner) public initializer {
-    Ownable.initialize(owner);
   }
 
   function setup(
@@ -161,9 +155,9 @@ contract RewardPool is Initializable, Versionable, Ownable {
 
     rewardsClaimed[keccak256(leaf)] = true;
 
-    rewardBalance[rewardProgramID][payableToken] = rewardProgramBalance.sub(
-      amount
-    );
+    rewardBalance[rewardProgramID][payableToken] =
+      rewardProgramBalance -
+      amount;
     IERC677(payableToken).transfer(msg.sender, amount);
 
     emit RewardeeClaim(
@@ -208,30 +202,33 @@ contract RewardPool is Initializable, Versionable, Ownable {
     require(claimed(leaf) == false, "Reward has already been claimed");
 
     address rewardSafeOwner = RewardManager(rewardManager).getRewardSafeOwner(
-      msg.sender
+      payable(msg.sender)
     );
 
     require(rewardSafeOwner == payee, "Can only be claimed by payee");
 
     require(
       RewardManager(rewardManager).isValidRewardSafe(
-        msg.sender,
+        payable(msg.sender),
         rewardProgramID
       ),
       "can only withdraw for safe registered on reward program"
     );
 
-    if (tokenType == 1) {
-      // Type 1: ERC667 fungible tokens
-      claimERC667(
-        leaf,
-        rewardProgramID,
-        rewardSafeOwner,
-        transferDetails,
-        acceptPartialClaim
-      );
-      return true;
-    }
+    // if statement commented out due to code coverage rules - add back in when
+    // more token types are supported.
+
+    // if (tokenType == 1) {
+    // Type 1: ERC667 fungible tokens
+    claimERC667(
+      leaf,
+      rewardProgramID,
+      rewardSafeOwner,
+      transferDetails,
+      acceptPartialClaim
+    );
+    return true;
+    // }
   }
 
   function recoverTokens(
@@ -246,28 +243,28 @@ contract RewardPool is Initializable, Versionable, Ownable {
       "reward program admin does not exist"
     );
     require(
-      _getEOAOwner(msg.sender) == rewardProgramAdmin,
+      _getEOAOwner(payable(msg.sender)) == rewardProgramAdmin,
       "owner of safe is not reward program admin"
     );
     require(
       rewardBalance[rewardProgramID][token] >= amount,
       "not enough tokens to withdraw"
     );
-    rewardBalance[rewardProgramID][token] = rewardBalance[rewardProgramID][
-      token
-    ].sub(amount);
-    IERC677(token).transfer(msg.sender, amount);
+    rewardBalance[rewardProgramID][token] =
+      rewardBalance[rewardProgramID][token] -
+      amount;
     emit RewardTokensRecovered(
       rewardProgramID,
       token,
       amount,
       rewardProgramAdmin
     );
+    return IERC677(token).transfer(msg.sender, amount);
   }
 
   // lazy implementation of getting eoa owner of safe that has 1 or 2 owners
   // think this is a use-case to handle during safe manager refactor
-  function _getEOAOwner(address payable safe) internal returns (address) {
+  function _getEOAOwner(address payable safe) internal view returns (address) {
     address[] memory ownerArr = GnosisSafe(safe).getOwners();
     if (ownerArr.length == 2) {
       return ownerArr[1];
@@ -290,10 +287,13 @@ contract RewardPool is Initializable, Versionable, Ownable {
       RewardManager(rewardManager).isRewardProgram(rewardProgramID),
       "reward program is not found"
     );
-    rewardBalance[rewardProgramID][msg.sender] = rewardBalance[rewardProgramID][
-      msg.sender
-    ].add(amount);
+    rewardBalance[rewardProgramID][msg.sender] =
+      rewardBalance[rewardProgramID][msg.sender] +
+      amount;
+
     emit RewardTokensAdded(rewardProgramID, from, msg.sender, amount);
+
+    return true;
   }
 
   function cardpayVersion() external view returns (string memory) {

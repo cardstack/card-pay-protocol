@@ -1,0 +1,364 @@
+{
+  "storage": [
+    {
+      "astId": 265,
+      "contract": "CardPay-Contracts/contracts/Market.sol:Market",
+      "label": "_initialized",
+      "offset": 0,
+      "slot": "0",
+      "type": "t_bool"
+    },
+    {
+      "astId": 267,
+      "contract": "CardPay-Contracts/contracts/Market.sol:Market",
+      "label": "_initializing",
+      "offset": 1,
+      "slot": "0",
+      "type": "t_bool"
+    },
+    {
+      "astId": 43,
+      "contract": "CardPay-Contracts/contracts/Market.sol:Market",
+      "label": "__gap",
+      "offset": 0,
+      "slot": "1",
+      "type": "t_array(t_uint256)50_storage"
+    },
+    {
+      "astId": 55,
+      "contract": "CardPay-Contracts/contracts/Market.sol:Market",
+      "label": "_owner",
+      "offset": 0,
+      "slot": "51",
+      "type": "t_address"
+    },
+    {
+      "astId": 173,
+      "contract": "CardPay-Contracts/contracts/Market.sol:Market",
+      "label": "__gap",
+      "offset": 0,
+      "slot": "52",
+      "type": "t_array(t_uint256)49_storage"
+    },
+    {
+      "astId": 5596,
+      "contract": "CardPay-Contracts/contracts/Market.sol:Market",
+      "label": "inventoryContract",
+      "offset": 0,
+      "slot": "101",
+      "type": "t_address"
+    },
+    {
+      "astId": 5598,
+      "contract": "CardPay-Contracts/contracts/Market.sol:Market",
+      "label": "exchangeSPENDContract",
+      "offset": 0,
+      "slot": "102",
+      "type": "t_address"
+    },
+    {
+      "astId": 5604,
+      "contract": "CardPay-Contracts/contracts/Market.sol:Market",
+      "label": "_tokenBidders",
+      "offset": 0,
+      "slot": "103",
+      "type": "t_mapping(t_uint256,t_mapping(t_address,t_struct(Bid)7091_storage))"
+    },
+    {
+      "astId": 5608,
+      "contract": "CardPay-Contracts/contracts/Market.sol:Market",
+      "label": "_tokenAsks",
+      "offset": 0,
+      "slot": "104",
+      "type": "t_mapping(t_uint256,t_struct(Ask)7094_storage)"
+    },
+    {
+      "astId": 5612,
+      "contract": "CardPay-Contracts/contracts/Market.sol:Market",
+      "label": "_items",
+      "offset": 0,
+      "slot": "105",
+      "type": "t_mapping(t_uint256,t_struct(Items)7105_storage)"
+    },
+    {
+      "astId": 5616,
+      "contract": "CardPay-Contracts/contracts/Market.sol:Market",
+      "label": "_levelRequirements",
+      "offset": 0,
+      "slot": "106",
+      "type": "t_mapping(t_uint256,t_struct(LevelRequirement)7119_storage)"
+    },
+    {
+      "astId": 5621,
+      "contract": "CardPay-Contracts/contracts/Market.sol:Market",
+      "label": "_discounts",
+      "offset": 0,
+      "slot": "107",
+      "type": "t_mapping(t_uint256,t_array(t_struct(Discount)7110_storage)dyn_storage)"
+    }
+  ],
+  "types": {
+    "t_address": {
+      "encoding": "inplace",
+      "label": "address",
+      "numberOfBytes": "20"
+    },
+    "t_array(t_address)dyn_storage": {
+      "base": "t_address",
+      "encoding": "dynamic_array",
+      "label": "address[]",
+      "numberOfBytes": "32"
+    },
+    "t_array(t_struct(Discount)7110_storage)dyn_storage": {
+      "base": "t_struct(Discount)7110_storage",
+      "encoding": "dynamic_array",
+      "label": "struct IMarket.Discount[]",
+      "numberOfBytes": "32"
+    },
+    "t_array(t_uint256)49_storage": {
+      "base": "t_uint256",
+      "encoding": "inplace",
+      "label": "uint256[49]",
+      "numberOfBytes": "1568"
+    },
+    "t_array(t_uint256)50_storage": {
+      "base": "t_uint256",
+      "encoding": "inplace",
+      "label": "uint256[50]",
+      "numberOfBytes": "1600"
+    },
+    "t_array(t_uint256)dyn_storage": {
+      "base": "t_uint256",
+      "encoding": "dynamic_array",
+      "label": "uint256[]",
+      "numberOfBytes": "32"
+    },
+    "t_bool": {
+      "encoding": "inplace",
+      "label": "bool",
+      "numberOfBytes": "1"
+    },
+    "t_mapping(t_address,t_struct(Bid)7091_storage)": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => struct IMarket.Bid)",
+      "numberOfBytes": "32",
+      "value": "t_struct(Bid)7091_storage"
+    },
+    "t_mapping(t_uint256,t_array(t_struct(Discount)7110_storage)dyn_storage)": {
+      "encoding": "mapping",
+      "key": "t_uint256",
+      "label": "mapping(uint256 => struct IMarket.Discount[])",
+      "numberOfBytes": "32",
+      "value": "t_array(t_struct(Discount)7110_storage)dyn_storage"
+    },
+    "t_mapping(t_uint256,t_mapping(t_address,t_struct(Bid)7091_storage))": {
+      "encoding": "mapping",
+      "key": "t_uint256",
+      "label": "mapping(uint256 => mapping(address => struct IMarket.Bid))",
+      "numberOfBytes": "32",
+      "value": "t_mapping(t_address,t_struct(Bid)7091_storage)"
+    },
+    "t_mapping(t_uint256,t_struct(Ask)7094_storage)": {
+      "encoding": "mapping",
+      "key": "t_uint256",
+      "label": "mapping(uint256 => struct IMarket.Ask)",
+      "numberOfBytes": "32",
+      "value": "t_struct(Ask)7094_storage"
+    },
+    "t_mapping(t_uint256,t_struct(Items)7105_storage)": {
+      "encoding": "mapping",
+      "key": "t_uint256",
+      "label": "mapping(uint256 => struct IMarket.Items)",
+      "numberOfBytes": "32",
+      "value": "t_struct(Items)7105_storage"
+    },
+    "t_mapping(t_uint256,t_struct(LevelRequirement)7119_storage)": {
+      "encoding": "mapping",
+      "key": "t_uint256",
+      "label": "mapping(uint256 => struct IMarket.LevelRequirement)",
+      "numberOfBytes": "32",
+      "value": "t_struct(LevelRequirement)7119_storage"
+    },
+    "t_string_storage": {
+      "encoding": "bytes",
+      "label": "string",
+      "numberOfBytes": "32"
+    },
+    "t_struct(Ask)7094_storage": {
+      "encoding": "inplace",
+      "label": "struct IMarket.Ask",
+      "members": [
+        {
+          "astId": 7093,
+          "contract": "CardPay-Contracts/contracts/Market.sol:Market",
+          "label": "amount",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_uint256"
+        }
+      ],
+      "numberOfBytes": "32"
+    },
+    "t_struct(Bid)7091_storage": {
+      "encoding": "inplace",
+      "label": "struct IMarket.Bid",
+      "members": [
+        {
+          "astId": 7084,
+          "contract": "CardPay-Contracts/contracts/Market.sol:Market",
+          "label": "amount",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_uint256"
+        },
+        {
+          "astId": 7086,
+          "contract": "CardPay-Contracts/contracts/Market.sol:Market",
+          "label": "currency",
+          "offset": 0,
+          "slot": "1",
+          "type": "t_address"
+        },
+        {
+          "astId": 7088,
+          "contract": "CardPay-Contracts/contracts/Market.sol:Market",
+          "label": "bidder",
+          "offset": 0,
+          "slot": "2",
+          "type": "t_address"
+        },
+        {
+          "astId": 7090,
+          "contract": "CardPay-Contracts/contracts/Market.sol:Market",
+          "label": "recipient",
+          "offset": 0,
+          "slot": "3",
+          "type": "t_address"
+        }
+      ],
+      "numberOfBytes": "128"
+    },
+    "t_struct(D256)3008_storage": {
+      "encoding": "inplace",
+      "label": "struct Decimal.D256",
+      "members": [
+        {
+          "astId": 3007,
+          "contract": "CardPay-Contracts/contracts/Market.sol:Market",
+          "label": "value",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_uint256"
+        }
+      ],
+      "numberOfBytes": "32"
+    },
+    "t_struct(Discount)7110_storage": {
+      "encoding": "inplace",
+      "label": "struct IMarket.Discount",
+      "members": [
+        {
+          "astId": 7107,
+          "contract": "CardPay-Contracts/contracts/Market.sol:Market",
+          "label": "levelRequired",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_struct(LevelRequirement)7119_storage"
+        },
+        {
+          "astId": 7109,
+          "contract": "CardPay-Contracts/contracts/Market.sol:Market",
+          "label": "discount",
+          "offset": 0,
+          "slot": "4",
+          "type": "t_struct(D256)3008_storage"
+        }
+      ],
+      "numberOfBytes": "160"
+    },
+    "t_struct(Items)7105_storage": {
+      "encoding": "inplace",
+      "label": "struct IMarket.Items",
+      "members": [
+        {
+          "astId": 7096,
+          "contract": "CardPay-Contracts/contracts/Market.sol:Market",
+          "label": "merchant",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_address"
+        },
+        {
+          "astId": 7099,
+          "contract": "CardPay-Contracts/contracts/Market.sol:Market",
+          "label": "tokenAddresses",
+          "offset": 0,
+          "slot": "1",
+          "type": "t_array(t_address)dyn_storage"
+        },
+        {
+          "astId": 7102,
+          "contract": "CardPay-Contracts/contracts/Market.sol:Market",
+          "label": "amounts",
+          "offset": 0,
+          "slot": "2",
+          "type": "t_array(t_uint256)dyn_storage"
+        },
+        {
+          "astId": 7104,
+          "contract": "CardPay-Contracts/contracts/Market.sol:Market",
+          "label": "quantity",
+          "offset": 0,
+          "slot": "3",
+          "type": "t_uint256"
+        }
+      ],
+      "numberOfBytes": "128"
+    },
+    "t_struct(LevelRequirement)7119_storage": {
+      "encoding": "inplace",
+      "label": "struct IMarket.LevelRequirement",
+      "members": [
+        {
+          "astId": 7112,
+          "contract": "CardPay-Contracts/contracts/Market.sol:Market",
+          "label": "setter",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_address"
+        },
+        {
+          "astId": 7114,
+          "contract": "CardPay-Contracts/contracts/Market.sol:Market",
+          "label": "registrar",
+          "offset": 0,
+          "slot": "1",
+          "type": "t_address"
+        },
+        {
+          "astId": 7116,
+          "contract": "CardPay-Contracts/contracts/Market.sol:Market",
+          "label": "token",
+          "offset": 0,
+          "slot": "2",
+          "type": "t_address"
+        },
+        {
+          "astId": 7118,
+          "contract": "CardPay-Contracts/contracts/Market.sol:Market",
+          "label": "levelLabel",
+          "offset": 0,
+          "slot": "3",
+          "type": "t_string_storage"
+        }
+      ],
+      "numberOfBytes": "128"
+    },
+    "t_uint256": {
+      "encoding": "inplace",
+      "label": "uint256",
+      "numberOfBytes": "32"
+    }
+  }
+}

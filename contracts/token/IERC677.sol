@@ -1,17 +1,18 @@
-pragma solidity 0.5.17;
+pragma solidity ^0.8.9;
+pragma abicoder v1;
 
-import "@openzeppelin/contract-upgradeable/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 
-contract IERC677 is IERC20 {
+interface IERC677 is IERC20Upgradeable {
   function transferAndCall(
     address to,
     uint256 value,
     bytes memory data
-  ) public returns (bool ok);
+  ) external returns (bool ok);
 
-  function symbol() public view returns (string memory);
+  function symbol() external view returns (string memory);
 
-  function decimals() public view returns (uint8);
+  function decimals() external view returns (uint8);
 
   event Transfer(
     address indexed from,

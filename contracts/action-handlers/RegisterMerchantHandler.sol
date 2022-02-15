@@ -1,7 +1,7 @@
-pragma solidity 0.5.17;
+pragma solidity ^0.8.9;
+pragma abicoder v1;
 
-import "@openzeppelin/contract-upgradeable/contracts/ownership/Ownable.sol";
-import "@openzeppelin/contract-upgradeable/contracts/math/SafeMath.sol";
+import "../core/Ownable.sol";
 import "../MerchantManager.sol";
 import "../RevenuePool.sol";
 import "../Exchange.sol";
@@ -10,8 +10,6 @@ import "../TokenManager.sol";
 import "../VersionManager.sol";
 
 contract RegisterMerchantHandler is Ownable, Versionable {
-  using SafeMath for uint256;
-
   event MerchantRegistrationFee(
     address card,
     address issuingToken,
@@ -92,7 +90,7 @@ contract RegisterMerchantHandler is Ownable, Versionable {
       revenuePool.merchantFeeReceiver(),
       merchantRegistrationFeeInToken
     );
-    uint256 refund = amount.sub(merchantRegistrationFeeInToken);
+    uint256 refund = amount - merchantRegistrationFeeInToken;
     if (refund > 0) {
       // from is a trusted contract address (gnosis safe)
       IERC677(issuingToken).transfer(prepaidCard, refund);
@@ -107,6 +105,7 @@ contract RegisterMerchantHandler is Ownable, Versionable {
       revenuePool.merchantRegistrationFeeInSPEND()
     );
     MerchantManager(merchantManager).registerMerchant(merchant, infoDID);
+    return true;
   }
 
   function cardpayVersion() external view returns (string memory) {
