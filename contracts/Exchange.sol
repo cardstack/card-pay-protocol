@@ -92,7 +92,6 @@ contract Exchange is Ownable, Versionable {
       decimals == exchangeRateDecimals(),
       "unexpected decimals value for token price"
     );
-    require(usdRate > 0, "exchange rate cannot be 0");
     return convertToSpendWithRate(token, amount, usdRate);
   }
 
