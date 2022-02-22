@@ -8,6 +8,8 @@ import "../core/Ownable.sol";
 import "../core/Versionable.sol";
 import "../VersionManager.sol";
 
+// DIA is a company that is providing a CARD oracle on gnosis chain for us, not a mis-spelling
+
 contract DIAOracleAdapter is Ownable, Versionable, IPriceOracle {
   uint8 internal constant DECIMALS = 8;
   address public oracle;

@@ -8,6 +8,7 @@ import "../VersionManager.sol";
 
 // This contract is purely for testing and not meant to be deployed
 
+// DIA is a company that is providing a CARD oracle on gnosis chain for us, not a mis-spelling
 contract MockDIAOracle is Ownable, Versionable, IDIAOracle {
   struct PriceData {
     uint128 price;
