@@ -4,6 +4,7 @@ pragma abicoder v1;
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "./RewardManager.sol";
 import "./ActionDispatcher.sol";
+import "./core/ReentrancyGuard.sol";
 import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 
 // This contract is used as an implementation for delegatecall usage of safe operations.
@@ -23,7 +24,7 @@ import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 // be performed before operating on the arguments
 
 // solhint-disable var-name-mixedcase
-contract RewardSafeDelegateImplementation {
+contract RewardSafeDelegateImplementation is ReentrancyGuard {
   event RewardSafeWithdrawal(address rewardSafe, address token, uint256 value);
   event RewardSafeTransferred(
     address rewardSafe,
@@ -31,38 +32,12 @@ contract RewardSafeDelegateImplementation {
     address newOwner
   );
 
-  // Because this is a delegate implementation, the storage of this contract is the safe storage.
-  // For that reason, we have to do assembly hax to store the reentrancy flag and can't just use
-  // ReentrancyGuardUpgradeable
-
-  // bytes32(uint256(keccak256("safe.delegate.reentrancy_flag")) - 1)
-  bytes32 internal constant REENTRANCY_GUARD_SLOT =
-    0x7712fbd67a2d5bda218f5373b681e9e155932a5fa44c9a20ed14fbb50f32636f;
-
-  modifier nonReentrant() {
-    bool _entered;
-    assembly {
-      _entered := sload(REENTRANCY_GUARD_SLOT)
-    }
-
-    require(!_entered, "reentrant call");
-
-    assembly {
-      sstore(REENTRANCY_GUARD_SLOT, true)
-    }
-    _;
-
-    assembly {
-      sstore(REENTRANCY_GUARD_SLOT, false)
-    }
-  }
-
   function withdraw(
     address __trusted__managerContract,
     address __untrusted__token,
     address __untrusted__to,
     uint256 __untrusted__value
-  ) nonReentrant external {
+  ) external nonReentrant {
     require(
       RewardManager(__trusted__managerContract).isValidToken(
         __untrusted__token

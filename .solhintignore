@@ -1,3 +1,7 @@
 # solidity-parser is not happy about some of the inline assembly in
-# this file even though it compiles and works fine
+# these files even though they compile and work fine
+
+# https://github.com/protofire/solhint/issues/328
+
 ./contracts/migration/EnumerableSetUpgradeUtil.sol
+./contracts/core/ReentrancyGuard.sol
