@@ -3,6 +3,10 @@ module.exports = {
     // This contract is a mock malicious contract and the tests make sure the code is _not_ run
     "dev/FakeRewardManager.sol",
 
+    // solidity-parser cannot parse this file due to inline assembly
+    // https://github.com/protofire/solhint/issues/328
+    "core/ReentrancyGuard.sol",
+
     // Migration contracts not run in coverage tests
     "migration/EnumerableSetUpgradeUtil.sol",
     "migration/MerchantManagerUpgrader.sol",
