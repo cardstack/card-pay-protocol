@@ -724,7 +724,7 @@ const createPrepaidCards = async function (
   // downstream and more opaquely
   let gasEstimate = await issuingToken.contract.methods
     .transferAndCall(prepaidCardManager.address, amountToSend, createCardData)
-    .estimateGas();
+    .estimateGas({ from: depot.address });
 
   let safeTxData = {
     to: issuingToken.address,

@@ -21,7 +21,7 @@ contract SupplierManager is Ownable, Versionable, Safe {
   }
 
   mapping(address => Supplier) public suppliers;
-  mapping(address => address) public safes;
+  mapping(address => address) public safes; // supplier safe address <> supplier EOA address
   address public bridgeUtils;
   address public versionManager;
 

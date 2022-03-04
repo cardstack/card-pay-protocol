@@ -525,6 +525,7 @@ contract("PrepaidCardManager", (accounts) => {
     });
 
     it("should not should not create a prepaid card when the token used to pay for the card is not an allowable token", async () => {
+      await fakeDaicpxdToken.mint(depot.address, toTokenUnit(1));
       await createPrepaidCards(
         depot,
         prepaidCardManager,
@@ -533,6 +534,27 @@ contract("PrepaidCardManager", (accounts) => {
         relayer,
         [toTokenUnit(1)]
       ).should.be.rejectedWith(Error, "calling token is unaccepted");
+    });
+
+    it("should not create multi Prepaid Card when the amount sent is more than the sum of the requested face values from an EOA", async () => {
+      await daicpxdToken.mint(issuer, toTokenUnit(50));
+
+      let createCardData = encodeCreateCardsData(
+        issuer,
+        [toTokenUnit(1).toString()],
+        [toTokenUnit(1).toString()]
+      );
+
+      let amountToSend = toTokenUnit(50);
+
+      await expect(
+        daicpxdToken.transferAndCall(
+          prepaidCardManager.address,
+          amountToSend,
+          createCardData,
+          { from: issuer }
+        )
+      ).to.be.rejectedWith("Excessive funds sent for requested amounts");
     });
   });
 
