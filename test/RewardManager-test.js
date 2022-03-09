@@ -388,6 +388,24 @@ contract("RewardManager", (accounts) => {
         rewardPool.address,
       ]);
     });
+    it("has a sane upper bound for rewardProgramRegistrationFeeInSPEND", async () => {
+      await rewardManager
+        .setup(
+          actionDispatcher.address,
+          gnosisSafeMasterCopy.address,
+          proxyFactory.address,
+          rewardFeeReceiver,
+          1001,
+          [rewardPool.address],
+          governanceAdmin,
+          rewardSafeDelegate.address,
+          versionManager.address
+        )
+        .should.be.rejectedWith(
+          Error,
+          "rewardProgramRegistrationFeeInSPEND is above the maximum"
+        );
+    });
   });
 
   describe("register reward program", () => {
