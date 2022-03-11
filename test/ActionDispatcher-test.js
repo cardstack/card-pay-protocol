@@ -9,6 +9,7 @@ const ActionDispatcher = artifacts.require("ActionDispatcher");
 const TokenManager = artifacts.require("TokenManager");
 const SupplierManager = artifacts.require("SupplierManager");
 const MerchantManager = artifacts.require("MerchantManager");
+const BridgeUtils = artifacts.require("BridgeUtils");
 
 const utils = require("./utils/general");
 const eventABIs = require("./utils/constant/eventABIs");
@@ -78,6 +79,9 @@ contract("Action Dispatcher", (accounts) => {
     await tokenManager.initialize(owner);
     merchantManager = await MerchantManager.new();
     await merchantManager.initialize(owner);
+    let bridgeUtils = await BridgeUtils.new();
+    await bridgeUtils.initialize(owner);
+
     let cardcpxdToken;
     ({ daicpxdToken, cardcpxdToken, exchange } = await setupExchanges(owner));
 
@@ -123,6 +127,7 @@ contract("Action Dispatcher", (accounts) => {
       merchantManager,
       tokenManager,
       owner,
+      versionManager,
       exchangeAddress: exchange.address,
       spendAddress: spendToken.address,
     }));
@@ -145,7 +150,7 @@ contract("Action Dispatcher", (accounts) => {
       versionManager.address
     );
     await supplierManager.setup(
-      ZERO_ADDRESS,
+      bridgeUtils.address,
       gnosisSafeMasterCopy.address,
       proxyFactory.address,
       versionManager.address

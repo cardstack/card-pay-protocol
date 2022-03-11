@@ -121,7 +121,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
    * @param _gsMasterCopy Gnosis safe Master Copy address
    * @param _gsProxyFactory Gnosis safe Proxy Factory address
    * @param _actionDispatcher Action Dispatcher address
-   * @param _gasFeeReceiver The addres that will receive the new prepaid card gas fee
+   * @param _gasFeeReceiver The address that will receive the new prepaid card gas fee. Fee is not distributed if this is address(0)
    * @param _gasFeeInCARD the amount to charge for the gas fee for new prepaid card in units of CARD wei
    * @param _minAmount The minimum face value of a new prepaid card in units of SPEND
    * @param _maxAmount The maximum face value of a new prepaid card in units of SPEND
@@ -140,6 +140,14 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     address[] calldata _contractSigners,
     address _versionManager
   ) external onlyOwner {
+    require(_tokenManager != address(0), "tokenManager not set");
+    require(_supplierManager != address(0), "supplierManager not set");
+    require(_exchangeAddress != address(0), "exchangeAddress not set");
+    require(_gsMasterCopy != address(0), "gsMasterCopy not set");
+    require(_gsProxyFactory != address(0), "gsProxyFactory not set");
+    require(_actionDispatcher != address(0), "actionDispatcher not set");
+    require(_versionManager != address(0), "versionManager not set");
+
     actionDispatcher = _actionDispatcher;
     supplierManager = _supplierManager;
     tokenManager = _tokenManager;
@@ -151,6 +159,8 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     versionManager = _versionManager;
     Safe.setup(_gsMasterCopy, _gsProxyFactory);
     for (uint256 i = 0; i < _contractSigners.length; i++) {
+      require(_contractSigners[i] != address(0), "contractSigners not set");
+
       contractSigners.add(_contractSigners[i]);
     }
     emit Setup();
@@ -174,6 +184,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
   }
 
   function removeContractSigner(address signer) external onlyOwner {
+    require(contractSigners.contains(signer), "signer not present");
     contractSigners.remove(signer);
     emit ContractSignerRemoved(signer);
   }

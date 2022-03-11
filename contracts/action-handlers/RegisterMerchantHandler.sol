@@ -35,6 +35,14 @@ contract RegisterMerchantHandler is Ownable, Versionable {
     address _tokenManagerAddress,
     address _versionManager
   ) external onlyOwner returns (bool) {
+    require(_actionDispatcher != address(0), "actionDispatcher not set");
+    require(_merchantManager != address(0), "merchantManager not set");
+    require(_prepaidCardManager != address(0), "prepaidCardManager not set");
+    require(_revenuePoolAddress != address(0), "revenuePoolAddress not set");
+    require(_exchangeAddress != address(0), "exchangeAddress not set");
+    require(_tokenManagerAddress != address(0), "tokenManagerAddress not set");
+    require(_versionManager != address(0), "versionManager not set");
+
     actionDispatcher = _actionDispatcher;
     revenuePoolAddress = _revenuePoolAddress;
     prepaidCardManager = _prepaidCardManager;

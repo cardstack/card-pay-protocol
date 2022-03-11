@@ -26,6 +26,11 @@ contract PayRewardTokensHandler is Ownable, Versionable {
     address _rewardPoolAddress,
     address _versionManager
   ) external onlyOwner returns (bool) {
+    require(_actionDispatcher != address(0), "actionDispatcher not set");
+    require(_tokenManagerAddress != address(0), "tokenManagerAddress not set");
+    require(_rewardPoolAddress != address(0), "rewardPoolAddress not set");
+    require(_versionManager != address(0), "versionManager not set");
+
     actionDispatcher = _actionDispatcher;
     tokenManagerAddress = _tokenManagerAddress;
     rewardPoolAddress = _rewardPoolAddress;

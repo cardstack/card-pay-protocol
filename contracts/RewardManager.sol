@@ -79,14 +79,20 @@ contract RewardManager is Ownable, Versionable, Safe {
     address _safeDelegateImplementation,
     address _versionManager
   ) external onlyOwner {
-    require(_rewardFeeReceiver != ZERO_ADDRESS, "rewardFeeReceiver not set");
+    require(_actionDispatcher != address(0), "actionDispatcher not set");
+    require(_gsMasterCopy != address(0), "gsMasterCopy not set");
+    require(_gsProxyFactory != address(0), "gsProxyFactory not set");
+    require(_rewardFeeReceiver != address(0), "rewardFeeReceiver not set");
+    require(_governanceAdmin != address(0), "governanceAdmin not set");
+    require(
+      _safeDelegateImplementation != address(0),
+      "safeDelegateImplementation not set"
+    );
+    require(_versionManager != address(0), "versionManager not set");
+
     require(
       _rewardProgramRegistrationFeeInSPEND > 0,
       "rewardProgramRegistrationFeeInSPEND is not set"
-    );
-    require(
-      _safeDelegateImplementation != ZERO_ADDRESS,
-      "safeDelegateImplementation not set"
     );
     actionDispatcher = _actionDispatcher;
     Safe.setup(_gsMasterCopy, _gsProxyFactory);
@@ -95,6 +101,10 @@ contract RewardManager is Ownable, Versionable, Safe {
     versionManager = _versionManager;
     governanceAdmin = _governanceAdmin;
     for (uint256 i = 0; i < _eip1271Contracts.length; i++) {
+      require(
+        _eip1271Contracts[i] != address(0),
+        "eip1271Contracts has zero address"
+      );
       eip1271Contracts.add(_eip1271Contracts[i]);
     }
     safeDelegateImplementation = _safeDelegateImplementation;
@@ -122,6 +132,7 @@ contract RewardManager is Ownable, Versionable, Safe {
     external
     onlyGovernanceAdmin
   {
+    require(rewardProgramID != address(0), "invalid rewardProgramID");
     rewardProgramIDs.remove(rewardProgramID);
     delete rewardProgramAdmins[rewardProgramID];
     delete rewardProgramLocked[rewardProgramID]; // equivalent to false
@@ -133,6 +144,11 @@ contract RewardManager is Ownable, Versionable, Safe {
     external
     onlyHandlers
   {
+    require(
+      rewardProgramIDs.contains(rewardProgramID),
+      "invalid rewardProgramID"
+    );
+    require(newAdmin != address(0), "invalid newAdmin");
     rewardProgramAdmins[rewardProgramID] = newAdmin;
     emit RewardProgramAdminUpdated(rewardProgramID, newAdmin);
   }
@@ -141,11 +157,16 @@ contract RewardManager is Ownable, Versionable, Safe {
     external
     onlyHandlers
   {
+    require(
+      rewardProgramIDs.contains(rewardProgramID),
+      "invalid rewardProgramID"
+    );
     rule[rewardProgramID] = blob;
     emit RewardRuleAdded(rewardProgramID, blob);
   }
 
   function lockRewardProgram(address rewardProgramID) external onlyHandlers {
+    rewardProgramIDs.contains(rewardProgramID);
     rewardProgramLocked[rewardProgramID] = !rewardProgramLocked[
       rewardProgramID
     ];
@@ -157,6 +178,12 @@ contract RewardManager is Ownable, Versionable, Safe {
     onlyHandlers
     returns (address)
   {
+    require(
+      rewardProgramIDs.contains(rewardProgramID),
+      "invalid rewardProgramID"
+    );
+    require(prepaidCardOwner != address(0), "invalid prepaidCardOwner");
+
     address[] memory owners = new address[](2);
     owners[0] = address(this);
     owners[1] = prepaidCardOwner;
