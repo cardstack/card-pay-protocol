@@ -11,4 +11,6 @@ interface IPriceOracle {
   function ethPrice() external view returns (uint256 price, uint256 updatedAt);
 
   function daiPrice() external view returns (uint256 price, uint256 updatedAt);
+
+  function isSnappedToUSD() external view returns (bool);
 }

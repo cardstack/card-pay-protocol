@@ -11,8 +11,11 @@ const {
   setupVersionManager,
 } = require("./utils/helper");
 
+const { BigNumber } = require("ethers");
+
 contract("Exchange", (accounts) => {
   let daicpxdToken,
+    cardcpxdToken,
     spendToken,
     fakeToken,
     daiFeed,
@@ -33,10 +36,11 @@ contract("Exchange", (accounts) => {
     ({
       daiFeed,
       daicpxdToken,
+      cardcpxdToken,
       exchange,
       diaPriceOracle: cardOracle,
       chainlinkOracle: daiOracle,
-    } = await setupExchanges(owner, versionManager));
+    } = await setupExchanges(owner, versionManager, true));
 
     await daicpxdToken.mint(owner, toTokenUnit(100));
     fakeToken = await ERC677Token.new();
@@ -99,6 +103,56 @@ contract("Exchange", (accounts) => {
       await badExchange
         .convertFromCARD(daicpxdToken.address, toTokenUnit(100))
         .should.be.rejectedWith(Error, "no exchange exists for token");
+    });
+
+    it("allows rate drift less than rate drift percentage", async () => {
+      let rate = BigNumber.from("1000000");
+      let driftPercentage = await exchange.rateDriftPercentage();
+      // assumptions in this test only valid for 10% rate drift
+      expect(driftPercentage).to.be.bignumber.equal("1000000");
+      expect(await exchange.isAllowableRate(cardcpxdToken.address, rate)).to.be
+        .ok;
+
+      expect(await exchange.isAllowableRate(cardcpxdToken.address, "999999")).to
+        .be.ok;
+      expect(await exchange.isAllowableRate(cardcpxdToken.address, "990000")).to
+        .be.ok;
+      expect(await exchange.isAllowableRate(cardcpxdToken.address, "980000")).to
+        .not.be.ok;
+      expect(await exchange.isAllowableRate(cardcpxdToken.address, "1010000"))
+        .to.be.ok;
+      expect(await exchange.isAllowableRate(cardcpxdToken.address, "1020000"))
+        .to.not.be.ok;
+
+      expect(await exchange.isAllowableRate(cardcpxdToken.address, "1005000"))
+        .to.be.ok;
+    });
+
+    it("does not allow rate drift if rate is snapped", async () => {
+      let driftPercentage = await exchange.rateDriftPercentage();
+      // assumptions in this test only valid for nonzero rate drift
+      expect(driftPercentage).to.be.bignumber.equal("1000000");
+
+      expect(await daiOracle.isSnappedToUSD()).to.be.ok;
+
+      expect(
+        await exchange.isAllowableRate(
+          daicpxdToken.address,
+          BigNumber.from("100000000")
+        )
+      ).to.be.ok;
+      expect(
+        await exchange.isAllowableRate(
+          daicpxdToken.address,
+          BigNumber.from("100000001")
+        )
+      ).not.to.be.ok;
+      expect(
+        await exchange.isAllowableRate(
+          daicpxdToken.address,
+          BigNumber.from("99999999")
+        )
+      ).not.to.be.ok;
     });
   });
 });
