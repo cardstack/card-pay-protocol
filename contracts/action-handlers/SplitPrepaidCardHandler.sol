@@ -7,8 +7,11 @@ import "../token/IERC677.sol";
 import "../PrepaidCardManager.sol";
 import "../TokenManager.sol";
 import "../VersionManager.sol";
+import "../libraries/SafeERC677.sol";
 
 contract SplitPrepaidCardHandler is Ownable, Versionable {
+  using SafeERC677 for IERC677;
+
   address public actionDispatcher;
   address public prepaidCardManagerAddress;
   address public tokenManagerAddress;
@@ -94,7 +97,7 @@ contract SplitPrepaidCardHandler is Ownable, Versionable {
     );
 
     return
-      IERC677(msg.sender).transferAndCall(
+      IERC677(msg.sender).safeTransferAndCall(
         prepaidCardManagerAddress,
         amount,
         abi.encode(

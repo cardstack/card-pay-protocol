@@ -6,8 +6,11 @@ import "../TokenManager.sol";
 import "../core/Versionable.sol";
 import "../token/IERC677.sol";
 import "../VersionManager.sol";
+import "../libraries/SafeERC677.sol";
 
 contract PayRewardTokensHandler is Ownable, Versionable {
+  using SafeERC677 for IERC677;
+
   event Setup();
   event RewardTokensPaid(
     address prepaidCard,
@@ -54,7 +57,11 @@ contract PayRewardTokensHandler is Ownable, Versionable {
 
     address rewardProgramID = abi.decode(actionData, (address));
 
-    IERC677(msg.sender).transferAndCall(rewardPoolAddress, amount, actionData);
+    IERC677(msg.sender).safeTransferAndCall(
+      rewardPoolAddress,
+      amount,
+      actionData
+    );
     emit RewardTokensPaid(prepaidCard, msg.sender, amount, rewardProgramID);
     return true;
   }
