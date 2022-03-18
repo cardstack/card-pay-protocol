@@ -4,6 +4,7 @@ pragma abicoder v1;
 import "@openzeppelin/contracts-upgradeable/utils/cryptography/MerkleProofUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 
 import "./core/Ownable.sol";
@@ -15,6 +16,7 @@ import "./VersionManager.sol";
 
 contract RewardPool is Initializable, Versionable, Ownable {
   using MerkleProofUpgradeable for bytes32[];
+  using SafeERC20Upgradeable for IERC677;
 
   event Setup(address tally, address rewardManager, address tokenManager);
   event RewardeeClaim(
@@ -158,7 +160,8 @@ contract RewardPool is Initializable, Versionable, Ownable {
     rewardBalance[rewardProgramID][payableToken] =
       rewardProgramBalance -
       amount;
-    IERC677(payableToken).transfer(msg.sender, amount);
+
+    IERC677(payableToken).safeTransfer(msg.sender, amount);
 
     emit RewardeeClaim(
       rewardProgramID,
@@ -235,7 +238,7 @@ contract RewardPool is Initializable, Versionable, Ownable {
     address rewardProgramID,
     address token,
     uint256 amount
-  ) external returns (bool) {
+  ) external {
     address rewardProgramAdmin = RewardManager(rewardManager)
       .rewardProgramAdmins(rewardProgramID);
     require(
@@ -259,7 +262,8 @@ contract RewardPool is Initializable, Versionable, Ownable {
       amount,
       rewardProgramAdmin
     );
-    return IERC677(token).transfer(msg.sender, amount);
+
+    IERC677(token).safeTransfer(msg.sender, amount);
   }
 
   // lazy implementation of getting eoa owner of safe that has 1 or 2 owners
