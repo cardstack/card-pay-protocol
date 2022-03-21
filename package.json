@@ -21,7 +21,6 @@
     "lint": "yarn lint:sol && yarn lint:js",
     "lint:js": "./node_modules/.bin/eslint .",
     "lint:sol": "./node_modules/.bin/solhint ./contracts/\\*\\*/\\*.sol -w 0",
-    "ganache:stop": "for PID in $(ps -ef | grep ganache-cli | awk '{print $2}'); do kill $PID; done > /dev/null 2>&1 &",
     "deploy:contracts": "./node_modules/.bin/hardhat run scripts/deploy/001_initialize_contracts.js",
     "deploy:config-only": "yarn deploy:config:protocol",
     "deploy:config-testnet-only": "yarn deploy:config:manual-feeds && yarn deploy:config:protocol",

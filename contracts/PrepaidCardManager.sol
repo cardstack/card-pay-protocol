@@ -4,6 +4,8 @@ pragma abicoder v1;
 import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 import "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
 
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+
 import "./core/Ownable.sol";
 
 import "./token/IERC677.sol";
@@ -18,6 +20,7 @@ import "./VersionManager.sol";
 
 contract PrepaidCardManager is Ownable, Versionable, Safe {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
+  using SafeERC20Upgradeable for IERC677;
 
   struct CardDetail {
     address issuer;
@@ -541,7 +544,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
       SupplierManager(supplierManager).safes(depot) != address(0)
     ) {
       // the owner safe is a trusted contract (gnosis safe)
-      IERC677(token).transfer(depot, amountReceived - neededAmount);
+      IERC677(token).safeTransfer(depot, amountReceived - neededAmount);
     }
 
     return true;
@@ -582,10 +585,10 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     uint256 _gasFee = gasFee(token);
     if (gasFeeReceiver != address(0) && _gasFee > 0) {
       // The gasFeeReceiver is a trusted address that we control
-      IERC677(token).transfer(gasFeeReceiver, _gasFee);
+      IERC677(token).safeTransfer(gasFeeReceiver, _gasFee);
     }
     // The card is a trusted contract (gnosis safe)
-    IERC677(token).transfer(card, issuingTokenAmount - _gasFee);
+    IERC677(token).safeTransfer(card, issuingTokenAmount - _gasFee);
 
     emit CreatePrepaidCard(
       owner,
