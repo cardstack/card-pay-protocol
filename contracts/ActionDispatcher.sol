@@ -8,8 +8,11 @@ import "./Exchange.sol";
 import "./core/Versionable.sol";
 import "./PrepaidCardManager.sol";
 import "./VersionManager.sol";
+import "./libraries/SafeERC677.sol";
 
 contract ActionDispatcher is Ownable, Versionable {
+  using SafeERC677 for IERC677;
+
   struct Action {
     string name;
     address payable prepaidCard;
@@ -154,7 +157,7 @@ contract ActionDispatcher is Ownable, Versionable {
     address handler = actions[action.name];
     require(address(handler) != address(0), "no handler for action");
 
-    IERC677(action.issuingToken).transferAndCall(
+    IERC677(action.issuingToken).safeTransferAndCall(
       handler,
       action.tokenAmount,
       abi.encode(action.prepaidCard, action.spendAmount, action.data)
