@@ -96,18 +96,19 @@ contract SplitPrepaidCardHandler is Ownable, Versionable {
       customizationDID
     );
 
-    return
-      IERC677(msg.sender).safeTransferAndCall(
-        prepaidCardManagerAddress,
-        amount,
-        abi.encode(
-          owner,
-          issuingTokenAmounts,
-          spendAmounts,
-          customizationDID,
-          marketAddress == address(0) ? defaultMarketAddress : marketAddress
-        )
-      );
+    IERC677(msg.sender).safeTransferAndCall(
+      prepaidCardManagerAddress,
+      amount,
+      abi.encode(
+        owner,
+        issuingTokenAmounts,
+        spendAmounts,
+        customizationDID,
+        marketAddress == address(0) ? defaultMarketAddress : marketAddress
+      )
+    );
+
+    return true;
   }
 
   function cardpayVersion() external view returns (string memory) {

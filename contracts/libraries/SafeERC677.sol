@@ -8,10 +8,8 @@ library SafeERC677 {
     address to,
     uint256 value,
     bytes memory data
-  ) internal returns (bool) {
+  ) internal {
     bool result = token.transferAndCall(to, value, data);
     require(result, "safeTransferAndCall failed");
-
-    return true;
   }
 }
