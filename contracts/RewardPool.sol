@@ -221,6 +221,7 @@ contract RewardPool is Initializable, Versionable, Ownable {
     // if statement commented out due to code coverage rules - add back in when
     // more token types are supported.
 
+    // In the future tokenType 2 will represent ERC721 (NFTs) but it's not implemented yet
     // if (tokenType == 1) {
     // Type 1: ERC667 fungible tokens
     claimERC667(
