@@ -159,7 +159,10 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     versionManager = _versionManager;
     Safe.setup(_gsMasterCopy, _gsProxyFactory);
     for (uint256 i = 0; i < _contractSigners.length; i++) {
-      require(_contractSigners[i] != address(0), "contractSigners not set");
+      require(
+        _contractSigners[i] != address(0),
+        "address in contractSigners not set"
+      );
 
       contractSigners.add(_contractSigners[i]);
     }
