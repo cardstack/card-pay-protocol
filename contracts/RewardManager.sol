@@ -166,7 +166,11 @@ contract RewardManager is Ownable, Versionable, Safe {
   }
 
   function lockRewardProgram(address rewardProgramID) external onlyHandlers {
-    rewardProgramIDs.contains(rewardProgramID);
+    require(
+      rewardProgramIDs.contains(rewardProgramID),
+      "invalid rewardProgramID"
+    );
+
     rewardProgramLocked[rewardProgramID] = !rewardProgramLocked[
       rewardProgramID
     ];
