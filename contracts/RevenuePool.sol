@@ -77,6 +77,10 @@ contract RevenuePool is Ownable, Versionable {
       "merchantRegistrationFeeInSPEND is not set"
     );
     require(
+      _merchantFeePercentage <= 10000000,
+      "merchantFeePercentage is above the maximum"
+    );
+    require(
       _merchantRegistrationFeeInSPEND <= 1000,
       "merchantRegistrationFeeInSPEND is above the maximum"
     );
