@@ -239,6 +239,24 @@ contract("RevenuePool", (accounts) => {
         prepaidCardManager.address
       );
     });
+
+    it("has a sane upper bound for merchantRegistrationFeeInSPEND", async () => {
+      await revenuePool
+        .setup(
+          exchange.address,
+          merchantManager.address,
+          actionDispatcher.address,
+          prepaidCardManager.address,
+          merchantFeeReceiver,
+          10000000,
+          1001,
+          versionManager.address
+        )
+        .should.be.rejectedWith(
+          Error,
+          "merchantRegistrationFeeInSPEND is above the maximum"
+        );
+    });
   });
 
   describe("create merchant", () => {
