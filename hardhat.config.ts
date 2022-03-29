@@ -19,7 +19,8 @@ if (process.env.HARDHAT_FORKING) {
   // To read old blocks for events for migration test an archive node is needed
   XDAI_RPC_URL = "https://xdai-archive.blockscout.com";
 } else {
-  XDAI_RPC_URL = "https://rpc.xdaichain.com/";
+  XDAI_RPC_URL =
+    "https://polished-still-thunder.xdai.quiknode.pro/474f8faa313d36e0dc2604c1373655f7e26fdfb6/";
 }
 
 let forking: { url: string; blockNumber?: number },
