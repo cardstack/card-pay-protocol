@@ -49,6 +49,8 @@ Examples of existing "actions" include:
 
 In the future prepaid cards will support actions that allow it to perform capabilities that will be expressed by rewards programs and the commerce protocol.
 
+The `PrepaidCardManager` contract stores signers that are authorized to sign safe actions as a list of trusted contracts, configured as EIP-1271 signers. To reduce the contract size, we avoid adding them individually by using the setup function instead.
+
 ### PrepaidCardMarket
 The PrepaidCardMarket contract is responsible for provisioning already created prepaid card safes to customers. The intent is that Prepaid Card issuers can add their prepaid cards as inventory to this contract, thereby creating a SKU that represents the class of Prepaid Card which becomes available to provision to a customer. The act of adding a Prepaid Card to inventory means that the issuer of the Prepaid Card transfers their ownership of the Prepaid Card safe contract to the PrepaidCardMarket contract, such that the Prepaid Card safe has 2 contract owners: the PrepaidCardManager and the PrepaidCardMarket. Once a Prepaid Card is part of the inventory of the PrepaidCardMarket contract a "provisioner" role (which is a special EOA) is permitted to provision a Prepaid Card safe to a customer's EOA. This process entails leveraging an EIP-1271 contract signature to transfer ownership of the Prepaid Card safe from the PrepaidCardMarket contract to the specified customer EOA. Additionally the issuer of a Prepaid Card may also decide to remove Prepaid Cards from their inventory. This process also leverages EIP-1271 contract signatures to transfer ownership of the Prepaid Card safe from the PrepaidCardMarket contract back to the issuer that originally placed the Prepaid Card safe into their inventory.
 
@@ -142,7 +144,7 @@ The `RewardManager` is the main administrative contract that enables management 
 The `RewardManager` is responsible for creating gnosis safes that are known as _Reward Safes_. More importantly, the `rewardManager` host the EIP1271 signature callback that restrict the functions that a _Reward Safe_ can execute. The two examples of this are:
 
 - `withdrawFromRewardSafe`: this function enables any ERC677 reward tokens to be transferred out of the _Reward Safe_ after it has been claimed. The tokens transferred are used to pay for gas.
-- `transferRewardSafe`: this function enables the EOA-portion of ownership to be transferred. The transaction is gasless and considered as cost to the protocol fees collected during `registerRewardee`.
+- `transferRewardSafe`: this function enables the EOA-portion of the GnosisSafe ownership to be transferred. The transaction is gasless and considered as cost to the protocol fees collected during `registerRewardee`.
 
 ### RewardPool
 

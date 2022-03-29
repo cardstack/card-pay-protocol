@@ -100,5 +100,16 @@ contract("Exchange", (accounts) => {
         .convertFromCARD(daicpxdToken.address, toTokenUnit(100))
         .should.be.rejectedWith(Error, "no exchange exists for token");
     });
+
+    it("rejects when rate drift percentage is out of limits", async () => {
+      let badExchange = await Exchange.new();
+      await badExchange.initialize(owner);
+      await badExchange
+        .setup(10000000, versionManager.address, "CARD.CPXD") // = 10% rate drift
+        .should.be.rejectedWith(
+          Error,
+          "rate drift percentage must be between 0 and 1%"
+        );
+    });
   });
 });

@@ -2,7 +2,7 @@ pragma solidity ^0.8.9;
 pragma abicoder v1;
 
 import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
-
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "./core/Ownable.sol";
 import "./token/IERC677.sol";
 import "./token/ISPEND.sol";
@@ -15,6 +15,7 @@ import "./VersionManager.sol";
 
 contract RevenuePool is Ownable, Versionable {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
+  using SafeERC20Upgradeable for IERC677;
 
   struct RevenueBalance {
     EnumerableSetUpgradeable.AddressSet tokens;
@@ -178,7 +179,8 @@ contract RevenuePool is Ownable, Versionable {
     // transfer payable token from revenue pool to merchant's safe address. The
     // merchant's safe address is a gnosis safe contract, created by
     // registerMerchant(), so this is a trusted contract transfer
-    IERC677(token).transfer(merchantSafe, amount);
+
+    IERC677(token).safeTransfer(merchantSafe, amount);
 
     emit MerchantClaim(merchantSafe, token, amount);
     return true;
