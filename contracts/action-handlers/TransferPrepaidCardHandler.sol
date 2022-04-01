@@ -48,7 +48,7 @@ contract TransferPrepaidCardHandler is Ownable, Versionable {
    */
   function onTokenTransfer(
     address payable from,
-    uint256, // amount (we ignore it because this action doesn't need any tokens)
+    uint256 amount,
     bytes calldata data
   ) external returns (bool) {
     require(
@@ -59,6 +59,8 @@ contract TransferPrepaidCardHandler is Ownable, Versionable {
       from == actionDispatcher,
       "can only accept tokens from action dispatcher"
     );
+    require(amount == 0, "amount must be 0");
+
     (address payable prepaidCard, , bytes memory actionData) = abi.decode(
       data,
       (address, uint256, bytes)
