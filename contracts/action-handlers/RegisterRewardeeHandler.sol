@@ -36,9 +36,25 @@ contract RegisterRewardeeHandler is Ownable, Versionable {
     return true;
   }
 
+  /**
+   * @dev onTokenTransfer(ERC677) - this is the ERC677 token transfer callback.
+   *
+   * This registers the prepaid card owner as a rewardee for the reward program.
+   *
+   * See RegisterRewardeeHandler in README for more information.
+   *
+   * @param from the token sender (should be the action dispatcher)
+   * @param data encoded as: (
+   *  address prepaidCard,
+   *  uint256 ???,
+   *  bytes actionData, encoded as: (
+   *    address rewardProgramID
+   *   )
+   *  )
+   */
   function onTokenTransfer(
     address payable from,
-    uint256, // amount
+    uint256, // amount (we ignore it because this action doesn't require any tokens)
     bytes calldata data
   ) external returns (bool) {
     require(

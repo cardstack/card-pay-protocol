@@ -41,9 +41,26 @@ contract UpdateRewardProgramAdminHandler is Ownable, Versionable {
     return true;
   }
 
+  /**
+   * @dev onTokenTransfer(ERC677) - this is the ERC677 token transfer callback.
+   *
+   * This sets a new admin for the reward program.
+   *
+   * See UpdateRewardProgramAdminHandler in README for more information.
+   *
+   * @param from the token sender (should be the action dispatcher)
+   * @param data, encoded as (
+   *  address prepaidCard,
+   *  uint256 ???,
+   *  bytes actionData, encoded as: (
+   *    address rewardProgramID,
+   *    address newAdmin
+   *    )
+   *  )
+   */
   function onTokenTransfer(
     address payable from,
-    uint256, // amount
+    uint256, // amount (we ignore it because this action doesn't need any tokens)
     bytes calldata data
   ) external returns (bool) {
     require(

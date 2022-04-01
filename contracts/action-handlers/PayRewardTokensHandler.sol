@@ -37,6 +37,23 @@ contract PayRewardTokensHandler is Ownable, Versionable {
     return true;
   }
 
+  /**
+   * @dev onTokenTransfer(ERC677) - this is the ERC677 token transfer callback.
+   *
+   * When tokens are sent to this contract, it transfers them to the reward pool address.
+   *
+   * See PayRewardTokensHandler in README for more information.
+   *
+   * @param from the token sender (should be the action dispatcher)
+   * @param amount amount in token
+   * @param data encoded as: (
+   *  address prepaidCard,
+   *  uint256 ???,
+   *  bytes actionData, encoded as: (
+   *    address rewardProgramID
+   *   )
+   *  )
+   */
   function onTokenTransfer(
     address payable from,
     uint256 amount,

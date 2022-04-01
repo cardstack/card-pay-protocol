@@ -31,15 +31,24 @@ contract TransferPrepaidCardHandler is Ownable, Versionable {
 
   /**
    * @dev onTokenTransfer(ERC677) - this is the ERC677 token transfer callback.
-   * handle transferring a prepaid card
+   *
+   * Handle transferring of the prepaid card (gnosis safe) to the new EOA owner.
+   *
+   * See TransferPrepaidCardHandler in README for more information.
+   *
    * @param from the token sender (should be the revenue pool)
-   * //param amount the amount of tokens being transferred
-   * @param data the data encoded as (address prepaidCard, uint256 spendAmount, bytes actionData)
-   * where actionData is encoded as (address newOwner, bytes previousOwnerSignature)
+   * @param data encoded as (
+   *  address prepaidCard,
+   *  uint256 spendAmount,
+   *  bytes actionData, encoded as (
+   *    address newOwner,
+   *    bytes previousOwnerSignature
+   *  )
+   + )
    */
   function onTokenTransfer(
     address payable from,
-    uint256, /* amount */
+    uint256, // amount (we ignore it because this action doesn't need any tokens)
     bytes calldata data
   ) external returns (bool) {
     require(

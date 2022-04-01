@@ -41,9 +41,26 @@ contract AddRewardRuleHandler is Ownable, Versionable {
     return true;
   }
 
+  /**
+   * @dev onTokenTransfer(ERC677) - this is the ERC677 token transfer callback.
+   *
+   * This adds the reward rule to the reward manager.
+   *
+   * See AddRewardRuleHandler in README for more information.
+   *
+   * @param from the token sender (should be the action dispatcher)
+   * @param data encoded as: (
+   *  address prepaidCard,
+   *  uint256 ???,
+   *  bytes actionData, encoded as: (
+   *    address rewardProgramID,
+   *    bytes blob (hex encoding of rule blob)
+   *    )
+   *  )
+   */
   function onTokenTransfer(
     address payable from,
-    uint256, // amount
+    uint256, // amount (we ignore it because this action doesn't require any tokens)
     bytes calldata data
   ) external returns (bool) {
     require(
@@ -78,6 +95,7 @@ contract AddRewardRuleHandler is Ownable, Versionable {
       ) == prepaidCardOwner,
       "can only be called by reward program admin"
     );
+
     RewardManager(rewardManagerAddress).addRewardRule(rewardProgramID, blob);
     emit RewardRuleAdded(prepaidCard, rewardProgramID, blob);
     return true;

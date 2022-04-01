@@ -39,6 +39,26 @@ contract RegisterRewardProgramHandler is Ownable, Versionable {
     return true;
   }
 
+  /**
+   * @dev onTokenTransfer(ERC677) - this is the ERC677 token transfer callback.
+   *
+   * When tokens are sent to this contract, it transfers the reward program registration fee
+   * to the reward fee receiver, and refunds the amount in case it exceeds the fee.
+   * Then it registers the reward program by adding it to the reward manager.
+   *
+   * See RegisterRewardProgramHandler in README for more information.
+   *
+   * @param from the token sender (should be the action dispatcher)
+   * @param amount the amount of tokens being transferred
+   * @param data encoded as: (
+   *  address prepaidCard,
+   *  uint256 ?,
+   *  bytes actionData, encoded as: (
+   *    address admin,
+   *    address rewardProgramID
+   *  )
+   * )
+   */
   function onTokenTransfer(
     address payable from,
     uint256 amount,

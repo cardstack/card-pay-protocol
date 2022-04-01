@@ -83,11 +83,20 @@ contract ActionDispatcher is Ownable, Versionable {
 
   /**
    * @dev onTokenTransfer(ERC677) - this is the ERC677 token transfer callback.
-   * This will interrogate and perform the requested action from the prepaid
-   * card using the token amount sent.
-   * @param from - who transfer token (should from prepaid card).
-   * @param amount - number token customer pay for merchant.
-   * @param data - merchant safe and infoDID in encode format.
+   *
+   * Performs the requested action from the prepaid card using the token amount sent
+   * by forwarding it to another contract.
+   *
+   * See ActionDispatcher in README for more information.
+   *
+   * @param from - who transfers tokens (should be from a prepaid card)
+   * @param amount - number of tokens (can be 0 when no tokens are required for the action)
+   * @param data - encoded as (
+   *   uint256 spendAmount
+   *   uint256 requestedRate
+   *   string actionName
+   *   bytes actionData
+   * )
    */
   function onTokenTransfer(
     address payable from,

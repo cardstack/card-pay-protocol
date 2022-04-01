@@ -33,14 +33,22 @@ contract RemovePrepaidCardInventoryHandler is Ownable, Versionable {
 
   /**
    * @dev onTokenTransfer(ERC677) - this is the ERC677 token transfer callback.
-   * handle setting prepaid cards in market inventory
+   *
+   * This handles the removal of a prepaid card from the inventory.
+   *
+   * See RemovePrepaidCardInventoryHandler in README for more information.
+   *
    * @param from the token sender (should be the revenue pool)
-   * @param data the data encoded as (address prepaidCard, uint256 spendAmount, bytes actionData)
-   * where actionData is encoded as (address[] prepaidCards, address marketAddress)
+   * @param data encoded as:
+   *  address prepaidCard,
+   *  uint256 spendAmount,
+   *  bytes actionData, encoded as:
+   *    address[] prepaidCards,
+   *    address marketAddress
    */
   function onTokenTransfer(
     address payable from,
-    uint256, // amount
+    uint256, // amount (we ignore it because this action doesn't require any tokens)
     bytes calldata data
   ) external returns (bool) {
     require(
