@@ -48,7 +48,7 @@ contract PayRewardTokensHandler is Ownable, Versionable {
    * @param amount amount in token
    * @param data encoded as: (
    *  address prepaidCard,
-   *  uint256 ???,
+   *  uint256 spendAmount (not used here),
    *  bytes actionData, encoded as: (
    *    address rewardProgramID
    *   )

@@ -52,7 +52,7 @@ contract RegisterRewardProgramHandler is Ownable, Versionable {
    * @param amount the amount of tokens being transferred
    * @param data encoded as: (
    *  address prepaidCard,
-   *  uint256 ?,
+   *  uint256 spendAmount (not used here),
    *  bytes actionData, encoded as: (
    *    address admin,
    *    address rewardProgramID

@@ -51,7 +51,7 @@ contract UpdateRewardProgramAdminHandler is Ownable, Versionable {
    * @param from the token sender (should be the action dispatcher)
    * @param data, encoded as (
    *  address prepaidCard,
-   *  uint256 ???,
+   *  uint256 spendAmount (not used here),
    *  bytes actionData, encoded as: (
    *    address rewardProgramID,
    *    address newAdmin
