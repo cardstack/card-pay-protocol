@@ -33,14 +33,25 @@ contract SetPrepaidCardInventoryHandler is Ownable, Versionable {
 
   /**
    * @dev onTokenTransfer(ERC677) - this is the ERC677 token transfer callback.
-   * handle setting prepaid cards in market inventory
+   *
+   * This adds the prepaid card safe to the inventory in the PrepaidCardMarket.
+   *
+   * See SetPrepaidCardInventoryHandler in README for more information.
+   *
    * @param from the token sender (should be the revenue pool)
-   * @param data the data encoded as (address prepaidCard, uint256 spendAmount, bytes actionData)
-   * where actionData is encoded as (address prepaidCard, address marketAddress, bytes previousOwnerSignature)
+   * @param data encoded as (
+   *  address prepaidCard,
+   *  uint256 spendAmount,
+   *  bytes actionData, encoded as (
+   *    address prepaidCardForInventory,
+   *    address marketAddress,
+   *    bytes previousOwnerSignature
+   *  )
+   * )
    */
   function onTokenTransfer(
     address payable from,
-    uint256, // amount
+    uint256 amount,
     bytes calldata data
   ) external returns (bool) {
     require(
@@ -51,6 +62,8 @@ contract SetPrepaidCardInventoryHandler is Ownable, Versionable {
       from == actionDispatcher,
       "can only accept tokens from action dispatcher"
     );
+    require(amount == 0, "amount must be 0");
+
     (address payable prepaidCard, , bytes memory actionData) = abi.decode(
       data,
       (address, uint256, bytes)

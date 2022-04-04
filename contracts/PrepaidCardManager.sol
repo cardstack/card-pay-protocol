@@ -182,10 +182,22 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
   }
 
   /**
-   * @dev onTokenTransfer(ERC677) - call when token send this contract.
-   * @param from Supplier or Prepaid card address
-   * @param amount number token them transfer.
-   * @param data data encoded
+   * @dev onTokenTransfer(ERC677) - this is the ERC677 token transfer callback.
+   *
+   * When tokens are sent to this contract, this function will create multiple
+   * prepaid cards as gnosis safes.
+   *
+   * See PrepaidCardManager in README for more information.
+   *
+   * @param from supplier or Prepaid card address
+   * @param amount number of tokens sent
+   * @param data encoded as (
+   *  address owner (supplier's address),
+   *  uint256[] issuingTokenAmounts (array of issuing token amounts to fund the creation of the prepaid cards),
+   *  uint256[] spendAmounts (array of spend amounts that represent the desired face value (for reporting only)),
+   *  string customizationDID (DID of prepaid card customization data),
+   *  address marketAddress (prepaid card market address)
+   * )
    */
   function onTokenTransfer(
     address from, // solhint-disable-line no-unused-vars

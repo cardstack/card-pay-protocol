@@ -48,11 +48,22 @@ contract RegisterMerchantHandler is Ownable, Versionable {
 
   /**
    * @dev onTokenTransfer(ERC677) - this is the ERC677 token transfer callback.
-   * handle a merchant registration
+   *
+   * When tokens are sent to this contract, it transfers the merchant registration fee
+   * to the merchant fee receiver, and refunds the amount in case it exceeds the fee.
+   * Then it registers the merchant by creating a new merchant safe.
+   *
+   * See RegisterMerchantHandler in README for more information.
+   *
    * @param from the token sender (should be the action dispatcher)
    * @param amount the amount of tokens being transferred
-   * @param data the data encoded as (address prepaidCard, uint256 spendAmount, bytes actionData)
-   * where actionData is encoded as (address infoDID)
+   * @param data encoded as: (
+   *  address prepaidCard,
+   *  uint256 spendAmount,
+   *  bytes actionData, encoded as: (
+   *    string infoDID
+   *  )
+   * )
    */
   function onTokenTransfer(
     address payable from,

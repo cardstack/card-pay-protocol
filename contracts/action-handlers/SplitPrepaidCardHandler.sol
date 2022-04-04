@@ -46,11 +46,24 @@ contract SplitPrepaidCardHandler is Ownable, Versionable {
 
   /**
    * @dev onTokenTransfer(ERC677) - this is the ERC677 token transfer callback.
-   * handle using a prepaid card to create more prepaid cards
+   *
+   * This will receive a payment from a prepaid card, and split it to create more
+   * prepaid cards.
+   *
+   * See SplitPrepaidCardHandler in README for more information.
+   *
    * @param from the token sender (should be the revenue pool)
    * @param amount the amount of tokens being transferred
-   * @param data the data encoded as (address prepaidCard, uint256 spendAmount, bytes actionData)
-   * where actionData is encoded as (uint256[] issuingTokenAmounts, uint256[] spendAmounts, string customizatoinDID, address marketAddress)
+   * @param data encoded as (
+   *  address prepaidCard,
+   *  uint256 spendAmount,
+   *  bytes actionData, encoded as (
+   *    uint256[] issuingTokenAmounts,
+   *    uint256[] spendAmounts,
+   *    string customizationDID,
+   *    address marketAddress
+   *  )
+   * )
    */
   function onTokenTransfer(
     address payable from,
