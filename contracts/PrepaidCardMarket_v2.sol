@@ -12,6 +12,7 @@ import "./ActionDispatcher.sol";
 import "./VersionManager.sol";
 import "./TokenManager.sol";
 import "@gnosis.pm/safe-contracts/contracts/proxies/GnosisSafeProxyFactory.sol";
+import "hardhat/console.sol";
 
 contract PrepaidCardMarketV2 is Ownable, Versionable {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
@@ -85,6 +86,8 @@ contract PrepaidCardMarketV2 is Ownable, Versionable {
     address _issuer = abi.decode(data, (address));
 
     require(_issuer != address(0), "issuer should be provided");
+
+    console.log("from", from);
 
     address[] memory _owners = GnosisSafe(from).getOwners();
     bool _foundOwner = false;

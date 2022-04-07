@@ -121,6 +121,7 @@ contract("PrepaidCardMarketV2", (accounts) => {
   describe("manage inventory", () => {
     describe("send tokens", () => {
       it.only(`can send tokens to the balance`, async function () {
+        console.log("owner", owner);
         let transferAndCall = daicpxdToken.contract.methods.transferAndCall(
           prepaidCardMarketV2.address,
           toTokenUnit(5),
