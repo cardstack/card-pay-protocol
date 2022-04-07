@@ -284,6 +284,29 @@ const eventABIs = {
       },
     ],
   },
+  PREPAID_CARD_MANAGER_V2_ADD_INVENTORY: {
+    topic: web3EthAbi.encodeEventSignature(
+      "InventoryAdded(address, uint256, address, address)"
+    ),
+    abis: [
+      {
+        type: "address",
+        name: "issuer",
+      },
+      {
+        type: "uint256",
+        name: "amount",
+      },
+      {
+        type: "address",
+        name: "token",
+      },
+      {
+        type: "address",
+        name: "safe",
+      },
+    ],
+  },
 };
 
 module.exports = eventABIs;
