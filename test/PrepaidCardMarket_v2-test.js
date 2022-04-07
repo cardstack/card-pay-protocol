@@ -129,10 +129,12 @@ contract("PrepaidCardMarketV2", (accounts) => {
         );
 
         let payload = transferAndCall.encodeABI();
-        let gasEstimate = await transferAndCall.estimateGas();
+        let gasEstimate = await transferAndCall.estimateGas({
+          from: depot.address,
+        });
 
         let safeTxData = {
-          to: prepaidCardMarketV2.address,
+          to: daicpxdToken.address,
           data: payload,
           txGasEstimate: gasEstimate,
           gasPrice: 1000000000,
@@ -142,8 +144,12 @@ contract("PrepaidCardMarketV2", (accounts) => {
 
         let {
           executionResult: { success, safeTx },
-        } = await signAndSendSafeTransaction(safeTxData, issuer, depot, relayer)
-          .should.be.fulfilled;
+        } = await signAndSendSafeTransaction(
+          safeTxData,
+          issuer,
+          depot,
+          relayer
+        );
 
         expect(success).to.be.true;
         expect(

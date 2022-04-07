@@ -11,6 +11,7 @@ import "hardhat-watcher";
 import "solidity-coverage";
 import "./lib/hardhat-error-on-compiler-warnings";
 import "./lib/hardhat-use-local-compiler";
+import "hardhat-tracer";
 
 const SOKOL_RPC_URL = "https://sokol.poa.network";
 let XDAI_RPC_URL;
