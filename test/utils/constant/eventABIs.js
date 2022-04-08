@@ -286,7 +286,7 @@ const eventABIs = {
   },
   PREPAID_CARD_MANAGER_V2_ADD_INVENTORY: {
     topic: web3EthAbi.encodeEventSignature(
-      "InventoryAdded(address, uint256, address, address)"
+      "InventoryAdded(address,uint256,address,address)"
     ),
     abis: [
       {
