@@ -1,4 +1,3 @@
-const ERC677Token = artifacts.require("ERC677Token.sol");
 const PrepaidCardManager = artifacts.require("PrepaidCardManager");
 const PrepaidCardMarketV2 = artifacts.require("PrepaidCardMarketV2");
 const ProxyFactory = artifacts.require("GnosisSafeProxyFactory");
@@ -7,22 +6,15 @@ const ActionDispatcher = artifacts.require("ActionDispatcher");
 const TokenManager = artifacts.require("TokenManager");
 const SupplierManager = artifacts.require("SupplierManager");
 const utils = require("./utils/general");
-const { INVALID_OWNER_PROVIDED } = utils.gnosisErrors;
 const eventABIs = require("./utils/constant/eventABIs");
 
-const { ZERO_ADDRESS, getParamsFromEvent, signSafeTransaction } = utils;
-const { expect, TOKEN_DETAIL_DATA } = require("./setup");
+const { ZERO_ADDRESS, getParamsFromEvent } = utils;
+const { expect } = require("./setup");
 
 const {
   toTokenUnit,
   setupExchanges,
-  createPrepaidCards,
   createDepotFromSupplierMgr,
-  setPrepaidCardInventory,
-  transferOwner,
-  removePrepaidCardInventory,
-  setPrepaidCardAsk,
-  splitPrepaidCard,
   setupVersionManager,
   signAndSendSafeTransaction,
 } = require("./utils/helper");
@@ -32,14 +24,12 @@ const { toWei } = require("web3-utils");
 
 contract("PrepaidCardMarketV2", (accounts) => {
   let daicpxdToken,
-    cardcpxdToken,
     issuer,
     owner,
     relayer,
     actionDispatcher,
     proxyFactory,
     gnosisSafeMasterCopy,
-    customer,
     provisioner,
     prepaidCardManager,
     prepaidCardMarket,
@@ -50,10 +40,9 @@ contract("PrepaidCardMarketV2", (accounts) => {
   before(async () => {
     owner = accounts[0];
     issuer = accounts[1];
-    customer = accounts[2];
-    relayer = accounts[3];
-    provisioner = accounts[4];
-    prepaidCardMarket = accounts[5];
+    relayer = accounts[4];
+    provisioner = accounts[5];
+    prepaidCardMarket = accounts[6];
 
     proxyFactory = await ProxyFactory.new();
     gnosisSafeMasterCopy = await utils.deployContract(
