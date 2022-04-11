@@ -108,7 +108,7 @@ contract("Exchange", (accounts) => {
     it("allows rate drift less than rate drift percentage", async () => {
       let rate = BigNumber.from("1000000");
       let driftPercentage = await exchange.rateDriftPercentage();
-      // assumptions in this test only valid for 10% rate drift
+      // assumptions in this test only valid for 1% rate drift
       expect(driftPercentage).to.be.bignumber.equal("1000000");
       expect(await exchange.isAllowableRate(cardcpxdToken.address, rate)).to.be
         .ok;
