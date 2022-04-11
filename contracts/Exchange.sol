@@ -34,6 +34,7 @@ contract Exchange is Ownable, Versionable {
     address _versionManager,
     string calldata _cardTokenSymbol
   ) external onlyOwner {
+    require(_versionManager != address(0), "versionManager not set");
     // For stable coins that use the USD snapping logic, 0% is suitable and
     // for other non-stable coins, up to 1% is fine.
     require(
@@ -51,6 +52,7 @@ contract Exchange is Ownable, Versionable {
     external
     onlyOwner
   {
+    require(feed != address(0), "invalid feed address");
     bytes32 key = keccak256(bytes(tokenSymbol));
     exchanges[key].exists = true;
     exchanges[key].tokenSymbol = tokenSymbol;

@@ -68,12 +68,15 @@ contract TokenManager is Ownable, Versionable {
   }
 
   function _addPayableToken(address _token) internal returns (bool) {
+    require(_token != address(0), "invalid token");
+
     payableTokens.add(_token);
     emit PayableTokenAdded(_token);
     return true;
   }
 
   function _removePayableToken(address _token) internal returns (bool) {
+    require(payableTokens.contains(_token), "invalid token");
     payableTokens.remove(_token);
     emit PayableTokenRemoved(_token);
     return true;

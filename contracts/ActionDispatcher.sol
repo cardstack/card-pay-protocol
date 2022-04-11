@@ -45,6 +45,10 @@ contract ActionDispatcher is Ownable, Versionable {
     address payable _prepaidCardManager,
     address _versionManager
   ) external onlyOwner {
+    require(_tokenManager != address(0), "tokenManager not set");
+    require(_exchangeAddress != address(0), "exchangeAddress not set");
+    require(_prepaidCardManager != address(0), "prepaidCardManager not set");
+    require(_versionManager != address(0), "versionManager not set");
     tokenManager = _tokenManager;
     exchangeAddress = _exchangeAddress;
     prepaidCardManager = _prepaidCardManager;

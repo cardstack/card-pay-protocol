@@ -102,6 +102,11 @@ contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
     address _provisioner,
     address _versionManager
   ) external onlyOwner {
+    require(_prepaidCardManager != address(0), "prepaidCardManager not set");
+    require(_actionDispatcher != address(0), "actionDispatcher not set");
+    require(_provisioner != address(0), "provisioner not set");
+    require(_versionManager != address(0), "versionManager not set");
+
     prepaidCardManagerAddress = _prepaidCardManager;
     provisioner = _provisioner;
     actionDispatcher = _actionDispatcher;

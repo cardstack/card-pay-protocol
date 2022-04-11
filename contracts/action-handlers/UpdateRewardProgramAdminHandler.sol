@@ -31,6 +31,16 @@ contract UpdateRewardProgramAdminHandler is Ownable, Versionable {
     address _rewardManagerAddress,
     address _versionManager
   ) external onlyOwner returns (bool) {
+    require(_actionDispatcher != address(0), "actionDispatcher not set");
+    require(_prepaidCardManager != address(0), "prepaidCardManager not set");
+    require(_exchangeAddress != address(0), "exchangeAddress not set");
+    require(_tokenManagerAddress != address(0), "tokenManagerAddress not set");
+    require(
+      _rewardManagerAddress != address(0),
+      "rewardManagerAddress not set"
+    );
+    require(_versionManager != address(0), "versionManager not set");
+
     actionDispatcher = _actionDispatcher;
     prepaidCardManager = _prepaidCardManager;
     exchangeAddress = _exchangeAddress;
