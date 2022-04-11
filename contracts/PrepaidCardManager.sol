@@ -78,6 +78,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     bytes data,
     bytes ownerSignature
   );
+  event PrepaidCardUsed(address card);
 
   bytes4 public constant SWAP_OWNER = 0xe318b52b; //swapOwner(address,address,address)
   bytes4 public constant TRANSFER_AND_CALL = 0x4000aea0; //transferAndCall(address,uint256,bytes)
@@ -247,6 +248,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     returns (bool)
   {
     hasBeenUsed[prepaidCard] = true;
+    emit PrepaidCardUsed(prepaidCard);
     return true;
   }
 
