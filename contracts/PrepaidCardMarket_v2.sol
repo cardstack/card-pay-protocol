@@ -4,7 +4,7 @@ pragma abicoder v1;
 import "./core/Ownable.sol";
 
 import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
-
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "./core/Versionable.sol";
 import "./IPrepaidCardMarket.sol";
 import "./PrepaidCardManager.sol";
@@ -12,9 +12,11 @@ import "./ActionDispatcher.sol";
 import "./VersionManager.sol";
 import "./TokenManager.sol";
 import "@gnosis.pm/safe-contracts/contracts/proxies/GnosisSafeProxyFactory.sol";
+import "hardhat/console.sol";
 
 contract PrepaidCardMarketV2 is Ownable, Versionable {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
+  using SafeERC20Upgradeable for IERC677;
 
   struct SKU {
     address issuer;
@@ -36,6 +38,12 @@ contract PrepaidCardMarketV2 is Ownable, Versionable {
     uint256 amount,
     address token,
     address safe
+  );
+  event InventoryRemoved(
+    address safe,
+    address issuer,
+    address token,
+    uint256 amount
   );
 
   // only owner can call setup
@@ -70,6 +78,23 @@ contract PrepaidCardMarketV2 is Ownable, Versionable {
   // balance should be larger or eq to the amount
   // token transfer into the msg.sender (erc677 transfer)
   // emit event remove from inventory (safe, issuer, token, amount)
+
+  function withdrawTokens(uint256 amount, address token) external {
+    address _issuer = issuer[msg.sender];
+
+    uint256 balanceForToken = balance[msg.sender][token];
+
+    console.log("widthdrawing");
+    console.log(amount);
+    console.log(balanceForToken);
+
+    require(amount <= balanceForToken, "Insufficient funds for withdrawal");
+
+    balance[msg.sender][token] -= amount;
+
+    IERC677(token).safeTransfer(msg.sender, amount);
+    emit InventoryRemoved(msg.sender, _issuer, token, amount);
+  }
 
   function onTokenTransfer(
     address payable from, // safe address

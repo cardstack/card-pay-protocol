@@ -109,7 +109,7 @@ contract("PrepaidCardMarketV2", (accounts) => {
 
   describe("manage inventory", () => {
     describe("send tokens", () => {
-      it.only(`can send tokens to the balance`, async function () {
+      it(`can send tokens to the balance`, async function () {
         let transferAndCall = daicpxdToken.contract.methods.transferAndCall(
           prepaidCardMarketV2.address,
           toTokenUnit(5),
@@ -152,7 +152,7 @@ contract("PrepaidCardMarketV2", (accounts) => {
 
         let [event] = getParamsFromEvent(
           safeTx,
-          eventABIs.PREPAID_CARD_MANAGER_V2_ADD_INVENTORY,
+          eventABIs.PREPAID_CARD_MARKET_V2_ADD_INVENTORY,
           prepaidCardMarketV2.address
         );
 
@@ -160,6 +160,109 @@ contract("PrepaidCardMarketV2", (accounts) => {
         expect(event.token).to.be.equal(daicpxdToken.address);
         expect(event.amount).to.be.equal(toWei("5"));
         expect(event.safe).to.be.equal(depot.address);
+      });
+    });
+
+    describe("withdraw tokens", () => {
+      it.only("can withdraw tokens", async function () {
+        // START SETTING THE BALANCE - is there a more direct way?
+        let transferAndCall = daicpxdToken.contract.methods.transferAndCall(
+          prepaidCardMarketV2.address,
+          toTokenUnit(5),
+          AbiCoder.encodeParameters(["address"], [issuer])
+        );
+
+        let transferPayload = transferAndCall.encodeABI();
+        let transferGasEstimate = await transferAndCall.estimateGas({
+          from: depot.address,
+        });
+
+        await signAndSendSafeTransaction(
+          {
+            to: daicpxdToken.address,
+            data: transferPayload,
+            txGasEstimate: transferGasEstimate,
+            gasPrice: 1000000000,
+            txGasToken: daicpxdToken.address,
+            refundReceiver: relayer,
+          },
+          issuer,
+          depot,
+          relayer
+        );
+        // END SETTING THE BALANCE
+
+        let withdrawTokens =
+          prepaidCardMarketV2.contract.methods.withdrawTokens(
+            toTokenUnit(4),
+            daicpxdToken.address
+          );
+
+        let payload = withdrawTokens.encodeABI();
+        let gasEstimate = await withdrawTokens.estimateGas({
+          from: depot.address,
+        });
+        let safeTxData = {
+          to: prepaidCardMarketV2.address,
+          data: payload,
+          txGasEstimate: gasEstimate,
+          gasPrice: 1000000000,
+          txGasToken: daicpxdToken.address,
+          refundReceiver: relayer,
+        };
+
+        let {
+          safeTx,
+          executionResult: { success },
+        } = await signAndSendSafeTransaction(
+          safeTxData,
+          issuer,
+          depot,
+          relayer
+        );
+
+        expect(success).to.be.true;
+        expect(
+          await prepaidCardMarketV2.balance(depot.address, daicpxdToken.address)
+        ).to.be.bignumber.equal(toTokenUnit(1)); // We withdrew 4 tokens, started with 5
+
+        let [event] = getParamsFromEvent(
+          safeTx,
+          eventABIs.PREPAID_CARD_MARKET_V2_REMOVE_INVENTORY,
+          prepaidCardMarketV2.address
+        );
+
+        expect(event.issuer).to.be.equal(issuer);
+        expect(event.token).to.be.equal(daicpxdToken.address);
+        expect(event.amount).to.be.equal(toWei("4"));
+        expect(event.safe).to.be.equal(depot.address);
+      });
+
+      it.only("fails when there is no balance", async function () {
+        let withdrawTokens =
+          prepaidCardMarketV2.contract.methods.withdrawTokens(
+            toTokenUnit(100),
+            daicpxdToken.address
+          );
+
+        let payload = withdrawTokens.encodeABI();
+        let gasEstimate = await withdrawTokens.estimateGas({
+          from: depot.address,
+        });
+        let safeTxData = {
+          to: prepaidCardMarketV2.address,
+          data: payload,
+          txGasEstimate: gasEstimate,
+          gasPrice: 1000000000,
+          txGasToken: daicpxdToken.address,
+          refundReceiver: relayer,
+        };
+
+        // FIXME: the VM exception happens but it's not caught by the test
+        // error: VM Exception while processing transaction: reverted with reason string 'Insufficient funds for withdrawal'
+        await expect(
+          signAndSendSafeTransaction(safeTxData, issuer, depot, relayer)
+        ).to.be.reverted;
       });
     });
   });

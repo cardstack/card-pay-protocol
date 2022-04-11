@@ -284,7 +284,7 @@ const eventABIs = {
       },
     ],
   },
-  PREPAID_CARD_MANAGER_V2_ADD_INVENTORY: {
+  PREPAID_CARD_MARKET_V2_ADD_INVENTORY: {
     topic: web3EthAbi.encodeEventSignature(
       "InventoryAdded(address,uint256,address,address)"
     ),
@@ -304,6 +304,29 @@ const eventABIs = {
       {
         type: "address",
         name: "safe",
+      },
+    ],
+  },
+  PREPAID_CARD_MARKET_V2_REMOVE_INVENTORY: {
+    topic: web3EthAbi.encodeEventSignature(
+      "InventoryRemoved(address,address,address,uint256)"
+    ),
+    abis: [
+      {
+        type: "address",
+        name: "safe",
+      },
+      {
+        type: "address",
+        name: "issuer",
+      },
+      {
+        type: "address",
+        name: "token",
+      },
+      {
+        type: "uint256",
+        name: "amount",
       },
     ],
   },
