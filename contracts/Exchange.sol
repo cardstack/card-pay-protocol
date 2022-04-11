@@ -225,6 +225,17 @@ contract Exchange is Ownable, Versionable {
     uint256 ten = 10;
     uint256 observedDriftPercentage = (drift * (ten**exchangeRateDecimals())) /
       actualRate;
+
+    // Only allow rate to drift if oracle is not snapped to USD
+    if (observedDriftPercentage > 0) {
+      bytes32 key = keccak256(bytes(IERC677(token).symbol()));
+      if (exchanges[key].exists) {
+        IPriceOracle oracle = IPriceOracle(exchanges[key].feed);
+        if (oracle.isSnappedToUSD()) {
+          return false;
+        }
+      }
+    }
     return observedDriftPercentage <= rateDriftPercentage;
   }
 
