@@ -565,12 +565,14 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     }
 
     // refund the supplier any excess funds that they provided
-    if (
-      amountReceived > neededAmount &&
+    if (amountReceived > neededAmount) {
       // check to make sure ownerSafe address is a depot, so we can ensure it's
-      // a trusted contract
-      SupplierManager(supplierManager).safes(depot) != address(0)
-    ) {
+      // a trusted contract. Otherwise, revert to prevent caller losing funds
+      require(
+        SupplierManager(supplierManager).safes(depot) != address(0),
+        "Excessive funds sent for requested amounts"
+      );
+
       // the owner safe is a trusted contract (gnosis safe)
       IERC677(token).safeTransfer(depot, amountReceived - neededAmount);
     }
