@@ -45,7 +45,7 @@
     "deploy:localhost:config-only": "env HARDHAT_NETWORK=localhost yarn deploy:config-only",
     "deploy:localhost:config:manual-feeds": "env HARDHAT_NETWORK=localhost yarn deploy:config:manual-feeds",
     "deploy:localhost:config:version": "env HARDHAT_NETWORK=localhost yarn deploy:config:version",
-    "deploy:smoketest": "yarn deploy:smoketest:upgrade && yarn deploy:smoketest:config",
+    "deploy:smoketest": "yarn deploy:smoketest:upgrade && env BRIDGE_MEDIATOR=0xd1e46b8a371AF04Ce74c993B325b844ef0f48b16 RELAY_SERVER_TX_SENDER=0x76E2cFc1F5Fa8F6a5b3fC4c8F4788F0116861F9B yarn deploy:smoketest:config",
     "deploy:smoketest:upgrade": "rm -f .openzeppelin/addresses-localhost.json .openzeppelin/unknown-31337.json && yarn deploy:localhost:contracts && yarn deploy:localhost:contracts",
     "deploy:smoketest:config": "rm -f .openzeppelin/addresses-localhost.json .openzeppelin/unknown-31337.json && yarn deploy:localhost",
     "deploy:fork": "env HARDHAT_NETWORK=localhost DO_NOT_SET_THIS_ENV_VAR____IS_HARDHAT_CI=true yarn deploy:contracts",
