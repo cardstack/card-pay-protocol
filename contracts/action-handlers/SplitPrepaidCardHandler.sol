@@ -7,8 +7,11 @@ import "../token/IERC677.sol";
 import "../PrepaidCardManager.sol";
 import "../TokenManager.sol";
 import "../VersionManager.sol";
+import "../libraries/SafeERC677.sol";
 
 contract SplitPrepaidCardHandler is Ownable, Versionable {
+  using SafeERC677 for IERC677;
+
   address public actionDispatcher;
   address public prepaidCardManagerAddress;
   address public tokenManagerAddress;
@@ -43,11 +46,24 @@ contract SplitPrepaidCardHandler is Ownable, Versionable {
 
   /**
    * @dev onTokenTransfer(ERC677) - this is the ERC677 token transfer callback.
-   * handle using a prepaid card to create more prepaid cards
+   *
+   * This will receive a payment from a prepaid card, and split it to create more
+   * prepaid cards.
+   *
+   * See SplitPrepaidCardHandler in README for more information.
+   *
    * @param from the token sender (should be the revenue pool)
    * @param amount the amount of tokens being transferred
-   * @param data the data encoded as (address prepaidCard, uint256 spendAmount, bytes actionData)
-   * where actionData is encoded as (uint256[] issuingTokenAmounts, uint256[] spendAmounts, string customizatoinDID, address marketAddress)
+   * @param data encoded as (
+   *  address prepaidCard,
+   *  uint256 spendAmount,
+   *  bytes actionData, encoded as (
+   *    uint256[] issuingTokenAmounts,
+   *    uint256[] spendAmounts,
+   *    string customizationDID,
+   *    address marketAddress
+   *  )
+   * )
    */
   function onTokenTransfer(
     address payable from,
@@ -93,18 +109,19 @@ contract SplitPrepaidCardHandler is Ownable, Versionable {
       customizationDID
     );
 
-    return
-      IERC677(msg.sender).transferAndCall(
-        prepaidCardManagerAddress,
-        amount,
-        abi.encode(
-          owner,
-          issuingTokenAmounts,
-          spendAmounts,
-          customizationDID,
-          marketAddress == address(0) ? defaultMarketAddress : marketAddress
-        )
-      );
+    IERC677(msg.sender).safeTransferAndCall(
+      prepaidCardManagerAddress,
+      amount,
+      abi.encode(
+        owner,
+        issuingTokenAmounts,
+        spendAmounts,
+        customizationDID,
+        marketAddress == address(0) ? defaultMarketAddress : marketAddress
+      )
+    );
+
+    return true;
   }
 
   function cardpayVersion() external view returns (string memory) {

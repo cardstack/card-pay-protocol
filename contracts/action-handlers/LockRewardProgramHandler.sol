@@ -36,9 +36,25 @@ contract LockRewardProgramHandler is Ownable, Versionable {
     return true;
   }
 
+  /**
+   * @dev onTokenTransfer(ERC677) - this is the ERC677 token transfer callback.
+   *
+   * This toggles the lock status of the reward program.
+   *
+   * See LockRewardProgramHandler in README for more information.
+   *
+   * @param from the token sender (should be the action dispatcher)
+   * @param data encoded as: (
+   *  address prepaidCard,
+   *  uint256 spendAmount (not used here),
+   *  bytes actionData, encoded as: (
+   *    address rewardProgramID
+   *   )
+   *  )
+   */
   function onTokenTransfer(
     address payable from,
-    uint256, // amount
+    uint256 amount,
     bytes calldata data
   ) external returns (bool) {
     require(
@@ -49,6 +65,8 @@ contract LockRewardProgramHandler is Ownable, Versionable {
       from == actionDispatcher,
       "can only accept tokens from action dispatcher"
     );
+    require(amount == 0, "amount must be 0");
+
     (address payable prepaidCard, , bytes memory actionData) = abi.decode(
       data,
       (address, uint256, bytes)

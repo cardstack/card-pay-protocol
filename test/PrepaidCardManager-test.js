@@ -947,6 +947,9 @@ contract("PrepaidCardManager", (accounts) => {
         0
       );
 
+      let usedEvents = safeTx.logs.filter((e) => e.event == "PrepaidCardUsed");
+      expect(usedEvents[0].args.card).to.eq(prepaidCards[1].address);
+
       let cards = await getGnosisSafeFromEventLog(
         safeTx,
         prepaidCardManager.address

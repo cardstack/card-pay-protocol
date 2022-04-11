@@ -34,6 +34,13 @@ contract Exchange is Ownable, Versionable {
     address _versionManager,
     string calldata _cardTokenSymbol
   ) external onlyOwner {
+    // For stable coins that use the USD snapping logic, 0% is suitable and
+    // for other non-stable coins, up to 1% is fine.
+    require(
+      _rateDriftPercentage <= 1000000,
+      "rate drift percentage must be between 0 and 1%"
+    );
+
     rateDriftPercentage = _rateDriftPercentage;
     versionManager = _versionManager;
     cardTokenSymbol = _cardTokenSymbol;

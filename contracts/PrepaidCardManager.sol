@@ -4,6 +4,8 @@ pragma abicoder v1;
 import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 import "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
 
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+
 import "./core/Ownable.sol";
 
 import "./token/IERC677.sol";
@@ -18,6 +20,7 @@ import "./VersionManager.sol";
 
 contract PrepaidCardManager is Ownable, Versionable, Safe {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
+  using SafeERC20Upgradeable for IERC677;
 
   struct CardDetail {
     address issuer;
@@ -75,6 +78,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     bytes data,
     bytes ownerSignature
   );
+  event PrepaidCardUsed(address card);
 
   bytes4 public constant SWAP_OWNER = 0xe318b52b; //swapOwner(address,address,address)
   bytes4 public constant TRANSFER_AND_CALL = 0x4000aea0; //transferAndCall(address,uint256,bytes)
@@ -179,10 +183,22 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
   }
 
   /**
-   * @dev onTokenTransfer(ERC677) - call when token send this contract.
-   * @param from Supplier or Prepaid card address
-   * @param amount number token them transfer.
-   * @param data data encoded
+   * @dev onTokenTransfer(ERC677) - this is the ERC677 token transfer callback.
+   *
+   * When tokens are sent to this contract, this function will create multiple
+   * prepaid cards as gnosis safes.
+   *
+   * See PrepaidCardManager in README for more information.
+   *
+   * @param from supplier or Prepaid card address
+   * @param amount number of tokens sent
+   * @param data encoded as (
+   *  address owner (supplier's address),
+   *  uint256[] issuingTokenAmounts (array of issuing token amounts to fund the creation of the prepaid cards),
+   *  uint256[] spendAmounts (array of spend amounts that represent the desired face value (for reporting only)),
+   *  string customizationDID (DID of prepaid card customization data),
+   *  address marketAddress (prepaid card market address)
+   * )
    */
   function onTokenTransfer(
     address from, // solhint-disable-line no-unused-vars
@@ -232,6 +248,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     returns (bool)
   {
     hasBeenUsed[prepaidCard] = true;
+    emit PrepaidCardUsed(prepaidCard);
     return true;
   }
 
@@ -541,7 +558,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
       SupplierManager(supplierManager).safes(depot) != address(0)
     ) {
       // the owner safe is a trusted contract (gnosis safe)
-      IERC677(token).transfer(depot, amountReceived - neededAmount);
+      IERC677(token).safeTransfer(depot, amountReceived - neededAmount);
     }
 
     return true;
@@ -582,10 +599,10 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     uint256 _gasFee = gasFee(token);
     if (gasFeeReceiver != address(0) && _gasFee > 0) {
       // The gasFeeReceiver is a trusted address that we control
-      IERC677(token).transfer(gasFeeReceiver, _gasFee);
+      IERC677(token).safeTransfer(gasFeeReceiver, _gasFee);
     }
     // The card is a trusted contract (gnosis safe)
-    IERC677(token).transfer(card, issuingTokenAmount - _gasFee);
+    IERC677(token).safeTransfer(card, issuingTokenAmount - _gasFee);
 
     emit CreatePrepaidCard(
       owner,
