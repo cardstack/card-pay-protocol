@@ -20,20 +20,22 @@ async function main() {
       "0x" + (await ethers.provider.getStorageAt(proxy, IMPL_SLOT)).slice(26);
 
     console.log("Verifying", contractName, "at", implementationAddress);
-    let alreadyVerified = await isVerifiedBlockscout(implementationAddress);
-    if (alreadyVerified) {
-      console.log("Already verified, skipping!");
-    } else {
-      await retry(
-        async () => {
-          await hardhat.run("verify:verify", {
-            address: implementationAddress,
-            constructorArguments: [],
-          });
-        },
-        { retries: 4, minTimeout: 10000 }
-      );
-    }
+    await retry(
+      async () => {
+        let alreadyVerified = await isVerifiedBlockscout(implementationAddress);
+
+        if (alreadyVerified) {
+          console.log("Already verified, skipping!");
+          return;
+        }
+
+        await hardhat.run("verify:verify", {
+          address: implementationAddress,
+          constructorArguments: [],
+        });
+      },
+      { retries: 4, minTimeout: 10000 }
+    );
   }
 }
 
