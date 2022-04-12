@@ -1,7 +1,6 @@
 const glob = require("glob");
 const difference = require("lodash/difference");
 const { writeJSONSync, readJSONSync, existsSync } = require("node-fs-extra");
-const { verifyImpl } = require("../../lib/verify");
 
 const hre = require("hardhat");
 
@@ -259,7 +258,10 @@ async function main() {
     ]);
     for (let impl of unverifiedImpls) {
       if (!skipVerify) {
-        await verifyImpl(contractName, impl);
+        await hre.run("verify:verify", {
+          address: impl,
+          constructorArguments: [],
+        });
       }
       newImpls.push(impl);
       reverify.push({ name: contractName, address: impl });
@@ -278,7 +280,7 @@ Deployed Contracts:`);
 Implementation contract verification commands:`);
     for (let { name, address } of reverify) {
       console.log(
-        `env HARDHAT_NETWORK=${network} CONTRACT=${name}@${address} hardhat run scripts/verify.js`
+        `npx hardhat verify --network ${network} ${address} # ${name}`
       );
     }
   }

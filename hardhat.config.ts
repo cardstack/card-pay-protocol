@@ -9,6 +9,7 @@ import "@openzeppelin/hardhat-upgrades";
 import "hardhat-contract-sizer";
 import "hardhat-watcher";
 import "solidity-coverage";
+import "@nomiclabs/hardhat-etherscan";
 import "./lib/hardhat-error-on-compiler-warnings";
 import "./lib/hardhat-use-local-compiler";
 
@@ -155,6 +156,13 @@ let config = {
       ],
       files: ["./test"],
       verbose: true,
+    },
+  },
+
+  etherscan: {
+    apiKey: {
+      xdai: "This just has to be any non-empty string",
+      sokol: "This just has to be any non-empty string",
     },
   },
 };
