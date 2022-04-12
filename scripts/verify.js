@@ -19,6 +19,14 @@ async function main() {
     let implementationAddress =
       "0x" + (await ethers.provider.getStorageAt(proxy, IMPL_SLOT)).slice(26);
 
+    if (
+      implementationAddress === "0x0000000000000000000000000000000000000000"
+    ) {
+      // Currently only RewardSafeDelegateImplementation, but this would apply
+      // for any non upgradeable contract
+      implementationAddress = proxy;
+    }
+
     console.log("Verifying", contractName, "at", implementationAddress);
     await retry(
       async () => {
