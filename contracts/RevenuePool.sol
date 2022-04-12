@@ -2,7 +2,7 @@ pragma solidity ^0.8.9;
 pragma abicoder v1;
 
 import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
-
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "./core/Ownable.sol";
 import "./token/IERC677.sol";
 import "./token/ISPEND.sol";
@@ -15,6 +15,7 @@ import "./VersionManager.sol";
 
 contract RevenuePool is Ownable, Versionable {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
+  using SafeERC20Upgradeable for IERC677;
 
   struct RevenueBalance {
     EnumerableSetUpgradeable.AddressSet tokens;
@@ -70,11 +71,18 @@ contract RevenuePool is Ownable, Versionable {
     uint256 _merchantRegistrationFeeInSPEND,
     address _versionManager
   ) external onlyOwner {
+    require(_exchangeAddress != address(0), "exchangeAddress not set");
+    require(_merchantManager != address(0), "merchantManager not set");
+    require(_actionDispatcher != address(0), "actionDispatcher not set");
+    require(_prepaidCardManager != address(0), "prepaidCardManager not set");
     require(_merchantFeeReceiver != address(0), "merchantFeeReceiver not set");
+    require(_versionManager != address(0), "versionManager not set");
+
     require(
       _merchantRegistrationFeeInSPEND > 0,
-      "merchantRegistrationFeeInSPEND is not set"
+      "merchantRegistrationFeeInSPEND not set"
     );
+
     merchantManager = _merchantManager;
     actionDispatcher = _actionDispatcher;
     exchangeAddress = _exchangeAddress;
@@ -99,6 +107,7 @@ contract RevenuePool is Ownable, Versionable {
       MerchantManager(merchantManager).isMerchantSafe(msg.sender),
       "caller is not a merchant safe"
     );
+    require(payableToken != address(0), "invalid token");
     return _claimRevenue(msg.sender, payableToken, amount);
   }
 
@@ -170,7 +179,8 @@ contract RevenuePool is Ownable, Versionable {
     // transfer payable token from revenue pool to merchant's safe address. The
     // merchant's safe address is a gnosis safe contract, created by
     // registerMerchant(), so this is a trusted contract transfer
-    IERC677(token).transfer(merchantSafe, amount);
+
+    IERC677(token).safeTransfer(merchantSafe, amount);
 
     emit MerchantClaim(merchantSafe, token, amount);
     return true;

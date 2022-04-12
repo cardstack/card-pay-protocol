@@ -23,6 +23,11 @@ contract RemovePrepaidCardInventoryHandler is Ownable, Versionable {
     address _tokenManagerAddress,
     address _versionManager
   ) external onlyOwner returns (bool) {
+    require(_actionDispatcher != address(0), "actionDispatcher not set");
+    require(_prepaidCardManager != address(0), "prepaidCardManager not set");
+    require(_tokenManagerAddress != address(0), "tokenManagerAddress not set");
+    require(_versionManager != address(0), "versionManager not set");
+
     actionDispatcher = _actionDispatcher;
     prepaidCardManagerAddress = _prepaidCardManager;
     tokenManagerAddress = _tokenManagerAddress;
@@ -33,14 +38,22 @@ contract RemovePrepaidCardInventoryHandler is Ownable, Versionable {
 
   /**
    * @dev onTokenTransfer(ERC677) - this is the ERC677 token transfer callback.
-   * handle setting prepaid cards in market inventory
+   *
+   * This handles the removal of a prepaid card from the inventory.
+   *
+   * See RemovePrepaidCardInventoryHandler in README for more information.
+   *
    * @param from the token sender (should be the revenue pool)
-   * @param data the data encoded as (address prepaidCard, uint256 spendAmount, bytes actionData)
-   * where actionData is encoded as (address[] prepaidCards, address marketAddress)
+   * @param data encoded as:
+   *  address prepaidCard,
+   *  uint256 spendAmount,
+   *  bytes actionData, encoded as:
+   *    address[] prepaidCards,
+   *    address marketAddress
    */
   function onTokenTransfer(
     address payable from,
-    uint256, // amount
+    uint256 amount,
     bytes calldata data
   ) external returns (bool) {
     require(
@@ -51,6 +64,8 @@ contract RemovePrepaidCardInventoryHandler is Ownable, Versionable {
       from == actionDispatcher,
       "can only accept tokens from action dispatcher"
     );
+    require(amount == 0, "amount must be 0");
+
     (address payable prepaidCard, , bytes memory actionData) = abi.decode(
       data,
       (address, uint256, bytes)

@@ -36,6 +36,11 @@ contract SupplierManager is Ownable, Versionable, Safe {
     address _gsProxyFactory,
     address _versionManager
   ) external onlyOwner returns (bool) {
+    require(_bridgeUtils != address(0), "bridgeUtils not set");
+    require(_gsMasterCopy != address(0), "gsMasterCopy not set");
+    require(_gsProxyFactory != address(0), "gsProxyFactory not set");
+    require(_versionManager != address(0), "versionManager not set");
+
     bridgeUtils = _bridgeUtils;
     versionManager = _versionManager;
     Safe.setup(_gsMasterCopy, _gsProxyFactory);
@@ -60,6 +65,7 @@ contract SupplierManager is Ownable, Versionable, Safe {
   }
 
   function registerSupplier(address supplier) external returns (address) {
+    require(supplier != address(0), "invalid supplier");
     require(
       msg.sender == bridgeUtils || (owner() == _msgSender()),
       "caller is not BridgeUtils nor owner"

@@ -8,6 +8,8 @@ const ActionDispatcher = artifacts.require("ActionDispatcher");
 const TokenManager = artifacts.require("TokenManager");
 const SupplierManager = artifacts.require("SupplierManager");
 const MerchantManager = artifacts.require("MerchantManager");
+const BridgeUtils = artifacts.require("BridgeUtils");
+const PrepaidCardMarket = artifacts.require("PrepaidCardMarket");
 
 const eventABIs = require("./utils/constant/eventABIs");
 const {
@@ -59,6 +61,7 @@ contract("PrepaidCardManager", (accounts) => {
     splitPrepaidCardHandler,
     transferPrepaidCardHandler,
     merchantManager,
+    prepaidCardMarket,
     owner,
     issuer,
     customer,
@@ -100,6 +103,9 @@ contract("PrepaidCardManager", (accounts) => {
     await tokenManager.initialize(owner);
     merchantManager = await MerchantManager.new();
     await merchantManager.initialize(owner);
+    let bridgeUtils = await BridgeUtils.new();
+    await bridgeUtils.initialize(owner);
+
     customerA = findAccountBeforeAddress(
       accounts.slice(10),
       prepaidCardManager.address
@@ -143,7 +149,6 @@ contract("PrepaidCardManager", (accounts) => {
       merchantManager,
       tokenManager,
       owner,
-      prepaidCardMarket: ZERO_ADDRESS,
       exchangeAddress: exchange.address,
       spendAddress: spendToken.address,
       versionManager,
@@ -167,7 +172,7 @@ contract("PrepaidCardManager", (accounts) => {
       versionManager.address
     );
     await supplierManager.setup(
-      ZERO_ADDRESS,
+      bridgeUtils.address,
       gnosisSafeMasterCopy.address,
       proxyFactory.address,
       versionManager.address
@@ -962,6 +967,16 @@ contract("PrepaidCardManager", (accounts) => {
 
     it("can split a card (from 1 prepaid card with 2 tokens to 2 cards with 1 token each)", async () => {
       let amounts = [1, 1].map((amount) => toTokenUnit(amount).toString());
+
+      prepaidCardMarket = await PrepaidCardMarket.new();
+      await prepaidCardMarket.initialize(owner);
+      await prepaidCardMarket.setup(
+        prepaidCardManager.address,
+        actionDispatcher.address,
+        owner,
+        versionManager.address
+      );
+
       let safeTx = await splitPrepaidCard(
         prepaidCardManager,
         prepaidCards[1],
@@ -970,9 +985,12 @@ contract("PrepaidCardManager", (accounts) => {
         200,
         amounts,
         "did:cardstack:56d6fc54-d399-443b-8778-d7e4512d3a49",
-        null,
+        prepaidCardMarket.address,
         0
       );
+
+      let usedEvents = safeTx.logs.filter((e) => e.event == "PrepaidCardUsed");
+      expect(usedEvents[0].args.card).to.eq(prepaidCards[1].address);
 
       let cards = await getGnosisSafeFromEventLog(
         safeTx,
@@ -980,7 +998,8 @@ contract("PrepaidCardManager", (accounts) => {
       );
       expect(cards).to.have.lengthOf(2);
 
-      cards.forEach(async (prepaidCard, index) => {
+      let index = 0;
+      for (let prepaidCard of cards) {
         await prepaidCardManager
           .cardDetails(prepaidCard.address)
           .should.eventually.to.include({
@@ -990,13 +1009,17 @@ contract("PrepaidCardManager", (accounts) => {
               "did:cardstack:56d6fc54-d399-443b-8778-d7e4512d3a49",
           });
 
-        await prepaidCard.isOwner(issuer).should.become(true);
+        expect(await prepaidCard.getOwners()).to.have.members([
+          prepaidCardMarket.address,
+          prepaidCardManager.address,
+        ]);
         await prepaidCard
           .isOwner(prepaidCardManager.address)
           .should.become(true);
 
         shouldBeSameBalance(daicpxdToken, prepaidCard.address, amounts[index]);
-      });
+        index++;
+      }
     });
 
     it("a prepaid card cannot be split after it is transferred", async () => {

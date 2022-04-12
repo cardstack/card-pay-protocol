@@ -35,6 +35,14 @@ contract RegisterMerchantHandler is Ownable, Versionable {
     address _tokenManagerAddress,
     address _versionManager
   ) external onlyOwner returns (bool) {
+    require(_actionDispatcher != address(0), "actionDispatcher not set");
+    require(_merchantManager != address(0), "merchantManager not set");
+    require(_prepaidCardManager != address(0), "prepaidCardManager not set");
+    require(_revenuePoolAddress != address(0), "revenuePoolAddress not set");
+    require(_exchangeAddress != address(0), "exchangeAddress not set");
+    require(_tokenManagerAddress != address(0), "tokenManagerAddress not set");
+    require(_versionManager != address(0), "versionManager not set");
+
     actionDispatcher = _actionDispatcher;
     revenuePoolAddress = _revenuePoolAddress;
     prepaidCardManager = _prepaidCardManager;
@@ -48,11 +56,22 @@ contract RegisterMerchantHandler is Ownable, Versionable {
 
   /**
    * @dev onTokenTransfer(ERC677) - this is the ERC677 token transfer callback.
-   * handle a merchant registration
+   *
+   * When tokens are sent to this contract, it transfers the merchant registration fee
+   * to the merchant fee receiver, and refunds the amount in case it exceeds the fee.
+   * Then it registers the merchant by creating a new merchant safe.
+   *
+   * See RegisterMerchantHandler in README for more information.
+   *
    * @param from the token sender (should be the action dispatcher)
    * @param amount the amount of tokens being transferred
-   * @param data the data encoded as (address prepaidCard, uint256 spendAmount, bytes actionData)
-   * where actionData is encoded as (address infoDID)
+   * @param data encoded as: (
+   *  address prepaidCard,
+   *  uint256 spendAmount,
+   *  bytes actionData, encoded as: (
+   *    string infoDID
+   *  )
+   * )
    */
   function onTokenTransfer(
     address payable from,

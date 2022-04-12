@@ -6,6 +6,7 @@ const GnosisSafe = artifacts.require("GnosisSafe");
 const ActionDispatcher = artifacts.require("ActionDispatcher");
 const TokenManager = artifacts.require("TokenManager");
 const SupplierManager = artifacts.require("SupplierManager");
+const BridgeUtils = artifacts.require("BridgeUtils");
 
 const utils = require("./utils/general");
 const { INVALID_OWNER_PROVIDED } = utils.gnosisErrors;
@@ -87,6 +88,8 @@ contract("PrepaidCardMarket", (accounts) => {
     await actionDispatcher.initialize(owner);
     let tokenManager = await TokenManager.new();
     await tokenManager.initialize(owner);
+    let bridgeUtils = await BridgeUtils.new();
+    await bridgeUtils.initialize(owner);
 
     let exchange, cardcpxdToken;
     ({ daicpxdToken, cardcpxdToken, exchange } = await setupExchanges(owner));
@@ -100,7 +103,7 @@ contract("PrepaidCardMarket", (accounts) => {
     );
 
     await supplierManager.setup(
-      ZERO_ADDRESS,
+      bridgeUtils.address,
       gnosisSafeMasterCopy.address,
       proxyFactory.address,
       versionManager.address
