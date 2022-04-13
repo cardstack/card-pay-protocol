@@ -552,14 +552,19 @@ contract("PrepaidCardManager", (accounts) => {
 
       let amountToSend = toTokenUnit(50);
 
-      await expect(
-        daicpxdToken.transferAndCall(
-          prepaidCardManager.address,
-          amountToSend,
-          createCardData,
-          { from: issuer }
-        )
-      ).to.be.rejectedWith("Excessive funds sent for requested amounts");
+      await daicpxdToken.transferAndCall(
+        prepaidCardManager.address,
+        amountToSend,
+        createCardData,
+        { from: issuer }
+      );
+
+      let newBalance = await daicpxdToken.balanceOf(issuer);
+
+      expect(newBalance).to.be.bignumber.eq(
+        toTokenUnit(49),
+        "excess funds should be returned to sender"
+      );
     });
   });
 
