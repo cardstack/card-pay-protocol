@@ -31,6 +31,7 @@ contract PrepaidCardMarketV2 is Ownable, Versionable {
   address public versionManager;
   mapping(address => mapping(address => uint256)) public balance; // issuer safe address -> token -> balance
   mapping(address => address) public issuer; // issuer safe address -> issuer EOA
+  mapping(bytes32 => SKU) public skus; // sku => sku data
 
   event Setup();
   event InventoryAdded(
@@ -44,6 +45,12 @@ contract PrepaidCardMarketV2 is Ownable, Versionable {
     address issuer,
     address token,
     uint256 amount
+  );
+  event SkuAdded(
+    address issuer,
+    address issuingToken,
+    uint256 faceValue,
+    string customizationDID
   );
 
   // only owner can call setup
@@ -71,22 +78,71 @@ contract PrepaidCardMarketV2 is Ownable, Versionable {
   // need the token address (another param)
   // function addSKU() external {}
 
-  // TODO: Add removeInventory() function
-  // removeInventory (function you call on a safe) - how many tokens you wanna take back
-  // msg.sender will be the safe
-  // token address will be the 2nd parameter
-  // balance should be larger or eq to the amount
-  // token transfer into the msg.sender (erc677 transfer)
-  // emit event remove from inventory (safe, issuer, token, amount)
+  // TODO: Allow trusted provisioner (will be relay server) to call a method to
+  // create a card and transfer it to an EOA by specifying a SKU and target EOA
 
+  // function createPrepaidCard
+  // sku, eoa are the inputs
+  // from sku you get who's the issuer,
+  // tokens to create the
+
+  // additonal createprepaidsignature
+  // it is assumed the sender is the issuer but here we don't want this to be the ca
+  // add a new function where i can specify who the issuer is. Shoukd only be called by
+  // the market conctract
+  // add a new property (array) - all the contracts allowerd to create a prepaid card
+  // can be AdressSet
+
+  // when a trusted provisioner calls a method to create a card,
+  // what will the inputs be
+
+  // when a prepaid card gets created, we need to remove
+  // when a card is created and transfered
+
+  function addSKU(
+    uint256 faceValue,
+    string memory customizationDID,
+    address token
+  ) external returns (bool) {
+    require(faceValue > 0, "Face value must be greater than 0");
+    require(token != address(0), "Token address must be set");
+
+    address _issuer = issuer[msg.sender];
+    require(_issuer != address(0), "Issuer not found.");
+
+    bytes32 sku = getSKU(_issuer, token, faceValue, customizationDID);
+    require(skus[sku].issuer == address(0), "SKU already exists");
+
+    skus[sku] = SKU({
+      issuer: _issuer,
+      issuingToken: token,
+      faceValue: faceValue,
+      customizationDID: customizationDID
+    });
+
+    emit SkuAdded(_issuer, token, faceValue, customizationDID);
+
+    return true;
+  }
+
+  function getSKU(
+    address issuerAddress, // todo: better name would be just issuer but it shadows the mapping
+    address token,
+    uint256 faceValue,
+    string memory customizationDID
+  ) public pure returns (bytes32) {
+    return
+      keccak256(
+        abi.encodePacked(issuerAddress, token, faceValue, customizationDID)
+      );
+  }
+
+  // COnsider changing "inventory" to "tokens"
   function withdrawTokens(uint256 amount, address token) external {
     address _issuer = issuer[msg.sender];
+    require(_issuer != address(0), "Issuer not found");
 
     uint256 balanceForToken = balance[msg.sender][token];
-
-    console.log("widthdrawing");
-    console.log(amount);
-    console.log(balanceForToken);
 
     require(amount <= balanceForToken, "Insufficient funds for withdrawal");
 
@@ -114,7 +170,7 @@ contract PrepaidCardMarketV2 is Ownable, Versionable {
     address[] memory _owners = GnosisSafe(from).getOwners();
     bool _foundOwner = false;
 
-    // caution: block gas limit could be too high for big arrays
+    // Caution: block gas limit could be too high for big arrays
     require(_owners.length < 100, "too many safe owners");
 
     for (uint256 i = 0; i < _owners.length; i++) {

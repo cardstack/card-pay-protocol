@@ -35,9 +35,11 @@ contract("PrepaidCardMarketV2", (accounts) => {
     prepaidCardMarket,
     prepaidCardMarketV2,
     versionManager,
-    depot;
+    depot,
+    depositTokens,
+    withdrawTokens;
 
-  before(async () => {
+  beforeEach(async () => {
     owner = accounts[0];
     issuer = accounts[1];
     relayer = accounts[4];
@@ -105,40 +107,71 @@ contract("PrepaidCardMarketV2", (accounts) => {
     await daicpxdToken.mint(depot.address, toTokenUnit(1000));
 
     await cardcpxdToken.mint(depot.address, toTokenUnit(1000));
+
+    depositTokens = async (amount) => {
+      let transferAndCall = daicpxdToken.contract.methods.transferAndCall(
+        prepaidCardMarketV2.address,
+        amount,
+        AbiCoder.encodeParameters(["address"], [issuer])
+      );
+
+      let payload = transferAndCall.encodeABI();
+      let gasEstimate = await transferAndCall.estimateGas({
+        from: depot.address,
+      });
+
+      let safeTxData = {
+        to: daicpxdToken.address,
+        data: payload,
+        txGasEstimate: gasEstimate,
+        gasPrice: 1000000000,
+        txGasToken: daicpxdToken.address,
+        refundReceiver: relayer,
+      };
+
+      return await signAndSendSafeTransaction(
+        safeTxData,
+        issuer,
+        depot,
+        relayer
+      );
+    };
+
+    withdrawTokens = async (amount) => {
+      let withdrawTokens = prepaidCardMarketV2.contract.methods.withdrawTokens(
+        amount,
+        daicpxdToken.address
+      );
+
+      let payload = withdrawTokens.encodeABI();
+      let gasEstimate = await withdrawTokens.estimateGas({
+        from: depot.address,
+      });
+      let safeTxData = {
+        to: prepaidCardMarketV2.address,
+        data: payload,
+        txGasEstimate: gasEstimate,
+        gasPrice: 1000000000,
+        txGasToken: daicpxdToken.address,
+        refundReceiver: relayer,
+      };
+
+      return await signAndSendSafeTransaction(
+        safeTxData,
+        issuer,
+        depot,
+        relayer
+      );
+    };
   });
 
   describe("manage inventory", () => {
     describe("send tokens", () => {
       it(`can send tokens to the balance`, async function () {
-        let transferAndCall = daicpxdToken.contract.methods.transferAndCall(
-          prepaidCardMarketV2.address,
-          toTokenUnit(5),
-          AbiCoder.encodeParameters(["address"], [issuer])
-        );
-
-        let payload = transferAndCall.encodeABI();
-        let gasEstimate = await transferAndCall.estimateGas({
-          from: depot.address,
-        });
-
-        let safeTxData = {
-          to: daicpxdToken.address,
-          data: payload,
-          txGasEstimate: gasEstimate,
-          gasPrice: 1000000000,
-          txGasToken: daicpxdToken.address,
-          refundReceiver: relayer,
-        };
-
         let {
           safeTx,
           executionResult: { success },
-        } = await signAndSendSafeTransaction(
-          safeTxData,
-          issuer,
-          depot,
-          relayer
-        );
+        } = await depositTokens(toTokenUnit(5));
 
         expect(success).to.be.true;
 
@@ -164,44 +197,98 @@ contract("PrepaidCardMarketV2", (accounts) => {
     });
 
     describe("withdraw tokens", () => {
-      it.only("can withdraw tokens", async function () {
-        // START SETTING THE BALANCE - is there a more direct way?
-        let transferAndCall = daicpxdToken.contract.methods.transferAndCall(
-          prepaidCardMarketV2.address,
-          toTokenUnit(5),
-          AbiCoder.encodeParameters(["address"], [issuer])
+      it("can withdraw tokens", async function () {
+        await depositTokens(toTokenUnit(5));
+
+        let {
+          safeTx,
+          executionResult: { success },
+        } = await withdrawTokens(toTokenUnit(4));
+
+        expect(success).to.be.true;
+        expect(
+          await prepaidCardMarketV2.balance(depot.address, daicpxdToken.address)
+        ).to.be.bignumber.equal(toTokenUnit(1)); // We started with 5 and we withdrew 4
+
+        let [event] = getParamsFromEvent(
+          safeTx,
+          eventABIs.PREPAID_CARD_MARKET_V2_REMOVE_INVENTORY,
+          prepaidCardMarketV2.address
         );
 
-        let transferPayload = transferAndCall.encodeABI();
-        let transferGasEstimate = await transferAndCall.estimateGas({
-          from: depot.address,
-        });
+        expect(event.issuer).to.be.equal(issuer);
+        expect(event.token).to.be.equal(daicpxdToken.address);
+        expect(event.amount).to.be.equal(toWei("4"));
+        expect(event.safe).to.be.equal(depot.address);
 
-        await signAndSendSafeTransaction(
-          {
-            to: daicpxdToken.address,
-            data: transferPayload,
-            txGasEstimate: transferGasEstimate,
-            gasPrice: 1000000000,
-            txGasToken: daicpxdToken.address,
-            refundReceiver: relayer,
-          },
-          issuer,
-          depot,
-          relayer
-        );
-        // END SETTING THE BALANCE
+        // todo check the balance of the depot
+      });
+
+      it("fails when there is no issuer", async function () {
+        // This happens when we want to withdraw when no deposit has been made yet (which would set the issuer to 0)
 
         let withdrawTokens =
           prepaidCardMarketV2.contract.methods.withdrawTokens(
-            toTokenUnit(4),
+            toTokenUnit(5),
             daicpxdToken.address
           );
 
-        let payload = withdrawTokens.encodeABI();
-        let gasEstimate = await withdrawTokens.estimateGas({
+        // We're using call (https://web3js.readthedocs.io/en/v1.2.4/web3-eth-contract.html#methods-mymethod-call)
+        // which is simulating a gnosis safe transaction - it doesn't change the state.
+        // If we actually use the real gnosis safe transactions
+        // we can't see the rejection reason (problem described here: https://ethereum.stackexchange.com/questions/83528/how-can-i-get-the-revert-reason-of-a-call-in-solidity-so-that-i-can-use-it-in-th)
+        // so we resort to the call and expect it to fail.
+        await expect(
+          withdrawTokens.call({
+            from: depot.address,
+          })
+        ).to.be.rejectedWith("Issuer not found");
+      });
+
+      it("fails when there is no funds", async function () {
+        // First send some tokens, then withdraw all and try to do another withdraw
+        let {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          safeTx,
+          executionResult: { success },
+        } = await depositTokens(toTokenUnit(5));
+
+        expect(success).to.be.true;
+
+        // Withdraw all
+        await withdrawTokens(toTokenUnit(5));
+
+        // Try to withdraw again
+        // Simulate a gnosis safe transaction - more details in the other comment regarding `call`
+        withdrawTokens = prepaidCardMarketV2.contract.methods.withdrawTokens(
+          toTokenUnit(5),
+          daicpxdToken.address
+        );
+
+        await expect(
+          withdrawTokens.call({
+            from: depot.address,
+          })
+        ).to.be.rejectedWith("Insufficient funds for withdrawal");
+      });
+    });
+
+    describe("SKUs", () => {
+      it.only("can add a SKU", async function () {
+        await depositTokens(toTokenUnit(1));
+
+        let addSku = prepaidCardMarketV2.contract.methods.addSKU(
+          "1000",
+          "did:cardstack:split-inventory-test",
+          daicpxdToken.address
+        );
+
+        let payload = addSku.encodeABI();
+
+        let gasEstimate = await addSku.estimateGas({
           from: depot.address,
         });
+
         let safeTxData = {
           to: prepaidCardMarketV2.address,
           data: payload,
@@ -222,47 +309,19 @@ contract("PrepaidCardMarketV2", (accounts) => {
         );
 
         expect(success).to.be.true;
-        expect(
-          await prepaidCardMarketV2.balance(depot.address, daicpxdToken.address)
-        ).to.be.bignumber.equal(toTokenUnit(1)); // We withdrew 4 tokens, started with 5
 
         let [event] = getParamsFromEvent(
           safeTx,
-          eventABIs.PREPAID_CARD_MARKET_V2_REMOVE_INVENTORY,
+          eventABIs.PREPAID_CARD_MARKET_V2_SKU_ADDED,
           prepaidCardMarketV2.address
         );
 
         expect(event.issuer).to.be.equal(issuer);
         expect(event.token).to.be.equal(daicpxdToken.address);
-        expect(event.amount).to.be.equal(toWei("4"));
-        expect(event.safe).to.be.equal(depot.address);
-      });
-
-      it.only("fails when there is no balance", async function () {
-        let withdrawTokens =
-          prepaidCardMarketV2.contract.methods.withdrawTokens(
-            toTokenUnit(100),
-            daicpxdToken.address
-          );
-
-        let payload = withdrawTokens.encodeABI();
-        let gasEstimate = await withdrawTokens.estimateGas({
-          from: depot.address,
-        });
-        let safeTxData = {
-          to: prepaidCardMarketV2.address,
-          data: payload,
-          txGasEstimate: gasEstimate,
-          gasPrice: 1000000000,
-          txGasToken: daicpxdToken.address,
-          refundReceiver: relayer,
-        };
-
-        // FIXME: the VM exception happens but it's not caught by the test
-        // error: VM Exception while processing transaction: reverted with reason string 'Insufficient funds for withdrawal'
-        await expect(
-          signAndSendSafeTransaction(safeTxData, issuer, depot, relayer)
-        ).to.be.reverted;
+        expect(event.faceValue).to.be.equal("1000");
+        expect(event.customizationDID).to.be.equal(
+          "did:cardstack:split-inventory-test"
+        );
       });
     });
   });

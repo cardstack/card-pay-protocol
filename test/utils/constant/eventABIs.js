@@ -330,6 +330,29 @@ const eventABIs = {
       },
     ],
   },
+  PREPAID_CARD_MARKET_V2_SKU_ADDED: {
+    topic: web3EthAbi.encodeEventSignature(
+      "SkuAdded(address,address,uint256,string)"
+    ),
+    abis: [
+      {
+        type: "address",
+        name: "issuer",
+      },
+      {
+        type: "address",
+        name: "token",
+      },
+      {
+        type: "uint256",
+        name: "faceValue",
+      },
+      {
+        type: "string",
+        name: "customizationDID",
+      },
+    ],
+  },
 };
 
 module.exports = eventABIs;
