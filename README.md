@@ -102,6 +102,11 @@ The `PayRewardTokensHandler` is a contract that handles the `payRewardTokens` ac
 ### Exchange
 The `Exchange` is a contract that handles converting to and from §SPEND tokens from any other CPXD token, as well as getting the current USD rate for any of the CPXD tokens (which accompanies calls to `PrepaidCardManager.send()`). This contract is also responsible to determining if the USD rate that is being requested by `PrepaidCardManager.send()` calls falls within an allowable margin. We use the idea of a "rate lock" as part of the way in which callers call the `PrepaidCardManager.send()` function. The reason being is that these calls are normally issued from a gnosis relay server in 2 steps. The first step is to get an estimation of the transaction and then generate a signature, and the second step is to issue the transaction with the data from the transaction estimate along with the signature. In between those 2 steps the USD rate for the prepaid card's issuing token may have changed. To accommodate USD rate fluctuations the caller is allowed to specify the USD rate they used as part of the transaction estimation. This contract will then determine if that requested rate is actually allowable given the current USD rate and a configured "rate drift" percentage. If the requested rate falls outside of the "rate drift" percentage, then the transaction will be reverted. To accommodate the fact that we allow the caller to provide the USD rate to use, we have a pessimistic prepaid card face value calculation that we employ in `PrepaidCardManager.faceValue()` which uses the most pessimistic rate allowable given the "rate drift percentage" to calculate the prepaid card's face value after it's been used at least one time.
 
+The Exchange contract assumes that all oracles use a uint 8 to represent their exchange rate, and in fact we assert this during conversion to ensure that the exchange rate logic converts correctly.
+
+If an oracle changes their decimal precision from 8 bits, exchange will fail and transactions will revert, and this is expected behaviour. We only use oracles that have this level of precision to provide exchange rate data to the protocol.
+
+
 ### MerchantManager
 The `MerchantManager` contract is used to create gnosis safes for *Merchants* and establish mapping between the *Merchant's* EOA address and their safe address.
 
