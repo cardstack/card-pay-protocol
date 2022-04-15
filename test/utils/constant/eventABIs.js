@@ -353,6 +353,29 @@ const eventABIs = {
       },
     ],
   },
+  PREPAID_CARD_MARKET_V2_ASK_SET: {
+    topic: web3EthAbi.encodeEventSignature(
+      "AskSet(address,address,bytes32,uint256)"
+    ),
+    abis: [
+      {
+        type: "address",
+        name: "issuer",
+      },
+      {
+        type: "address",
+        name: "issuingToken",
+      },
+      {
+        type: "bytes32",
+        name: "sku",
+      },
+      {
+        type: "uint256",
+        name: "askPrice",
+      },
+    ],
+  },
 };
 
 module.exports = eventABIs;

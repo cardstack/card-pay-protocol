@@ -274,12 +274,12 @@ contract("PrepaidCardMarketV2", (accounts) => {
     });
 
     describe("SKUs", () => {
-      it.only("can add a SKU", async function () {
+      it("can add a SKU", async function () {
         await depositTokens(toTokenUnit(1));
 
         let addSku = prepaidCardMarketV2.contract.methods.addSKU(
           "1000",
-          "did:cardstack:split-inventory-test",
+          "did:cardstack:test",
           daicpxdToken.address
         );
 
@@ -319,9 +319,81 @@ contract("PrepaidCardMarketV2", (accounts) => {
         expect(event.issuer).to.be.equal(issuer);
         expect(event.token).to.be.equal(daicpxdToken.address);
         expect(event.faceValue).to.be.equal("1000");
-        expect(event.customizationDID).to.be.equal(
-          "did:cardstack:split-inventory-test"
+        expect(event.customizationDID).to.be.equal("did:cardstack:test");
+      });
+    });
+
+    describe("Asks", () => {
+      it.only("can set an ask price", async function () {
+        await depositTokens(toTokenUnit(5));
+
+        // Add SKU
+        let addSku = prepaidCardMarketV2.contract.methods.addSKU(
+          "5000",
+          "did:cardstack:test",
+          daicpxdToken.address
         );
+
+        let gasEstimate = await addSku.estimateGas({
+          from: depot.address,
+        });
+
+        let safeTxData = {
+          to: prepaidCardMarketV2.address,
+          data: addSku.encodeABI(),
+          txGasEstimate: gasEstimate,
+          gasPrice: 1000000000,
+          txGasToken: daicpxdToken.address,
+          refundReceiver: relayer,
+        };
+
+        await signAndSendSafeTransaction(safeTxData, issuer, depot, relayer);
+
+        // End adding SKU
+
+        let setAsk = prepaidCardMarketV2.contract.methods.setAsk(
+          issuer,
+          "0xc98d1de40e4e64f3553b816a7c583e14f788b2bdfd87eac366f5597b63bb18f9",
+          10
+        );
+
+        gasEstimate = await setAsk.estimateGas({
+          from: depot.address,
+        });
+
+        safeTxData = {
+          to: prepaidCardMarketV2.address,
+          data: setAsk.encodeABI(),
+          txGasEstimate: gasEstimate,
+          gasPrice: 1000000000,
+          txGasToken: daicpxdToken.address,
+          refundReceiver: relayer,
+        };
+
+        let {
+          safeTx,
+          executionResult: { success },
+        } = await signAndSendSafeTransaction(
+          safeTxData,
+          issuer,
+          depot,
+          relayer
+        );
+
+        expect(success).to.be.true;
+
+        let [event] = getParamsFromEvent(
+          safeTx,
+          eventABIs.PREPAID_CARD_MARKET_V2_ASK_SET,
+          prepaidCardMarketV2.address
+        );
+
+        expect(event.issuer).to.be.equal(issuer);
+        expect(event.issuingToken).to.be.equal(daicpxdToken.address);
+        expect(event.sku).to.be.equal(
+          "0xc98d1de40e4e64f3553b816a7c583e14f788b2bdfd87eac366f5597b63bb18f9"
+        );
+        expect(event.askPrice).to.be.equal("10");
       });
     });
   });

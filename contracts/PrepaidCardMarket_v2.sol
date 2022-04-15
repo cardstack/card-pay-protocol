@@ -32,6 +32,7 @@ contract PrepaidCardMarketV2 is Ownable, Versionable {
   mapping(address => mapping(address => uint256)) public balance; // issuer safe address -> token -> balance
   mapping(address => address) public issuer; // issuer safe address -> issuer EOA
   mapping(bytes32 => SKU) public skus; // sku => sku data
+  mapping(bytes32 => uint256) public asks; // sku => ask price (in issuing token)
 
   event Setup();
   event InventoryAdded(
@@ -51,6 +52,18 @@ contract PrepaidCardMarketV2 is Ownable, Versionable {
     address issuingToken,
     uint256 faceValue,
     string customizationDID
+  );
+  event AskSet(
+    address issuer,
+    address issuingToken,
+    bytes32 sku,
+    uint256 askPrice
+  );
+  event ProvisionedPrepaidCard(
+    address prepaidCard,
+    address customer,
+    bytes32 sku,
+    uint256 askPrice
   );
 
   // only owner can call setup
@@ -98,6 +111,19 @@ contract PrepaidCardMarketV2 is Ownable, Versionable {
 
   // when a prepaid card gets created, we need to remove
   // when a card is created and transfered
+
+  function setAsk(
+    address issuerAddress,
+    bytes32 sku,
+    uint256 askPrice
+  ) external returns (bool) {
+    require(skus[sku].issuer != address(0), "Non-existent SKU");
+    require(skus[sku].issuer == issuerAddress, "SKU not owned by issuer");
+    asks[sku] = askPrice;
+
+    emit AskSet(issuerAddress, skus[sku].issuingToken, sku, askPrice);
+    return true;
+  }
 
   function addSKU(
     uint256 faceValue,
