@@ -37,7 +37,8 @@ contract("PrepaidCardMarketV2", (accounts) => {
     versionManager,
     depot,
     depositTokens,
-    withdrawTokens;
+    withdrawTokens,
+    addSKU;
 
   beforeEach(async () => {
     owner = accounts[0];
@@ -163,6 +164,30 @@ contract("PrepaidCardMarketV2", (accounts) => {
         relayer
       );
     };
+
+    addSKU = async (faceValue, did) => {
+      let addSku = prepaidCardMarketV2.contract.methods.addSKU(
+        faceValue,
+        did,
+        daicpxdToken.address
+      );
+
+      let gasEstimate = await addSku.estimateGas({
+        from: depot.address,
+      });
+
+      let safeTxData = {
+        to: prepaidCardMarketV2.address,
+        data: addSku.encodeABI(),
+        txGasEstimate: gasEstimate,
+        gasPrice: 1000000000,
+        txGasToken: daicpxdToken.address,
+        refundReceiver: relayer,
+      };
+
+      await signAndSendSafeTransaction(safeTxData, issuer, depot, relayer);
+    };
+  });
   });
 
   describe("manage inventory", () => {
