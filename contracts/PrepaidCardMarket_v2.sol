@@ -19,6 +19,7 @@ contract PrepaidCardMarketV2 is Ownable, Versionable {
   using SafeERC20Upgradeable for IERC677;
 
   struct SKU {
+    address issuerSafe;
     address issuer;
     address issuingToken;
     uint256 faceValue;
@@ -112,6 +113,21 @@ contract PrepaidCardMarketV2 is Ownable, Versionable {
   // when a prepaid card gets created, we need to remove
   // when a card is created and transfered
 
+
+  function getQuantity(bytes32 sku) public view returns (uint256) {
+    PrepaidCardManager prepaidCardManager = PrepaidCardManager(
+      prepaidCardManagerAddress
+    );
+
+    address token = skus[sku].issuingToken;
+    uint256 faceValue = skus[sku].faceValue;
+    address issuerSafe = skus[sku].issuerSafe;
+
+    uint256 price = prepaidCardManager.priceForFaceValue(token, faceValue);
+
+    return balance[issuerSafe][token] / price;
+  }
+
   function setAsk(
     address issuerAddress,
     bytes32 sku,
@@ -140,6 +156,7 @@ contract PrepaidCardMarketV2 is Ownable, Versionable {
     require(skus[sku].issuer == address(0), "SKU already exists");
 
     skus[sku] = SKU({
+      issuerSafe: msg.sender,
       issuer: _issuer,
       issuingToken: token,
       faceValue: faceValue,

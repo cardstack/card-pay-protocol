@@ -323,6 +323,17 @@ contract("PrepaidCardMarketV2", (accounts) => {
       });
     });
 
+    describe("getQuantity", () => {
+      it.only("can get the quantity of a SKU", async function () {
+        await depositTokens(toTokenUnit(500));
+        await addSKU("5000", "did:cardstack:test", daicpxdToken.address);
+        let quantity = await prepaidCardMarketV2.getQuantity(
+          "0xc98d1de40e4e64f3553b816a7c583e14f788b2bdfd87eac366f5597b63bb18f9"
+        );
+        expect(quantity).to.equal("9");
+      });
+    });
+
     describe("Asks", () => {
       it.only("can set an ask price", async function () {
         await depositTokens(toTokenUnit(5));
