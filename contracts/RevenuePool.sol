@@ -71,18 +71,23 @@ contract RevenuePool is Ownable, Versionable {
     uint256 _merchantRegistrationFeeInSPEND,
     address _versionManager
   ) external onlyOwner {
+    require(_exchangeAddress != address(0), "exchangeAddress not set");
+    require(_merchantManager != address(0), "merchantManager not set");
+    require(_actionDispatcher != address(0), "actionDispatcher not set");
+    require(_prepaidCardManager != address(0), "prepaidCardManager not set");
     require(_merchantFeeReceiver != address(0), "merchantFeeReceiver not set");
+    require(_versionManager != address(0), "versionManager not set");
     require(
       _merchantRegistrationFeeInSPEND > 0,
-      "merchantRegistrationFeeInSPEND is not set"
-    );
-    require(
-      _merchantFeePercentage <= 10000000,
-      "merchantFeePercentage is above the maximum"
+      "merchantRegistrationFeeInSPEND not set"
     );
     require(
       _merchantRegistrationFeeInSPEND <= 10000,
       "merchantRegistrationFeeInSPEND is above the maximum"
+    );
+    require(
+      _merchantFeePercentage <= 10000000,
+      "merchantFeePercentage is above the maximum"
     );
     merchantManager = _merchantManager;
     actionDispatcher = _actionDispatcher;
@@ -108,6 +113,7 @@ contract RevenuePool is Ownable, Versionable {
       MerchantManager(merchantManager).isMerchantSafe(msg.sender),
       "caller is not a merchant safe"
     );
+    require(payableToken != address(0), "invalid token");
     return _claimRevenue(msg.sender, payableToken, amount);
   }
 

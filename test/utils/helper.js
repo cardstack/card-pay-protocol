@@ -34,6 +34,7 @@ const UpdateRewardProgramAdminHandler = artifacts.require(
 );
 const PayRewardTokensHandler = artifacts.require("PayRewardTokensHandler");
 const VersionManager = artifacts.require("VersionManager");
+const PrepaidCardMarket = artifacts.require("PrepaidCardMarket");
 
 const { toBN, toChecksumAddress, randomHex } = require("web3-utils");
 const eventABIs = require("./constant/eventABIs");
@@ -242,11 +243,15 @@ exports.setupVersionManager = async function (owner, version = "1.0.0") {
   return versionManager;
 };
 
-exports.setupExchanges = async function (owner, versionManager) {
+exports.setupExchanges = async function (
+  owner,
+  versionManager,
+  canSnapToUSD = false
+) {
   let daicpxdToken = await ERC677Token.new();
   let versionManagerAddress = versionManager
     ? versionManager.address
-    : ZERO_ADDRESS;
+    : (await exports.setupVersionManager(owner)).address;
   await daicpxdToken.initialize("DAI (CPXD)", "DAI.CPXD", 18, owner);
 
   let cardcpxdToken = await ERC677Token.new();
@@ -266,7 +271,7 @@ exports.setupExchanges = async function (owner, versionManager) {
     daiFeed.address,
     ethFeed.address,
     daiFeed.address,
-    false,
+    canSnapToUSD,
     0,
     versionManagerAddress
   );
@@ -330,7 +335,7 @@ exports.addActionHandlers = async function ({
 
   let versionManagerAddress = versionManager
     ? versionManager.address
-    : ZERO_ADDRESS;
+    : (await exports.setupVersionManager(owner)).address;
 
   if (
     owner &&
@@ -379,11 +384,22 @@ exports.addActionHandlers = async function ({
   if (owner && actionDispatcher && prepaidCardManager && tokenManager) {
     splitPrepaidCardHandler = await SplitPrepaidCardHandler.new();
     await splitPrepaidCardHandler.initialize(owner);
+    if (!prepaidCardMarket) {
+      prepaidCardMarket = await PrepaidCardMarket.new();
+      await prepaidCardMarket.initialize(owner);
+      await prepaidCardMarket.setup(
+        prepaidCardManager.address,
+        actionDispatcher.address,
+        owner,
+        versionManager.address
+      );
+    }
+
     await splitPrepaidCardHandler.setup(
       actionDispatcher.address,
       prepaidCardManager.address,
       tokenManager.address,
-      prepaidCardMarket?.address ?? ZERO_ADDRESS,
+      prepaidCardMarket.address,
       versionManagerAddress
     );
   }
@@ -724,7 +740,7 @@ const createPrepaidCards = async function (
   // downstream and more opaquely
   let gasEstimate = await issuingToken.contract.methods
     .transferAndCall(prepaidCardManager.address, amountToSend, createCardData)
-    .estimateGas();
+    .estimateGas({ from: depot.address });
 
   let safeTxData = {
     to: issuingToken.address,

@@ -30,6 +30,11 @@ contract BridgeUtils is Ownable, Versionable {
     address _bridgeMediator,
     address _versionManager
   ) external onlyOwner returns (bool) {
+    require(_exchange != address(0), "exchange not set");
+    require(_tokenManager != address(0), "tokenManager not set");
+    require(_bridgeMediator != address(0), "bridgeMediator not set");
+    require(_versionManager != address(0), "versionManager not set");
+
     exchange = _exchange;
     supplierManager = _supplierManager;
     tokenManager = _tokenManager;
@@ -45,6 +50,7 @@ contract BridgeUtils is Ownable, Versionable {
     onlyBridgeMediator
     returns (bool)
   {
+    require(tokenAddr != address(0), "invalid token address");
     return _addToken(tokenAddr);
   }
 
@@ -53,6 +59,7 @@ contract BridgeUtils is Ownable, Versionable {
     onlyBridgeMediator
     returns (address)
   {
+    require(supplier != address(0), "invalid supplier address");
     return SupplierManager(supplierManager).registerSupplier(supplier);
   }
 

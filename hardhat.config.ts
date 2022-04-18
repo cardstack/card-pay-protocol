@@ -9,6 +9,7 @@ import "@openzeppelin/hardhat-upgrades";
 import "hardhat-contract-sizer";
 import "hardhat-watcher";
 import "solidity-coverage";
+import "@nomiclabs/hardhat-etherscan";
 import "./lib/hardhat-error-on-compiler-warnings";
 import "./lib/hardhat-use-local-compiler";
 
@@ -19,7 +20,8 @@ if (process.env.HARDHAT_FORKING) {
   // To read old blocks for events for migration test an archive node is needed
   XDAI_RPC_URL = "https://xdai-archive.blockscout.com";
 } else {
-  XDAI_RPC_URL = "https://rpc.xdaichain.com/";
+  XDAI_RPC_URL =
+    "https://polished-still-thunder.xdai.quiknode.pro/474f8faa313d36e0dc2604c1373655f7e26fdfb6/";
 }
 
 let forking: { url: string; blockNumber?: number },
@@ -76,6 +78,19 @@ if (process.env.HARDHAT_FORKING) {
   hardhat["timeout"] = 20 * 60 * 1000;
 }
 
+// it's best not to use the optimizer when possible. We can't do anything about this in the case
+// of GnosisSafe (they are deployed by Gnosis anyway), but we should refactor PrepaidCardManager to not
+// require optimisation to fit below the contract size limit.
+
+const optimizerEnabled = {
+  version: "0.8.9",
+  settings: {
+    optimizer: {
+      enabled: true,
+    },
+  },
+};
+
 let config = {
   solidity: {
     compilers: [
@@ -83,7 +98,7 @@ let config = {
         version: "0.8.9",
         settings: {
           optimizer: {
-            enabled: true,
+            enabled: false,
           },
           outputSelection: {
             "*": {
@@ -93,6 +108,12 @@ let config = {
         },
       },
     ],
+
+    overrides: {
+      // Prefer refactoring to libraries, splitting contracts etc instead of adding new exceptions here
+      "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol": optimizerEnabled,
+      "contracts/PrepaidCardManager.sol": optimizerEnabled,
+    },
   },
 
   networks: {
@@ -135,6 +156,13 @@ let config = {
       ],
       files: ["./test"],
       verbose: true,
+    },
+  },
+
+  etherscan: {
+    apiKey: {
+      xdai: "This just has to be any non-empty string",
+      sokol: "This just has to be any non-empty string",
     },
   },
 };

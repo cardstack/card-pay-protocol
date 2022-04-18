@@ -42,6 +42,14 @@ contract PayMerchantHandler is Ownable, Versionable {
     address _tokenManagerAddress,
     address _versionManager
   ) external onlyOwner returns (bool) {
+    require(_actionDispatcher != address(0), "actionDispatcher not set");
+    require(_merchantManager != address(0), "merchantManager not set");
+    require(_prepaidCardManager != address(0), "prepaidCardManager not set");
+    require(_revenuePoolAddress != address(0), "revenuePoolAddress not set");
+    require(_spendTokenAddress != address(0), "spendTokenAddress not set");
+    require(_tokenManagerAddress != address(0), "tokenManagerAddress not set");
+    require(_versionManager != address(0), "versionManager not set");
+
     merchantManager = _merchantManager;
     actionDispatcher = _actionDispatcher;
     revenuePoolAddress = _revenuePoolAddress;
@@ -55,13 +63,23 @@ contract PayMerchantHandler is Ownable, Versionable {
 
   /**
    * @dev onTokenTransfer(ERC677) - this is the ERC677 token transfer callback.
-   * handle a prepaid card payment to a merchant which includes minting
-   * spend into the merchant's safe, collecting protocol fees, and increases the
-   * merchants unclaimed revenue by the issuing token amount minus fees
+   *
+   * When tokens are sent to this contract, this function handles a prepaid card
+   * payment to a merchant, which includes minting SPEND into the merchant's safe,
+   * collecting protocol fees, and increasing the merchant's unclaimed revenue
+   * by the issuing token amount minus fees.
+   *
+   * See PayMerchantHandler in README for more information.
+   *
    * @param from the token sender (should be the action dispatcher)
    * @param amount the amount of tokens being transferred
-   * @param data the data encoded as (address prepaidCard, uint256 spendAmount, bytes actionData)
-   * where actionData is encoded as (address merchantSafe)
+   * @param data encoded as: (
+   *  address prepaidCard,
+   *  uint256 spendAmount,
+   *  bytes actionData, encoded as: (
+   *    address merchantSafe
+   *  )
+   * )
    */
   function onTokenTransfer(
     address payable from,

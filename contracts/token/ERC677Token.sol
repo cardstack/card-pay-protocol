@@ -49,6 +49,7 @@ contract ERC677Token is IERC677, ERC20PresetMinterPauserUpgradeable {
 
     emit Transfer(msg.sender, _to, _value, _data);
 
+    // Note: isContract() is not guaranteed to return an accurate value, never use it to provide an assurance of security.
     if (AddressUpgradeable.isContract(_to)) {
       contractFallBack(msg.sender, _to, _value, _data);
     }

@@ -35,6 +35,15 @@ contract SplitPrepaidCardHandler is Ownable, Versionable {
     address _defaultMarketAddress,
     address _versionManager
   ) external onlyOwner returns (bool) {
+    require(_actionDispatcher != address(0), "actionDispatcher not set");
+    require(_prepaidCardManager != address(0), "prepaidCardManager not set");
+    require(_tokenManagerAddress != address(0), "tokenManagerAddress not set");
+    require(
+      _defaultMarketAddress != address(0),
+      "defaultMarketAddress not set"
+    );
+    require(_versionManager != address(0), "versionManager not set");
+
     actionDispatcher = _actionDispatcher;
     prepaidCardManagerAddress = _prepaidCardManager;
     tokenManagerAddress = _tokenManagerAddress;
@@ -46,11 +55,24 @@ contract SplitPrepaidCardHandler is Ownable, Versionable {
 
   /**
    * @dev onTokenTransfer(ERC677) - this is the ERC677 token transfer callback.
-   * handle using a prepaid card to create more prepaid cards
+   *
+   * This will receive a payment from a prepaid card, and split it to create more
+   * prepaid cards.
+   *
+   * See SplitPrepaidCardHandler in README for more information.
+   *
    * @param from the token sender (should be the revenue pool)
    * @param amount the amount of tokens being transferred
-   * @param data the data encoded as (address prepaidCard, uint256 spendAmount, bytes actionData)
-   * where actionData is encoded as (uint256[] issuingTokenAmounts, uint256[] spendAmounts, string customizatoinDID, address marketAddress)
+   * @param data encoded as (
+   *  address prepaidCard,
+   *  uint256 spendAmount,
+   *  bytes actionData, encoded as (
+   *    uint256[] issuingTokenAmounts,
+   *    uint256[] spendAmounts,
+   *    string customizationDID,
+   *    address marketAddress
+   *  )
+   * )
    */
   function onTokenTransfer(
     address payable from,

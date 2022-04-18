@@ -13,6 +13,7 @@ const RewardPool = artifacts.require("RewardPool.sol");
 const RewardSafeDelegateImplementation = artifacts.require(
   "RewardSafeDelegateImplementation"
 );
+const BridgeUtils = artifacts.require("BridgeUtils");
 
 const { TOKEN_DETAIL_DATA } = require("../setup");
 
@@ -81,17 +82,20 @@ const setupProtocol = async (accounts) => {
   await rewardManager.initialize(owner);
   const rewardPool = await RewardPool.new();
   await rewardPool.initialize(owner);
+  let bridgeUtils = await BridgeUtils.new();
+  await bridgeUtils.initialize(owner);
 
   const { daicpxdToken, cardcpxdToken, exchange } = await setupExchanges(owner);
 
   // setup
   await tokenManager.setup(
-    ZERO_ADDRESS,
+    bridgeUtils.address,
     [daicpxdToken.address, cardcpxdToken.address],
     versionManager.address
   );
+
   await supplierManager.setup(
-    ZERO_ADDRESS,
+    bridgeUtils.address,
     gnosisSafeMasterCopy.address,
     proxyFactory.address,
     versionManager.address

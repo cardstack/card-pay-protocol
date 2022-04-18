@@ -9,6 +9,7 @@ const ActionDispatcher = artifacts.require("ActionDispatcher");
 const TokenManager = artifacts.require("TokenManager");
 const SupplierManager = artifacts.require("SupplierManager");
 const MerchantManager = artifacts.require("MerchantManager");
+const BridgeUtils = artifacts.require("BridgeUtils");
 
 const utils = require("./utils/general");
 const { SAFE_TRANSACTION_FAILED_WITHOUT_GAS_SET, INVALID_OWNER_PROVIDED } =
@@ -89,6 +90,8 @@ contract("RevenuePool", (accounts) => {
     await tokenManager.initialize(owner);
     merchantManager = await MerchantManager.new();
     await merchantManager.initialize(owner);
+    let bridgeUtils = await BridgeUtils.new();
+    await bridgeUtils.initialize(owner);
 
     let cardcpxdToken;
     ({ daiFeed, daicpxdToken, cardcpxdToken, exchange } = await setupExchanges(
@@ -101,13 +104,13 @@ contract("RevenuePool", (accounts) => {
     await fakeToken.mint(owner, toTokenUnit(100));
 
     await tokenManager.setup(
-      ZERO_ADDRESS,
+      bridgeUtils.address,
       [daicpxdToken.address, cardcpxdToken.address],
       versionManager.address
     );
 
     await supplierManager.setup(
-      ZERO_ADDRESS,
+      bridgeUtils.address,
       gnosisSafeMasterCopy.address,
       proxyFactory.address,
       versionManager.address
@@ -202,7 +205,7 @@ contract("RevenuePool", (accounts) => {
         )
         .should.be.rejectedWith(
           Error,
-          "merchantRegistrationFeeInSPEND is not set"
+          "merchantRegistrationFeeInSPEND not set"
         );
     });
 

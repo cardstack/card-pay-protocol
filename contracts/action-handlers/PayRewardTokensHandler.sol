@@ -29,6 +29,11 @@ contract PayRewardTokensHandler is Ownable, Versionable {
     address _rewardPoolAddress,
     address _versionManager
   ) external onlyOwner returns (bool) {
+    require(_actionDispatcher != address(0), "actionDispatcher not set");
+    require(_tokenManagerAddress != address(0), "tokenManagerAddress not set");
+    require(_rewardPoolAddress != address(0), "rewardPoolAddress not set");
+    require(_versionManager != address(0), "versionManager not set");
+
     actionDispatcher = _actionDispatcher;
     tokenManagerAddress = _tokenManagerAddress;
     rewardPoolAddress = _rewardPoolAddress;
@@ -37,6 +42,23 @@ contract PayRewardTokensHandler is Ownable, Versionable {
     return true;
   }
 
+  /**
+   * @dev onTokenTransfer(ERC677) - this is the ERC677 token transfer callback.
+   *
+   * When tokens are sent to this contract, it transfers them to the reward pool address.
+   *
+   * See PayRewardTokensHandler in README for more information.
+   *
+   * @param from the token sender (should be the action dispatcher)
+   * @param amount amount in token
+   * @param data encoded as: (
+   *  address prepaidCard,
+   *  uint256 spendAmount (not used here),
+   *  bytes actionData, encoded as: (
+   *    address rewardProgramID
+   *   )
+   *  )
+   */
   function onTokenTransfer(
     address payable from,
     uint256 amount,

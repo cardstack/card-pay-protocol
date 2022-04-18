@@ -278,11 +278,26 @@ contract RewardPool is Initializable, Versionable, Ownable {
     }
   }
 
+  /**
+   * @dev onTokenTransfer(ERC677) - this is the ERC677 token transfer callback.
+   *
+   * When tokens are sent to this contract, the amount of tokens is added to the
+   * sender's reward balance for the reward program.
+   *
+   * See RewardPool in README for more information.
+   *
+   * @param from sender of the tokens
+   * @param amount number of tokens sent
+   * @param data encoded as: (
+   *  rewardProgramID,
+   * )
+   */
   function onTokenTransfer(
     address from,
     uint256 amount,
     bytes calldata data
   ) external returns (bool) {
+    // msg.sender is the token contract
     require(
       TokenManager(tokenManager).isValidToken(msg.sender),
       "calling token is unaccepted"
