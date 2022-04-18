@@ -77,12 +77,18 @@ contract RevenuePool is Ownable, Versionable {
     require(_prepaidCardManager != address(0), "prepaidCardManager not set");
     require(_merchantFeeReceiver != address(0), "merchantFeeReceiver not set");
     require(_versionManager != address(0), "versionManager not set");
-
     require(
       _merchantRegistrationFeeInSPEND > 0,
       "merchantRegistrationFeeInSPEND not set"
     );
-
+    require(
+      _merchantRegistrationFeeInSPEND <= 10000,
+      "merchantRegistrationFeeInSPEND is above the maximum"
+    );
+    require(
+      _merchantFeePercentage <= 10000000,
+      "merchantFeePercentage is above the maximum"
+    );
     merchantManager = _merchantManager;
     actionDispatcher = _actionDispatcher;
     exchangeAddress = _exchangeAddress;
