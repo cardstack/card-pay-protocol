@@ -389,13 +389,24 @@ contract("RewardManager", (accounts) => {
       ]);
     });
     it("has a sane upper bound for rewardProgramRegistrationFeeInSPEND", async () => {
+      await rewardManager.setup(
+        actionDispatcher.address,
+        gnosisSafeMasterCopy.address,
+        proxyFactory.address,
+        rewardFeeReceiver,
+        "100000",
+        [rewardPool.address],
+        governanceAdmin,
+        rewardSafeDelegate.address,
+        versionManager.address
+      ); // $1000 is ok
       await rewardManager
         .setup(
           actionDispatcher.address,
           gnosisSafeMasterCopy.address,
           proxyFactory.address,
           rewardFeeReceiver,
-          1001,
+          "100001",
           [rewardPool.address],
           governanceAdmin,
           rewardSafeDelegate.address,

@@ -85,7 +85,7 @@ contract RewardManager is Ownable, Versionable, Safe {
       "rewardProgramRegistrationFeeInSPEND is not set"
     );
     require(
-      _rewardProgramRegistrationFeeInSPEND <= 1000,
+      _rewardProgramRegistrationFeeInSPEND <= 100000,
       "rewardProgramRegistrationFeeInSPEND is above the maximum"
     );
     require(
