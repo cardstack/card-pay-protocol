@@ -241,6 +241,16 @@ contract("RevenuePool", (accounts) => {
     });
 
     it("has a sane upper bound for merchantRegistrationFeeInSPEND", async () => {
+      await revenuePool.setup(
+        exchange.address,
+        merchantManager.address,
+        actionDispatcher.address,
+        prepaidCardManager.address,
+        merchantFeeReceiver,
+        10000000,
+        10000,
+        versionManager.address
+      );
       await revenuePool
         .setup(
           exchange.address,
@@ -249,7 +259,7 @@ contract("RevenuePool", (accounts) => {
           prepaidCardManager.address,
           merchantFeeReceiver,
           10000000,
-          1001,
+          10001,
           versionManager.address
         )
         .should.be.rejectedWith(
@@ -259,6 +269,17 @@ contract("RevenuePool", (accounts) => {
     });
 
     it("has a sane upper bound for merchantFeePercentage", async () => {
+      await revenuePool.setup(
+        exchange.address,
+        merchantManager.address,
+        actionDispatcher.address,
+        prepaidCardManager.address,
+        merchantFeeReceiver,
+        10000000,
+        1000,
+        versionManager.address
+      );
+
       await revenuePool
         .setup(
           exchange.address,
