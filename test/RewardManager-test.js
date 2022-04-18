@@ -391,9 +391,51 @@ contract("RewardManager", (accounts) => {
         rewardPool.address,
       ]);
     });
+    it("has a sane upper bound for rewardProgramRegistrationFeeInSPEND", async () => {
+      await rewardManager.setup(
+        actionDispatcher.address,
+        gnosisSafeMasterCopy.address,
+        proxyFactory.address,
+        rewardFeeReceiver,
+        "100000",
+        [rewardPool.address],
+        governanceAdmin,
+        rewardSafeDelegate.address,
+        versionManager.address
+      ); // $1000 is ok
+      await rewardManager
+        .setup(
+          actionDispatcher.address,
+          gnosisSafeMasterCopy.address,
+          proxyFactory.address,
+          rewardFeeReceiver,
+          "100001",
+          [rewardPool.address],
+          governanceAdmin,
+          rewardSafeDelegate.address,
+          versionManager.address
+        )
+        .should.be.rejectedWith(
+          Error,
+          "rewardProgramRegistrationFeeInSPEND is above the maximum"
+        );
+    });
   });
 
   describe("register reward program", () => {
+    before(async () => {
+      await rewardManager.setup(
+        actionDispatcher.address,
+        gnosisSafeMasterCopy.address,
+        proxyFactory.address,
+        rewardFeeReceiver,
+        REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
+        [rewardPool.address],
+        governanceAdmin,
+        rewardSafeDelegate.address,
+        versionManager.address
+      );
+    });
     let prepaidCard, otherPrepaidCard;
     beforeEach(async () => {
       rewardProgramID = generateRewardProgramID();

@@ -91,10 +91,13 @@ contract RewardManager is Ownable, Versionable, Safe {
       "safeDelegateImplementation not set"
     );
     require(_versionManager != address(0), "versionManager not set");
-
     require(
       _rewardProgramRegistrationFeeInSPEND > 0,
       "rewardProgramRegistrationFeeInSPEND is not set"
+    );
+    require(
+      _rewardProgramRegistrationFeeInSPEND <= 100000,
+      "rewardProgramRegistrationFeeInSPEND is above the maximum"
     );
     actionDispatcher = _actionDispatcher;
     Safe.setup(_gsMasterCopy, _gsProxyFactory);
