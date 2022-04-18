@@ -30,6 +30,15 @@ contract RegisterRewardProgramHandler is Ownable, Versionable {
     address _rewardManagerAddress,
     address _versionManager
   ) external onlyOwner returns (bool) {
+    require(_actionDispatcher != address(0), "actionDispatcher not set");
+    require(_exchangeAddress != address(0), "exchangeAddress not set");
+    require(_tokenManagerAddress != address(0), "tokenManagerAddress not set");
+    require(
+      _rewardManagerAddress != address(0),
+      "rewardManagerAddress not set"
+    );
+    require(_versionManager != address(0), "versionManager not set");
+
     actionDispatcher = _actionDispatcher;
     exchangeAddress = _exchangeAddress;
     tokenManagerAddress = _tokenManagerAddress;
@@ -39,6 +48,26 @@ contract RegisterRewardProgramHandler is Ownable, Versionable {
     return true;
   }
 
+  /**
+   * @dev onTokenTransfer(ERC677) - this is the ERC677 token transfer callback.
+   *
+   * When tokens are sent to this contract, it transfers the reward program registration fee
+   * to the reward fee receiver, and refunds the amount in case it exceeds the fee.
+   * Then it registers the reward program by adding it to the reward manager.
+   *
+   * See RegisterRewardProgramHandler in README for more information.
+   *
+   * @param from the token sender (should be the action dispatcher)
+   * @param amount the amount of tokens being transferred
+   * @param data encoded as: (
+   *  address prepaidCard,
+   *  uint256 spendAmount (not used here),
+   *  bytes actionData, encoded as: (
+   *    address admin,
+   *    address rewardProgramID
+   *  )
+   * )
+   */
   function onTokenTransfer(
     address payable from,
     uint256 amount,

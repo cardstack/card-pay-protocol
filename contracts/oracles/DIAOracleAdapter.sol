@@ -52,6 +52,10 @@ contract DIAOracleAdapter is Ownable, Versionable, IPriceOracle {
     return tokenSymbol;
   }
 
+  function isSnappedToUSD() public pure returns (bool) {
+    return false;
+  }
+
   function usdPrice()
     external
     view

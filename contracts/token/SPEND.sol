@@ -19,6 +19,8 @@ contract SPEND is Versionable, ISPEND, SPENDMinterRole {
   }
 
   function setup(address _versionManager) external onlyOwner returns (bool) {
+    require(_versionManager != address(0), "versionManager not set");
+
     versionManager = _versionManager;
     emit Setup();
     return true;

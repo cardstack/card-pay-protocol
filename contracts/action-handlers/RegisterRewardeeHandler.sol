@@ -26,6 +26,16 @@ contract RegisterRewardeeHandler is Ownable, Versionable {
     address _rewardManagerAddress,
     address _versionManager
   ) external onlyOwner returns (bool) {
+    require(_actionDispatcher != address(0), "actionDispatcher not set");
+    require(_prepaidCardManager != address(0), "prepaidCardManager not set");
+    require(_exchangeAddress != address(0), "exchangeAddress not set");
+    require(_tokenManagerAddress != address(0), "tokenManagerAddress not set");
+    require(
+      _rewardManagerAddress != address(0),
+      "rewardManagerAddress not set"
+    );
+    require(_versionManager != address(0), "versionManager not set");
+
     actionDispatcher = _actionDispatcher;
     prepaidCardManager = _prepaidCardManager;
     exchangeAddress = _exchangeAddress;
@@ -36,9 +46,25 @@ contract RegisterRewardeeHandler is Ownable, Versionable {
     return true;
   }
 
+  /**
+   * @dev onTokenTransfer(ERC677) - this is the ERC677 token transfer callback.
+   *
+   * This registers the prepaid card owner as a rewardee for the reward program.
+   *
+   * See RegisterRewardeeHandler in README for more information.
+   *
+   * @param from the token sender (should be the action dispatcher)
+   * @param data encoded as: (
+   *  address prepaidCard,
+   *  uint256 spendAmount (not used here),
+   *  bytes actionData, encoded as: (
+   *    address rewardProgramID
+   *   )
+   *  )
+   */
   function onTokenTransfer(
     address payable from,
-    uint256, // amount
+    uint256 amount,
     bytes calldata data
   ) external returns (bool) {
     require(
@@ -49,6 +75,8 @@ contract RegisterRewardeeHandler is Ownable, Versionable {
       from == actionDispatcher,
       "can only accept tokens from action dispatcher"
     );
+    require(amount == 0, "amount must be 0");
+
     (address payable prepaidCard, , bytes memory actionData) = abi.decode(
       data,
       (address, uint256, bytes)

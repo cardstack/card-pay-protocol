@@ -42,6 +42,11 @@ contract MerchantManager is Ownable, Versionable, Safe {
     address _gsProxyFactory,
     address _versionManager
   ) external onlyOwner {
+    require(_actionDispatcher != address(0), "actionDispatcher not set");
+    require(_versionManager != address(0), "versionManager not set");
+    require(_gsMasterCopy != address(0), "gsMasterCopy not set");
+    require(_gsProxyFactory != address(0), "gsProxyFactory not set");
+
     actionDispatcher = _actionDispatcher;
     versionManager = _versionManager;
     Safe.setup(_gsMasterCopy, _gsProxyFactory);

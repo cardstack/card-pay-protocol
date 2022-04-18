@@ -34,6 +34,14 @@ contract Exchange is Ownable, Versionable {
     address _versionManager,
     string calldata _cardTokenSymbol
   ) external onlyOwner {
+    require(_versionManager != address(0), "versionManager not set");
+    // For stable coins that use the USD snapping logic, 0% is suitable and
+    // for other non-stable coins, up to 1% is fine.
+    require(
+      _rateDriftPercentage <= 1000000,
+      "rate drift percentage must be between 0 and 1%"
+    );
+
     rateDriftPercentage = _rateDriftPercentage;
     versionManager = _versionManager;
     cardTokenSymbol = _cardTokenSymbol;
@@ -44,6 +52,7 @@ contract Exchange is Ownable, Versionable {
     external
     onlyOwner
   {
+    require(feed != address(0), "invalid feed address");
     bytes32 key = keccak256(bytes(tokenSymbol));
     exchanges[key].exists = true;
     exchanges[key].tokenSymbol = tokenSymbol;
@@ -216,6 +225,17 @@ contract Exchange is Ownable, Versionable {
     uint256 ten = 10;
     uint256 observedDriftPercentage = (drift * (ten**exchangeRateDecimals())) /
       actualRate;
+
+    // Only allow rate to drift if oracle is not snapped to USD
+    if (observedDriftPercentage > 0) {
+      bytes32 key = keccak256(bytes(IERC677(token).symbol()));
+      if (exchanges[key].exists) {
+        IPriceOracle oracle = IPriceOracle(exchanges[key].feed);
+        if (oracle.isSnappedToUSD()) {
+          return false;
+        }
+      }
+    }
     return observedDriftPercentage <= rateDriftPercentage;
   }
 

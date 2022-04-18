@@ -4,6 +4,8 @@ pragma abicoder v1;
 import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 import "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
 
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+
 import "./core/Ownable.sol";
 
 import "./token/IERC677.sol";
@@ -18,6 +20,7 @@ import "./VersionManager.sol";
 
 contract PrepaidCardManager is Ownable, Versionable, Safe {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
+  using SafeERC20Upgradeable for IERC677;
 
   struct CardDetail {
     address issuer;
@@ -75,6 +78,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     bytes data,
     bytes ownerSignature
   );
+  event PrepaidCardUsed(address card);
 
   bytes4 public constant SWAP_OWNER = 0xe318b52b; //swapOwner(address,address,address)
   bytes4 public constant TRANSFER_AND_CALL = 0x4000aea0; //transferAndCall(address,uint256,bytes)
@@ -121,7 +125,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
    * @param _gsMasterCopy Gnosis safe Master Copy address
    * @param _gsProxyFactory Gnosis safe Proxy Factory address
    * @param _actionDispatcher Action Dispatcher address
-   * @param _gasFeeReceiver The addres that will receive the new prepaid card gas fee
+   * @param _gasFeeReceiver The address that will receive the new prepaid card gas fee. Fee is not distributed if this is address(0)
    * @param _gasFeeInCARD the amount to charge for the gas fee for new prepaid card in units of CARD wei
    * @param _minAmount The minimum face value of a new prepaid card in units of SPEND
    * @param _maxAmount The maximum face value of a new prepaid card in units of SPEND
@@ -140,6 +144,14 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     address[] calldata _contractSigners,
     address _versionManager
   ) external onlyOwner {
+    require(_tokenManager != address(0), "tokenManager not set");
+    require(_supplierManager != address(0), "supplierManager not set");
+    require(_exchangeAddress != address(0), "exchangeAddress not set");
+    require(_gsMasterCopy != address(0), "gsMasterCopy not set");
+    require(_gsProxyFactory != address(0), "gsProxyFactory not set");
+    require(_actionDispatcher != address(0), "actionDispatcher not set");
+    require(_versionManager != address(0), "versionManager not set");
+
     actionDispatcher = _actionDispatcher;
     supplierManager = _supplierManager;
     tokenManager = _tokenManager;
@@ -151,6 +163,11 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     versionManager = _versionManager;
     Safe.setup(_gsMasterCopy, _gsProxyFactory);
     for (uint256 i = 0; i < _contractSigners.length; i++) {
+      require(
+        _contractSigners[i] != address(0),
+        "address in contractSigners not set"
+      );
+
       contractSigners.add(_contractSigners[i]);
     }
     emit Setup();
@@ -174,15 +191,28 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
   }
 
   function removeContractSigner(address signer) external onlyOwner {
+    require(contractSigners.contains(signer), "signer not present");
     contractSigners.remove(signer);
     emit ContractSignerRemoved(signer);
   }
 
   /**
-   * @dev onTokenTransfer(ERC677) - call when token send this contract.
-   * @param from Supplier or Prepaid card address
-   * @param amount number token them transfer.
-   * @param data data encoded
+   * @dev onTokenTransfer(ERC677) - this is the ERC677 token transfer callback.
+   *
+   * When tokens are sent to this contract, this function will create multiple
+   * prepaid cards as gnosis safes.
+   *
+   * See PrepaidCardManager in README for more information.
+   *
+   * @param from supplier or Prepaid card address
+   * @param amount number of tokens sent
+   * @param data encoded as (
+   *  address owner (supplier's address),
+   *  uint256[] issuingTokenAmounts (array of issuing token amounts to fund the creation of the prepaid cards),
+   *  uint256[] spendAmounts (array of spend amounts that represent the desired face value (for reporting only)),
+   *  string customizationDID (DID of prepaid card customization data),
+   *  address marketAddress (prepaid card market address)
+   * )
    */
   function onTokenTransfer(
     address from, // solhint-disable-line no-unused-vars
@@ -232,6 +262,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     returns (bool)
   {
     hasBeenUsed[prepaidCard] = true;
+    emit PrepaidCardUsed(prepaidCard);
     return true;
   }
 
@@ -534,13 +565,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     }
 
     // refund the supplier any excess funds that they provided
-    if (
-      amountReceived > neededAmount &&
-      // check to make sure ownerSafe address is a depot, so we can ensure it's
-      // a trusted contract
-      SupplierManager(supplierManager).safes(depot) != address(0)
-    ) {
-      // the owner safe is a trusted contract (gnosis safe)
+    if (amountReceived > neededAmount) {
       IERC677(token).transfer(depot, amountReceived - neededAmount);
     }
 
@@ -582,10 +607,10 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     uint256 _gasFee = gasFee(token);
     if (gasFeeReceiver != address(0) && _gasFee > 0) {
       // The gasFeeReceiver is a trusted address that we control
-      IERC677(token).transfer(gasFeeReceiver, _gasFee);
+      IERC677(token).safeTransfer(gasFeeReceiver, _gasFee);
     }
     // The card is a trusted contract (gnosis safe)
-    IERC677(token).transfer(card, issuingTokenAmount - _gasFee);
+    IERC677(token).safeTransfer(card, issuingTokenAmount - _gasFee);
 
     emit CreatePrepaidCard(
       owner,

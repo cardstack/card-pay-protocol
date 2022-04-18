@@ -11,6 +11,7 @@ const RevenuePool = artifacts.require("RevenuePool.sol");
 const MerchantManager = artifacts.require("MerchantManager");
 const ERC677Token = artifacts.require("ERC677Token.sol");
 const RewardPool = artifacts.require("RewardPool");
+const BridgeUtils = artifacts.require("BridgeUtils");
 const RewardSafeDelegateImplementation = artifacts.require(
   "RewardSafeDelegateImplementation"
 );
@@ -148,6 +149,8 @@ contract("RewardManager", (accounts) => {
     merchantManager = await MerchantManager.new();
     await merchantManager.initialize(owner);
     rewardManager = await RewardManager.new();
+    let bridgeUtils = await BridgeUtils.new();
+    await bridgeUtils.initialize(owner);
 
     let first10Accounts = accounts.slice(10);
 
@@ -192,7 +195,7 @@ contract("RewardManager", (accounts) => {
       versionManager.address
     );
     await supplierManager.setup(
-      ZERO_ADDRESS,
+      bridgeUtils.address,
       gnosisSafeMasterCopy.address,
       proxyFactory.address,
       versionManager.address
@@ -420,6 +423,19 @@ contract("RewardManager", (accounts) => {
   });
 
   describe("register reward program", () => {
+    before(async () => {
+      await rewardManager.setup(
+        actionDispatcher.address,
+        gnosisSafeMasterCopy.address,
+        proxyFactory.address,
+        rewardFeeReceiver,
+        REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
+        [rewardPool.address],
+        governanceAdmin,
+        rewardSafeDelegate.address,
+        versionManager.address
+      );
+    });
     let prepaidCard, otherPrepaidCard;
     beforeEach(async () => {
       rewardProgramID = generateRewardProgramID();
