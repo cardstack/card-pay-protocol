@@ -18,6 +18,8 @@ import "./Exchange.sol";
 import "./ActionDispatcher.sol";
 import "./VersionManager.sol";
 
+import "hardhat/console.sol";
+
 contract PrepaidCardManager is Ownable, Versionable, Safe {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
   using SafeERC20Upgradeable for IERC677;
@@ -188,7 +190,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
    * @param data data encoded
    */
   function onTokenTransfer(
-    address from, // solhint-disable-line no-unused-vars
+    address from,
     uint256 amount,
     bytes calldata data
   ) external returns (bool) {
@@ -196,13 +198,18 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
       TokenManager(tokenManager).isValidToken(msg.sender),
       "calling token is unaccepted"
     );
+
     (
       address owner,
       uint256[] memory issuingTokenAmounts,
       uint256[] memory spendAmounts,
       string memory customizationDID,
-      address marketAddress
-    ) = abi.decode(data, (address, uint256[], uint256[], string, address));
+      address marketAddress,
+      address issuer
+    ) = abi.decode(
+        data,
+        (address, uint256[], uint256[], string, address, address)
+      );
     require(
       owner != address(0) && issuingTokenAmounts.length > 0,
       "Prepaid card data invalid"
@@ -212,20 +219,34 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
       "the amount arrays have differing lengths"
     );
 
-    // The spend amounts are for reporting purposes only, there is no on-chain
-    // effect from this value. Although, it might not be a bad idea that spend
-    // amounts line up with the issuing token amounts--albiet we'd need to
-    // introduce a rate lock mechanism if we wanted to validate this
-    createMultiplePrepaidCards(
-      owner,
-      from,
-      _msgSender(),
-      amount,
-      issuingTokenAmounts,
-      spendAmounts,
-      customizationDID,
-      marketAddress
-    );
+    if (issuer == address(0)) {
+      // The spend amounts are for reporting purposes only, there is no on-chain
+      // effect from this value. Although, it might not be a bad idea that spend
+      // amounts line up with the issuing token amounts--albiet we'd need to
+      // introduce a rate lock mechanism if we wanted to validate this
+      createMultiplePrepaidCards(
+        owner,
+        from,
+        _msgSender(),
+        amount,
+        issuingTokenAmounts,
+        spendAmounts,
+        customizationDID,
+        marketAddress
+      );
+    } else {
+      createCardWithIssuer(
+        owner, // customer
+        issuer,
+        address(0), // depot??
+        from, // PrepaidCardMarketV2
+        msg.sender,
+        issuingTokenAmounts[0],
+        spendAmounts[0],
+        customizationDID
+      );
+    }
+
     return true;
   }
 
@@ -527,6 +548,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     for (uint256 i = 0; i < numberCard; i++) {
       createPrepaidCard(
         owner,
+        owner,
         depot,
         token,
         issuingTokenAmounts[i],
@@ -550,8 +572,39 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     return true;
   }
 
+  function createCardWithIssuer(
+    address customer,
+    address issuer,
+    address depot, // the issuers safe
+    address from,
+    address token,
+    uint256 issuingTokenAmount,
+    uint256 spendAmount,
+    string memory customizationDID
+  ) internal returns (address) {
+    // TODO: only v2 contract can call this function
+
+    require(from != address(0), "Invalid sender");
+
+    console.log("issuingTokenAmount", issuingTokenAmount);
+    console.log("spendAmount", spendAmount);
+
+    return
+      createPrepaidCard(
+        issuer,
+        customer,
+        depot,
+        token,
+        issuingTokenAmount,
+        spendAmount,
+        customizationDID,
+        address(0)
+      );
+  }
+
   /**
    * @dev Create Prepaid card
+   * @param issuer issuer address
    * @param owner owner address
    * @param token token address
    * @param issuingTokenAmount amount of issuing token to use to fund the new prepaid card
@@ -560,6 +613,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
    * @return PrepaidCard address
    */
   function createPrepaidCard(
+    address issuer,
     address owner,
     address depot,
     address token,
@@ -576,7 +630,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     address card = createSafe(owners, 2);
 
     // card was created
-    cardDetails[card].issuer = owner;
+    cardDetails[card].issuer = issuer;
     cardDetails[card].issueToken = token;
     cardDetails[card].customizationDID = customizationDID;
     cardDetails[card].blockNumber = block.number;
