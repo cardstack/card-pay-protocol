@@ -31,6 +31,8 @@ contract("PrepaidCardMarketV2", (accounts) => {
     proxyFactory,
     gnosisSafeMasterCopy,
     provisioner,
+    customer,
+    exchange,
     prepaidCardManager,
     prepaidCardMarket,
     prepaidCardMarketV2,
@@ -38,6 +40,7 @@ contract("PrepaidCardMarketV2", (accounts) => {
     depot,
     depositTokens,
     withdrawTokens,
+    setAsk,
     addSKU;
 
   beforeEach(async () => {
@@ -46,6 +49,7 @@ contract("PrepaidCardMarketV2", (accounts) => {
     relayer = accounts[4];
     provisioner = accounts[5];
     prepaidCardMarket = accounts[6];
+    customer = accounts[7];
 
     proxyFactory = await ProxyFactory.new();
     gnosisSafeMasterCopy = await utils.deployContract(
@@ -65,7 +69,7 @@ contract("PrepaidCardMarketV2", (accounts) => {
     let tokenManager = await TokenManager.new();
     await tokenManager.initialize(owner);
 
-    let exchange, cardcpxdToken;
+    let cardcpxdToken;
     ({ daicpxdToken, cardcpxdToken, exchange } = await setupExchanges(owner));
 
     await daicpxdToken.mint(owner, toTokenUnit(100));
@@ -98,9 +102,11 @@ contract("PrepaidCardMarketV2", (accounts) => {
     );
 
     await prepaidCardMarketV2.setup(
+      exchange.address,
       prepaidCardManager.address,
       provisioner,
       tokenManager.address,
+      [relayer],
       versionManager.address
     );
 
@@ -185,9 +191,59 @@ contract("PrepaidCardMarketV2", (accounts) => {
         refundReceiver: relayer,
       };
 
-      await signAndSendSafeTransaction(safeTxData, issuer, depot, relayer);
+      return await signAndSendSafeTransaction(
+        safeTxData,
+        issuer,
+        depot,
+        relayer
+      );
+    };
+
+    setAsk = async (issuerAddress, sku, askPrice) => {
+      let setAsk = prepaidCardMarketV2.contract.methods.setAsk(
+        issuerAddress,
+        sku,
+        askPrice
+      );
+
+      let gasEstimate = await setAsk.estimateGas({
+        from: depot.address,
+      });
+
+      let safeTxData = {
+        to: prepaidCardMarketV2.address,
+        data: setAsk.encodeABI(),
+        txGasEstimate: gasEstimate,
+        gasPrice: 1000000000,
+        txGasToken: daicpxdToken.address,
+        refundReceiver: relayer,
+      };
+
+      return await signAndSendSafeTransaction(
+        safeTxData,
+        issuerAddress,
+        depot,
+        relayer
+      );
     };
   });
+
+  describe("setup", () => {
+    it("should set trusted provisioners", async () => {
+      await prepaidCardMarketV2.setup(
+        exchange.address,
+        prepaidCardManager.address,
+        provisioner,
+        (
+          await TokenManager.new()
+        ).address,
+        [relayer],
+        versionManager.address
+      );
+      expect(
+        await prepaidCardMarketV2.getTrustedProvisioners()
+      ).to.have.members([relayer]);
+    });
   });
 
   describe("manage inventory", () => {
@@ -245,13 +301,10 @@ contract("PrepaidCardMarketV2", (accounts) => {
         expect(event.token).to.be.equal(daicpxdToken.address);
         expect(event.amount).to.be.equal(toWei("4"));
         expect(event.safe).to.be.equal(depot.address);
-
-        // todo check the balance of the depot
       });
 
       it("fails when there is no issuer", async function () {
-        // This happens when we want to withdraw when no deposit has been made yet (which would set the issuer to 0)
-
+        // The failure happens when we want to withdraw when no deposit has been made yet
         let withdrawTokens =
           prepaidCardMarketV2.contract.methods.withdrawTokens(
             toTokenUnit(5),
@@ -271,10 +324,8 @@ contract("PrepaidCardMarketV2", (accounts) => {
       });
 
       it("fails when there is no funds", async function () {
-        // First send some tokens, then withdraw all and try to do another withdraw
+        // First send some tokens, then withdraw all, and try to do another withdraw
         let {
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          safeTx,
           executionResult: { success },
         } = await depositTokens(toTokenUnit(5));
 
@@ -302,36 +353,10 @@ contract("PrepaidCardMarketV2", (accounts) => {
       it("can add a SKU", async function () {
         await depositTokens(toTokenUnit(1));
 
-        let addSku = prepaidCardMarketV2.contract.methods.addSKU(
-          "1000",
-          "did:cardstack:test",
-          daicpxdToken.address
-        );
-
-        let payload = addSku.encodeABI();
-
-        let gasEstimate = await addSku.estimateGas({
-          from: depot.address,
-        });
-
-        let safeTxData = {
-          to: prepaidCardMarketV2.address,
-          data: payload,
-          txGasEstimate: gasEstimate,
-          gasPrice: 1000000000,
-          txGasToken: daicpxdToken.address,
-          refundReceiver: relayer,
-        };
-
         let {
           safeTx,
           executionResult: { success },
-        } = await signAndSendSafeTransaction(
-          safeTxData,
-          issuer,
-          depot,
-          relayer
-        );
+        } = await addSKU("1000", "did:cardstack:test", daicpxdToken.address);
 
         expect(success).to.be.true;
 
@@ -349,88 +374,111 @@ contract("PrepaidCardMarketV2", (accounts) => {
     });
 
     describe("getQuantity", () => {
-      it.only("can get the quantity of a SKU", async function () {
-        await depositTokens(toTokenUnit(500));
-        await addSKU("5000", "did:cardstack:test", daicpxdToken.address);
-        let quantity = await prepaidCardMarketV2.getQuantity(
-          "0xc98d1de40e4e64f3553b816a7c583e14f788b2bdfd87eac366f5597b63bb18f9"
-        );
-        expect(quantity).to.equal("9");
-      });
-    });
+      it("can get the quantity of a SKU", async function () {
+        await depositTokens(toTokenUnit(500)); // 500 daicpxd = 500 USD
 
-    describe("Asks", () => {
-      it.only("can set an ask price", async function () {
-        await depositTokens(toTokenUnit(5));
-
-        // Add SKU
-        let addSku = prepaidCardMarketV2.contract.methods.addSKU(
-          "5000",
+        let { safeTx } = await addSKU(
+          "5000", // 50 USD
           "did:cardstack:test",
           daicpxdToken.address
         );
 
-        let gasEstimate = await addSku.estimateGas({
-          from: depot.address,
-        });
-
-        let safeTxData = {
-          to: prepaidCardMarketV2.address,
-          data: addSku.encodeABI(),
-          txGasEstimate: gasEstimate,
-          gasPrice: 1000000000,
-          txGasToken: daicpxdToken.address,
-          refundReceiver: relayer,
-        };
-
-        await signAndSendSafeTransaction(safeTxData, issuer, depot, relayer);
-
-        // End adding SKU
-
-        let setAsk = prepaidCardMarketV2.contract.methods.setAsk(
-          issuer,
-          "0xc98d1de40e4e64f3553b816a7c583e14f788b2bdfd87eac366f5597b63bb18f9",
-          10
+        let [event] = getParamsFromEvent(
+          safeTx,
+          eventABIs.PREPAID_CARD_MARKET_V2_SKU_ADDED,
+          prepaidCardMarketV2.address
         );
 
-        gasEstimate = await setAsk.estimateGas({
-          from: depot.address,
-        });
+        let quantity = await prepaidCardMarketV2.getQuantity(event.sku);
+        expect(quantity).to.be.bignumber.eq("9"); // Because of fees, we can only buy 9 cards and not 10
+      });
+    });
 
-        safeTxData = {
-          to: prepaidCardMarketV2.address,
-          data: setAsk.encodeABI(),
-          txGasEstimate: gasEstimate,
-          gasPrice: 1000000000,
-          txGasToken: daicpxdToken.address,
-          refundReceiver: relayer,
-        };
+    describe("Asks", () => {
+      it("can set an ask price", async function () {
+        await depositTokens(toTokenUnit(5));
+        let { safeTx: addSkuSafeTx } = await addSKU(
+          "5000",
+          "did:cardstack:test",
+          daicpxdToken.address
+        );
+        let [skuEvent] = getParamsFromEvent(
+          addSkuSafeTx,
+          eventABIs.PREPAID_CARD_MARKET_V2_SKU_ADDED,
+          prepaidCardMarketV2.address
+        );
 
         let {
-          safeTx,
+          safeTx: prepaidCardCreateSafeTx,
           executionResult: { success },
-        } = await signAndSendSafeTransaction(
-          safeTxData,
-          issuer,
-          depot,
-          relayer
-        );
+        } = await setAsk(issuer, skuEvent.sku, 10);
 
         expect(success).to.be.true;
 
         let [event] = getParamsFromEvent(
-          safeTx,
+          prepaidCardCreateSafeTx,
           eventABIs.PREPAID_CARD_MARKET_V2_ASK_SET,
           prepaidCardMarketV2.address
         );
 
         expect(event.issuer).to.be.equal(issuer);
         expect(event.issuingToken).to.be.equal(daicpxdToken.address);
-        expect(event.sku).to.be.equal(
-          "0xc98d1de40e4e64f3553b816a7c583e14f788b2bdfd87eac366f5597b63bb18f9"
-        );
+        expect(event.sku).to.be.equal(skuEvent.sku);
         expect(event.askPrice).to.be.equal("10");
       });
+    });
+  });
+
+  describe("Create prepaid card", () => {
+    it.only("can provision a prepaid card", async function () {
+      await depositTokens(toTokenUnit(100));
+
+      let { safeTx } = await addSKU(
+        "5000",
+        "did:cardstack:test",
+        daicpxdToken.address
+      );
+      let [skuEvent] = getParamsFromEvent(
+        safeTx,
+        eventABIs.PREPAID_CARD_MARKET_V2_SKU_ADDED,
+        prepaidCardMarketV2.address
+      );
+
+      await setAsk(issuer, skuEvent.sku, 10); // Doesn't play a role here, we just need to set something which is > 0
+
+      // relay server will call this function
+      let tx = await prepaidCardMarketV2.provisionPrepaidCard(
+        customer,
+        skuEvent.sku,
+        {
+          from: relayer,
+        }
+      );
+
+      let [createPrepaidCardEvent] = getParamsFromEvent(
+        tx,
+        eventABIs.CREATE_PREPAID_CARD,
+        prepaidCardManager.address
+      );
+
+      let balance = await prepaidCardMarketV2.balance(
+        depot.address,
+        daicpxdToken.address
+      );
+
+      // 5000 spend tokens = 50 xdai
+      // balance should be toTokenUnits(100 - 50) - 100 (a constant fee added in priceForFaceValue)
+      expect(balance).to.be.bignumber.eq("49999999999999999900");
+
+      expect(
+        (await daicpxdToken.balanceOf(createPrepaidCardEvent.card)).toString()
+      ).to.equal(toTokenUnit(50).toString());
+
+      expect(
+        await prepaidCardManager.getPrepaidCardOwner(
+          createPrepaidCardEvent.card
+        )
+      ).to.equal(customer);
     });
   });
 });

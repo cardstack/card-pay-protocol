@@ -11,16 +11,20 @@ import "./PrepaidCardManager.sol";
 import "./ActionDispatcher.sol";
 import "./VersionManager.sol";
 import "./TokenManager.sol";
+import "./core/Safe.sol";
 import "@gnosis.pm/safe-contracts/contracts/proxies/GnosisSafeProxyFactory.sol";
+import "./libraries/SafeERC677.sol";
+
 import "hardhat/console.sol";
 
-contract PrepaidCardMarketV2 is Ownable, Versionable {
+contract PrepaidCardMarketV2 is Ownable, Versionable, Safe {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
   using SafeERC20Upgradeable for IERC677;
+  using SafeERC677 for IERC677;
 
   struct SKU {
     address issuerSafe;
-    address issuer;
+    address issuer; // Could remove this and use issuer[issuerSafe] instead
     address issuingToken;
     uint256 faceValue;
     string customizationDID;
@@ -30,12 +34,17 @@ contract PrepaidCardMarketV2 is Ownable, Versionable {
   address public tokenManager;
   address public provisioner;
   address public versionManager;
+  address public exchangeAddress;
   mapping(address => mapping(address => uint256)) public balance; // issuer safe address -> token -> balance
   mapping(address => address) public issuer; // issuer safe address -> issuer EOA
   mapping(bytes32 => SKU) public skus; // sku => sku data
   mapping(bytes32 => uint256) public asks; // sku => ask price (in issuing token)
+  mapping(address => address) public provisionedCards; // prepaid card => EOA
+
+  EnumerableSetUpgradeable.AddressSet internal trustedProvisioners;
 
   event Setup();
+
   event InventoryAdded(
     address issuer,
     uint256 amount,
@@ -52,7 +61,8 @@ contract PrepaidCardMarketV2 is Ownable, Versionable {
     address issuer,
     address issuingToken,
     uint256 faceValue,
-    string customizationDID
+    string customizationDID,
+    bytes32 sku
   );
   event AskSet(
     address issuer,
@@ -66,20 +76,43 @@ contract PrepaidCardMarketV2 is Ownable, Versionable {
     bytes32 sku,
     uint256 askPrice
   );
+  event TrustedProvisionerAdded(address token);
+  event TrustedProvisionerRemoved(address token);
 
   // only owner can call setup
   function setup(
+    address _exchangeAddress,
     address _prepaidCardManagerAddress,
     address _provisioner,
     address _tokenManager,
+    address[] calldata _trustedProvisioners,
     address _versionManager
-  ) external onlyOwner returns (bool) {
+  ) external onlyOwner {
+    exchangeAddress = _exchangeAddress;
     prepaidCardManagerAddress = _prepaidCardManagerAddress;
     provisioner = _provisioner;
     tokenManager = _tokenManager;
     versionManager = _versionManager;
+
+    for (uint256 i = 0; i < _trustedProvisioners.length; i++) {
+      _addTrustedProvisioner(_trustedProvisioners[i]);
+    }
+
     emit Setup();
-    return true;
+  }
+
+  function getTrustedProvisioners() external view returns (address[] memory) {
+    return trustedProvisioners.values();
+  }
+
+  function _addTrustedProvisioner(address _token) internal {
+    trustedProvisioners.add(_token);
+    emit TrustedProvisionerAdded(_token);
+  }
+
+  function removeTrustedProvisioner(address _token) external onlyOwner {
+    trustedProvisioners.remove(_token);
+    emit TrustedProvisionerRemoved(_token);
   }
 
   // TODO: add a function to add SKUs
@@ -95,13 +128,8 @@ contract PrepaidCardMarketV2 is Ownable, Versionable {
   // TODO: Allow trusted provisioner (will be relay server) to call a method to
   // create a card and transfer it to an EOA by specifying a SKU and target EOA
 
-  // function createPrepaidCard
-  // sku, eoa are the inputs
-  // from sku you get who's the issuer,
-  // tokens to create the
-
   // additonal createprepaidsignature
-  // it is assumed the sender is the issuer but here we don't want this to be the ca
+  // it is assumed the sender is the issuer but here we don't want this to be the caaw
   // add a new function where i can specify who the issuer is. Shoukd only be called by
   // the market conctract
   // add a new property (array) - all the contracts allowerd to create a prepaid card
@@ -113,6 +141,68 @@ contract PrepaidCardMarketV2 is Ownable, Versionable {
   // when a prepaid card gets created, we need to remove
   // when a card is created and transfered
 
+  // relay server now calls the v1 market contract
+  // we want relay server to talk to both contracts
+  // adding a new endpoint to the relay server
+
+  function provisionPrepaidCard(address customer, bytes32 sku)
+    external
+    returns (bool)
+  {
+    console.log("provision pp sender", msg.sender);
+    require(
+      trustedProvisioners.contains(msg.sender),
+      "only trusted provisioners allowed"
+    );
+    require(asks[sku] > 0, "can't provision SKU with 0 askPrice");
+
+    PrepaidCardManager prepaidCardManager = PrepaidCardManager(
+      prepaidCardManagerAddress
+    );
+
+    address token = skus[sku].issuingToken;
+    uint256 faceValue = skus[sku].faceValue;
+    string memory customizationDID = skus[sku].customizationDID;
+    uint256 priceToCreate = prepaidCardManager.priceForFaceValue(
+      token,
+      faceValue
+    ); // in Wei
+
+    console.log("priceToCreate", priceToCreate);
+    console.log("faceValue", faceValue);
+
+    uint256[] memory issuingTokenAmounts = new uint256[](1);
+    uint256[] memory spendAmounts = new uint256[](1);
+
+    console.log("exchangeAddress", exchangeAddress);
+
+    issuingTokenAmounts[0] = Exchange(exchangeAddress).convertFromSpend(
+      token,
+      faceValue
+    );
+
+    spendAmounts[0] = faceValue;
+
+    address issuerAddress = skus[sku].issuer;
+    address issuerSafeAddress = skus[sku].issuerSafe;
+
+    IERC677(token).safeTransferAndCall(
+      prepaidCardManagerAddress,
+      priceToCreate,
+      abi.encode(
+        customer,
+        issuingTokenAmounts,
+        spendAmounts,
+        customizationDID,
+        address(0), // marketAddress - we probably don't need it in this case
+        issuerAddress
+      )
+    );
+
+    balance[issuerSafeAddress][token] -= priceToCreate;
+
+    return true;
+  }
 
   function getQuantity(bytes32 sku) public view returns (uint256) {
     PrepaidCardManager prepaidCardManager = PrepaidCardManager(
@@ -153,6 +243,7 @@ contract PrepaidCardMarketV2 is Ownable, Versionable {
     require(_issuer != address(0), "Issuer not found.");
 
     bytes32 sku = getSKU(_issuer, token, faceValue, customizationDID);
+
     require(skus[sku].issuer == address(0), "SKU already exists");
 
     skus[sku] = SKU({
@@ -163,7 +254,7 @@ contract PrepaidCardMarketV2 is Ownable, Versionable {
       customizationDID: customizationDID
     });
 
-    emit SkuAdded(_issuer, token, faceValue, customizationDID);
+    emit SkuAdded(_issuer, token, faceValue, customizationDID, sku);
 
     return true;
   }
@@ -180,7 +271,6 @@ contract PrepaidCardMarketV2 is Ownable, Versionable {
       );
   }
 
-  // COnsider changing "inventory" to "tokens"
   function withdrawTokens(uint256 amount, address token) external {
     address _issuer = issuer[msg.sender];
     require(_issuer != address(0), "Issuer not found");
