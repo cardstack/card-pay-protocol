@@ -246,7 +246,7 @@ contract("PrepaidCardMarketV2", (accounts) => {
     });
   });
 
-  describe("manage inventory", () => {
+  describe("manage balance", () => {
     describe("send tokens", () => {
       it(`can send tokens to the balance`, async function () {
         let {
@@ -260,13 +260,13 @@ contract("PrepaidCardMarketV2", (accounts) => {
           await prepaidCardMarketV2.balance(depot.address, daicpxdToken.address)
         ).to.be.bignumber.equal(toTokenUnit(5));
 
-        expect(await prepaidCardMarketV2.issuer(depot.address)).to.be.equal(
+        expect(await prepaidCardMarketV2.issuers(depot.address)).to.be.equal(
           issuer
         );
 
         let [event] = getParamsFromEvent(
           safeTx,
-          eventABIs.PREPAID_CARD_MARKET_V2_ADD_INVENTORY,
+          eventABIs.PREPAID_CARD_MARKET_V2_DEPOSIT_TOKENS,
           prepaidCardMarketV2.address
         );
 
@@ -293,7 +293,7 @@ contract("PrepaidCardMarketV2", (accounts) => {
 
         let [event] = getParamsFromEvent(
           safeTx,
-          eventABIs.PREPAID_CARD_MARKET_V2_REMOVE_INVENTORY,
+          eventABIs.PREPAID_CARD_MARKET_V2_TOKENS_WITHDRAWN,
           prepaidCardMarketV2.address
         );
 
@@ -430,7 +430,9 @@ contract("PrepaidCardMarketV2", (accounts) => {
   });
 
   describe("Create prepaid card", () => {
-    it.only("can provision a prepaid card", async function () {
+    let skuAddEvent;
+
+    beforeEach(async function () {
       await depositTokens(toTokenUnit(100));
 
       let { safeTx } = await addSKU(
@@ -438,18 +440,21 @@ contract("PrepaidCardMarketV2", (accounts) => {
         "did:cardstack:test",
         daicpxdToken.address
       );
-      let [skuEvent] = getParamsFromEvent(
+
+      [skuAddEvent] = getParamsFromEvent(
         safeTx,
         eventABIs.PREPAID_CARD_MARKET_V2_SKU_ADDED,
         prepaidCardMarketV2.address
       );
 
-      await setAsk(issuer, skuEvent.sku, 10); // Doesn't play a role here, we just need to set something which is > 0
+      await setAsk(issuer, skuAddEvent.sku, 10); // Doesn't play a role here, we just need to set something which is > 0
+    });
 
+    it("can provision a prepaid card", async function () {
       // relay server will call this function
       let tx = await prepaidCardMarketV2.provisionPrepaidCard(
         customer,
-        skuEvent.sku,
+        skuAddEvent.sku,
         {
           from: relayer,
         }
@@ -467,7 +472,7 @@ contract("PrepaidCardMarketV2", (accounts) => {
       );
 
       // 5000 spend tokens = 50 xdai
-      // balance should be toTokenUnits(100 - 50) - 100 (a constant fee added in priceForFaceValue)
+      // balance should be toTokenUnits(100 - 50) - 100 (100 is a constant fee added in priceForFaceValue)
       expect(balance).to.be.bignumber.eq("49999999999999999900");
 
       expect(
@@ -479,6 +484,21 @@ contract("PrepaidCardMarketV2", (accounts) => {
           createPrepaidCardEvent.card
         )
       ).to.equal(customer);
+    });
+
+    it(`rejects when contract is paused`, async function () {
+      await prepaidCardMarketV2.setPaused(true);
+      await prepaidCardMarketV2
+        .provisionPrepaidCard(customer, skuAddEvent.sku, {
+          from: relayer,
+        })
+        .should.be.rejectedWith(Error, "Contract is paused");
+    });
+  });
+
+  describe("versioning", () => {
+    it("can get version of contract", async () => {
+      expect(await prepaidCardMarketV2.cardpayVersion()).to.equal("1.0.0");
     });
   });
 });

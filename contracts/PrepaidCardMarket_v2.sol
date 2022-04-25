@@ -24,7 +24,7 @@ contract PrepaidCardMarketV2 is Ownable, Versionable, Safe {
 
   struct SKU {
     address issuerSafe;
-    address issuer; // Could remove this and use issuer[issuerSafe] instead
+    address issuer;
     address issuingToken;
     uint256 faceValue;
     string customizationDID;
@@ -36,22 +36,23 @@ contract PrepaidCardMarketV2 is Ownable, Versionable, Safe {
   address public versionManager;
   address public exchangeAddress;
   mapping(address => mapping(address => uint256)) public balance; // issuer safe address -> token -> balance
-  mapping(address => address) public issuer; // issuer safe address -> issuer EOA
+  mapping(address => address) public issuers; // issuer safe address -> issuer EOA
   mapping(bytes32 => SKU) public skus; // sku => sku data
   mapping(bytes32 => uint256) public asks; // sku => ask price (in issuing token)
-  mapping(address => address) public provisionedCards; // prepaid card => EOA
+
+  bool public paused;
 
   EnumerableSetUpgradeable.AddressSet internal trustedProvisioners;
 
   event Setup();
 
-  event InventoryAdded(
+  event TokensDeposited(
     address issuer,
     uint256 amount,
     address token,
     address safe
   );
-  event InventoryRemoved(
+  event TokensWithdrawn(
     address safe,
     address issuer,
     address token,
@@ -78,8 +79,13 @@ contract PrepaidCardMarketV2 is Ownable, Versionable, Safe {
   );
   event TrustedProvisionerAdded(address token);
   event TrustedProvisionerRemoved(address token);
+  event PausedToggled(bool paused);
 
-  // only owner can call setup
+  function initialize(address owner) public override initializer {
+    paused = false;
+    OwnableInitialize(owner);
+  }
+
   function setup(
     address _exchangeAddress,
     address _prepaidCardManagerAddress,
@@ -101,6 +107,11 @@ contract PrepaidCardMarketV2 is Ownable, Versionable, Safe {
     emit Setup();
   }
 
+  function setPaused(bool _paused) external onlyOwner {
+    paused = _paused;
+    emit PausedToggled(_paused);
+  }
+
   function getTrustedProvisioners() external view returns (address[] memory) {
     return trustedProvisioners.values();
   }
@@ -115,46 +126,16 @@ contract PrepaidCardMarketV2 is Ownable, Versionable, Safe {
     emit TrustedProvisionerRemoved(_token);
   }
 
-  // TODO: add a function to add SKUs
-  // Allow issuer to set SKUs (face value, DID, token address)
-  // mapping between safe and issuer
-  // provide face value and DID
-  // new mapping sku -> sku data
-  // mapping(bytes32 => SKU) public skus; // sku => sku data
-  // add a require balance > 0
-  // need the token address (another param)
-  // function addSKU() external {}
-
-  // TODO: Allow trusted provisioner (will be relay server) to call a method to
-  // create a card and transfer it to an EOA by specifying a SKU and target EOA
-
-  // additonal createprepaidsignature
-  // it is assumed the sender is the issuer but here we don't want this to be the caaw
-  // add a new function where i can specify who the issuer is. Shoukd only be called by
-  // the market conctract
-  // add a new property (array) - all the contracts allowerd to create a prepaid card
-  // can be AdressSet
-
-  // when a trusted provisioner calls a method to create a card,
-  // what will the inputs be
-
-  // when a prepaid card gets created, we need to remove
-  // when a card is created and transfered
-
-  // relay server now calls the v1 market contract
-  // we want relay server to talk to both contracts
-  // adding a new endpoint to the relay server
-
   function provisionPrepaidCard(address customer, bytes32 sku)
     external
     returns (bool)
   {
-    console.log("provision pp sender", msg.sender);
+    require(!paused, "Contract is paused");
     require(
       trustedProvisioners.contains(msg.sender),
-      "only trusted provisioners allowed"
+      "Only trusted provisioners allowed"
     );
-    require(asks[sku] > 0, "can't provision SKU with 0 askPrice");
+    require(asks[sku] > 0, "Can't provision SKU with 0 askPrice");
 
     PrepaidCardManager prepaidCardManager = PrepaidCardManager(
       prepaidCardManagerAddress
@@ -163,18 +144,13 @@ contract PrepaidCardMarketV2 is Ownable, Versionable, Safe {
     address token = skus[sku].issuingToken;
     uint256 faceValue = skus[sku].faceValue;
     string memory customizationDID = skus[sku].customizationDID;
-    uint256 priceToCreate = prepaidCardManager.priceForFaceValue(
+    uint256 priceToCreatePrepaidCard = prepaidCardManager.priceForFaceValue(
       token,
       faceValue
     ); // in Wei
 
-    console.log("priceToCreate", priceToCreate);
-    console.log("faceValue", faceValue);
-
     uint256[] memory issuingTokenAmounts = new uint256[](1);
     uint256[] memory spendAmounts = new uint256[](1);
-
-    console.log("exchangeAddress", exchangeAddress);
 
     issuingTokenAmounts[0] = Exchange(exchangeAddress).convertFromSpend(
       token,
@@ -183,23 +159,24 @@ contract PrepaidCardMarketV2 is Ownable, Versionable, Safe {
 
     spendAmounts[0] = faceValue;
 
-    address issuerAddress = skus[sku].issuer;
-    address issuerSafeAddress = skus[sku].issuerSafe;
+    address issuer = skus[sku].issuer;
+    address issuerSafe = skus[sku].issuerSafe;
 
     IERC677(token).safeTransferAndCall(
       prepaidCardManagerAddress,
-      priceToCreate,
+      priceToCreatePrepaidCard,
       abi.encode(
         customer,
         issuingTokenAmounts,
         spendAmounts,
         customizationDID,
-        address(0), // marketAddress - we probably don't need it in this case
-        issuerAddress
+        address(0), // marketAddress - we probably don't need it in this case?
+        issuer,
+        issuerSafe
       )
     );
 
-    balance[issuerSafeAddress][token] -= priceToCreate;
+    balance[issuerSafe][token] -= priceToCreatePrepaidCard;
 
     return true;
   }
@@ -219,15 +196,15 @@ contract PrepaidCardMarketV2 is Ownable, Versionable, Safe {
   }
 
   function setAsk(
-    address issuerAddress,
+    address issuer,
     bytes32 sku,
     uint256 askPrice
   ) external returns (bool) {
     require(skus[sku].issuer != address(0), "Non-existent SKU");
-    require(skus[sku].issuer == issuerAddress, "SKU not owned by issuer");
+    require(skus[sku].issuer == issuer, "SKU not owned by issuer");
     asks[sku] = askPrice;
 
-    emit AskSet(issuerAddress, skus[sku].issuingToken, sku, askPrice);
+    emit AskSet(issuer, skus[sku].issuingToken, sku, askPrice);
     return true;
   }
 
@@ -239,7 +216,7 @@ contract PrepaidCardMarketV2 is Ownable, Versionable, Safe {
     require(faceValue > 0, "Face value must be greater than 0");
     require(token != address(0), "Token address must be set");
 
-    address _issuer = issuer[msg.sender];
+    address _issuer = issuers[msg.sender];
     require(_issuer != address(0), "Issuer not found.");
 
     bytes32 sku = getSKU(_issuer, token, faceValue, customizationDID);
@@ -260,19 +237,17 @@ contract PrepaidCardMarketV2 is Ownable, Versionable, Safe {
   }
 
   function getSKU(
-    address issuerAddress, // todo: better name would be just issuer but it shadows the mapping
+    address issuer,
     address token,
     uint256 faceValue,
     string memory customizationDID
   ) public pure returns (bytes32) {
     return
-      keccak256(
-        abi.encodePacked(issuerAddress, token, faceValue, customizationDID)
-      );
+      keccak256(abi.encodePacked(issuer, token, faceValue, customizationDID));
   }
 
   function withdrawTokens(uint256 amount, address token) external {
-    address _issuer = issuer[msg.sender];
+    address _issuer = issuers[msg.sender];
     require(_issuer != address(0), "Issuer not found");
 
     uint256 balanceForToken = balance[msg.sender][token];
@@ -282,7 +257,8 @@ contract PrepaidCardMarketV2 is Ownable, Versionable, Safe {
     balance[msg.sender][token] -= amount;
 
     IERC677(token).safeTransfer(msg.sender, amount);
-    emit InventoryRemoved(msg.sender, _issuer, token, amount);
+
+    emit TokensWithdrawn(msg.sender, _issuer, token, amount);
   }
 
   function onTokenTransfer(
@@ -316,9 +292,13 @@ contract PrepaidCardMarketV2 is Ownable, Versionable, Safe {
     require(_foundOwner, "issuer is not one of the safe owners");
 
     balance[from][msg.sender] = balance[from][msg.sender] + amount;
-    issuer[from] = _issuer;
-    emit InventoryAdded(_issuer, amount, msg.sender, from);
+    issuers[from] = _issuer;
+    emit TokensDeposited(_issuer, amount, msg.sender, from);
 
     return true;
+  }
+
+  function cardpayVersion() external view returns (string memory) {
+    return VersionManager(versionManager).version();
   }
 }

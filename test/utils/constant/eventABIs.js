@@ -284,9 +284,9 @@ const eventABIs = {
       },
     ],
   },
-  PREPAID_CARD_MARKET_V2_ADD_INVENTORY: {
+  PREPAID_CARD_MARKET_V2_DEPOSIT_TOKENS: {
     topic: web3EthAbi.encodeEventSignature(
-      "InventoryAdded(address,uint256,address,address)"
+      "TokensDeposited(address,uint256,address,address)"
     ),
     abis: [
       {
@@ -307,9 +307,9 @@ const eventABIs = {
       },
     ],
   },
-  PREPAID_CARD_MARKET_V2_REMOVE_INVENTORY: {
+  PREPAID_CARD_MARKET_V2_TOKENS_WITHDRAWN: {
     topic: web3EthAbi.encodeEventSignature(
-      "InventoryRemoved(address,address,address,uint256)"
+      "TokensWithdrawn(address,address,address,uint256)"
     ),
     abis: [
       {
@@ -332,7 +332,7 @@ const eventABIs = {
   },
   PREPAID_CARD_MARKET_V2_SKU_ADDED: {
     topic: web3EthAbi.encodeEventSignature(
-      "SkuAdded(address,address,uint256,string)"
+      "SkuAdded(address,address,uint256,string,bytes32)"
     ),
     abis: [
       {
@@ -350,6 +350,10 @@ const eventABIs = {
       {
         type: "string",
         name: "customizationDID",
+      },
+      {
+        type: "bytes32",
+        name: "sku",
       },
     ],
   },
