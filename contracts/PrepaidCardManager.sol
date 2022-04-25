@@ -205,10 +205,11 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
       uint256[] memory spendAmounts,
       string memory customizationDID,
       address marketAddress,
-      address issuer
+      address issuer,
+      address issuerSafe
     ) = abi.decode(
         data,
-        (address, uint256[], uint256[], string, address, address)
+        (address, uint256[], uint256[], string, address, address, address)
       );
     require(
       owner != address(0) && issuingTokenAmounts.length > 0,
@@ -238,9 +239,9 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
       createCardWithIssuer(
         owner, // customer
         issuer,
-        address(0), // depot??
+        issuerSafe,
         from, // PrepaidCardMarketV2
-        msg.sender,
+        msg.sender, // token
         issuingTokenAmounts[0],
         spendAmounts[0],
         customizationDID
