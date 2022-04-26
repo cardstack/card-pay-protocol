@@ -22,7 +22,7 @@ const {
 const AbiCoder = require("web3-eth-abi");
 const { toWei } = require("web3-utils");
 
-contract("PrepaidCardMarketV2", (accounts) => {
+contract.only("PrepaidCardMarketV2", (accounts) => {
   let daicpxdToken,
     issuer,
     owner,
@@ -98,6 +98,7 @@ contract("PrepaidCardMarketV2", (accounts) => {
       100,
       500000,
       [prepaidCardMarket],
+      [prepaidCardMarketV2.address],
       versionManager.address
     );
 

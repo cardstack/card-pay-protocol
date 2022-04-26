@@ -99,6 +99,8 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
   mapping(address => bool) public hasBeenSplit; // this is deprecated, remove it when possible
   mapping(address => bool) public hasBeenUsed;
   EnumerableSetUpgradeable.AddressSet internal contractSigners;
+  EnumerableSetUpgradeable.AddressSet
+    internal trustedCallersForCreatingPrepaidCardsWithIssuer;
   mapping(string => GasPolicyV2) public gasPoliciesV2;
   address public versionManager;
 
@@ -143,6 +145,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     uint256 _minAmount,
     uint256 _maxAmount,
     address[] calldata _contractSigners,
+    address[] calldata _trustedCallersForCreatingPrepaidCardsWithIssuer,
     address _versionManager
   ) external onlyOwner {
     actionDispatcher = _actionDispatcher;
@@ -157,6 +160,15 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     Safe.setup(_gsMasterCopy, _gsProxyFactory);
     for (uint256 i = 0; i < _contractSigners.length; i++) {
       contractSigners.add(_contractSigners[i]);
+    }
+    for (
+      uint256 i = 0;
+      i < _trustedCallersForCreatingPrepaidCardsWithIssuer.length;
+      i++
+    ) {
+      trustedCallersForCreatingPrepaidCardsWithIssuer.add(
+        _trustedCallersForCreatingPrepaidCardsWithIssuer[i]
+      );
     }
     emit Setup();
   }
@@ -211,6 +223,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
         data,
         (address, uint256[], uint256[], string, address, address, address)
       );
+
     require(
       owner != address(0) && issuingTokenAmounts.length > 0,
       "Prepaid card data invalid"
@@ -236,6 +249,10 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
         marketAddress
       );
     } else {
+      require(
+        trustedCallersForCreatingPrepaidCardsWithIssuer.contains(from),
+        "Only trusted callers allowed"
+      );
       createCardWithIssuer(
         owner, // customer
         issuer,
@@ -586,9 +603,6 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     // TODO: only v2 contract can call this function
 
     require(from != address(0), "Invalid sender");
-
-    console.log("issuingTokenAmount", issuingTokenAmount);
-    console.log("spendAmount", spendAmount);
 
     return
       createPrepaidCard(
