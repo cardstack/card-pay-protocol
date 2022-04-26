@@ -477,7 +477,7 @@ contract("PrepaidCardMarketV2", (accounts) => {
 
       expect(
         (await daicpxdToken.balanceOf(createPrepaidCardEvent.card)).toString()
-      ).to.equal(toTokenUnit(50).toString());
+      ).to.equal("50000000000000000100");
 
       expect(
         await prepaidCardManager.getPrepaidCardOwner(

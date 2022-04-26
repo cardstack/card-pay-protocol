@@ -152,10 +152,7 @@ contract PrepaidCardMarketV2 is Ownable, Versionable, Safe {
     uint256[] memory issuingTokenAmounts = new uint256[](1);
     uint256[] memory spendAmounts = new uint256[](1);
 
-    issuingTokenAmounts[0] = Exchange(exchangeAddress).convertFromSpend(
-      token,
-      faceValue
-    );
+    issuingTokenAmounts[0] = priceToCreatePrepaidCard;
 
     spendAmounts[0] = faceValue;
 
