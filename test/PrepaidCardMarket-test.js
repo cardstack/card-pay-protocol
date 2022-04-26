@@ -228,7 +228,8 @@ contract("PrepaidCardMarket", (accounts) => {
         ).to.equal(safeEvent.payment, "prepaid card paid actual cost of gas");
       });
 
-      it(`can set an item in inventory via splitting a prepaid card`, async function () {
+      it.only(`can set an item in inventory via splitting a prepaid card`, async function () {
+        console.log("1");
         let safeTx = await splitPrepaidCard(
           prepaidCardManager,
           fundingCard,
@@ -239,6 +240,7 @@ contract("PrepaidCardMarket", (accounts) => {
           "did:cardstack:split-inventory-test",
           prepaidCardMarket.address
         );
+        console.log("2");
         let [event] = getParamsFromEvent(
           safeTx,
           eventABIs.SET_PREPAID_CARD_INVENTORY,

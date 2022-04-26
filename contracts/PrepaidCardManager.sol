@@ -17,6 +17,7 @@ import "./SupplierManager.sol";
 import "./Exchange.sol";
 import "./ActionDispatcher.sol";
 import "./VersionManager.sol";
+import "hardhat/console.sol";
 
 contract PrepaidCardManager is Ownable, Versionable, Safe {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
@@ -192,6 +193,9 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     uint256 amount,
     bytes calldata data
   ) external returns (bool) {
+    console.log("data from onTokenTransfer");
+    console.logBytes(data);
+
     require(
       TokenManager(tokenManager).isValidToken(msg.sender),
       "calling token is unaccepted"
@@ -201,8 +205,13 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
       uint256[] memory issuingTokenAmounts,
       uint256[] memory spendAmounts,
       string memory customizationDID,
-      address marketAddress
-    ) = abi.decode(data, (address, uint256[], uint256[], string, address));
+      address marketAddress,
+      address issuer,
+      address issuerSafe
+    ) = abi.decode(
+        data,
+        (address, uint256[], uint256[], string, address, address, address)
+      );
     require(
       owner != address(0) && issuingTokenAmounts.length > 0,
       "Prepaid card data invalid"
@@ -212,20 +221,36 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
       "the amount arrays have differing lengths"
     );
 
-    // The spend amounts are for reporting purposes only, there is no on-chain
-    // effect from this value. Although, it might not be a bad idea that spend
-    // amounts line up with the issuing token amounts--albiet we'd need to
-    // introduce a rate lock mechanism if we wanted to validate this
-    createMultiplePrepaidCards(
-      owner,
-      from,
-      _msgSender(),
-      amount,
-      issuingTokenAmounts,
-      spendAmounts,
-      customizationDID,
-      marketAddress
-    );
+    console.log(issuerSafe);
+    console.log(issuer);
+
+    // We want the issuerSafe and issuer to both be 0 addresses when called by PrepaidCardMarket.
+    // In the new contract, these addresses will be present.
+    // The logic that follows will handle these cases and depending on the values of these addresses,
+    // different ways of creating prepaid cards will be used.
+
+    if (issuer == address(0)) {
+      // The spend amounts are for reporting purposes only, there is no on-chain
+      // effect from this value. Although, it might not be a bad idea that spend
+      // amounts line up with the issuing token amounts--albiet we'd need to
+      // introduce a rate lock mechanism if we wanted to validate this
+
+      // Create prepaid cards the old way
+      createMultiplePrepaidCards(
+        owner,
+        from,
+        _msgSender(),
+        amount,
+        issuingTokenAmounts,
+        spendAmounts,
+        customizationDID,
+        marketAddress
+      );
+    } else {
+      // Create prepaid cards the new way
+      console.log("");
+    }
+
     return true;
   }
 
@@ -327,6 +352,9 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
       data,
       ownerSignature
     );
+
+    console.log("prepaidcardmanager send");
+
     return
       execTransaction(exTxData, ownerSignature, gasPrice, safeTxGas, baseGas);
   }
@@ -351,6 +379,9 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
       spendAmount,
       rateLock
     );
+
+    console.logBytes(data);
+
     return
       abi.encodeWithSelector(
         TRANSFER_AND_CALL,
