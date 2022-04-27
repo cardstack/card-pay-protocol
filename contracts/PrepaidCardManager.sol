@@ -193,9 +193,6 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     uint256 amount,
     bytes calldata data
   ) external returns (bool) {
-    console.log("data from onTokenTransfer");
-    console.logBytes(data);
-
     require(
       TokenManager(tokenManager).isValidToken(msg.sender),
       "calling token is unaccepted"
@@ -220,9 +217,6 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
       issuingTokenAmounts.length == spendAmounts.length,
       "the amount arrays have differing lengths"
     );
-
-    console.log(issuerSafe);
-    console.log(issuer);
 
     // We want the issuerSafe and issuer to both be 0 addresses when called by PrepaidCardMarket.
     // In the new contract, these addresses will be present.
@@ -353,8 +347,6 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
       ownerSignature
     );
 
-    console.log("prepaidcardmanager send");
-
     return
       execTransaction(exTxData, ownerSignature, gasPrice, safeTxGas, baseGas);
   }
@@ -379,8 +371,6 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
       spendAmount,
       rateLock
     );
-
-    console.logBytes(data);
 
     return
       abi.encodeWithSelector(
