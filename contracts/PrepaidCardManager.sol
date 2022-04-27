@@ -233,15 +233,17 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
       "the amount arrays have differing lengths"
     );
 
-    if (issuer == address(0)) {
-      // The spend amounts are for reporting purposes only, there is no on-chain
-      // effect from this value. Although, it might not be a bad idea that spend
-      // amounts line up with the issuing token amounts--albiet we'd need to
-      // introduce a rate lock mechanism if we wanted to validate this
-      createMultiplePrepaidCards(
+    // The spend amounts are for reporting purposes only, there is no on-chain
+    // effect from this value. Although, it might not be a bad idea that spend
+    // amounts line up with the issuing token amounts--albiet we'd need to
+    // introduce a rate lock mechanism if we wanted to validate this
+
+    if (issuer == address(0) && issuerSafe == address(0)) {
+      createPrepaidCards(
+        owner, // issuer
         owner,
-        from,
-        _msgSender(),
+        from, // depot
+        _msgSender(), // token
         amount,
         issuingTokenAmounts,
         spendAmounts,
@@ -253,15 +255,17 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
         trustedCallersForCreatingPrepaidCardsWithIssuer.contains(from),
         "Only trusted callers allowed"
       );
-      createCardWithIssuer(
-        owner, // customer
+
+      createPrepaidCards(
         issuer,
-        issuerSafe,
-        from, // PrepaidCardMarketV2
-        msg.sender, // token
-        issuingTokenAmounts[0],
-        spendAmounts[0],
-        customizationDID
+        owner,
+        issuerSafe, // depot
+        _msgSender(), // token
+        amount,
+        issuingTokenAmounts,
+        spendAmounts,
+        customizationDID,
+        marketAddress
       );
     }
 
@@ -534,7 +538,8 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
    * @param spendAmounts array of spend amounts that represent the desired face value (for reporting only)
    * @param customizationDID the customization DID for the new prepaid cards
    */
-  function createMultiplePrepaidCards(
+  function createPrepaidCards(
+    address issuer,
     address owner,
     address depot,
     address token,
@@ -565,7 +570,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     );
     for (uint256 i = 0; i < numberCard; i++) {
       createPrepaidCard(
-        owner,
+        issuer,
         owner,
         depot,
         token,
@@ -588,33 +593,6 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     }
 
     return true;
-  }
-
-  function createCardWithIssuer(
-    address customer,
-    address issuer,
-    address depot, // the issuers safe
-    address from,
-    address token,
-    uint256 issuingTokenAmount,
-    uint256 spendAmount,
-    string memory customizationDID
-  ) internal returns (address) {
-    // TODO: only v2 contract can call this function
-
-    require(from != address(0), "Invalid sender");
-
-    return
-      createPrepaidCard(
-        issuer,
-        customer,
-        depot,
-        token,
-        issuingTokenAmount,
-        spendAmount,
-        customizationDID,
-        address(0)
-      );
   }
 
   /**
