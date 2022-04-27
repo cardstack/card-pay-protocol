@@ -114,6 +114,7 @@ const setupProtocol = async (accounts) => {
     100,
     500000,
     [],
+    [],
     versionManager.address
   );
   await revenuePool.setup(

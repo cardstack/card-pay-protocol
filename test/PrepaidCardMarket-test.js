@@ -117,6 +117,7 @@ contract("PrepaidCardMarket", (accounts) => {
       100,
       500000,
       [prepaidCardMarket.address],
+      [],
       versionManager.address
     );
     await prepaidCardManager.addGasPolicy("transfer", false);
