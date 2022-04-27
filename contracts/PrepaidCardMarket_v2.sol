@@ -14,10 +14,15 @@ import "./TokenManager.sol";
 import "./core/Safe.sol";
 import "@gnosis.pm/safe-contracts/contracts/proxies/GnosisSafeProxyFactory.sol";
 import "./libraries/SafeERC677.sol";
-
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "hardhat/console.sol";
 
-contract PrepaidCardMarketV2 is Ownable, Versionable, Safe {
+contract PrepaidCardMarketV2 is
+  Ownable,
+  Versionable,
+  Safe,
+  ReentrancyGuardUpgradeable
+{
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
   using SafeERC20Upgradeable for IERC677;
   using SafeERC677 for IERC677;
@@ -128,6 +133,7 @@ contract PrepaidCardMarketV2 is Ownable, Versionable, Safe {
 
   function provisionPrepaidCard(address customer, bytes32 sku)
     external
+    nonReentrant
     returns (bool)
   {
     require(!paused, "Contract is paused");
@@ -163,6 +169,8 @@ contract PrepaidCardMarketV2 is Ownable, Versionable, Safe {
     issuingTokenAmounts[0] = priceToCreatePrepaidCard;
     spendAmounts[0] = faceValue;
 
+    balance[issuerSafe][token] -= priceToCreatePrepaidCard;
+
     IERC677(token).safeTransferAndCall(
       prepaidCardManagerAddress,
       priceToCreatePrepaidCard,
@@ -171,13 +179,11 @@ contract PrepaidCardMarketV2 is Ownable, Versionable, Safe {
         issuingTokenAmounts,
         spendAmounts,
         customizationDID,
-        address(0), // marketAddress - we probably don't need it in this case?
+        address(0), // marketAddress - we don't need it in this case
         issuer,
         issuerSafe
       )
     );
-
-    balance[issuerSafe][token] -= priceToCreatePrepaidCard;
 
     return true;
   }
