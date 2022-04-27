@@ -99,10 +99,10 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
   mapping(address => bool) public hasBeenSplit; // this is deprecated, remove it when possible
   mapping(address => bool) public hasBeenUsed;
   EnumerableSetUpgradeable.AddressSet internal contractSigners;
-  EnumerableSetUpgradeable.AddressSet
-    internal trustedCallersForCreatingPrepaidCardsWithIssuer;
   mapping(string => GasPolicyV2) public gasPoliciesV2;
   address public versionManager;
+  EnumerableSetUpgradeable.AddressSet
+    internal trustedCallersForCreatingPrepaidCardsWithIssuer;
 
   modifier onlyHandlers() {
     require(
