@@ -487,6 +487,18 @@ contract("PrepaidCardMarketV2", (accounts) => {
       ).to.equal(customer);
     });
 
+    it("can't provision a prepaid card when there is not enough funds", async function () {
+      await withdrawTokens(toTokenUnit(100));
+
+      await expect(
+        prepaidCardMarketV2.contract.methods
+          .provisionPrepaidCard(customer, skuAddEvent.sku)
+          .call({
+            from: relayer,
+          })
+      ).to.be.rejectedWith("Not enough balance");
+    });
+
     it(`rejects when contract is paused`, async function () {
       await prepaidCardMarketV2.setPaused(true);
       await prepaidCardMarketV2

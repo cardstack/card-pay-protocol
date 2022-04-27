@@ -149,15 +149,19 @@ contract PrepaidCardMarketV2 is Ownable, Versionable, Safe {
       faceValue
     ); // in Wei
 
+    address issuer = skus[sku].issuer;
+    address issuerSafe = skus[sku].issuerSafe;
+
+    require(
+      balance[issuerSafe][token] >= priceToCreatePrepaidCard,
+      "Not enough balance"
+    );
+
     uint256[] memory issuingTokenAmounts = new uint256[](1);
     uint256[] memory spendAmounts = new uint256[](1);
 
     issuingTokenAmounts[0] = priceToCreatePrepaidCard;
-
     spendAmounts[0] = faceValue;
-
-    address issuer = skus[sku].issuer;
-    address issuerSafe = skus[sku].issuerSafe;
 
     IERC677(token).safeTransferAndCall(
       prepaidCardManagerAddress,
