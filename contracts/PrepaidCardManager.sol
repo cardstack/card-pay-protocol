@@ -228,16 +228,20 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
       owner != address(0) && issuingTokenAmounts.length > 0,
       "Prepaid card data invalid"
     );
-    require(
-      issuingTokenAmounts.length == spendAmounts.length,
-      "the amount arrays have differing lengths"
-    );
 
     // The spend amounts are for reporting purposes only, there is no on-chain
     // effect from this value. Although, it might not be a bad idea that spend
     // amounts line up with the issuing token amounts--albiet we'd need to
     // introduce a rate lock mechanism if we wanted to validate this
+    require(
+      issuingTokenAmounts.length == spendAmounts.length,
+      "the amount arrays have differing lengths"
+    );
 
+    // When issuer and issuerSafe are blank, it means the call is related to the
+    // process where a prepaid card is first created, using the provided issuer as
+    // the owner, and later provisioned and transfered to the customer (customer's
+    // EOA is the new owner).
     if (issuer == address(0) && issuerSafe == address(0)) {
       createPrepaidCards(
         owner, // issuer
@@ -251,6 +255,10 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
         marketAddress
       );
     } else {
+      // In case when issuer and issuerSafe are provided, it means the tokens are being
+      // sent from the PrepaidCardMarketV2 contract where the prepaid cards are being
+      // created and provisioned in a single step, where the issuer and owner (customer's EOA)
+      // are provided during the creation of the prepaid cards.
       require(
         trustedCallersForCreatingPrepaidCardsWithIssuer.contains(from),
         "Only trusted callers allowed"
