@@ -268,6 +268,18 @@ contract PrepaidCardMarketV2 is
     emit TokensWithdrawn(msg.sender, _issuer, token, amount);
   }
 
+  /**
+   * @dev onTokenTransfer(ERC677) - this is the ERC677 token transfer callback.
+   *
+   * When tokens are sent to this contract, this function will set the balance
+   * for the issuer, which will be used to fund and provision prepaid cards.
+   *
+   * @param from issuer's safe address
+   * @param amount number of tokens sent
+   * @param data encoded as (
+   *  address issuer (issuer's address)
+   * )
+   */
   function onTokenTransfer(
     address payable from, // safe address
     uint256 amount,
