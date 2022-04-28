@@ -499,6 +499,12 @@ contract("PrepaidCardMarketV2", (accounts) => {
         prepaidCardManager.address
       );
 
+      let [provisionPrepaidCardEvent] = getParamsFromEvent(
+        tx,
+        eventABIs.PREPAID_CARD_MARKET_V2_PREPAID_CARD_PROVISIONED,
+        prepaidCardMarketV2.address
+      );
+
       let balance = await prepaidCardMarketV2.balance(
         depot.address,
         daicpxdToken.address
@@ -517,6 +523,9 @@ contract("PrepaidCardMarketV2", (accounts) => {
           createPrepaidCardEvent.card
         )
       ).to.equal(customer);
+
+      expect(provisionPrepaidCardEvent.owner).to.eq(customer);
+      expect(provisionPrepaidCardEvent.sku).to.eq(skuAddEvent.sku);
     });
 
     it("can't provision a prepaid card when there is not enough funds", async function () {

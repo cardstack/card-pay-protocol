@@ -389,6 +389,21 @@ const eventABIs = {
       },
     ],
   },
+  PREPAID_CARD_MARKET_V2_PREPAID_CARD_PROVISIONED: {
+    topic: web3EthAbi.encodeEventSignature(
+      "PrepaidCardProvisioned(address,bytes32)"
+    ),
+    abis: [
+      {
+        type: "address",
+        name: "owner",
+      },
+      {
+        type: "bytes32",
+        name: "sku",
+      },
+    ],
+  },
 };
 
 module.exports = eventABIs;

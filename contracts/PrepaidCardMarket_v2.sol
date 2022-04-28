@@ -76,12 +76,7 @@ contract PrepaidCardMarketV2 is
     bytes32 sku,
     uint256 askPrice
   );
-  event ProvisionedPrepaidCard(
-    address prepaidCard,
-    address customer,
-    bytes32 sku,
-    uint256 askPrice
-  );
+  event PrepaidCardProvisioned(address owner, bytes32 sku);
   event TrustedProvisionerAdded(address token);
   event TrustedProvisionerRemoved(address token);
   event PausedToggled(bool paused);
@@ -184,6 +179,8 @@ contract PrepaidCardMarketV2 is
         issuerSafe
       )
     );
+
+    emit PrepaidCardProvisioned(customer, sku);
 
     return true;
   }
