@@ -372,6 +372,16 @@ contract("PrepaidCardMarketV2", (accounts) => {
         expect(event.faceValue).to.be.equal("1000");
         expect(event.customizationDID).to.be.equal("did:cardstack:test");
       });
+
+      it("can't add a SKU when issuer has no balance", async function () {
+        await expect(
+          prepaidCardMarketV2.contract.methods
+            .addSKU("1000", "did:cardstack:test", daicpxdToken.address)
+            .call({
+              from: depot.address,
+            })
+        ).to.be.rejectedWith("Issuer has no balance");
+      });
     });
 
     describe("getQuantity", () => {

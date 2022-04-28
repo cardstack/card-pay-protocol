@@ -224,7 +224,7 @@ contract PrepaidCardMarketV2 is
     require(token != address(0), "Token address must be set");
 
     address _issuer = issuers[msg.sender];
-    require(_issuer != address(0), "Issuer not found.");
+    require(_issuer != address(0), "Issuer has no balance");
 
     bytes32 sku = getSKU(_issuer, token, faceValue, customizationDID);
 
