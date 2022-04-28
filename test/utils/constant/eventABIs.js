@@ -380,6 +380,15 @@ const eventABIs = {
       },
     ],
   },
+  PREPAID_CARD_MARKET_V2_PAUSED_TOGGLED: {
+    topic: web3EthAbi.encodeEventSignature("PausedToggled(bool)"),
+    abis: [
+      {
+        type: "bool",
+        name: "paused",
+      },
+    ],
+  },
 };
 
 module.exports = eventABIs;
