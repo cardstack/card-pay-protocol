@@ -209,6 +209,8 @@ contract PrepaidCardMarketV2 is
   ) external returns (bool) {
     require(skus[sku].issuer != address(0), "Non-existent SKU");
     require(skus[sku].issuer == issuer, "SKU not owned by issuer");
+    require(msg.sender == skus[sku].issuerSafe, "Only issuer safe can set ask");
+
     asks[sku] = askPrice;
 
     emit AskSet(issuer, skus[sku].issuingToken, sku, askPrice);

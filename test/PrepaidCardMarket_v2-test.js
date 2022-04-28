@@ -437,6 +437,28 @@ contract("PrepaidCardMarketV2", (accounts) => {
         expect(event.sku).to.be.equal(skuEvent.sku);
         expect(event.askPrice).to.be.equal("10");
       });
+
+      it("should reject when some other issuer safe tries to set an ask price", async function () {
+        await depositTokens(toTokenUnit(5));
+        let { safeTx: addSkuSafeTx } = await addSKU(
+          "5000",
+          "did:cardstack:test",
+          daicpxdToken.address
+        );
+        let [skuAddEvent] = getParamsFromEvent(
+          addSkuSafeTx,
+          eventABIs.PREPAID_CARD_MARKET_V2_SKU_ADDED,
+          prepaidCardMarketV2.address
+        );
+
+        await expect(
+          prepaidCardMarketV2.contract.methods
+            .setAsk(issuer, skuAddEvent.sku, 10)
+            .call({
+              from: relayer, // Anything else than depot (the sku's issuer safe)
+            })
+        ).to.be.rejectedWith("Only issuer safe can set ask");
+      });
     });
   });
 
