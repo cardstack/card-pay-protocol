@@ -243,6 +243,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     // the owner, and later provisioned and transfered to the customer (customer's
     // EOA is the new owner).
     if (issuer == address(0) && issuerSafe == address(0)) {
+      console.log("owner", owner);
       createPrepaidCards(
         owner, // issuer
         owner,
@@ -336,6 +337,8 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
   {
     return contractSigners.contains(getPrepaidCardOwner(prepaidCard));
   }
+
+  // TODO is the comment wrong??
 
   /**
    * @dev Pay token to merchant
@@ -627,6 +630,8 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
 
     owners[0] = address(this);
     owners[1] = marketAddress != address(0) ? marketAddress : owner;
+
+    console.log("owners[0]", owners[0]);
 
     address card = createSafe(owners, 2);
 

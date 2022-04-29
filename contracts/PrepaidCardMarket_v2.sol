@@ -38,8 +38,9 @@ contract PrepaidCardMarketV2 is
   address public prepaidCardManagerAddress;
   address public tokenManager;
   address public provisioner;
-  address public versionManager;
+  address public actionDispatcher;
   address public exchangeAddress;
+  address public versionManager;
   mapping(address => mapping(address => uint256)) public balance; // issuer safe address -> token -> balance
   mapping(address => address) public issuers; // issuer safe address -> issuer EOA
   mapping(bytes32 => SKU) public skus; // sku => sku data
@@ -81,6 +82,14 @@ contract PrepaidCardMarketV2 is
   event TrustedProvisionerRemoved(address token);
   event PausedToggled(bool paused);
 
+  modifier onlyHandlers() {
+    require(
+      ActionDispatcher(actionDispatcher).isHandler(msg.sender),
+      "caller is not a registered action handler"
+    );
+    _;
+  }
+
   function initialize(address owner) public override initializer {
     paused = false;
     OwnableInitialize(owner);
@@ -91,6 +100,7 @@ contract PrepaidCardMarketV2 is
     address _prepaidCardManagerAddress,
     address _provisioner,
     address _tokenManager,
+    address _actionDispatcher,
     address[] calldata _trustedProvisioners,
     address _versionManager
   ) external onlyOwner {
@@ -98,6 +108,7 @@ contract PrepaidCardMarketV2 is
     prepaidCardManagerAddress = _prepaidCardManagerAddress;
     provisioner = _provisioner;
     tokenManager = _tokenManager;
+    actionDispatcher = _actionDispatcher;
     versionManager = _versionManager;
 
     for (uint256 i = 0; i < _trustedProvisioners.length; i++) {
@@ -203,7 +214,7 @@ contract PrepaidCardMarketV2 is
     address issuer,
     bytes32 sku,
     uint256 askPrice
-  ) external returns (bool) {
+  ) external onlyHandlers returns (bool) {
     require(skus[sku].issuer != address(0), "Non-existent SKU");
     require(skus[sku].issuer == issuer, "SKU not owned by issuer");
     require(msg.sender == skus[sku].issuerSafe, "Only issuer safe can set ask");
@@ -218,7 +229,7 @@ contract PrepaidCardMarketV2 is
     uint256 faceValue,
     string memory customizationDID,
     address token
-  ) external returns (bool) {
+  ) external onlyHandlers returns (bool) {
     require(faceValue > 0, "Face value must be greater than 0");
     require(token != address(0), "Token address must be set");
 
