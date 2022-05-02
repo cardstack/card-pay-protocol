@@ -8,6 +8,7 @@ import "@nomiclabs/hardhat-waffle";
 import "@openzeppelin/hardhat-upgrades";
 import "hardhat-contract-sizer";
 import "hardhat-watcher";
+import "hardhat-tracer";
 import "solidity-coverage";
 import "@nomiclabs/hardhat-etherscan";
 import "./lib/hardhat-error-on-compiler-warnings";
