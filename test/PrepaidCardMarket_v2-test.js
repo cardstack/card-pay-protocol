@@ -17,13 +17,19 @@ const {
   createDepotFromSupplierMgr,
   setupVersionManager,
   signAndSendSafeTransaction,
+  createPrepaidCards,
+  addPrepaidCardSKU,
+  addActionHandlers,
+  setPrepaidCardAsk,
+  transferOwner,
 } = require("./utils/helper");
 
 const AbiCoder = require("web3-eth-abi");
 const { toWei } = require("web3-utils");
 
-contract("PrepaidCardMarketV2", (accounts) => {
+contract.only("PrepaidCardMarketV2", (accounts) => {
   let daicpxdToken,
+    cardcpxdToken,
     issuer,
     owner,
     relayer,
@@ -39,9 +45,23 @@ contract("PrepaidCardMarketV2", (accounts) => {
     versionManager,
     depot,
     depositTokens,
-    withdrawTokens,
-    setAsk,
-    addSKU;
+    withdrawTokens;
+
+  async function makePrepaidCards(amounts, marketAddress, issuerSafe) {
+    let { prepaidCards } = await createPrepaidCards(
+      depot,
+      prepaidCardManager,
+      daicpxdToken,
+      issuer,
+      relayer,
+      amounts,
+      null,
+      "did:cardstack:test",
+      marketAddress,
+      issuerSafe
+    );
+    return prepaidCards;
+  }
 
   beforeEach(async () => {
     owner = accounts[0];
@@ -66,10 +86,10 @@ contract("PrepaidCardMarketV2", (accounts) => {
     await supplierManager.initialize(owner);
     actionDispatcher = await ActionDispatcher.new();
     await actionDispatcher.initialize(owner);
+
     let tokenManager = await TokenManager.new();
     await tokenManager.initialize(owner);
 
-    let cardcpxdToken;
     ({ daicpxdToken, cardcpxdToken, exchange } = await setupExchanges(owner));
 
     await daicpxdToken.mint(owner, toTokenUnit(100));
@@ -98,16 +118,35 @@ contract("PrepaidCardMarketV2", (accounts) => {
       100,
       500000,
       [prepaidCardMarket],
-      [prepaidCardMarketV2.address],
+      [prepaidCardMarketV2.address, actionDispatcher.address],
       versionManager.address
     );
+    await prepaidCardManager.addGasPolicy("addPrepaidCardSKU", true);
+    await prepaidCardManager.addGasPolicy("setPrepaidCardAsk", true);
+
+    await actionDispatcher.setup(
+      tokenManager.address,
+      exchange.address,
+      prepaidCardManager.address,
+      versionManager.address
+    );
+
+    await addActionHandlers({
+      prepaidCardManager,
+      prepaidCardMarket,
+      actionDispatcher,
+      tokenManager,
+      owner,
+      versionManager,
+    });
 
     await prepaidCardMarketV2.setup(
       exchange.address,
       prepaidCardManager.address,
       provisioner,
       tokenManager.address,
-      [relayer],
+      actionDispatcher.address,
+      [relayer], // trusted provisioners
       versionManager.address
     );
 
@@ -171,62 +210,6 @@ contract("PrepaidCardMarketV2", (accounts) => {
         relayer
       );
     };
-
-    addSKU = async (faceValue, did) => {
-      let addSku = prepaidCardMarketV2.contract.methods.addSKU(
-        faceValue,
-        did,
-        daicpxdToken.address
-      );
-
-      let gasEstimate = await addSku.estimateGas({
-        from: depot.address,
-      });
-
-      let safeTxData = {
-        to: prepaidCardMarketV2.address,
-        data: addSku.encodeABI(),
-        txGasEstimate: gasEstimate,
-        gasPrice: 1000000000,
-        txGasToken: daicpxdToken.address,
-        refundReceiver: relayer,
-      };
-
-      return await signAndSendSafeTransaction(
-        safeTxData,
-        issuer,
-        depot,
-        relayer
-      );
-    };
-
-    setAsk = async (issuerAddress, sku, askPrice) => {
-      let setAsk = prepaidCardMarketV2.contract.methods.setAsk(
-        issuerAddress,
-        sku,
-        askPrice
-      );
-
-      let gasEstimate = await setAsk.estimateGas({
-        from: depot.address,
-      });
-
-      let safeTxData = {
-        to: prepaidCardMarketV2.address,
-        data: setAsk.encodeABI(),
-        txGasEstimate: gasEstimate,
-        gasPrice: 1000000000,
-        txGasToken: daicpxdToken.address,
-        refundReceiver: relayer,
-      };
-
-      return await signAndSendSafeTransaction(
-        safeTxData,
-        issuerAddress,
-        depot,
-        relayer
-      );
-    };
   });
 
   describe("setup", () => {
@@ -238,6 +221,7 @@ contract("PrepaidCardMarketV2", (accounts) => {
         (
           await TokenManager.new()
         ).address,
+        actionDispatcher.address,
         [relayer],
         versionManager.address
       );
@@ -354,44 +338,106 @@ contract("PrepaidCardMarketV2", (accounts) => {
       it("can add a SKU", async function () {
         await depositTokens(toTokenUnit(1));
 
-        let {
-          safeTx,
-          executionResult: { success },
-        } = await addSKU("1000", "did:cardstack:test", daicpxdToken.address);
+        let [fundingPrepaidCard] = await makePrepaidCards(
+          [toTokenUnit(1)],
+          ZERO_ADDRESS,
+          depot.address
+        );
 
-        expect(success).to.be.true;
+        await cardcpxdToken.mint(fundingPrepaidCard.address, toTokenUnit(1));
+
+        let startingFundingCardBalance = await daicpxdToken.balanceOf(
+          fundingPrepaidCard.address
+        );
+
+        let safeTx = await addPrepaidCardSKU(
+          prepaidCardManager,
+          fundingPrepaidCard,
+          "1000",
+          "did:cardstack:test",
+          daicpxdToken.address,
+          prepaidCardMarketV2,
+          issuer,
+          relayer,
+          null,
+          null,
+          depot
+        );
 
         let [event] = getParamsFromEvent(
           safeTx,
           eventABIs.PREPAID_CARD_MARKET_V2_SKU_ADDED,
           prepaidCardMarketV2.address
         );
+        let [safeEvent] = getParamsFromEvent(
+          safeTx,
+          eventABIs.EXECUTION_SUCCESS,
+          fundingPrepaidCard.address
+        );
 
         expect(event.issuer).to.be.equal(issuer);
         expect(event.token).to.be.equal(daicpxdToken.address);
         expect(event.faceValue).to.be.equal("1000");
         expect(event.customizationDID).to.be.equal("did:cardstack:test");
+
+        let endingFundingCardBalance = await daicpxdToken.balanceOf(
+          fundingPrepaidCard.address
+        );
+        expect(parseInt(safeEvent.payment)).to.be.greaterThan(0);
+        expect(
+          startingFundingCardBalance.sub(endingFundingCardBalance).toString()
+        ).to.equal(safeEvent.payment, "prepaid card paid actual cost of gas");
       });
 
       it("can't add a SKU when issuer has no balance", async function () {
-        await expect(
-          prepaidCardMarketV2.contract.methods
-            .addSKU("1000", "did:cardstack:test", daicpxdToken.address)
-            .call({
-              from: depot.address,
-            })
-        ).to.be.rejectedWith("Issuer has no balance");
+        let [fundingPrepaidCard] = await makePrepaidCards(
+          [toTokenUnit(1)],
+          ZERO_ADDRESS,
+          depot.address
+        );
+
+        await addPrepaidCardSKU(
+          prepaidCardManager,
+          fundingPrepaidCard,
+          "1000",
+          "did:cardstack:test",
+          daicpxdToken.address,
+          prepaidCardMarketV2,
+          issuer,
+          relayer,
+          null,
+          null,
+          depot
+        ).should.be.rejectedWith(
+          Error,
+          // the real revert reason ("Issuer has no balance") is behind the
+          // gnosis safe execTransaction boundary, so we just get this generic error
+          "safe transaction was reverted"
+        );
       });
     });
 
     describe("getQuantity", () => {
       it("can get the quantity of a SKU", async function () {
         await depositTokens(toTokenUnit(500)); // 500 daicpxd = 500 USD
+        let [fundingPrepaidCard] = await makePrepaidCards(
+          [toTokenUnit(1)],
+          ZERO_ADDRESS,
+          depot.address
+        );
 
-        let { safeTx } = await addSKU(
-          "5000", // 50 USD
+        let safeTx = await addPrepaidCardSKU(
+          prepaidCardManager,
+          fundingPrepaidCard,
+          "1000",
           "did:cardstack:test",
-          daicpxdToken.address
+          daicpxdToken.address,
+          prepaidCardMarketV2,
+          issuer,
+          relayer,
+          null,
+          null,
+          depot
         );
 
         let [event] = getParamsFromEvent(
@@ -401,63 +447,132 @@ contract("PrepaidCardMarketV2", (accounts) => {
         );
 
         let quantity = await prepaidCardMarketV2.getQuantity(event.sku);
-        expect(quantity).to.be.bignumber.eq("9"); // Because of fees, we can only buy 9 cards and not 10
+        expect(quantity).to.be.bignumber.eq("49");
       });
     });
 
     describe("Asks", () => {
-      it("can set an ask price", async function () {
-        await depositTokens(toTokenUnit(5));
-        let { safeTx: addSkuSafeTx } = await addSKU(
-          "5000",
-          "did:cardstack:test",
-          daicpxdToken.address
+      it("can set the asking price for a sku", async function () {
+        await depositTokens(toTokenUnit(1));
+
+        let [fundingPrepaidCard] = await makePrepaidCards(
+          [toTokenUnit(10)],
+          ZERO_ADDRESS,
+          depot.address
         );
-        let [skuEvent] = getParamsFromEvent(
-          addSkuSafeTx,
+
+        await cardcpxdToken.mint(fundingPrepaidCard.address, toTokenUnit(1));
+
+        let addSKUTx = await addPrepaidCardSKU(
+          prepaidCardManager,
+          fundingPrepaidCard,
+          "1000",
+          "did:cardstack:test",
+          daicpxdToken.address,
+          prepaidCardMarketV2,
+          issuer,
+          relayer,
+          null,
+          null,
+          depot
+        );
+
+        let [skuAddedEvent] = getParamsFromEvent(
+          addSKUTx,
           eventABIs.PREPAID_CARD_MARKET_V2_SKU_ADDED,
           prepaidCardMarketV2.address
         );
 
-        let {
-          safeTx: prepaidCardCreateSafeTx,
-          executionResult: { success },
-        } = await setAsk(issuer, skuEvent.sku, 10);
+        let startingFundingCardBalance = await daicpxdToken.balanceOf(
+          fundingPrepaidCard.address
+        );
 
-        expect(success).to.be.true;
+        let safeTx = await setPrepaidCardAsk(
+          prepaidCardManager,
+          fundingPrepaidCard,
+          10,
+          skuAddedEvent.sku,
+          prepaidCardMarketV2,
+          issuer,
+          relayer
+        );
 
-        let [event] = getParamsFromEvent(
-          prepaidCardCreateSafeTx,
+        let [askSetEvent] = getParamsFromEvent(
+          safeTx,
           eventABIs.PREPAID_CARD_MARKET_V2_ASK_SET,
           prepaidCardMarketV2.address
         );
 
-        expect(event.issuer).to.be.equal(issuer);
-        expect(event.issuingToken).to.be.equal(daicpxdToken.address);
-        expect(event.sku).to.be.equal(skuEvent.sku);
-        expect(event.askPrice).to.be.equal("10");
+        let [safeEvent] = getParamsFromEvent(
+          safeTx,
+          eventABIs.EXECUTION_SUCCESS,
+          fundingPrepaidCard.address
+        );
+
+        expect(askSetEvent.issuer).to.be.equal(issuer);
+        expect(askSetEvent.issuingToken).to.be.equal(daicpxdToken.address);
+        expect(askSetEvent.sku).to.be.equal(skuAddedEvent.sku);
+        expect(askSetEvent.askPrice).to.be.equal("10");
+
+        expect(
+          (await prepaidCardMarketV2.asks(skuAddedEvent.sku)).toString()
+        ).to.equal("10");
+
+        let endingFundingCardBalance = await daicpxdToken.balanceOf(
+          fundingPrepaidCard.address
+        );
+        expect(parseInt(safeEvent.payment)).to.be.greaterThan(0);
+        expect(
+          startingFundingCardBalance.sub(endingFundingCardBalance).toString()
+        ).to.equal(safeEvent.payment, "prepaid card paid actual cost of gas");
       });
 
-      it("should reject when some other issuer safe tries to set an ask price", async function () {
-        await depositTokens(toTokenUnit(5));
-        let { safeTx: addSkuSafeTx } = await addSKU(
-          "5000",
+      it("should reject when when the sku is not owned by issuer", async function () {
+        await depositTokens(toTokenUnit(1));
+        let [customerCard] = await makePrepaidCards([toTokenUnit(10)]);
+
+        let addSKUTx = await addPrepaidCardSKU(
+          prepaidCardManager,
+          customerCard,
+          "1000",
           "did:cardstack:test",
-          daicpxdToken.address
+          daicpxdToken.address,
+          prepaidCardMarketV2,
+          issuer,
+          relayer,
+          null,
+          null,
+          depot
         );
-        let [skuAddEvent] = getParamsFromEvent(
-          addSkuSafeTx,
+
+        let [skuAddedEvent] = getParamsFromEvent(
+          addSKUTx,
           eventABIs.PREPAID_CARD_MARKET_V2_SKU_ADDED,
           prepaidCardMarketV2.address
         );
 
-        await expect(
-          prepaidCardMarketV2.contract.methods
-            .setAsk(issuer, skuAddEvent.sku, 10)
-            .call({
-              from: relayer, // Anything else than depot (the sku's issuer safe)
-            })
-        ).to.be.rejectedWith("Only issuer safe can set ask");
+        await transferOwner(
+          prepaidCardManager,
+          customerCard,
+          issuer,
+          customer,
+          relayer
+        );
+
+        await setPrepaidCardAsk(
+          prepaidCardManager,
+          customerCard,
+          10,
+          skuAddedEvent.sku,
+          prepaidCardMarket,
+          customer,
+          relayer
+        ).should.be.rejectedWith(
+          Error,
+          // the real revert reason is behind the gnosis safe execTransaction
+          // boundary, so we just get this generic error
+          "safe transaction was reverted"
+        );
       });
     });
   });
@@ -468,22 +583,46 @@ contract("PrepaidCardMarketV2", (accounts) => {
     beforeEach(async function () {
       await depositTokens(toTokenUnit(100));
 
-      let { safeTx } = await addSKU(
+      let [fundingPrepaidCard] = await makePrepaidCards(
+        [toTokenUnit(10)],
+        ZERO_ADDRESS,
+        depot.address
+      );
+
+      await cardcpxdToken.mint(fundingPrepaidCard.address, toTokenUnit(1));
+
+      let addSKUTx = await addPrepaidCardSKU(
+        prepaidCardManager,
+        fundingPrepaidCard,
         "5000",
         "did:cardstack:test",
-        daicpxdToken.address
+        daicpxdToken.address,
+        prepaidCardMarketV2,
+        issuer,
+        relayer,
+        null,
+        null,
+        depot
       );
 
       [skuAddEvent] = getParamsFromEvent(
-        safeTx,
+        addSKUTx,
         eventABIs.PREPAID_CARD_MARKET_V2_SKU_ADDED,
         prepaidCardMarketV2.address
       );
 
-      await setAsk(issuer, skuAddEvent.sku, 10); // Doesn't play a role here, we just need to set something which is > 0
+      await setPrepaidCardAsk(
+        prepaidCardManager,
+        fundingPrepaidCard,
+        10,
+        skuAddEvent.sku,
+        prepaidCardMarketV2,
+        issuer,
+        relayer
+      );
     });
 
-    it("can provision a prepaid card", async function () {
+    it.only("can provision a prepaid card", async function () {
       // relay server will call this function
       let tx = await prepaidCardMarketV2.provisionPrepaidCard(
         customer,
