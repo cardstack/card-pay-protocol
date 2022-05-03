@@ -544,13 +544,20 @@ exports.addActionHandlers = async function ({
     );
   }
 
-  if (owner && actionDispatcher && tokenManager && rewardPool) {
+  if (
+    owner &&
+    actionDispatcher &&
+    tokenManager &&
+    rewardPool &&
+    prepaidCardManager
+  ) {
     payRewardTokensHandler = await PayRewardTokensHandler.new();
     await payRewardTokensHandler.initialize(owner);
     await payRewardTokensHandler.setup(
       actionDispatcher.address,
       tokenManager.address,
       rewardPool.address,
+      prepaidCardManager.address,
       versionManagerAddress
     );
   }

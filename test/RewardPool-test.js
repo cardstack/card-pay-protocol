@@ -1528,6 +1528,7 @@ contract("RewardPool", function (accounts) {
           actionDispatcher.address,
           tokenManager.address,
           rewardPool.address,
+          prepaidCardManager.address,
           versionManager.address
         );
         const rewardPoolPreviousBalanceDai = await getBalance(
@@ -1543,6 +1544,9 @@ contract("RewardPool", function (accounts) {
           toTokenUnit(10 + 1),
           prepaidCardOwner
         );
+        expect(
+          await prepaidCardManager.hasBeenUsed.call(prepaidCard.address)
+        ).to.equal(false);
         const prepaidCardPreviousBalanceDai = await getBalance(
           daicpxdToken,
           prepaidCard.address
@@ -1556,6 +1560,9 @@ contract("RewardPool", function (accounts) {
           undefined,
           rewardProgramID
         );
+        expect(
+          await prepaidCardManager.hasBeenUsed.call(prepaidCard.address)
+        ).to.equal(true);
         const { gasFee, success } = checkGnosisExecution(
           txn,
           prepaidCard.address

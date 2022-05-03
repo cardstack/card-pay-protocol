@@ -7,6 +7,7 @@ import "../core/Versionable.sol";
 import "../token/IERC677.sol";
 import "../VersionManager.sol";
 import "../libraries/SafeERC677.sol";
+import "../PrepaidCardManager.sol";
 
 contract PayRewardTokensHandler is Ownable, Versionable {
   using SafeERC677 for IERC677;
@@ -21,22 +22,26 @@ contract PayRewardTokensHandler is Ownable, Versionable {
   address public actionDispatcher;
   address public tokenManagerAddress;
   address public rewardPoolAddress;
+  address public prepaidCardManagerAddress;
   address public versionManager;
 
   function setup(
     address _actionDispatcher,
     address _tokenManagerAddress,
     address _rewardPoolAddress,
+    address _prepaidCardManagerAddress,
     address _versionManager
   ) external onlyOwner returns (bool) {
     require(_actionDispatcher != address(0), "actionDispatcher not set");
     require(_tokenManagerAddress != address(0), "tokenManagerAddress not set");
     require(_rewardPoolAddress != address(0), "rewardPoolAddress not set");
+    require(_prepaidCardManagerAddress != address(0), "prepaidCardManager not set");
     require(_versionManager != address(0), "versionManager not set");
 
     actionDispatcher = _actionDispatcher;
     tokenManagerAddress = _tokenManagerAddress;
     rewardPoolAddress = _rewardPoolAddress;
+    prepaidCardManagerAddress = _prepaidCardManagerAddress;
     versionManager = _versionManager;
     emit Setup();
     return true;
@@ -84,6 +89,9 @@ contract PayRewardTokensHandler is Ownable, Versionable {
       amount,
       actionData
     );
+    PrepaidCardManager(
+      prepaidCardManagerAddress
+    ).setPrepaidCardUsed(prepaidCard);
     emit RewardTokensPaid(prepaidCard, msg.sender, amount, rewardProgramID);
     return true;
   }
