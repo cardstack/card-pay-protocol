@@ -468,7 +468,8 @@ exports.addActionHandlers = async function ({
     actionDispatcher &&
     exchangeAddress &&
     tokenManager &&
-    rewardManager
+    rewardManager &&
+    prepaidCardManager
   ) {
     registerRewardProgramHandler = await RegisterRewardProgramHandler.new();
     await registerRewardProgramHandler.initialize(owner);
@@ -477,6 +478,7 @@ exports.addActionHandlers = async function ({
       exchangeAddress,
       tokenManager.address,
       rewardManager.address,
+      prepaidCardManager.address,
       versionManagerAddress
     );
   }

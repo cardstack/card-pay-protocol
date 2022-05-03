@@ -458,6 +458,9 @@ contract("RewardManager", (accounts) => {
         daicpxdToken,
         rewardFeeReceiver
       );
+      expect(
+        await prepaidCardManager.hasBeenUsed.call(prepaidCard.address)
+      ).to.equal(false);
       await registerRewardProgram(
         prepaidCardManager,
         prepaidCard,
@@ -468,6 +471,9 @@ contract("RewardManager", (accounts) => {
         rewardProgramAdmin,
         rewardProgramID
       );
+      expect(
+        await prepaidCardManager.hasBeenUsed.call(prepaidCard.address)
+      ).to.equal(true);
       await shouldBeSameBalance(
         daicpxdToken,
         prepaidCard.address,
