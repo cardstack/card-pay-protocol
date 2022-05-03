@@ -22,8 +22,8 @@ contract PayRewardTokensHandler is Ownable, Versionable {
   address public actionDispatcher;
   address public tokenManagerAddress;
   address public rewardPoolAddress;
-  address public prepaidCardManagerAddress;
   address public versionManager;
+  address public prepaidCardManagerAddress;
 
   function setup(
     address _actionDispatcher,

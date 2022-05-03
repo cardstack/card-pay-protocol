@@ -22,8 +22,8 @@ contract RegisterRewardProgramHandler is Ownable, Versionable {
   address public exchangeAddress;
   address public tokenManagerAddress;
   address public rewardManagerAddress;
-  address public prepaidCardManagerAddress;
   address public versionManager;
+  address public prepaidCardManagerAddress;
 
   function setup(
     address _actionDispatcher,
