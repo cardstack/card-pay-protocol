@@ -1168,7 +1168,7 @@ contract("RewardManager", (accounts) => {
   });
 
   describe("rewardee registers for reward program", () => {
-    let prepaidCard, otherPrepaidCard;
+    let prepaidCard, otherPrepaidCard, adminPrepaidCard;
     beforeEach(async () => {
       rewardProgramID = generateRewardProgramID();
       prepaidCard = await createPrepaidCardAndTransfer(
@@ -1180,11 +1180,20 @@ contract("RewardManager", (accounts) => {
         toTokenUnit(10 + 1),
         prepaidCardOwner
       );
+      adminPrepaidCard = await createPrepaidCardAndTransfer(
+        prepaidCardManager,
+        relayer,
+        depot,
+        issuer,
+        daicpxdToken,
+        toTokenUnit(10 + 1),
+        rewardProgramAdmin
+      );
       await registerRewardProgram(
         prepaidCardManager,
-        prepaidCard,
+        adminPrepaidCard,
         relayer,
-        prepaidCardOwner,
+        rewardProgramAdmin,
         REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
         undefined,
         rewardProgramAdmin,
@@ -1196,6 +1205,9 @@ contract("RewardManager", (accounts) => {
         daicpxdToken,
         prepaidCard.address
       );
+      expect(
+        await prepaidCardManager.hasBeenUsed.call(prepaidCard.address)
+      ).to.equal(false);
       const txn = await registerRewardee(
         prepaidCardManager,
         prepaidCard,
@@ -1208,6 +1220,9 @@ contract("RewardManager", (accounts) => {
         txn,
         prepaidCard.address
       );
+      expect(
+        await prepaidCardManager.hasBeenUsed.call(prepaidCard.address)
+      ).to.equal(true);
       const prepaidCardBalanceDai = await getBalance(
         daicpxdToken,
         prepaidCard.address
