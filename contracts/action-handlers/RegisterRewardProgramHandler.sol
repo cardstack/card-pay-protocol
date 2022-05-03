@@ -119,10 +119,6 @@ contract RegisterRewardProgramHandler is Ownable, Versionable {
     if (refund > 0) {
       IERC677(msg.sender).transfer(prepaidCard, refund);
     }
-    PrepaidCardManager prepaidCardMgr = PrepaidCardManager(
-      prepaidCardManagerAddress
-    );
-    prepaidCardMgr.setPrepaidCardUsed(prepaidCard);
 
     emit RewardProgramRegistrationFee(
       prepaidCard,
@@ -136,6 +132,9 @@ contract RegisterRewardProgramHandler is Ownable, Versionable {
       admin,
       rewardProgramID
     );
+    PrepaidCardManager(
+      prepaidCardManagerAddress
+    ).setPrepaidCardUsed(prepaidCard);
     return true;
   }
 
