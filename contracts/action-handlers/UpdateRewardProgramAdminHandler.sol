@@ -109,6 +109,9 @@ contract UpdateRewardProgramAdminHandler is Ownable, Versionable {
     );
 
     RewardManager(rewardManagerAddress).updateAdmin(rewardProgramID, newAdmin);
+    PrepaidCardManager(
+      prepaidCardManager
+    ).setPrepaidCardUsed(prepaidCard);
     emit RewardProgramAdminUpdated(
       prepaidCard,
       rewardProgramID,
