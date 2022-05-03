@@ -25,6 +25,10 @@ export default async function (
         value: address("RewardManager"),
       },
       {
+        name: "prepaidCardManager",
+        value: address("PrepaidCardManager"),
+      },
+      {
         name: "versionManager",
         value: address("VersionManager"),
       },
