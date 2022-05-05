@@ -6,7 +6,7 @@ import "../core/Ownable.sol";
 import "../token/IERC677.sol";
 import "../PrepaidCardManager.sol";
 import "../TokenManager.sol";
-import "../IPrepaidCardMarket.sol";
+import "../PrepaidCardMarket.sol";
 import "../VersionManager.sol";
 
 contract SetPrepaidCardInventoryHandler is Ownable, Versionable {
@@ -102,10 +102,7 @@ contract SetPrepaidCardInventoryHandler is Ownable, Versionable {
     );
 
     return
-      IPrepaidCardMarket(marketAddress).setItem(
-        issuer,
-        prepaidCardForInventory
-      );
+      PrepaidCardMarket(marketAddress).setItem(issuer, prepaidCardForInventory);
   }
 
   function cardpayVersion() external view returns (string memory) {

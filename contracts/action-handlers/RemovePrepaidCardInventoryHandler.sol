@@ -6,7 +6,7 @@ import "../core/Versionable.sol";
 import "../token/IERC677.sol";
 import "../PrepaidCardManager.sol";
 import "../TokenManager.sol";
-import "../IPrepaidCardMarket.sol";
+import "../PrepaidCardMarket.sol";
 import "../VersionManager.sol";
 
 contract RemovePrepaidCardInventoryHandler is Ownable, Versionable {
@@ -90,7 +90,7 @@ contract RemovePrepaidCardInventoryHandler is Ownable, Versionable {
     }
 
     prepaidCardMgr.setPrepaidCardUsed(prepaidCard);
-    return IPrepaidCardMarket(marketAddress).removeItems(owner, prepaidCards);
+    return PrepaidCardMarket(marketAddress).removeItems(owner, prepaidCards);
   }
 
   function cardpayVersion() external view returns (string memory) {
