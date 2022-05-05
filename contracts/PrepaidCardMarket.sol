@@ -122,7 +122,6 @@ contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
 
   function setItem(address issuer, address prepaidCard)
     external
-    override
     onlyHandlersOrPrepaidCardManager
     returns (bool)
   {
@@ -155,7 +154,6 @@ contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
 
   function removeItems(address issuer, address[] calldata prepaidCards)
     external
-    override
     onlyHandlers
     returns (bool)
   {

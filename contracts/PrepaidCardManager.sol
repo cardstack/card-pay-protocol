@@ -9,7 +9,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeab
 import "./core/Ownable.sol";
 
 import "./token/IERC677.sol";
-import "./IPrepaidCardMarket.sol";
+import "./PrepaidCardMarket.sol";
 import "./TokenManager.sol";
 import "./core/Safe.sol";
 import "./core/Versionable.sol";
@@ -624,7 +624,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     );
 
     if (marketAddress != address(0)) {
-      IPrepaidCardMarket(marketAddress).setItem(owner, card);
+      PrepaidCardMarket(marketAddress).setItem(owner, card);
     }
 
     return card;
