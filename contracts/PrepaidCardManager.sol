@@ -100,6 +100,8 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
   EnumerableSetUpgradeable.AddressSet internal contractSigners;
   mapping(string => GasPolicyV2) public gasPoliciesV2;
   address public versionManager;
+  EnumerableSetUpgradeable.AddressSet
+    internal trustedCallersForCreatingPrepaidCardsWithIssuer;
 
   modifier onlyHandlers() {
     require(
@@ -142,6 +144,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     uint256 _minAmount,
     uint256 _maxAmount,
     address[] calldata _contractSigners,
+    address[] calldata _trustedCallersForCreatingPrepaidCardsWithIssuer,
     address _versionManager
   ) external onlyOwner {
     require(_tokenManager != address(0), "tokenManager not set");
@@ -169,6 +172,15 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
       );
 
       contractSigners.add(_contractSigners[i]);
+    }
+    for (
+      uint256 i = 0;
+      i < _trustedCallersForCreatingPrepaidCardsWithIssuer.length;
+      i++
+    ) {
+      trustedCallersForCreatingPrepaidCardsWithIssuer.add(
+        _trustedCallersForCreatingPrepaidCardsWithIssuer[i]
+      );
     }
     emit Setup();
   }
@@ -215,7 +227,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
    * )
    */
   function onTokenTransfer(
-    address from, // solhint-disable-line no-unused-vars
+    address from,
     uint256 amount,
     bytes calldata data
   ) external returns (bool) {
@@ -223,36 +235,73 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
       TokenManager(tokenManager).isValidToken(msg.sender),
       "calling token is unaccepted"
     );
+
     (
       address owner,
       uint256[] memory issuingTokenAmounts,
       uint256[] memory spendAmounts,
       string memory customizationDID,
-      address marketAddress
-    ) = abi.decode(data, (address, uint256[], uint256[], string, address));
+      address marketAddress,
+      address issuer,
+      address issuerSafe
+    ) = abi.decode(
+        data,
+        (address, uint256[], uint256[], string, address, address, address)
+      );
+
     require(
       owner != address(0) && issuingTokenAmounts.length > 0,
       "Prepaid card data invalid"
-    );
-    require(
-      issuingTokenAmounts.length == spendAmounts.length,
-      "the amount arrays have differing lengths"
     );
 
     // The spend amounts are for reporting purposes only, there is no on-chain
     // effect from this value. Although, it might not be a bad idea that spend
     // amounts line up with the issuing token amounts--albiet we'd need to
     // introduce a rate lock mechanism if we wanted to validate this
-    createMultiplePrepaidCards(
-      owner,
-      from,
-      _msgSender(),
-      amount,
-      issuingTokenAmounts,
-      spendAmounts,
-      customizationDID,
-      marketAddress
+    require(
+      issuingTokenAmounts.length == spendAmounts.length,
+      "the amount arrays have differing lengths"
     );
+
+    // When issuer and issuerSafe are blank, it means the call is related to the
+    // process where a prepaid card is first created, using the provided issuer as
+    // the owner, and later provisioned and transfered to the customer (customer's
+    // EOA is the new owner).
+
+    if (
+      (issuer == address(0) && issuerSafe == address(0)) ||
+      !trustedCallersForCreatingPrepaidCardsWithIssuer.contains(from)
+    ) {
+      createPrepaidCards(
+        owner, // issuer
+        owner,
+        from, // depot
+        _msgSender(), // token
+        amount,
+        issuingTokenAmounts,
+        spendAmounts,
+        customizationDID,
+        marketAddress
+      );
+    } else {
+      // In case when issuer and issuerSafe are provided, it means the tokens are being
+      // sent from the PrepaidCardMarketV2 contract where the prepaid cards are being
+      // created and provisioned in a single step, where the issuer and owner (customer's EOA)
+      // are provided during the creation of the prepaid cards.
+
+      createPrepaidCards(
+        issuer,
+        owner,
+        issuerSafe, // depot
+        _msgSender(), // token
+        amount,
+        issuingTokenAmounts,
+        spendAmounts,
+        customizationDID,
+        marketAddress
+      );
+    }
+
     return true;
   }
 
@@ -523,7 +572,8 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
    * @param spendAmounts array of spend amounts that represent the desired face value (for reporting only)
    * @param customizationDID the customization DID for the new prepaid cards
    */
-  function createMultiplePrepaidCards(
+  function createPrepaidCards(
+    address issuer,
     address owner,
     address depot,
     address token,
@@ -554,6 +604,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     );
     for (uint256 i = 0; i < numberCard; i++) {
       createPrepaidCard(
+        issuer,
         owner,
         depot,
         token,
@@ -574,6 +625,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
 
   /**
    * @dev Create Prepaid card
+   * @param issuer issuer address
    * @param owner owner address
    * @param token token address
    * @param issuingTokenAmount amount of issuing token to use to fund the new prepaid card
@@ -582,6 +634,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
    * @return PrepaidCard address
    */
   function createPrepaidCard(
+    address issuer,
     address owner,
     address depot,
     address token,
@@ -598,7 +651,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     address card = createSafe(owners, 2);
 
     // card was created
-    cardDetails[card].issuer = owner;
+    cardDetails[card].issuer = issuer;
     cardDetails[card].issueToken = token;
     cardDetails[card].customizationDID = customizationDID;
     cardDetails[card].blockNumber = block.number;

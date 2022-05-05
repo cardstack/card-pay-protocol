@@ -198,6 +198,7 @@ contract("PrepaidCardManager", (accounts) => {
         MINIMUM_AMOUNT,
         MAXIMUM_AMOUNT,
         [contractSigner],
+        [],
         versionManager.address
       );
       await prepaidCardManager.addGasPolicy("transfer", false);
@@ -266,6 +267,7 @@ contract("PrepaidCardManager", (accounts) => {
         MINIMUM_AMOUNT,
         MAXIMUM_AMOUNT,
         [contractSigner],
+        [],
         versionManager.address
       );
       await prepaidCardManager.addGasPolicy("transfer", false);
@@ -587,6 +589,7 @@ contract("PrepaidCardManager", (accounts) => {
         MINIMUM_AMOUNT,
         MAXIMUM_AMOUNT,
         [],
+        [],
         versionManager.address
       );
     });
@@ -609,6 +612,7 @@ contract("PrepaidCardManager", (accounts) => {
         0, // We are setting this value specifically
         MINIMUM_AMOUNT,
         MAXIMUM_AMOUNT,
+        [],
         [],
         versionManager.address
       );
@@ -780,6 +784,7 @@ contract("PrepaidCardManager", (accounts) => {
         MINIMUM_AMOUNT,
         MAXIMUM_AMOUNT,
         [],
+        [],
         versionManager.address
       );
 
@@ -862,6 +867,7 @@ contract("PrepaidCardManager", (accounts) => {
         MINIMUM_AMOUNT,
         MAXIMUM_AMOUNT,
         [],
+        [],
         versionManager.address
       );
     });
@@ -938,6 +944,7 @@ contract("PrepaidCardManager", (accounts) => {
         MINIMUM_AMOUNT,
         MAXIMUM_AMOUNT,
         [contractSigner],
+        [],
         versionManager.address
       );
       await prepaidCardManager.addGasPolicy("transfer", false);
@@ -1193,6 +1200,7 @@ contract("PrepaidCardManager", (accounts) => {
         MINIMUM_AMOUNT,
         MAXIMUM_AMOUNT,
         [contractSigner],
+        [],
         versionManager.address
       );
       await prepaidCardManager.addGasPolicy("transfer", false);
@@ -1376,6 +1384,7 @@ contract("PrepaidCardManager", (accounts) => {
         MINIMUM_AMOUNT,
         MAXIMUM_AMOUNT,
         [contractSigner],
+        [],
         versionManager.address
       );
       await prepaidCardManager.addGasPolicy("transfer", false);
