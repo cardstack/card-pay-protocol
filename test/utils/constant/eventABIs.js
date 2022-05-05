@@ -284,6 +284,126 @@ const eventABIs = {
       },
     ],
   },
+  PREPAID_CARD_MARKET_V2_DEPOSIT_TOKENS: {
+    topic: web3EthAbi.encodeEventSignature(
+      "TokensDeposited(address,uint256,address,address)"
+    ),
+    abis: [
+      {
+        type: "address",
+        name: "issuer",
+      },
+      {
+        type: "uint256",
+        name: "amount",
+      },
+      {
+        type: "address",
+        name: "token",
+      },
+      {
+        type: "address",
+        name: "safe",
+      },
+    ],
+  },
+  PREPAID_CARD_MARKET_V2_TOKENS_WITHDRAWN: {
+    topic: web3EthAbi.encodeEventSignature(
+      "TokensWithdrawn(address,address,address,uint256)"
+    ),
+    abis: [
+      {
+        type: "address",
+        name: "safe",
+      },
+      {
+        type: "address",
+        name: "issuer",
+      },
+      {
+        type: "address",
+        name: "token",
+      },
+      {
+        type: "uint256",
+        name: "amount",
+      },
+    ],
+  },
+  PREPAID_CARD_MARKET_V2_SKU_ADDED: {
+    topic: web3EthAbi.encodeEventSignature(
+      "SkuAdded(address,address,uint256,string,bytes32)"
+    ),
+    abis: [
+      {
+        type: "address",
+        name: "issuer",
+      },
+      {
+        type: "address",
+        name: "token",
+      },
+      {
+        type: "uint256",
+        name: "faceValue",
+      },
+      {
+        type: "string",
+        name: "customizationDID",
+      },
+      {
+        type: "bytes32",
+        name: "sku",
+      },
+    ],
+  },
+  PREPAID_CARD_MARKET_V2_ASK_SET: {
+    topic: web3EthAbi.encodeEventSignature(
+      "AskSet(address,address,bytes32,uint256)"
+    ),
+    abis: [
+      {
+        type: "address",
+        name: "issuer",
+      },
+      {
+        type: "address",
+        name: "issuingToken",
+      },
+      {
+        type: "bytes32",
+        name: "sku",
+      },
+      {
+        type: "uint256",
+        name: "askPrice",
+      },
+    ],
+  },
+  PREPAID_CARD_MARKET_V2_PAUSED_TOGGLED: {
+    topic: web3EthAbi.encodeEventSignature("PausedToggled(bool)"),
+    abis: [
+      {
+        type: "bool",
+        name: "paused",
+      },
+    ],
+  },
+  PREPAID_CARD_MARKET_V2_PREPAID_CARD_PROVISIONED: {
+    topic: web3EthAbi.encodeEventSignature(
+      "PrepaidCardProvisioned(address,bytes32)"
+    ),
+    abis: [
+      {
+        type: "address",
+        name: "owner",
+      },
+      {
+        type: "bytes32",
+        name: "sku",
+      },
+    ],
+  },
 };
 
 module.exports = eventABIs;
