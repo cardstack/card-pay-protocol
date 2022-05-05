@@ -126,7 +126,9 @@ contract SplitPrepaidCardHandler is Ownable, Versionable {
         issuingTokenAmounts,
         spendAmounts,
         customizationDID,
-        marketAddress == address(0) ? defaultMarketAddress : marketAddress
+        marketAddress == address(0) ? defaultMarketAddress : marketAddress,
+        address(0), // issuer (not used but necessary)
+        address(0) // issuer safe (not used but necessary)
       )
     );
 

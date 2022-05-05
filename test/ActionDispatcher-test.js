@@ -102,6 +102,7 @@ contract("Action Dispatcher", (accounts) => {
       100,
       500000,
       [],
+      [],
       versionManager.address
     );
     await prepaidCardManager.addGasPolicy("transfer", false);

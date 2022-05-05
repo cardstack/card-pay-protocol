@@ -68,16 +68,28 @@ function encodeCreateCardsData(
   issuingTokenAmounts = [],
   spendAmounts = [],
   customizationDID = "",
-  marketAddress = ZERO_ADDRESS
+  marketAddress = ZERO_ADDRESS,
+  issuer = ZERO_ADDRESS,
+  issuerSafe = ZERO_ADDRESS
 ) {
   return AbiCoder.encodeParameters(
-    ["address", "uint256[]", "uint256[]", "string", "address"],
+    [
+      "address",
+      "uint256[]",
+      "uint256[]",
+      "string",
+      "address",
+      "address",
+      "address",
+    ],
     [
       account,
       issuingTokenAmounts,
       spendAmounts,
       customizationDID,
       marketAddress,
+      issuer,
+      issuerSafe,
     ]
   );
 }
@@ -716,7 +728,8 @@ const createPrepaidCards = async function (
   issuingTokenAmounts,
   amountToSend,
   customizationDID,
-  marketAddress
+  marketAddress,
+  issuerSafe
 ) {
   let createCardData = encodeCreateCardsData(
     issuer,
@@ -727,7 +740,9 @@ const createPrepaidCards = async function (
       typeof amount === "string" ? amount : amount.toString()
     ),
     customizationDID,
-    marketAddress
+    marketAddress,
+    issuer,
+    issuerSafe || ZERO_ADDRESS
   );
 
   if (amountToSend == null) {
