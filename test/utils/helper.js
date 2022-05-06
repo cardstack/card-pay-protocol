@@ -468,7 +468,8 @@ exports.addActionHandlers = async function ({
     actionDispatcher &&
     exchangeAddress &&
     tokenManager &&
-    rewardManager
+    rewardManager &&
+    prepaidCardManager
   ) {
     registerRewardProgramHandler = await RegisterRewardProgramHandler.new();
     await registerRewardProgramHandler.initialize(owner);
@@ -477,6 +478,7 @@ exports.addActionHandlers = async function ({
       exchangeAddress,
       tokenManager.address,
       rewardManager.address,
+      prepaidCardManager.address,
       versionManagerAddress
     );
   }
@@ -542,13 +544,20 @@ exports.addActionHandlers = async function ({
     );
   }
 
-  if (owner && actionDispatcher && tokenManager && rewardPool) {
+  if (
+    owner &&
+    actionDispatcher &&
+    tokenManager &&
+    rewardPool &&
+    prepaidCardManager
+  ) {
     payRewardTokensHandler = await PayRewardTokensHandler.new();
     await payRewardTokensHandler.initialize(owner);
     await payRewardTokensHandler.setup(
       actionDispatcher.address,
       tokenManager.address,
       rewardPool.address,
+      prepaidCardManager.address,
       versionManagerAddress
     );
   }

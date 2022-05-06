@@ -98,8 +98,10 @@ contract AddRewardRuleHandler is Ownable, Versionable {
       "reward program does not exist"
     );
 
-    address prepaidCardOwner = PrepaidCardManager(prepaidCardManager)
-      .getPrepaidCardOwner(prepaidCard);
+    PrepaidCardManager prepaidCardMgr = PrepaidCardManager(
+      prepaidCardManager
+    );
+    address prepaidCardOwner = prepaidCardMgr.getPrepaidCardOwner(prepaidCard);
 
     require(
       RewardManager(rewardManagerAddress).rewardProgramAdmins(
@@ -109,6 +111,7 @@ contract AddRewardRuleHandler is Ownable, Versionable {
     );
 
     RewardManager(rewardManagerAddress).addRewardRule(rewardProgramID, blob);
+    prepaidCardMgr.setPrepaidCardUsed(prepaidCard);
     emit RewardRuleAdded(prepaidCard, rewardProgramID, blob);
     return true;
   }

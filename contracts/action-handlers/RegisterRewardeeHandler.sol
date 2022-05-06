@@ -88,13 +88,16 @@ contract RegisterRewardeeHandler is Ownable, Versionable {
       RewardManager(rewardManagerAddress).isRewardProgram(rewardProgramID),
       "reward program does not exist"
     );
-    address prepaidCardOwner = PrepaidCardManager(prepaidCardManager)
-      .getPrepaidCardOwner(prepaidCard);
+    PrepaidCardManager prepaidCardMgr = PrepaidCardManager(
+      prepaidCardManager
+    );
+    address prepaidCardOwner = prepaidCardMgr.getPrepaidCardOwner(prepaidCard);
 
     RewardManager(rewardManagerAddress).registerRewardee(
       rewardProgramID,
       prepaidCardOwner
     );
+    prepaidCardMgr.setPrepaidCardUsed(prepaidCard);
     emit RewardeeRegistered(prepaidCard, rewardProgramID);
     return true;
   }

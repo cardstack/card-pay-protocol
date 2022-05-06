@@ -6,6 +6,7 @@ import "../RewardManager.sol";
 import "../Exchange.sol";
 import "../core/Versionable.sol";
 import "../VersionManager.sol";
+import "../PrepaidCardManager.sol";
 
 contract RegisterRewardProgramHandler is Ownable, Versionable {
   event Setup();
@@ -22,12 +23,14 @@ contract RegisterRewardProgramHandler is Ownable, Versionable {
   address public tokenManagerAddress;
   address public rewardManagerAddress;
   address public versionManager;
+  address public prepaidCardManagerAddress;
 
   function setup(
     address _actionDispatcher,
     address _exchangeAddress,
     address _tokenManagerAddress,
     address _rewardManagerAddress,
+    address _prepaidCardManagerAddress,
     address _versionManager
   ) external onlyOwner returns (bool) {
     require(_actionDispatcher != address(0), "actionDispatcher not set");
@@ -37,12 +40,14 @@ contract RegisterRewardProgramHandler is Ownable, Versionable {
       _rewardManagerAddress != address(0),
       "rewardManagerAddress not set"
     );
+    require(_prepaidCardManagerAddress != address(0), "prepaidCardManager not set");
     require(_versionManager != address(0), "versionManager not set");
 
     actionDispatcher = _actionDispatcher;
     exchangeAddress = _exchangeAddress;
     tokenManagerAddress = _tokenManagerAddress;
     rewardManagerAddress = _rewardManagerAddress;
+    prepaidCardManagerAddress = _prepaidCardManagerAddress;
     versionManager = _versionManager;
     emit Setup();
     return true;
@@ -127,6 +132,9 @@ contract RegisterRewardProgramHandler is Ownable, Versionable {
       admin,
       rewardProgramID
     );
+    PrepaidCardManager(
+      prepaidCardManagerAddress
+    ).setPrepaidCardUsed(prepaidCard);
     return true;
   }
 
