@@ -4,6 +4,7 @@ pragma abicoder v1;
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "./RewardManager.sol";
 import "./ActionDispatcher.sol";
+import "./core/ReentrancyGuard.sol";
 import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 
 // This contract is used as an implementation for delegatecall usage of safe operations.
@@ -23,7 +24,7 @@ import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 // be performed before operating on the arguments
 
 // solhint-disable var-name-mixedcase
-contract RewardSafeDelegateImplementation {
+contract RewardSafeDelegateImplementation is ReentrancyGuard {
   event RewardSafeWithdrawal(address rewardSafe, address token, uint256 value);
   event RewardSafeTransferred(
     address rewardSafe,
@@ -36,7 +37,7 @@ contract RewardSafeDelegateImplementation {
     address __untrusted__token,
     address __untrusted__to,
     uint256 __untrusted__value
-  ) external {
+  ) external nonReentrant {
     require(
       RewardManager(__trusted__managerContract).isValidToken(
         __untrusted__token
