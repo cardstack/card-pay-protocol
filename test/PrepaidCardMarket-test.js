@@ -164,7 +164,7 @@ contract("PrepaidCardMarket", (accounts) => {
   });
 
   beforeEach(async () => {
-    await prepaidCardMarket.setPaused(false);
+    await prepaidCardMarket.unpause();
   });
 
   describe("manage inventory", () => {
@@ -531,7 +531,7 @@ contract("PrepaidCardMarket", (accounts) => {
         let testCards = await Promise.all(
           inventory.slice(0, 1).map((a) => GnosisSafe.at(a))
         );
-        await prepaidCardMarket.setPaused(true);
+        await prepaidCardMarket.pause();
         await removePrepaidCardInventory(
           prepaidCardManager,
           fundingCard,
@@ -874,7 +874,7 @@ contract("PrepaidCardMarket", (accounts) => {
       expect(
         (await prepaidCardMarket.getInventory(sku)).length
       ).to.be.greaterThanOrEqual(1);
-      await prepaidCardMarket.setPaused(true);
+      await prepaidCardMarket.pause();
       await prepaidCardMarket
         .provisionPrepaidCard(customer, sku, {
           from: provisioner,
@@ -896,21 +896,42 @@ contract("PrepaidCardMarket", (accounts) => {
   });
 
   describe("contract management", () => {
-    it("owner can pause contract", async function () {
-      await prepaidCardMarket.setPaused(true);
-      expect(await prepaidCardMarket.paused()).to.equal(true);
+    describe("pausing using setPause (legacy)", () => {
+      it("owner can pause contract", async function () {
+        await prepaidCardMarket.setPaused(true);
+        expect(await prepaidCardMarket.paused()).to.equal(true);
+      });
+
+      it("owner can resume contract", async function () {
+        await prepaidCardMarket.setPaused(true);
+        await prepaidCardMarket.setPaused(false);
+        expect(await prepaidCardMarket.paused()).to.equal(false);
+      });
+
+      it("rejects when non-owner pauses contract", async function () {
+        await prepaidCardMarket
+          .setPaused(true, { from: customer })
+          .should.be.rejectedWith(Error, "Ownable: caller is not the owner");
+      });
     });
 
-    it("owner can resume contract", async function () {
-      await prepaidCardMarket.setPaused(true);
-      await prepaidCardMarket.setPaused(false);
-      expect(await prepaidCardMarket.paused()).to.equal(false);
-    });
+    describe("pausing using pause/unpause", () => {
+      it("owner can pause contract", async function () {
+        await prepaidCardMarket.pause();
+        expect(await prepaidCardMarket.paused()).to.equal(true);
+      });
 
-    it("rejects when non-owner pauses contract", async function () {
-      await prepaidCardMarket
-        .setPaused(true, { from: customer })
-        .should.be.rejectedWith(Error, "Ownable: caller is not the owner");
+      it("owner can resume contract", async function () {
+        await prepaidCardMarket.pause();
+        await prepaidCardMarket.unpause();
+        expect(await prepaidCardMarket.paused()).to.equal(false);
+      });
+
+      it("rejects when non-owner pauses contract", async function () {
+        await prepaidCardMarket
+          .pause({ from: customer })
+          .should.be.rejectedWith(Error, "Ownable: caller is not the owner");
+      });
     });
   });
 
