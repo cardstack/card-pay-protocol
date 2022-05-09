@@ -92,6 +92,11 @@ export default async function (
         value: address("PayRewardTokensHandler"),
         params: ["{VALUE}", "{NAME}"],
       },
+      addPrepaidCardSKU: {
+        mapping: "actions",
+        value: address("AddPrepaidCardSKUHandler"),
+        params: ["{VALUE}", "{NAME}"],
+      },
     },
   });
 }
