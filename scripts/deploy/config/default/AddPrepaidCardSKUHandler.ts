@@ -13,7 +13,7 @@ export default async function (
         value: address("ActionDispatcher"),
       },
       {
-        name: "prepaidCardManager",
+        name: "prepaidCardManagerAddress",
         value: address("PrepaidCardManager"),
       },
       {
