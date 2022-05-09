@@ -67,6 +67,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
   );
   event GasPolicyAdded(string action, bool useGasPrice);
   event ContractSignerRemoved(address signer);
+  event TrustedCallerForCreatingPrepaidCardsWithIssuerRemoved(address caller);
   event PrepaidCardSend(
     address prepaidCard,
     uint256 spendAmount,
@@ -206,6 +207,18 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     require(contractSigners.contains(signer), "signer not present");
     contractSigners.remove(signer);
     emit ContractSignerRemoved(signer);
+  }
+
+  function removeTrustedCallerForCreatingPrepaidCardsWithIssuer(address caller)
+    external
+    onlyOwner
+  {
+    require(
+      trustedCallersForCreatingPrepaidCardsWithIssuer.contains(caller),
+      "caller not present"
+    );
+    trustedCallersForCreatingPrepaidCardsWithIssuer.remove(caller);
+    emit TrustedCallerForCreatingPrepaidCardsWithIssuerRemoved(caller);
   }
 
   /**
@@ -349,6 +362,17 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
    */
   function getContractSigners() external view returns (address[] memory) {
     return contractSigners.values();
+  }
+
+  /**
+   * @dev get the addresses that are allowed to create cards with provided issuer
+   */
+  function getTrustedCallersForCreatingPrepaidCardsWithIssuer()
+    external
+    view
+    returns (address[] memory)
+  {
+    return trustedCallersForCreatingPrepaidCardsWithIssuer.values();
   }
 
   /**
