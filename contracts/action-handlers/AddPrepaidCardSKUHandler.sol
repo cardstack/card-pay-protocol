@@ -9,6 +9,7 @@ import "../PrepaidCardMarketV2.sol";
 import "../TokenManager.sol";
 import "../IPrepaidCardMarket.sol";
 import "../VersionManager.sol";
+import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 
 contract AddPrepaidCardSKUHandler is Ownable, Versionable {
   address public actionDispatcher;
@@ -68,15 +69,41 @@ contract AddPrepaidCardSKUHandler is Ownable, Versionable {
 
     require(amount == 0, "amount must be 0");
 
-    (, , bytes memory actionData) = abi.decode(data, (address, uint256, bytes));
+    (address payable prepaidCard, , bytes memory actionData) = abi.decode(
+      data,
+      (address, uint256, bytes)
+    );
 
     (
       uint256 faceValue,
       string memory customizationDID,
       address tokenAddress,
       address marketAddress,
-      address issuerSafe
+      address payable issuerSafe
     ) = abi.decode(actionData, (uint256, string, address, address, address));
+
+    // require that the owner of the prepaid card is the same as the owner
+    // of the issuer safe
+    PrepaidCardManager prepaidCardMgr = PrepaidCardManager(
+      prepaidCardManagerAddress
+    );
+
+    address prepaidCardOwner = prepaidCardMgr.getPrepaidCardOwner(prepaidCard);
+    address[] memory issuerSafeOwners = GnosisSafe(issuerSafe).getOwners();
+
+    bool foundOwner = false;
+
+    // Safety measure to prevent big gas costs on huge arrays
+    require(issuerSafeOwners.length < 100, "too many safe owners");
+
+    for (uint256 i = 0; i < issuerSafeOwners.length; i++) {
+      if (issuerSafeOwners[i] == prepaidCardOwner) {
+        foundOwner = true;
+        break;
+      }
+    }
+
+    require(foundOwner, "owner of the prepaid card does not own issuer safe");
 
     PrepaidCardMarketV2 prepaidCardMarket = PrepaidCardMarketV2(marketAddress);
 
