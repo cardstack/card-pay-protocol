@@ -324,7 +324,7 @@ contract PrepaidCardMarketV2 is
     uint256 amount,
     bytes calldata data
   ) external returns (bool) {
-    // Only CARD.CPXD, DAI.CPXD are accepted
+    // Only whitelisted tokens are accepted
     require(
       TokenManager(tokenManager).isValidToken(msg.sender),
       "token is unaccepted"
