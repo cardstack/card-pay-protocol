@@ -444,6 +444,45 @@ contract("PrepaidCardMarketV2", (accounts) => {
           "safe transaction was reverted"
         );
       });
+
+      it("can't add a SKU when prepaid card owner does not own the issuer safe", async function () {
+        await depositTokens(toTokenUnit(1));
+
+        let [fundingPrepaidCard] = await makePrepaidCards(
+          [toTokenUnit(1)],
+          ZERO_ADDRESS,
+          depot.address
+        );
+
+        await cardcpxdToken.mint(fundingPrepaidCard.address, toTokenUnit(1));
+
+        await transferOwner(
+          prepaidCardManager,
+          fundingPrepaidCard,
+          issuer,
+          customer,
+          relayer
+        );
+
+        await addPrepaidCardSKU(
+          prepaidCardManager,
+          fundingPrepaidCard,
+          "1000",
+          "did:cardstack:test",
+          daicpxdToken.address,
+          prepaidCardMarketV2,
+          customer,
+          relayer,
+          null,
+          null,
+          depot
+        ).should.be.rejectedWith(
+          Error,
+          // the real revert reason ("owner of the prepaid card does not own issuer safe") is behind the
+          // gnosis safe execTransaction boundary, so we just get this generic error
+          "safe transaction was reverted"
+        );
+      });
     });
 
     describe("getQuantity", () => {
