@@ -275,6 +275,7 @@ contract PrepaidCardMarketV2 is
       keccak256(abi.encodePacked(issuer, token, faceValue, customizationDID));
   }
 
+  // Note: msg.sender is issuer safe
   function withdrawTokens(uint256 amount, address token) external {
     address _issuer = issuers[msg.sender];
     require(_issuer != address(0), "Issuer not found");
