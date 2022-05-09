@@ -405,7 +405,7 @@ contract("PrepaidCardMarketV2", (accounts) => {
         );
 
         expect(event.issuer).to.be.equal(issuer);
-        expect(event.token).to.be.equal(daicpxdToken.address);
+        expect(event.issuingToken).to.be.equal(daicpxdToken.address);
         expect(event.faceValue).to.be.equal("1000");
         expect(event.customizationDID).to.be.equal("did:cardstack:test");
 
