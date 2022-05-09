@@ -72,6 +72,7 @@ contract("PrepaidCardManager", (accounts) => {
     versionManager,
     merchantSafe,
     contractSigner,
+    trustedCallerForCreatingPrepaidCardsWithIssuer,
     relayer,
     depot,
     prepaidCards = [],
@@ -86,6 +87,7 @@ contract("PrepaidCardManager", (accounts) => {
     gasFeeReceiver = accounts[5];
     merchantFeeReceiver = accounts[6];
     contractSigner = accounts[7];
+    trustedCallerForCreatingPrepaidCardsWithIssuer = accounts[8];
     walletAmount = toTokenUnit(1000);
 
     versionManager = await setupVersionManager(owner);
@@ -198,7 +200,7 @@ contract("PrepaidCardManager", (accounts) => {
         MINIMUM_AMOUNT,
         MAXIMUM_AMOUNT,
         [contractSigner],
-        [],
+        [trustedCallerForCreatingPrepaidCardsWithIssuer],
         versionManager.address
       );
       await prepaidCardManager.addGasPolicy("transfer", false);
@@ -230,6 +232,12 @@ contract("PrepaidCardManager", (accounts) => {
       expect(await prepaidCardManager.getContractSigners()).to.deep.equal([
         contractSigner,
       ]);
+      expect(await prepaidCardManager.getContractSigners()).to.deep.equal([
+        contractSigner,
+      ]);
+      expect(
+        await prepaidCardManager.getTrustedCallersForCreatingPrepaidCardsWithIssuer()
+      ).to.deep.equal([trustedCallerForCreatingPrepaidCardsWithIssuer]);
     });
 
     it("can get version of contract", async () => {
@@ -249,6 +257,24 @@ contract("PrepaidCardManager", (accounts) => {
 
     it("can remove a contract signer", async () => {
       await prepaidCardManager.removeContractSigner(contractSigner);
+      expect(await prepaidCardManager.getContractSigners()).to.deep.equal([]);
+    });
+
+    it("rejects when non-owner removes a contract signer", async () => {
+      await prepaidCardManager
+        .removeTrustedCallerForCreatingPrepaidCardsWithIssuer(
+          trustedCallerForCreatingPrepaidCardsWithIssuer,
+          {
+            from: customer,
+          }
+        )
+        .should.be.rejectedWith(Error, "Ownable: caller is not the owner");
+    });
+
+    it("can remove a contract signer", async () => {
+      await prepaidCardManager.removeTrustedCallerForCreatingPrepaidCardsWithIssuer(
+        trustedCallerForCreatingPrepaidCardsWithIssuer
+      );
       expect(await prepaidCardManager.getContractSigners()).to.deep.equal([]);
     });
   });
