@@ -217,6 +217,8 @@ contract PrepaidCardMarketV2 is
 
     uint256 price = prepaidCardManager.priceForFaceValue(token, faceValue);
 
+    // Division in solidity rounds towards zero, so this calculation won't overestimate the quantity available
+    // https://docs.soliditylang.org/en/latest/types.html#division
     return balance[issuerSafe][token] / price;
   }
 
