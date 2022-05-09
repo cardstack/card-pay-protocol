@@ -747,40 +747,80 @@ contract("PrepaidCardMarketV2", (accounts) => {
       ).to.be.rejectedWith("Not enough balance");
     });
 
-    it(`rejects when contract is paused`, async function () {
-      let tx = await prepaidCardMarketV2.setPaused(true);
-      let [pauseToggledEvent] = getParamsFromEvent(
-        tx,
-        eventABIs.PREPAID_CARD_MARKET_V2_PAUSED_TOGGLED,
-        prepaidCardMarketV2.address
-      );
-      expect(pauseToggledEvent.paused).to.be.true;
+    describe("pausing using setPause (legacy)", () => {
+      it(`rejects when contract is paused`, async function () {
+        let tx = await prepaidCardMarketV2.setPaused(true);
+        let [pauseToggledEvent] = getParamsFromEvent(
+          tx,
+          eventABIs.PREPAID_CARD_MARKET_V2_PAUSED_TOGGLED,
+          prepaidCardMarketV2.address
+        );
+        expect(pauseToggledEvent.paused).to.be.true;
 
-      await prepaidCardMarketV2
-        .provisionPrepaidCard(customer, skuAddEvent.sku, {
-          from: relayer,
-        })
-        .should.be.rejectedWith(Error, "Contract is paused");
+        await prepaidCardMarketV2
+          .provisionPrepaidCard(customer, skuAddEvent.sku, {
+            from: relayer,
+          })
+          .should.be.rejectedWith(Error, "Contract is paused");
+      });
+
+      it("can provision a prepaid card when unpaused", async function () {
+        await prepaidCardMarketV2.setPaused(true);
+        await prepaidCardMarketV2.setPaused(false);
+        let tx = await prepaidCardMarketV2.provisionPrepaidCard(
+          customer,
+          skuAddEvent.sku,
+          {
+            from: relayer,
+          }
+        );
+
+        let [createPrepaidCardEvent] = getParamsFromEvent(
+          tx,
+          eventABIs.CREATE_PREPAID_CARD,
+          prepaidCardManager.address
+        );
+
+        expect(createPrepaidCardEvent.card).to.be.ok;
+      });
     });
 
-    it("can provision a prepaid card when unpaused", async function () {
-      await prepaidCardMarketV2.setPaused(true);
-      await prepaidCardMarketV2.setPaused(false);
-      let tx = await prepaidCardMarketV2.provisionPrepaidCard(
-        customer,
-        skuAddEvent.sku,
-        {
-          from: relayer,
-        }
-      );
+    describe("pausing using pause/unpause", () => {
+      it(`rejects when contract is paused`, async function () {
+        let tx = await prepaidCardMarketV2.pause();
+        let [pauseToggledEvent] = getParamsFromEvent(
+          tx,
+          eventABIs.PREPAID_CARD_MARKET_V2_PAUSED_TOGGLED,
+          prepaidCardMarketV2.address
+        );
+        expect(pauseToggledEvent.paused).to.be.true;
 
-      let [createPrepaidCardEvent] = getParamsFromEvent(
-        tx,
-        eventABIs.CREATE_PREPAID_CARD,
-        prepaidCardManager.address
-      );
+        await prepaidCardMarketV2
+          .provisionPrepaidCard(customer, skuAddEvent.sku, {
+            from: relayer,
+          })
+          .should.be.rejectedWith(Error, "Contract is paused");
+      });
 
-      expect(createPrepaidCardEvent.card).to.be.ok;
+      it("can provision a prepaid card when unpaused", async function () {
+        await prepaidCardMarketV2.pause();
+        await prepaidCardMarketV2.unpause();
+        let tx = await prepaidCardMarketV2.provisionPrepaidCard(
+          customer,
+          skuAddEvent.sku,
+          {
+            from: relayer,
+          }
+        );
+
+        let [createPrepaidCardEvent] = getParamsFromEvent(
+          tx,
+          eventABIs.CREATE_PREPAID_CARD,
+          prepaidCardManager.address
+        );
+
+        expect(createPrepaidCardEvent.card).to.be.ok;
+      });
     });
   });
 

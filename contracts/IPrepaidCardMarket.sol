@@ -36,4 +36,8 @@ interface IPrepaidCardMarket {
     uint256 faceValue,
     string memory customizationDID
   ) external view returns (bytes32);
+
+  function pause() external;
+
+  function unpause() external;
 }
