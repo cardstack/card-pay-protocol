@@ -341,7 +341,7 @@ const eventABIs = {
       },
       {
         type: "address",
-        name: "token",
+        name: "issuingToken",
       },
       {
         type: "uint256",
