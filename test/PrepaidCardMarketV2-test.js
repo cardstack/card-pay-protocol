@@ -22,6 +22,7 @@ const {
   addActionHandlers,
   setPrepaidCardAsk,
   transferOwner,
+  SENTINEL_OWNER,
 } = require("./utils/helper");
 
 const AbiCoder = require("web3-eth-abi");
@@ -38,6 +39,7 @@ contract("PrepaidCardMarketV2", (accounts) => {
     gnosisSafeMasterCopy,
     provisioner,
     customer,
+    newSafeOwner,
     exchange,
     prepaidCardManager,
     prepaidCardMarket,
@@ -71,6 +73,7 @@ contract("PrepaidCardMarketV2", (accounts) => {
     provisioner = accounts[5];
     prepaidCardMarket = accounts[6];
     customer = accounts[7];
+    newSafeOwner = accounts[8];
 
     proxyFactory = await ProxyFactory.new();
     gnosisSafeMasterCopy = await utils.deployContract(
@@ -186,7 +189,7 @@ contract("PrepaidCardMarketV2", (accounts) => {
       );
     };
 
-    withdrawTokens = async (amount) => {
+    withdrawTokens = async (amount, owner = issuer) => {
       let withdrawTokens = prepaidCardMarketV2.contract.methods.withdrawTokens(
         amount,
         daicpxdToken.address
@@ -207,7 +210,7 @@ contract("PrepaidCardMarketV2", (accounts) => {
 
       return await signAndSendSafeTransaction(
         safeTxData,
-        issuer,
+        owner,
         depot,
         relayer
       );
@@ -295,6 +298,8 @@ contract("PrepaidCardMarketV2", (accounts) => {
       it("can withdraw tokens", async function () {
         await depositTokens(toTokenUnit(5));
 
+        let balanceBefore = await daicpxdToken.balanceOf(depot.address);
+
         let {
           safeTx,
           executionResult: { success },
@@ -315,6 +320,13 @@ contract("PrepaidCardMarketV2", (accounts) => {
         expect(event.token).to.be.equal(daicpxdToken.address);
         expect(event.amount).to.be.equal(toWei("4"));
         expect(event.safe).to.be.equal(depot.address);
+
+        let balanceAfter = await daicpxdToken.balanceOf(depot.address);
+
+        let withdrawnAmount = balanceAfter.sub(balanceBefore);
+        let remainder = toTokenUnit(4).sub(withdrawnAmount);
+        expect(remainder).to.be.bignumber.lt(toWei("0.0001"));
+        expect(remainder).to.be.bignumber.gt("0");
       });
 
       it("fails when there is no issuer", async function () {
@@ -360,6 +372,79 @@ contract("PrepaidCardMarketV2", (accounts) => {
             from: depot.address,
           })
         ).to.be.rejectedWith("Insufficient funds for withdrawal");
+      });
+
+      it("can withdraw tokens after the issuer safe changes owners", async function () {
+        await depositTokens(toTokenUnit(5));
+
+        let owners = await depot.getOwners();
+        expect(owners.length).to.eq(1);
+        expect(owners[0]).to.eq(issuer);
+
+        let swapOwner = depot.contract.methods.swapOwner(
+          SENTINEL_OWNER,
+          issuer,
+          newSafeOwner
+        );
+
+        let payload = swapOwner.encodeABI();
+        let gasEstimate = await swapOwner.estimateGas({
+          from: depot.address,
+        });
+
+        let safeTxData = {
+          to: depot.address,
+          data: payload,
+          txGasEstimate: gasEstimate,
+          gasPrice: 1000000000,
+          txGasToken: daicpxdToken.address,
+          refundReceiver: relayer,
+        };
+
+        let {
+          executionResult: { success: swapOwnerSuccess },
+        } = await signAndSendSafeTransaction(
+          safeTxData,
+          issuer,
+          depot,
+          relayer
+        );
+
+        expect(swapOwnerSuccess).to.be.true;
+
+        owners = await depot.getOwners();
+        expect(owners.length).to.eq(1);
+        expect(owners[0]).to.eq(newSafeOwner);
+
+        let balanceBefore = await daicpxdToken.balanceOf(depot.address);
+
+        let {
+          safeTx,
+          executionResult: { success },
+        } = await withdrawTokens(toTokenUnit(4), newSafeOwner);
+
+        expect(success).to.be.true;
+        expect(
+          await prepaidCardMarketV2.balance(depot.address, daicpxdToken.address)
+        ).to.be.bignumber.equal(toTokenUnit(1)); // We started with 5 and we withdrew 4
+
+        let [event] = getParamsFromEvent(
+          safeTx,
+          eventABIs.PREPAID_CARD_MARKET_V2_TOKENS_WITHDRAWN,
+          prepaidCardMarketV2.address
+        );
+
+        expect(event.issuer).to.be.equal(issuer);
+        expect(event.token).to.be.equal(daicpxdToken.address);
+        expect(event.amount).to.be.equal(toWei("4"));
+        expect(event.safe).to.be.equal(depot.address);
+
+        let balanceAfter = await daicpxdToken.balanceOf(depot.address);
+
+        let withdrawnAmount = balanceAfter.sub(balanceBefore);
+        let remainder = toTokenUnit(4).sub(withdrawnAmount);
+        expect(remainder).to.be.bignumber.lt(toWei("0.0001"));
+        expect(remainder).to.be.bignumber.gt("0");
       });
     });
 
