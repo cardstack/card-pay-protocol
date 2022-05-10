@@ -2052,3 +2052,4 @@ exports.transferOwner = transferOwner;
 exports.createPrepaidCards = createPrepaidCards;
 exports.transferRewardSafe = transferRewardSafe;
 exports.withdrawFromRewardSafe = withdrawFromRewardSafe;
+exports.SENTINEL_OWNER = SENTINEL_OWNER;
