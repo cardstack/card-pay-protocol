@@ -35,7 +35,6 @@ contract PrepaidCardMarketV2 is
 
   address public prepaidCardManagerAddress;
   address public tokenManager;
-  address public provisioner;
   address public actionDispatcher;
   address public versionManager;
   mapping(address => mapping(address => uint256)) public balance; // issuer safe address -> token -> balance
@@ -45,7 +44,7 @@ contract PrepaidCardMarketV2 is
 
   bool public paused;
 
-  EnumerableSetUpgradeable.AddressSet internal trustedProvisioners;
+  EnumerableSetUpgradeable.AddressSet internal provisioners;
 
   event Setup();
 
@@ -75,8 +74,8 @@ contract PrepaidCardMarketV2 is
     uint256 askPrice
   );
   event PrepaidCardProvisioned(address owner, bytes32 sku);
-  event TrustedProvisionerAdded(address token);
-  event TrustedProvisionerRemoved(address token);
+  event ProvisionerAdded(address token);
+  event ProvisionerRemoved(address token);
   event PausedToggled(bool paused);
 
   modifier onlyHandlers() {
@@ -94,29 +93,26 @@ contract PrepaidCardMarketV2 is
 
   function setup(
     address _prepaidCardManagerAddress,
-    address _provisioner,
     address _tokenManager,
     address _actionDispatcher,
-    address[] calldata _trustedProvisioners,
+    address[] calldata _provisioners,
     address _versionManager
   ) external onlyOwner {
     require(
       _prepaidCardManagerAddress != address(0),
       "prepaidCardManagerAddress not set"
     );
-    require(_provisioner != address(0), "provisioner not set");
     require(_tokenManager != address(0), "tokenManager not set");
     require(_actionDispatcher != address(0), "actionDispatcher not set");
     require(_versionManager != address(0), "versionManager not set");
 
     prepaidCardManagerAddress = _prepaidCardManagerAddress;
-    provisioner = _provisioner;
     tokenManager = _tokenManager;
     actionDispatcher = _actionDispatcher;
     versionManager = _versionManager;
 
-    for (uint256 i = 0; i < _trustedProvisioners.length; i++) {
-      _addTrustedProvisioner(_trustedProvisioners[i]);
+    for (uint256 i = 0; i < _provisioners.length; i++) {
+      _addProvisioner(_provisioners[i]);
     }
 
     emit Setup();
@@ -140,24 +136,18 @@ contract PrepaidCardMarketV2 is
     emit PausedToggled(false);
   }
 
-  function getTrustedProvisioners() external view returns (address[] memory) {
-    return trustedProvisioners.values();
+  function getProvisioners() external view returns (address[] memory) {
+    return provisioners.values();
   }
 
-  function _addTrustedProvisioner(address provisionerAddress)
-    internal
-    onlyOwner
-  {
-    trustedProvisioners.add(provisionerAddress);
-    emit TrustedProvisionerAdded(provisionerAddress);
+  function _addProvisioner(address provisionerAddress) internal onlyOwner {
+    provisioners.add(provisionerAddress);
+    emit ProvisionerAdded(provisionerAddress);
   }
 
-  function removeTrustedProvisioner(address provisionerAddress)
-    external
-    onlyOwner
-  {
-    trustedProvisioners.remove(provisionerAddress);
-    emit TrustedProvisionerRemoved(provisionerAddress);
+  function removeProvisioner(address provisionerAddress) external onlyOwner {
+    provisioners.remove(provisionerAddress);
+    emit ProvisionerRemoved(provisionerAddress);
   }
 
   function provisionPrepaidCard(address customer, bytes32 sku)
@@ -167,8 +157,8 @@ contract PrepaidCardMarketV2 is
   {
     require(!paused, "Contract is paused");
     require(
-      trustedProvisioners.contains(msg.sender),
-      "Only trusted provisioners allowed"
+      provisioners.contains(msg.sender),
+      "Only provisioners are allowed to provision prepaid cards"
     );
     require(asks[sku] > 0, "Can't provision SKU with 0 askPrice");
 

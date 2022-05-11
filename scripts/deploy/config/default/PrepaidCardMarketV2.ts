@@ -18,10 +18,6 @@ export default async function (
         value: address("PrepaidCardManager"),
       },
       {
-        name: "provisioner",
-        value: PREPAID_CARD_PROVISIONER,
-      },
-      {
         name: "tokenManager",
         value: address("TokenManager"),
       },
@@ -30,7 +26,7 @@ export default async function (
         value: address("ActionDispatcher"),
       },
       {
-        name: "getTrustedProvisioners",
+        name: "getProvisioners",
         value: [PREPAID_CARD_PROVISIONER],
       },
       {

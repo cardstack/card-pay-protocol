@@ -70,10 +70,10 @@ contract("PrepaidCardMarketV2", (accounts) => {
     owner = accounts[0];
     issuer = accounts[1];
     relayer = accounts[4];
-    provisioner = accounts[5];
-    prepaidCardMarket = accounts[6];
-    customer = accounts[7];
-    newSafeOwner = accounts[8];
+    provisioner = relayer;
+    prepaidCardMarket = accounts[5];
+    customer = accounts[6];
+    newSafeOwner = accounts[7];
 
     proxyFactory = await ProxyFactory.new();
     gnosisSafeMasterCopy = await utils.deployContract(
@@ -139,10 +139,9 @@ contract("PrepaidCardMarketV2", (accounts) => {
 
     await prepaidCardMarketV2.setup(
       prepaidCardManager.address,
-      provisioner,
       tokenManager.address,
       actionDispatcher.address,
-      [relayer], // trusted provisioners
+      [provisioner], // provisioners
       versionManager.address
     );
 
@@ -221,17 +220,16 @@ contract("PrepaidCardMarketV2", (accounts) => {
     it("should set trusted provisioners", async () => {
       await prepaidCardMarketV2.setup(
         prepaidCardManager.address,
-        provisioner,
         (
           await TokenManager.new()
         ).address,
         actionDispatcher.address,
-        [relayer],
+        [provisioner],
         versionManager.address
       );
-      expect(
-        await prepaidCardMarketV2.getTrustedProvisioners()
-      ).to.have.members([relayer]);
+      expect(await prepaidCardMarketV2.getProvisioners()).to.have.members([
+        provisioner,
+      ]);
     });
   });
 
@@ -239,26 +237,25 @@ contract("PrepaidCardMarketV2", (accounts) => {
     it("can remove trusted provisioners", async () => {
       await prepaidCardMarketV2.setup(
         prepaidCardManager.address,
-        provisioner,
         (
           await TokenManager.new()
         ).address,
         actionDispatcher.address,
-        [relayer],
+        [provisioner],
         versionManager.address
       );
-      expect(
-        await prepaidCardMarketV2.getTrustedProvisioners()
-      ).to.have.members([relayer]);
+      expect(await prepaidCardMarketV2.getProvisioners()).to.have.members([
+        relayer,
+      ]);
 
-      await prepaidCardMarketV2.removeTrustedProvisioner(relayer);
+      await prepaidCardMarketV2.removeProvisioner(relayer);
 
-      expect(await prepaidCardMarketV2.getTrustedProvisioners()).to.be.empty;
+      expect(await prepaidCardMarketV2.getProvisioners()).to.be.empty;
     });
 
     it("rejects when non-owner tries to remove a trusted provisioner", async () => {
       await prepaidCardMarketV2
-        .removeTrustedProvisioner(relayer, { from: issuer }) // from is just something else than the owner
+        .removeProvisioner(provisioner, { from: issuer }) // from is just something else than the owner
         .should.be.rejectedWith(Error, "caller is not the owner");
     });
   });
