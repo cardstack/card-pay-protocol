@@ -26,8 +26,22 @@ The `SupplierManager` contract is used to register suppliers (entities that brin
 The `BridgeUtils` contract manages the point of interaction between the token bridge's home mediator contract and the Card Protocol. When the token bridge encounters an allowed stablecoin that it hasn't encountered before, it will create a new token contract in layer 2 for that token, as part of this, the token bridge will also inform the Card Protocol about the new token contract address, such that the Card Protocol can accept the new CPXD form of the stablecoin as payment for the creation of new prepaid cards, as well as, payments by customers to merchants. Additionally, as part of the token bridging process, the bridged tokens are placed in a gnosis safe that is owned by the *Suppliers* (the initiators of the token bridging process). This allows for easy gas-less (from the perspective of the users of the protocol) transactions. The gnosis safe as part of the token bridging process is actually created by the `SupplierManager` contract that the `BridgeUtils` contract refers to.
 
 ### PrepaidCardManager
-The `PrepaidCardManager` contract is responsible for creating the gnosis safes that are considered as *Prepaid Cards*. As part of this process, a gnosis safe is created when layer 2 CPXD tokens are sent to the `PrepaidCardManager` Contract (as part of the layer 2 CPXD token's ERC-677 `onTokenTransfer()` function). This gnosis safe represents a *Prepaid Card*. This safe is created with 2 owners:
-1. The sender of the transaction, i.e. the *Supplier's* gnosis safe
+
+The `PrepaidCardManager` contract is responsible for creating the gnosis safes that are considered as _Prepaid Cards_. As part of this process, a gnosis safe is created when layer 2 CPXD tokens are sent to the `PrepaidCardManager` Contract (as part of the layer 2 CPXD token's ERC-677 `onTokenTransfer()` function). This gnosis safe represents a _Prepaid Card_.
+
+There are two ways of creating prepaid cards when the tokens are sent to this contract:
+
+1. When `issuer` and `issuerSafe` are provided in the `onTokenTransfer` data field, and the tokens are coming from a trusted caller (the `PrepaidCardMarketV2` contract):
+
+- Prepaid cards will be created using the provided issuer as the issuer, and issuerSafe will be emitted as depot in the `CreatePrepaidCard` event
+
+2. When `issuer` and `issuerSafe` are provided as zero addresses:
+
+- Prepaid cards will be created using the provided owner as the issuer
+
+This safe is created with 2 owners:
+
+1. The provided owner (case 1 explained above, i.e. the _Customer_), OR the sender of the transaction, i.e. the _Supplier's_ gnosis safe (case 2)
 2. The `PrepaidCardManager` contract itself.
 
 As well as a threshold of 2 signatures in order to execute gnosis safe transactions. This approach means that the `PrepaidCardManager` contract needs to sign off on all transactions involving *Prepaid Cards*. As such the `PrepaidCardManager` contract allows *Prepaid Cards* to be able "send actions" by calling the `send()` function. The caller of the `PrepaidCardManager.send()` function (which is generally the txn sender of a gnosis safe relay server) specifies:
@@ -54,8 +68,11 @@ The `PrepaidCardManager` contract stores signers that are authorized to sign saf
 ### PrepaidCardMarket
 The PrepaidCardMarket contract is responsible for provisioning already created prepaid card safes to customers. The intent is that Prepaid Card issuers can add their prepaid cards as inventory to this contract, thereby creating a SKU that represents the class of Prepaid Card which becomes available to provision to a customer. The act of adding a Prepaid Card to inventory means that the issuer of the Prepaid Card transfers their ownership of the Prepaid Card safe contract to the PrepaidCardMarket contract, such that the Prepaid Card safe has 2 contract owners: the PrepaidCardManager and the PrepaidCardMarket. Once a Prepaid Card is part of the inventory of the PrepaidCardMarket contract a "provisioner" role (which is a special EOA) is permitted to provision a Prepaid Card safe to a customer's EOA. This process entails leveraging an EIP-1271 contract signature to transfer ownership of the Prepaid Card safe from the PrepaidCardMarket contract to the specified customer EOA. Additionally the issuer of a Prepaid Card may also decide to remove Prepaid Cards from their inventory. This process also leverages EIP-1271 contract signatures to transfer ownership of the Prepaid Card safe from the PrepaidCardMarket contract back to the issuer that originally placed the Prepaid Card safe into their inventory.
 
-A future update to this contract will provide the ability for EOAs to directly purchase Prepaid Card safes from the PrepaidCardMarket using native coin and/or CPXD tokens. In that future scenario we would leverage the "ask price" that can be set against a SKU to be able to purchase Prepaid Card safes directly. To support this eventual feature we have added the ability to set an "ask price" for SKUs ni the inventory, however, capability to directly purchase a Prepaid Card from this contract is still TBD.
+A future update to this contract will provide the ability for EOAs to directly purchase Prepaid Card safes from the PrepaidCardMarket using native coin and/or CPXD tokens. In that future scenario we would leverage the "ask price" that can be set against a SKU to be able to purchase Prepaid Card safes directly. To support this eventual feature we have added the ability to set an "ask price" for SKUs in the inventory, however, capability to directly purchase a Prepaid Card from this contract is still TBD.
 
+### PrepaidCardMarketV2
+
+The PrepaidCardMarketV2 market is responsible for provisioning prepaid cards without creating them beforehand. Once the issuer deposits their funds into the contract from their safe, their new balance will be saved and then they can continue to add SKUs and set the SKU asking price. It is then possible for them to call `provisionPrepaidCard(customer, sku)` on the contract, which will determine the price to create the prepaid card, create it by sending tokens to `PrepaidCardManager` (which will set the customer as the owner), and deduct the price to create the prepaid card from the issuer safe's balance recorded in the `PrepaidCardMarketV2` contract.
 
 ### ActionDispatcher
 The `ActionDispatcher` receives actions that have been issued from the `PrepaidCardManager.send()` as gnosis safe transactions. The `ActionDispatcher` will confirm that the requested USD rate for the §SPEND amount falls within an acceptable range, and then will forward (via an ERC677 `transferAndCall()`) the action to the contract address that has been configured to handle the requested action.
@@ -77,6 +94,10 @@ The `SetPrepaidCardInventoryHandler` is a contract that handles the `setPrepaidC
 
 ### RemovePrepaidCardInventoryHandler
 The `RemovePrepaidCardInventoryHandler` is a contract that handles the `removePrepaidCardInventory` action. This contract will receive a "removePrepaidCardInventory" action accompanied by ABI encoded fields that include a list of prepaid card safe addresses to be removed from an issuer's inventory in the PrepaidCardMarket contract. This contract will iterate over the list of prepaid card safe addresses and leverage an EIP-1271 contract signature to transfer the prepaid card safes back to the issuer that originally added these prepaid card safes to the inventory, thereby removing these prepaid card safes from the PrepaidCardMarket contract inventory.
+
+### AddPrepaidCardSKUHandler
+
+The `AddPrepaidCardSKUHandler` is a contract that handles the `addPrepaidCardSKU` action. This contract will receive a "addPrepaidCardSKU" action accompanied by ABI encoded fields that include the face value, customization DID, and the addresses of the issuing token, market and issuer's safe. It will then proceed to supply these params in the `addSKU` call to the `PrepaidCardMarketV2` contract. Before the issuer can add SKUs, they first need to have some balance in the `PrepaidCardMarketV2` contract.
 
 ### SetPrepaidCardAskHandler
 The `SetPrepaidCardAskHandler` is a contract that handles the `setPrepaidCardAsk` action. This contract will receive a "setPrepaidCardAsk" action accompanied by ABI encoded fields that include the SKU for prepaid card inventory and the ask price for a single item in the inventory in units of the issuing token for the prepaid card. Until an ask price is set for a SKU, the prepaid cards that are a part of the SKU cannot be provisioned. This is to prevent the scenario where prepaid cards could be purchased before a price is set when the TBD direct purchase functionality is added to the PrepaidCardMarket contract. Eventually when the TBD direct purchase functionality is added, the ask price will be used to charge EOAs that wish to purchase prepaid card inventory from the PrepaidCardMarket contract.
