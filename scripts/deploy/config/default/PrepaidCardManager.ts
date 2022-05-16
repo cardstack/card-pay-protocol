@@ -53,6 +53,10 @@ export default async function (
       { name: "maximumFaceValue", value: MAXIMUM_AMOUNT },
       { name: "getContractSigners", value: [address("PrepaidCardMarket")] },
       {
+        name: "getTrustedCallersForCreatingPrepaidCardsWithIssuer",
+        value: [address("PrepaidCardMarketV2")],
+      },
+      {
         name: "versionManager",
         value: address("VersionManager"),
       },

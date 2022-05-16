@@ -49,6 +49,10 @@ async function main() {
       contractName: "PrepaidCardMarket",
       init: [owner],
     },
+    PrepaidCardMarketV2: {
+      contractName: "PrepaidCardMarketV2",
+      init: [owner],
+    },
     RevenuePool: { contractName: "RevenuePool", init: [owner] },
     RewardPool: { contractName: "RewardPool", init: [owner] },
     Exchange: { contractName: "Exchange", init: [owner] },
@@ -81,6 +85,10 @@ async function main() {
       init: [owner],
     },
     SetPrepaidCardAskHandler: {
+      contractName: "SetPrepaidCardAskHandler",
+      init: [owner],
+    },
+    AddPrepaidCardSKUHandler: {
       contractName: "SetPrepaidCardAskHandler",
       init: [owner],
     },

@@ -2,11 +2,13 @@ pragma solidity ^0.8.9;
 pragma abicoder v1;
 
 interface IPrepaidCardMarket {
-  function setItem(address issuer, address prepaidCard) external returns (bool);
+  // mapping
+  function asks(bytes32) external view returns (uint256);
 
-  function removeItems(address issuer, address[] calldata prepaidCards)
-    external
-    returns (bool);
+  // property
+  function paused() external view returns (bool);
+
+  function getQuantity(bytes32 sku) external view returns (uint256);
 
   function setAsk(
     address issuer,
@@ -27,4 +29,15 @@ interface IPrepaidCardMarket {
       uint256 faceValue,
       string memory customizationDID
     );
+
+  function getSKU(
+    address issuer,
+    address token,
+    uint256 faceValue,
+    string memory customizationDID
+  ) external view returns (bytes32);
+
+  function pause() external;
+
+  function unpause() external;
 }

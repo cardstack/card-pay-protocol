@@ -20,6 +20,7 @@ const RemovePrepaidCardInventoryHandler = artifacts.require(
   "RemovePrepaidCardInventoryHandler"
 );
 const SetPrepaidCardAskHandler = artifacts.require("SetPrepaidCardAskHandler");
+const AddPrepaidCardSKUHandler = artifacts.require("AddPrepaidCardSKUHandler");
 const TransferPrepaidCardHandler = artifacts.require(
   "TransferPrepaidCardHandler"
 );
@@ -68,16 +69,28 @@ function encodeCreateCardsData(
   issuingTokenAmounts = [],
   spendAmounts = [],
   customizationDID = "",
-  marketAddress = ZERO_ADDRESS
+  marketAddress = ZERO_ADDRESS,
+  issuer = ZERO_ADDRESS,
+  issuerSafe = ZERO_ADDRESS
 ) {
   return AbiCoder.encodeParameters(
-    ["address", "uint256[]", "uint256[]", "string", "address"],
+    [
+      "address",
+      "uint256[]",
+      "uint256[]",
+      "string",
+      "address",
+      "address",
+      "address",
+    ],
     [
       account,
       issuingTokenAmounts,
       spendAmounts,
       customizationDID,
       marketAddress,
+      issuer,
+      issuerSafe,
     ]
   );
 }
@@ -325,6 +338,7 @@ exports.addActionHandlers = async function ({
     setPrepaidCardInventoryHandler,
     removePrepaidCardInventoryHandler,
     setPrepaidCardAskHandler,
+    addPrepaidCardSKUHandler,
     transferPrepaidCardHandler,
     registerRewardeeHandler,
     registerRewardProgramHandler,
@@ -425,6 +439,14 @@ exports.addActionHandlers = async function ({
     setPrepaidCardAskHandler = await SetPrepaidCardAskHandler.new();
     await setPrepaidCardAskHandler.initialize(owner);
     await setPrepaidCardAskHandler.setup(
+      actionDispatcher.address,
+      prepaidCardManager.address,
+      tokenManager.address,
+      versionManagerAddress
+    );
+    addPrepaidCardSKUHandler = await AddPrepaidCardSKUHandler.new();
+    await addPrepaidCardSKUHandler.initialize(owner);
+    await addPrepaidCardSKUHandler.setup(
       actionDispatcher.address,
       prepaidCardManager.address,
       tokenManager.address,
@@ -594,6 +616,13 @@ exports.addActionHandlers = async function ({
     );
   }
 
+  if (addPrepaidCardSKUHandler) {
+    await actionDispatcher.addHandler(
+      addPrepaidCardSKUHandler.address,
+      "addPrepaidCardSKU"
+    );
+  }
+
   if (transferPrepaidCardHandler) {
     await actionDispatcher.addHandler(
       transferPrepaidCardHandler.address,
@@ -656,6 +685,7 @@ exports.addActionHandlers = async function ({
     setPrepaidCardInventoryHandler,
     removePrepaidCardInventoryHandler,
     setPrepaidCardAskHandler,
+    addPrepaidCardSKUHandler,
     transferPrepaidCardHandler,
     registerRewardeeHandler,
     registerRewardProgramHandler,
@@ -716,7 +746,8 @@ const createPrepaidCards = async function (
   issuingTokenAmounts,
   amountToSend,
   customizationDID,
-  marketAddress
+  marketAddress,
+  issuerSafe
 ) {
   let createCardData = encodeCreateCardsData(
     issuer,
@@ -727,7 +758,9 @@ const createPrepaidCards = async function (
       typeof amount === "string" ? amount : amount.toString()
     ),
     customizationDID,
-    marketAddress
+    marketAddress,
+    issuer,
+    issuerSafe || ZERO_ADDRESS
   );
 
   if (amountToSend == null) {
@@ -1040,6 +1073,84 @@ exports.removePrepaidCardInventory = async function (
     { from: relayer }
   );
 };
+
+exports.addPrepaidCardSKU = async function (
+  prepaidCardManager,
+  fundingPrepaidCard,
+  faceValue,
+  customizationDID,
+  tokenAddress,
+  prepaidCardMarket,
+  issuer,
+  relayer,
+  gasPrice,
+  usdRate,
+  issuerSafe
+) {
+  if (usdRate == null) {
+    usdRate = 100000000;
+  }
+  if (gasPrice == null) {
+    gasPrice = DEFAULT_GAS_PRICE;
+  }
+  let issuingToken = await getIssuingToken(
+    prepaidCardManager,
+    fundingPrepaidCard
+  );
+
+  let marketAddress =
+    typeof prepaidCardMarket === "string"
+      ? prepaidCardMarket
+      : prepaidCardMarket.address;
+
+  let payload = AbiCoder.encodeParameters(
+    ["uint256", "string", "address", "address", "address"],
+    [
+      faceValue,
+      customizationDID,
+      tokenAddress,
+      marketAddress,
+      issuerSafe.address,
+    ]
+  );
+
+  let data = await prepaidCardManager.getSendData(
+    fundingPrepaidCard.address,
+    0,
+    usdRate,
+    "addPrepaidCardSKU",
+    payload
+  );
+
+  let signature = await signSafeTransaction(
+    issuingToken.address,
+    0,
+    data,
+    CALL,
+    BLOCK_GAS_LIMIT,
+    0,
+    gasPrice,
+    issuingToken.address,
+    ZERO_ADDRESS,
+    await fundingPrepaidCard.nonce(),
+    issuer,
+    fundingPrepaidCard
+  );
+
+  return await prepaidCardManager.send(
+    fundingPrepaidCard.address,
+    0,
+    usdRate,
+    gasPrice,
+    BLOCK_GAS_LIMIT,
+    0,
+    "addPrepaidCardSKU",
+    payload,
+    signature,
+    { from: relayer }
+  );
+};
+
 exports.setPrepaidCardAsk = async function (
   prepaidCardManager,
   fundingPrepaidCard,
@@ -1941,3 +2052,4 @@ exports.transferOwner = transferOwner;
 exports.createPrepaidCards = createPrepaidCards;
 exports.transferRewardSafe = transferRewardSafe;
 exports.withdrawFromRewardSafe = withdrawFromRewardSafe;
+exports.SENTINEL_OWNER = SENTINEL_OWNER;

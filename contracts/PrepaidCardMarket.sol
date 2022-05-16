@@ -115,14 +115,26 @@ contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
     emit Setup();
   }
 
+  // TODO: Remove once we refactor relayer and hub to use pause() and unpause().
+  // The latter is used to be compatible with OpenZeppelin's defender
+  // (https://docs.openzeppelin.com/defender/admin#pauseunpause)
   function setPaused(bool _paused) external onlyOwner {
     paused = _paused;
     emit PausedToggled(_paused);
   }
 
+  function pause() external onlyOwner {
+    paused = true;
+    emit PausedToggled(true);
+  }
+
+  function unpause() external onlyOwner {
+    paused = false;
+    emit PausedToggled(false);
+  }
+
   function setItem(address issuer, address prepaidCard)
     external
-    override
     onlyHandlersOrPrepaidCardManager
     returns (bool)
   {
@@ -155,7 +167,6 @@ contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
 
   function removeItems(address issuer, address[] calldata prepaidCards)
     external
-    override
     onlyHandlers
     returns (bool)
   {

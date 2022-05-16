@@ -5,11 +5,13 @@ import "../core/Ownable.sol";
 import "../core/Versionable.sol";
 import "../token/IERC677.sol";
 import "../PrepaidCardManager.sol";
+import "../PrepaidCardMarketV2.sol";
 import "../TokenManager.sol";
-import "../PrepaidCardMarket.sol";
+import "../IPrepaidCardMarket.sol";
 import "../VersionManager.sol";
+import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 
-contract RemovePrepaidCardInventoryHandler is Ownable, Versionable {
+contract AddPrepaidCardSKUHandler is Ownable, Versionable {
   address public actionDispatcher;
   address public prepaidCardManagerAddress;
   address public tokenManagerAddress;
@@ -23,11 +25,6 @@ contract RemovePrepaidCardInventoryHandler is Ownable, Versionable {
     address _tokenManagerAddress,
     address _versionManager
   ) external onlyOwner returns (bool) {
-    require(_actionDispatcher != address(0), "actionDispatcher not set");
-    require(_prepaidCardManager != address(0), "prepaidCardManager not set");
-    require(_tokenManagerAddress != address(0), "tokenManagerAddress not set");
-    require(_versionManager != address(0), "versionManager not set");
-
     actionDispatcher = _actionDispatcher;
     prepaidCardManagerAddress = _prepaidCardManager;
     tokenManagerAddress = _tokenManagerAddress;
@@ -39,17 +36,22 @@ contract RemovePrepaidCardInventoryHandler is Ownable, Versionable {
   /**
    * @dev onTokenTransfer(ERC677) - this is the ERC677 token transfer callback.
    *
-   * This handles the removal of a prepaid card from the inventory.
+   * This handles adding the SKU to the market.
    *
-   * See RemovePrepaidCardInventoryHandler in README for more information.
+   * See AddPrepaidCardSKUHandler in README for more information.
    *
    * @param from the token sender (should be the revenue pool)
-   * @param data encoded as:
+   * @param data encoded as: (
    *  address prepaidCard,
    *  uint256 spendAmount,
-   *  bytes actionData, encoded as:
-   *    address[] prepaidCards,
-   *    address marketAddress
+   *  bytes actionData, encoded as: (
+   *    uint256 faceValue,
+   *    string customizationDID,
+   *    address tokenAddress,
+   *    address marketAddress,
+   *    address issuerSafe
+   *  )
+   * )
    */
   function onTokenTransfer(
     address payable from,
@@ -64,33 +66,54 @@ contract RemovePrepaidCardInventoryHandler is Ownable, Versionable {
       from == actionDispatcher,
       "can only accept tokens from action dispatcher"
     );
+
     require(amount == 0, "amount must be 0");
 
     (address payable prepaidCard, , bytes memory actionData) = abi.decode(
       data,
       (address, uint256, bytes)
     );
-    (address[] memory prepaidCards, address marketAddress) = abi.decode(
-      actionData,
-      (address[], address)
-    );
-    require(marketAddress != address(0), "market address is required");
 
+    (
+      uint256 faceValue,
+      string memory customizationDID,
+      address tokenAddress,
+      address marketAddress,
+      address payable issuerSafe
+    ) = abi.decode(actionData, (uint256, string, address, address, address));
+
+    // require that the owner of the prepaid card is the same as the owner
+    // of the issuer safe
     PrepaidCardManager prepaidCardMgr = PrepaidCardManager(
       prepaidCardManagerAddress
     );
-    require(prepaidCards.length > 0, "no prepaid cards specified");
 
-    address owner = prepaidCardMgr.getPrepaidCardOwner(prepaidCard);
-    for (uint256 i = 0; i < prepaidCards.length; i++) {
-      require(
-        prepaidCardMgr.getPrepaidCardIssuer(prepaidCards[i]) == owner,
-        "only issuer can remove market inventory"
-      );
+    address prepaidCardOwner = prepaidCardMgr.getPrepaidCardOwner(prepaidCard);
+    address[] memory issuerSafeOwners = GnosisSafe(issuerSafe).getOwners();
+
+    bool foundOwner = false;
+
+    // Safety measure to prevent big gas costs on huge arrays
+    require(issuerSafeOwners.length < 100, "too many safe owners");
+
+    for (uint256 i = 0; i < issuerSafeOwners.length; i++) {
+      if (issuerSafeOwners[i] == prepaidCardOwner) {
+        foundOwner = true;
+        break;
+      }
     }
 
-    prepaidCardMgr.setPrepaidCardUsed(prepaidCard);
-    return PrepaidCardMarket(marketAddress).removeItems(owner, prepaidCards);
+    require(foundOwner, "owner of the prepaid card does not own issuer safe");
+
+    PrepaidCardMarketV2 prepaidCardMarket = PrepaidCardMarketV2(marketAddress);
+
+    return
+      prepaidCardMarket.addSKU(
+        issuerSafe,
+        faceValue,
+        customizationDID,
+        tokenAddress
+      );
   }
 
   function cardpayVersion() external view returns (string memory) {
