@@ -116,11 +116,19 @@
     "contractName": "RewardManager"
   },
   "RewardSafeDelegateImplementation": {
-    "proxy": "0xc58159722aF2872dd50CC8cAa4C15aa13995A0ef",
+    "proxy": "0x48D6Cb2D07d9675Eeab9791ee3Bc0b12c64AFA98",
     "contractName": "RewardSafeDelegateImplementation"
   },
   "RewardPool": {
     "proxy": "0xc9A238Ee71A65554984234DF9721dbdA873F84FA",
     "contractName": "RewardPool"
+  },
+  "PrepaidCardMarketV2": {
+    "proxy": "0xb52726CbDA92b5340F32A0e837e8678E68Ff9da8",
+    "contractName": "PrepaidCardMarketV2"
+  },
+  "AddPrepaidCardSKUHandler": {
+    "proxy": "0xda58A8aAE5c20cf2B3612a110Fbba9554328D8bF",
+    "contractName": "SetPrepaidCardAskHandler"
   }
 }
