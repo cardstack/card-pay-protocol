@@ -1,6 +1,8 @@
 pragma solidity ^0.8.9;
 pragma abicoder v1;
 
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+
 import "../core/Ownable.sol";
 import "../MerchantManager.sol";
 import "../RevenuePool.sol";
@@ -10,6 +12,8 @@ import "../TokenManager.sol";
 import "../VersionManager.sol";
 
 contract RegisterMerchantHandler is Ownable, Versionable {
+  using SafeERC20Upgradeable for IERC677;
+
   event MerchantRegistrationFee(
     address card,
     address issuingToken,
@@ -105,14 +109,14 @@ contract RegisterMerchantHandler is Ownable, Versionable {
     string memory infoDID = abi.decode(actionData, (string));
     PrepaidCardManager(prepaidCardManager).setPrepaidCardUsed(prepaidCard);
     // The merchantFeeReceiver is a trusted address
-    IERC677(issuingToken).transfer(
+    IERC677(issuingToken).safeTransfer(
       revenuePool.merchantFeeReceiver(),
       merchantRegistrationFeeInToken
     );
     uint256 refund = amount - merchantRegistrationFeeInToken;
     if (refund > 0) {
       // from is a trusted contract address (gnosis safe)
-      IERC677(issuingToken).transfer(prepaidCard, refund);
+      IERC677(issuingToken).safeTransfer(prepaidCard, refund);
     }
 
     address merchant = PrepaidCardManager(revenuePool.prepaidCardManager())
