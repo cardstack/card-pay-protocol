@@ -266,10 +266,14 @@ async function main() {
     ]);
     for (let impl of unverifiedImpls) {
       if (!skipVerify) {
-        await hre.run("verify:verify", {
-          address: impl,
-          constructorArguments: [],
-        });
+        try {
+          await hre.run("verify:verify", {
+            address: impl,
+            constructorArguments: [],
+          });
+        } catch (e) {
+          console.error(e);
+        }
       }
       newImpls.push(impl);
       reverify.push({ name: contractName, address: impl });
