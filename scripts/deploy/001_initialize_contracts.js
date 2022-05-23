@@ -89,7 +89,7 @@ async function main() {
       init: [owner],
     },
     AddPrepaidCardSKUHandler: {
-      contractName: "SetPrepaidCardAskHandler",
+      contractName: "AddPrepaidCardSKUHandler",
       init: [owner],
     },
     BridgeUtils: { contractName: "BridgeUtils", init: [owner] },

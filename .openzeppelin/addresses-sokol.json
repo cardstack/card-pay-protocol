@@ -129,6 +129,6 @@
   },
   "AddPrepaidCardSKUHandler": {
     "proxy": "0xda58A8aAE5c20cf2B3612a110Fbba9554328D8bF",
-    "contractName": "SetPrepaidCardAskHandler"
+    "contractName": "AddPrepaidCardSKUHandler"
   }
 }
