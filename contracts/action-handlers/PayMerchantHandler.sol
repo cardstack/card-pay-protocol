@@ -1,6 +1,8 @@
 pragma solidity ^0.8.9;
 pragma abicoder v1;
 
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+
 import "../core/Ownable.sol";
 import "../PrepaidCardManager.sol";
 import "../RevenuePool.sol";
@@ -10,6 +12,8 @@ import "../TokenManager.sol";
 import "../VersionManager.sol";
 
 contract PayMerchantHandler is Ownable, Versionable {
+  using SafeERC20Upgradeable for IERC677;
+
   event MerchantFeeCollected(
     address merchantSafe,
     address card,
@@ -131,11 +135,11 @@ contract PayMerchantHandler is Ownable, Versionable {
     ISPEND(spendTokenAddress).mint(merchantSafe, spendAmount);
 
     // The merchantFeeReceiver is a trusted address
-    IERC677(msg.sender).transfer(
+    IERC677(msg.sender).safeTransfer(
       revenuePool.merchantFeeReceiver(),
       merchantFee
     );
-    IERC677(msg.sender).transfer(revenuePoolAddress, merchantProceeds);
+    IERC677(msg.sender).safeTransfer(revenuePoolAddress, merchantProceeds);
 
     emit CustomerPayment(
       prepaidCard,

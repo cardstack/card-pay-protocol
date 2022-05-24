@@ -1,6 +1,8 @@
 pragma solidity ^0.8.9;
 pragma abicoder v1;
 
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+
 import "../core/Ownable.sol";
 import "../RewardManager.sol";
 import "../Exchange.sol";
@@ -9,6 +11,8 @@ import "../VersionManager.sol";
 import "../PrepaidCardManager.sol";
 
 contract RegisterRewardProgramHandler is Ownable, Versionable {
+  using SafeERC20Upgradeable for IERC677;
+
   event Setup();
   event RewardProgramRegistrationFee(
     address prepaidCard,
@@ -40,7 +44,10 @@ contract RegisterRewardProgramHandler is Ownable, Versionable {
       _rewardManagerAddress != address(0),
       "rewardManagerAddress not set"
     );
-    require(_prepaidCardManagerAddress != address(0), "prepaidCardManager not set");
+    require(
+      _prepaidCardManagerAddress != address(0),
+      "prepaidCardManager not set"
+    );
     require(_versionManager != address(0), "versionManager not set");
 
     actionDispatcher = _actionDispatcher;
@@ -110,14 +117,14 @@ contract RegisterRewardProgramHandler is Ownable, Versionable {
       "Insufficient funds for reward program registration"
     );
 
-    IERC677(msg.sender).transfer(
+    IERC677(msg.sender).safeTransfer(
       rewardManager.rewardFeeReceiver(),
       rewardProgramRegistrationFeeInToken
     );
 
     uint256 refund = amount - rewardProgramRegistrationFeeInToken;
     if (refund > 0) {
-      IERC677(msg.sender).transfer(prepaidCard, refund);
+      IERC677(msg.sender).safeTransfer(prepaidCard, refund);
     }
 
     emit RewardProgramRegistrationFee(
@@ -132,9 +139,9 @@ contract RegisterRewardProgramHandler is Ownable, Versionable {
       admin,
       rewardProgramID
     );
-    PrepaidCardManager(
-      prepaidCardManagerAddress
-    ).setPrepaidCardUsed(prepaidCard);
+    PrepaidCardManager(prepaidCardManagerAddress).setPrepaidCardUsed(
+      prepaidCard
+    );
     return true;
   }
 
