@@ -163,6 +163,24 @@ async function main() {
     };
   }
 
+  // this mechanism is put in place to ensure that typos in the above contracts data structure do not lead to unintentionally deploying the wrong contract
+  const nameExceptions = [
+    "DAIOracle",
+    "CARDOracle",
+    "DAIUSDFeed",
+    "ETHUSDFeed",
+    "CARDUSDFeed",
+  ];
+
+  for (let contractId of Object.keys(contracts)) {
+    let contractName = contracts[contractId].contractName;
+    if (contractName !== contractId && !nameExceptions.includes(contractId)) {
+      throw new Error(
+        `${contractId} has contract name ${contractName} - is that intentional? If so, add it to the exception list in deploy/001_initialize_contracts script.`
+      );
+    }
+  }
+
   const addressesFile = `./.openzeppelin/addresses-${network}.json`;
   const addressesBackupFile = `./.openzeppelin/addresses-${network}-${Date.now()}.json.bak`;
   let skipVerify = process.env.SKIP_VERIFY === "true";
