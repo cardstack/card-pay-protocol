@@ -38,7 +38,7 @@ async function main() {
   }
 
   let { faceValue, issuingToken } = await market.getSkuInfo(sku);
-  let token = await ERC677.attach(issuingToken);
+  let token: Contract = ERC677.attach(issuingToken) as unknown as Contract;
   let symbol = await token.symbol();
   let balance = await token.balanceOf(await getDeployAddress());
 
@@ -108,7 +108,7 @@ async function getContractInstance(contractId: string) {
   const proxyAddresses = readAddressFile(network);
   const { contractName, proxy: address } = proxyAddresses[contractId];
   const contractFactory = await makeFactory(contractName);
-  return await contractFactory.attach(address);
+  return contractFactory.attach(address);
 }
 
 asyncMain(main);
