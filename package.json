@@ -25,7 +25,7 @@
     "deploy:contracts": "./node_modules/.bin/hardhat run scripts/deploy/001_initialize_contracts.ts",
     "deploy:config-only": "yarn deploy:config:protocol",
     "deploy:config-testnet-only": "yarn deploy:config:manual-feeds && yarn deploy:config:protocol",
-    "deploy:config:manual-feeds": "./node_modules/.bin/hardhat run scripts/deploy/002_configure_manual_feeds.js",
+    "deploy:config:manual-feeds": "./node_modules/.bin/hardhat run scripts/deploy/002_configure_manual_feeds.ts",
     "deploy:config:protocol": "./node_modules/.bin/hardhat run scripts/deploy/004_configure_card_protocol.ts",
     "deploy:config:version": "./node_modules/.bin/hardhat run scripts/deploy/005_set_protocol_version.ts",
     "deploy": "yarn build:clean && yarn deploy:contracts && yarn deploy:config-only",
