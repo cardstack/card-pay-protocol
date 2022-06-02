@@ -641,7 +641,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
 
     // refund the supplier any excess funds that they provided
     if (amountReceived > neededAmount) {
-      IERC677(token).transfer(depot, amountReceived - neededAmount);
+      IERC677(token).safeTransfer(depot, amountReceived - neededAmount);
     }
 
     return true;

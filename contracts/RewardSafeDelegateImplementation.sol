@@ -2,6 +2,7 @@ pragma solidity ^0.8.9;
 pragma abicoder v1;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "./RewardManager.sol";
 import "./ActionDispatcher.sol";
 import "./core/ReentrancyGuard.sol";
@@ -45,7 +46,8 @@ contract RewardSafeDelegateImplementation is ReentrancyGuard {
       "must be valid token"
     );
 
-    IERC20Upgradeable(__untrusted__token).transfer(
+    SafeERC20Upgradeable.safeTransfer(
+      IERC20Upgradeable(__untrusted__token),
       __untrusted__to,
       __untrusted__value
     );
