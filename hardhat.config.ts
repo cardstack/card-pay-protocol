@@ -22,7 +22,7 @@ if (process.env.HARDHAT_FORKING) {
   XDAI_RPC_URL = "https://xdai-archive.blockscout.com";
 } else {
   XDAI_RPC_URL =
-    "https://polished-still-thunder.xdai.quiknode.pro/474f8faa313d36e0dc2604c1373655f7e26fdfb6/";
+    "https://lively-wandering-flower.xdai.quiknode.pro/3dfea7d446624963a14e4c0032e9af18477ae295/";
 }
 
 let forking: { url: string; blockNumber?: number },
