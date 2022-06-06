@@ -112,7 +112,15 @@
     "contractName": "RewardManager"
   },
   "RewardSafeDelegateImplementation": {
-    "proxy": "0xf87B79b7df8550Fd2463157E3E76e89140cE5221",
+    "proxy": "0x56A68Bcf3c206B56610ae231EbEF9d21886e4400",
     "contractName": "RewardSafeDelegateImplementation"
+  },
+  "PrepaidCardMarketV2": {
+    "proxy": "0x8897600115FE944FA8aC78254E1A799698265ddc",
+    "contractName": "PrepaidCardMarketV2"
+  },
+  "AddPrepaidCardSKUHandler": {
+    "proxy": "0xBdcd28A153F615c23508C98112a7EC628f9ce38D",
+    "contractName": "AddPrepaidCardSKUHandler"
   }
 }
