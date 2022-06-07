@@ -146,7 +146,7 @@ contract RevenuePool is Ownable, Versionable {
    * @dev the decimals to use for the merchant fee percentage (the denominator of
    * the fraction used for the merchant fee percentage)
    */
-  function merchantFeeDecimals() public pure returns (uint8) {
+  function merchantFeeDecimals() external pure returns (uint8) {
     return 8;
   }
 

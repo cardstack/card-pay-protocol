@@ -63,7 +63,7 @@ contract BridgeUtils is Ownable, Versionable {
     return SupplierManager(supplierManager).registerSupplier(supplier);
   }
 
-  function isRegistered(address supplier) public view returns (bool) {
+  function isRegistered(address supplier) external view returns (bool) {
     return SupplierManager(supplierManager).isRegistered(supplier);
   }
 

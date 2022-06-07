@@ -14,7 +14,7 @@ contract SPEND is Versionable, ISPEND, SPENDMinterRole {
   uint256 private _totalSupply;
   address public versionManager;
 
-  function initialize(address owner) public initializer {
+  function initialize(address owner) external initializer {
     initializeMinterRole(owner);
   }
 

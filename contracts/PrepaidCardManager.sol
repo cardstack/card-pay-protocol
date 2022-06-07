@@ -552,7 +552,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
   }
 
   function getPrepaidCardIssuer(address prepaidCard)
-    public
+    external
     view
     returns (address)
   {

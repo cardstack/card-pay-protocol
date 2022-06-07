@@ -83,7 +83,7 @@ contract EnumerableSetUpgradeUtil {
   }
 
   function readNewAddressSet(bytes32 slot)
-    public
+    external
     view
     returns (address[] memory)
   {
@@ -96,7 +96,7 @@ contract EnumerableSetUpgradeUtil {
   }
 
   function newSetContains(bytes32 slot, address value)
-    public
+    external
     view
     returns (bool)
   {

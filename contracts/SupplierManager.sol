@@ -77,7 +77,7 @@ contract SupplierManager is Ownable, Versionable, Safe {
     return suppliers[supplier].registered;
   }
 
-  function safeForSupplier(address supplier) public view returns (address) {
+  function safeForSupplier(address supplier) external view returns (address) {
     if (!isRegistered(supplier)) {
       return address(0);
     }

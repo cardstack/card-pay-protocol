@@ -6,7 +6,7 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 contract Ownable is OwnableUpgradeable {
   // This function cannot be called from inheriting contracts due to https://github.com/OpenZeppelin/openzeppelin-contracts/pull/3006
   // Instead, call OwnableInitialize directly from the overriden initilizaer
-  function initialize(address owner) public virtual initializer {
+  function initialize(address owner) external virtual initializer {
     OwnableInitialize(owner);
   }
 
