@@ -209,7 +209,7 @@ contract PrepaidCardMarketV2 is
     return true;
   }
 
-  function getQuantity(bytes32 sku) public view returns (uint256) {
+  function getQuantity(bytes32 sku) external view returns (uint256) {
     PrepaidCardManager prepaidCardManager = PrepaidCardManager(
       prepaidCardManagerAddress
     );

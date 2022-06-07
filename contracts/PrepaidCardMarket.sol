@@ -90,7 +90,7 @@ contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
     _;
   }
 
-  function initialize(address owner) public override initializer {
+  function initialize(address owner) external override initializer {
     nonce = 0;
     paused = false;
     OwnableInitialize(owner);
