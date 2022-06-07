@@ -8,7 +8,7 @@ contract VersionManager is Ownable {
 
   event VersionUpdate(string version);
 
-  function initialize(address owner) public override initializer {
+  function initialize(address owner) external override initializer {
     // this is the version of the protocol that this contract is being
     // introduced at.
     version = "0.8.3";

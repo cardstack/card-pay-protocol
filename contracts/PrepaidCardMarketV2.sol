@@ -86,7 +86,7 @@ contract PrepaidCardMarketV2 is
     _;
   }
 
-  function initialize(address owner) public override initializer {
+  function initialize(address owner) external override initializer {
     paused = false;
     OwnableInitialize(owner);
   }
