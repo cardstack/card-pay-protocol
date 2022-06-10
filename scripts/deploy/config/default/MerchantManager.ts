@@ -4,6 +4,7 @@ import {
   ContractConfig,
   GNOSIS_SAFE_MASTER_COPY,
   GNOSIS_SAFE_FACTORY,
+  MERCHANT_REGISTRAR,
 } from "../../config-utils";
 
 export default async function (
@@ -25,6 +26,10 @@ export default async function (
       {
         name: "gnosisProxyFactory",
         value: GNOSIS_SAFE_FACTORY,
+      },
+      {
+        name: "getMerchantRegistrars",
+        value: [MERCHANT_REGISTRAR],
       },
       {
         name: "versionManager",

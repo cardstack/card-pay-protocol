@@ -204,6 +204,7 @@ contract("RewardManager", (accounts) => {
       actionDispatcher.address,
       gnosisSafeMasterCopy.address,
       proxyFactory.address,
+      [relayer],
       versionManager.address
     );
     await prepaidCardManager.setup(

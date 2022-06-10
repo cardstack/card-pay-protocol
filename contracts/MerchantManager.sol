@@ -18,6 +18,8 @@ contract MerchantManager is Ownable, Versionable, Safe {
     address merchantSafe,
     string infoDID
   );
+  event MerchantRegistrarAdded(address token);
+  event MerchantRegistrarRemoved(address token);
 
   address public deprecatedMerchantManager;
   address public actionDispatcher;
@@ -26,12 +28,14 @@ contract MerchantManager is Ownable, Versionable, Safe {
   mapping(address => string) public merchantSafeInfoDIDs; // merchant safe address => Info DID
   address public versionManager;
   EnumerableSetUpgradeable.AddressSet internal merchantAddresses;
+  EnumerableSetUpgradeable.AddressSet internal merchantRegistrars;
 
-  modifier onlyHandlersOrOwner() {
+  modifier onlyHandlersOrOwnerOrRegistrars() {
     require(
       (owner() == _msgSender()) ||
-        ActionDispatcher(actionDispatcher).isHandler(msg.sender),
-      "caller is not a registered action handler nor an owner"
+        ActionDispatcher(actionDispatcher).isHandler(msg.sender) ||
+        merchantRegistrars.contains(msg.sender),
+      "caller is not registered"
     );
     _;
   }
@@ -40,6 +44,7 @@ contract MerchantManager is Ownable, Versionable, Safe {
     address _actionDispatcher,
     address _gsMasterCopy,
     address _gsProxyFactory,
+    address[] calldata _merchantRegistrars,
     address _versionManager
   ) external onlyOwner {
     require(_actionDispatcher != address(0), "actionDispatcher not set");
@@ -50,6 +55,11 @@ contract MerchantManager is Ownable, Versionable, Safe {
     actionDispatcher = _actionDispatcher;
     versionManager = _versionManager;
     Safe.setup(_gsMasterCopy, _gsProxyFactory);
+
+    for (uint256 i = 0; i < _merchantRegistrars.length; i++) {
+      _addMerchantRegistrars(_merchantRegistrars[i]);
+    }
+
     emit Setup();
   }
 
@@ -65,9 +75,29 @@ contract MerchantManager is Ownable, Versionable, Safe {
     return merchants[merchant].values();
   }
 
+  function getMerchantRegistrars() external view returns (address[] memory) {
+    return merchantRegistrars.values();
+  }
+
+  function _addMerchantRegistrars(address merchantRegistrarAddress)
+    internal
+    onlyOwner
+  {
+    merchantRegistrars.add(merchantRegistrarAddress);
+    emit MerchantRegistrarAdded(merchantRegistrarAddress);
+  }
+
+  function removeMerchantRegistrar(address merchantRegistrarAddress)
+    external
+    onlyOwner
+  {
+    merchantRegistrars.remove(merchantRegistrarAddress);
+    emit MerchantRegistrarRemoved(merchantRegistrarAddress);
+  }
+
   function registerMerchant(address merchant, string calldata infoDID)
     external
-    onlyHandlersOrOwner
+    onlyHandlersOrOwnerOrRegistrars
     returns (address)
   {
     require(merchant != address(0), "zero address not allowed");

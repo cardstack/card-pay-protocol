@@ -119,6 +119,7 @@ contract("RevenuePool", (accounts) => {
       actionDispatcher.address,
       gnosisSafeMasterCopy.address,
       proxyFactory.address,
+      [relayer],
       versionManager.address
     );
     await prepaidCardManager.setup(
@@ -302,7 +303,51 @@ contract("RevenuePool", (accounts) => {
     });
   });
 
+  describe("setup merchant manager", () => {
+    it("should set trusted merchant registrars", async () => {
+      await merchantManager.setup(
+        actionDispatcher.address,
+        gnosisSafeMasterCopy.address,
+        proxyFactory.address,
+        [relayer],
+        versionManager.address
+      );
+      expect(await merchantManager.getMerchantRegistrars()).to.have.members([
+        relayer,
+      ]);
+    });
+  });
+
+  describe("removing merchant registrars", () => {
+    it("can remove merchant registrars", async () => {
+      await merchantManager.setup(
+        actionDispatcher.address,
+        gnosisSafeMasterCopy.address,
+        proxyFactory.address,
+        [relayer],
+        versionManager.address
+      );
+      expect(await merchantManager.getMerchantRegistrars()).to.have.members([
+        relayer,
+      ]);
+
+      await merchantManager.removeMerchantRegistrar(relayer);
+
+      expect(await merchantManager.getMerchantRegistrars()).to.be.empty;
+    });
+  });
+
   describe("create merchant", () => {
+    before(async () => {
+      await merchantManager.setup(
+        actionDispatcher.address,
+        gnosisSafeMasterCopy.address,
+        proxyFactory.address,
+        [relayer],
+        versionManager.address
+      );
+    });
+
     // Warning the merchant safe created in this test is used in all the
     // subsequent tests!
     it("a merchant uses a prepaid card to register themselves", async () => {
@@ -681,17 +726,42 @@ contract("RevenuePool", (accounts) => {
       ).to.equal("did:cardstack:56d6fc54-d399-443b-8778-d7e4512d3a49-xx");
     });
 
-    it("rejects a non-contract owner directly adding a merchant", async () => {
+    it("allows the merchant registrar to directly add a merchant", async () => {
+      let merchant = accounts[10];
+      let merchantTx = await merchantManager.registerMerchant(
+        merchant,
+        "did:cardstack:56d6fc54-d399-443b-8778-d7e4512d3a49-xy",
+        { from: relayer }
+      );
+      let merchantCreation = await getParamsFromEvent(
+        merchantTx,
+        eventABIs.MERCHANT_CREATION,
+        merchantManager.address
+      );
+      let anotherMerchantSafe = merchantCreation[0]["merchantSafe"];
+
+      expect(
+        await merchantManager.merchantSafesForMerchant(merchant)
+      ).to.deep.equal([anotherMerchantSafe]);
+      expect(await merchantManager.merchantSafes(anotherMerchantSafe)).to.equal(
+        merchant
+      );
+      expect(
+        await merchantManager.isMerchantSafe(anotherMerchantSafe)
+      ).to.equal(true);
+      expect(
+        await merchantManager.merchantSafeInfoDIDs(anotherMerchantSafe)
+      ).to.equal("did:cardstack:56d6fc54-d399-443b-8778-d7e4512d3a49-xy");
+    });
+
+    it("rejects a non-contract owner or a non-merchant registrar directly adding a merchant", async () => {
       await merchantManager
         .registerMerchant(
           accounts[9],
           "did:cardstack:56d6fc54-d399-443b-8778-d7e4512d3a49",
           { from: accounts[9] }
         )
-        .should.be.rejectedWith(
-          Error,
-          "caller is not a registered action handler nor an owner"
-        );
+        .should.be.rejectedWith(Error, "caller is not registered");
     });
 
     it("reverts when a prepaid card used for registering a merchant is transferred", async () => {
@@ -1472,10 +1542,7 @@ contract("RevenuePool", (accounts) => {
     it("does not allow a non-handler to add a merchant", async () => {
       await merchantManager
         .registerMerchant(customer, "", { from: customer })
-        .should.be.rejectedWith(
-          Error,
-          "caller is not a registered action handler nor an owner"
-        );
+        .should.be.rejectedWith(Error, "caller is not registered");
     });
   });
 
