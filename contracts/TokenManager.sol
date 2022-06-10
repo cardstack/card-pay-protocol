@@ -63,7 +63,7 @@ contract TokenManager is Ownable, Versionable {
     return _msgSender() == bridgeUtils;
   }
 
-  function isValidToken(address token) public view returns (bool) {
+  function isValidToken(address token) external view returns (bool) {
     return payableTokens.contains(token);
   }
 

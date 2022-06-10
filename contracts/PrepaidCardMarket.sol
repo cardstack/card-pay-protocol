@@ -90,7 +90,7 @@ contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
     _;
   }
 
-  function initialize(address owner) public override initializer {
+  function initialize(address owner) external override initializer {
     nonce = 0;
     paused = false;
     OwnableInitialize(owner);
@@ -290,11 +290,11 @@ contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
     return getSKU(issuer, issuingToken, faceValue, customizationDID);
   }
 
-  function getInventory(bytes32 sku) public view returns (address[] memory) {
+  function getInventory(bytes32 sku) external view returns (address[] memory) {
     return inventory[sku].values();
   }
 
-  function getQuantity(bytes32 sku) public view returns (uint256) {
+  function getQuantity(bytes32 sku) external view returns (uint256) {
     return inventory[sku].length();
   }
 
@@ -312,7 +312,7 @@ contract PrepaidCardMarket is Ownable, Versionable, IPrepaidCardMarket {
   function isValidSignature(
     bytes memory, // data
     bytes memory signature
-  ) public view returns (bytes4) {
+  ) external view returns (bytes4) {
     return
       signatures[keccak256(signature)] && !paused
         ? EIP1271_MAGIC_VALUE

@@ -53,7 +53,7 @@ contract MerchantManager is Ownable, Versionable, Safe {
     emit Setup();
   }
 
-  function isMerchantSafe(address merchantSafe) public view returns (bool) {
+  function isMerchantSafe(address merchantSafe) external view returns (bool) {
     return merchantSafes[merchantSafe] != address(0);
   }
 
@@ -84,7 +84,7 @@ contract MerchantManager is Ownable, Versionable, Safe {
     return merchantSafe;
   }
 
-  function getMerchantAddresses() public view returns (address[] memory) {
+  function getMerchantAddresses() external view returns (address[] memory) {
     return merchantAddresses.values();
   }
 

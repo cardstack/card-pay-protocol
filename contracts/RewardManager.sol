@@ -116,7 +116,7 @@ contract RewardManager is Ownable, Versionable, Safe {
     emit Setup();
   }
 
-  function getEip1271Contracts() public view returns (address[] memory) {
+  function getEip1271Contracts() external view returns (address[] memory) {
     return eip1271Contracts.values();
   }
 
@@ -239,7 +239,7 @@ contract RewardManager is Ownable, Versionable, Safe {
   function isValidRewardSafe(
     address payable rewardSafe,
     address rewardProgramID
-  ) public view returns (bool) {
+  ) external view returns (bool) {
     return rewardSafes[rewardProgramID].contains(rewardSafe);
   }
 
@@ -307,7 +307,7 @@ contract RewardManager is Ownable, Versionable, Safe {
   // See inline comments for signature validity logic
   //
   function isValidSignature(bytes memory data, bytes memory signature)
-    public
+    external
     view
     returns (bytes4)
   {

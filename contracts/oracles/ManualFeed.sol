@@ -25,7 +25,7 @@ contract ManualFeed is Ownable, Versionable, AggregatorV3Interface {
   event RoundAdded(uint80 indexed roundId);
   event FeedSetup(string description, uint8 decimals);
 
-  function initialize(address owner) public override initializer {
+  function initialize(address owner) external override initializer {
     _currentRound = 0;
     OwnableInitialize(owner);
   }

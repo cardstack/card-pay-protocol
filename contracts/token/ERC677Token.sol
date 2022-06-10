@@ -21,7 +21,7 @@ contract ERC677Token is IERC677, ERC20PresetMinterPauserUpgradeable {
     string memory _symbol,
     uint8 _decimals,
     address owner
-  ) public initializer {
+  ) external initializer {
     // lots of initializers to override here, due to owner by default being msg sender
     __Context_init_unchained();
     __AccessControl_init_unchained();
@@ -43,7 +43,7 @@ contract ERC677Token is IERC677, ERC20PresetMinterPauserUpgradeable {
     address _to,
     uint256 _value,
     bytes memory _data
-  ) public override returns (bool) {
+  ) external override returns (bool) {
     bool result = super.transfer(_to, _value);
     if (!result) return false;
 
