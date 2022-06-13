@@ -165,6 +165,7 @@ contract("PrepaidCardManager", (accounts) => {
       actionDispatcher.address,
       gnosisSafeMasterCopy.address,
       proxyFactory.address,
+      [relayer],
       versionManager.address
     );
     await actionDispatcher.setup(

@@ -56,6 +56,7 @@ const setupProtocol = async (accounts) => {
     rewardFeeReceiver,
     tally,
     governanceAdmin,
+    relayer,
   } = setupRoles(accounts);
 
   const proxyFactory = await ProxyFactory.new();
@@ -104,6 +105,7 @@ const setupProtocol = async (accounts) => {
     actionDispatcher.address,
     gnosisSafeMasterCopy.address,
     proxyFactory.address,
+    [relayer],
     versionManager.address
   );
   await prepaidCardManager.setup(
