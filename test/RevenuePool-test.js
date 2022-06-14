@@ -797,6 +797,109 @@ contract("RevenuePool", (accounts) => {
     });
   });
 
+  describe("disable merchant safe", () => {
+    let merchantSafe;
+    before(async () => {
+      await merchantManager.setup(
+        actionDispatcher.address,
+        gnosisSafeMasterCopy.address,
+        proxyFactory.address,
+        [relayer],
+        versionManager.address
+      );
+
+      let merchant = accounts[11];
+      let merchantTx = await merchantManager.registerMerchant(
+        merchant,
+        "did:cardstack:56d6fc54-d399-443b-8778-d7e4512d3a49-xz",
+        { from: relayer }
+      );
+      let merchantCreation = await getParamsFromEvent(
+        merchantTx,
+        eventABIs.MERCHANT_CREATION,
+        merchantManager.address
+      );
+      merchantSafe = merchantCreation[0]["merchantSafe"];
+    });
+
+    afterEach(async () => {
+      await merchantManager.enableSafe(merchantSafe);
+      expect(await merchantManager.getDisabledMerchantSafes()).to.have.empty;
+    });
+
+    it("allows owner to disable merchant safe", async () => {
+      await merchantManager.disableSafe(merchantSafe, { from: owner });
+      expect(await merchantManager.getDisabledMerchantSafes()).to.have.members([
+        merchantSafe,
+      ]);
+    });
+
+    it("allows registrar to disable merchant safe", async () => {
+      await merchantManager.disableSafe(merchantSafe, { from: relayer });
+      expect(await merchantManager.getDisabledMerchantSafes()).to.have.members([
+        merchantSafe,
+      ]);
+    });
+
+    it("does not allow non-owner nor non-registrar to disable merchant safe", async () => {
+      await merchantManager
+        .disableSafe(merchantSafe, { from: accounts[11] })
+        .should.be.rejectedWith(
+          Error,
+          // the real revert reason is behind the gnosis safe execTransaction
+          // boundary, so we just get this generic error
+          "caller is not an owner nor a registrar"
+        );
+    });
+  });
+
+  describe("enable merchant safe", () => {
+    let merchantSafe;
+    before(async () => {
+      await merchantManager.setup(
+        actionDispatcher.address,
+        gnosisSafeMasterCopy.address,
+        proxyFactory.address,
+        [relayer],
+        versionManager.address
+      );
+
+      let merchant = accounts[13];
+      let merchantTx = await merchantManager.registerMerchant(
+        merchant,
+        "did:cardstack:56d6fc54-d399-443b-8778-d7e4512d3a49-xz",
+        { from: relayer }
+      );
+      let merchantCreation = await getParamsFromEvent(
+        merchantTx,
+        eventABIs.MERCHANT_CREATION,
+        merchantManager.address
+      );
+      merchantSafe = merchantCreation[0]["merchantSafe"];
+    });
+
+    it("allows owner to enable merchant safe", async () => {
+      await merchantManager.enableSafe(merchantSafe, { from: owner });
+      expect(await merchantManager.getDisabledMerchantSafes()).to.have.empty;
+    });
+
+    it("allows registrar to enable merchant safe", async () => {
+      await merchantManager.enableSafe(merchantSafe, { from: relayer });
+      expect(await merchantManager.getDisabledMerchantSafes()).to.have.empty;
+    });
+
+    it("does not allow non-owner nor non-registrar to enable merchant safe", async () => {
+      await merchantManager
+        .enableSafe(merchantSafe, { from: accounts[11] })
+        .should.be.rejectedWith(
+          Error,
+          // the real revert reason is behind the gnosis safe execTransaction
+          // boundary, so we just get this generic error
+          "caller is not an owner nor a registrar"
+        );
+    });
+  });
+
   describe("pay token", () => {
     let prepaidCard;
     before(async () => {
@@ -1519,6 +1622,31 @@ contract("RevenuePool", (accounts) => {
       await claimRevenue
         .estimateGas({ from: merchantSafe })
         .should.be.rejectedWith(Error, "Insufficient funds");
+    });
+
+    it("rejects a claim when merchant safe is disabled and allows after re-enabled", async () => {
+      await merchantManager.disableSafe(merchantSafe);
+      expect(await merchantManager.getDisabledMerchantSafes()).to.have.members([
+        merchantSafe,
+      ]);
+
+      let amount = toTokenUnit(1);
+      let claimRevenue = revenuePool.contract.methods.claimRevenue(
+        daicpxdToken.address,
+        amount
+      );
+      // reverts are trigged via the gas estimation, so we'll never get far
+      // enough to actually issue the execTransaction on the safe
+      await claimRevenue
+        .estimateGas({ from: merchantSafe })
+        .should.be.rejectedWith(Error, "merchant safe is disabled");
+
+      //re-enabled merchant safe
+      await merchantManager.enableSafe(merchantSafe);
+      expect(await merchantManager.getDisabledMerchantSafes()).to.have.empty;
+      await claimRevenue
+        .estimateGas({ from: merchantSafe })
+        .should.not.rejectedWith();
     });
   });
 

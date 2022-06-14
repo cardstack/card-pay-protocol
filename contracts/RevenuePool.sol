@@ -113,6 +113,10 @@ contract RevenuePool is Ownable, Versionable {
       MerchantManager(merchantManager).isMerchantSafe(msg.sender),
       "caller is not a merchant safe"
     );
+    require(
+      !MerchantManager(merchantManager).isMerchantSafeDisabled(msg.sender),
+      "merchant safe is disabled"
+    );
     require(payableToken != address(0), "invalid token");
     return _claimRevenue(msg.sender, payableToken, amount);
   }
