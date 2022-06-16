@@ -5,12 +5,12 @@
 import "@nomiclabs/hardhat-ethers";
 import "@nomiclabs/hardhat-truffle5";
 import "@nomiclabs/hardhat-waffle";
-import "@openzeppelin/hardhat-upgrades";
 import "hardhat-contract-sizer";
 import "hardhat-watcher";
 import "hardhat-tracer";
 import "solidity-coverage";
 import "@nomiclabs/hardhat-etherscan";
+import "@openzeppelin/hardhat-upgrades";
 import "./lib/hardhat-error-on-compiler-warnings";
 import "./lib/hardhat-use-local-compiler";
 

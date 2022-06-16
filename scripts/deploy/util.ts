@@ -2,6 +2,12 @@ import { readJSONSync } from "fs-extra";
 import { existsSync } from "fs";
 import { resolve } from "path";
 import TrezorWalletProvider from "trezor-cli-wallet-provider";
+import { debug as debugFactory } from "debug";
+import { hashBytecodeWithoutMetadata } from "@openzeppelin/upgrades-core";
+
+export { patchNetworks } from "./patchNetworks";
+
+const debug = debugFactory("card-protocol.deploy");
 
 import hre from "hardhat";
 const {
@@ -12,7 +18,6 @@ const {
   },
   ethers,
   config: {
-    networks,
     networks: {
       hardhat: { accounts },
     },
@@ -22,28 +27,13 @@ const {
 import {
   HardhatNetworkHDAccountsConfig,
   HttpNetworkConfig,
-  NetworkConfig,
 } from "hardhat/types";
 
 const { mnemonic } = accounts as HardhatNetworkHDAccountsConfig;
 
-import { Network, Networkish } from "@ethersproject/networks";
 import { Contract, ContractFactory } from "ethers";
 import { JsonRpcProvider, JsonRpcSigner } from "@ethersproject/providers";
 import { AddressFile } from "./config-utils";
-type GetNetwork = (network: Networkish) => Network;
-
-export function patchNetworks(): void {
-  let oldGetNetwork = networks.getNetwork as unknown as GetNetwork;
-
-  networks.getNetwork = function (network: Networkish): Network {
-    if (network === "sokol" || network === 77) {
-      return { name: "sokol", chainId: 77 };
-    } else {
-      return oldGetNetwork(network);
-    }
-  } as unknown as NetworkConfig;
-}
 
 export function readAddressFile(network: string): AddressFile {
   network = network === "hardhat" ? "localhost" : network;
@@ -95,7 +85,7 @@ export function getProvider(): JsonRpcProvider {
   } = hre;
 
   const { chainId, url: rpcUrl } = config as HttpNetworkConfig;
-  const derivationPath = config as unknown as { derivationPath: string };
+  const { derivationPath } = config as unknown as { derivationPath: string };
 
   if (network === "localhost") {
     return ethers.getDefaultProvider(
@@ -119,7 +109,7 @@ export async function getDeployAddress(): Promise<string> {
   } else if (hre.network.name === "localhost") {
     if (process.env.HARDHAT_FORKING) {
       const addressesFile = `./.openzeppelin/addresses-${process.env.HARDHAT_FORKING}.json`;
-      console.log(
+      debug(
         "Determining deploy address for forked deploy from addresses file",
         addressesFile
       );
@@ -166,7 +156,7 @@ export async function retry<T>(
       attempts++;
       return await cb();
     } catch (e) {
-      console.log(
+      debug(
         `received ${e.message}, trying again (${attempts} of ${maxAttempts} attempts)`
       );
     }
@@ -178,6 +168,9 @@ export async function retry<T>(
 async function deployedCodeMatches(contractName: string, proxyAddress: string) {
   let currentImplementationAddress = await getImplementationAddress(
     proxyAddress
+  );
+  debug(
+    `Checking implementation of ${contractName}@${proxyAddress} (curent implementation: ${currentImplementationAddress})`
   );
 
   return await deployedImplementationMatches(
@@ -193,12 +186,20 @@ export async function deployedImplementationMatches(
   let artifact = hre.artifacts.require(contractName);
 
   let deployedCode = await getProvider().getCode(implementationAddress);
+  if (!deployedCode || deployedCode === "0x") {
+    return;
+  }
 
-  return (
-    deployedCode &&
-    deployedCode != "0x" &&
-    deployedCode === artifact.deployedBytecode
+  let deployedCodeHash = hashBytecodeWithoutMetadata(deployedCode);
+  let localCodeHash = hashBytecodeWithoutMetadata(artifact.deployedBytecode);
+
+  debug(
+    `On chain code hash at ${implementationAddress} (without metadata): ${deployedCodeHash}`
   );
+
+  debug(`Local bytecode hash (without metadata): ${localCodeHash}`);
+
+  return deployedCodeHash === localCodeHash;
 }
 
 export async function upgradeImplementation(
@@ -207,16 +208,32 @@ export async function upgradeImplementation(
 ): Promise<void> {
   await retry(async () => {
     if (await deployedCodeMatches(contractName, proxyAddress)) {
-      console.log(
+      debug(
         `Deployed bytecode already matches for ${contractName}@${proxyAddress} - no need to deploy new version`
       );
     } else {
-      console.log(
+      debug(
         `Bytecode changed for ${contractName}@${proxyAddress}... Upgrading`
       );
 
-      let factory = await makeFactory(contractName);
-      await upgradeProxy(proxyAddress, factory);
+      if (!process.env.DRY_RUN) {
+        let factory = await makeFactory(contractName);
+
+        await upgradeProxy(proxyAddress, factory);
+
+        debug(`Successfully upgraded proxy`);
+
+        let matchesAfter = await deployedCodeMatches(
+          contractName,
+          proxyAddress
+        );
+
+        if (!matchesAfter) {
+          throw new Error(
+            `Bytecode does not match for ${contractName}@${proxyAddress} after deploy!`
+          );
+        }
+      }
     }
   });
 }
@@ -227,15 +244,15 @@ export async function deployNewProxyAndImplementation(
 ): Promise<Contract> {
   return await retry(async () => {
     try {
-      console.log(`Creating factory`);
+      debug(`Creating factory`);
       let factory = await makeFactory(contractName);
-      console.log(`Deploying proxy`);
+      debug(`Deploying proxy`);
       let instance = await deployProxy(factory, constructorArgs);
-      console.log("Waiting for transaction");
+      debug("Waiting for transaction");
       await instance.deployed();
       return instance;
     } catch (e) {
-      console.log(e);
+      debug(e);
       throw new Error("It failed, retrying");
     }
   });
