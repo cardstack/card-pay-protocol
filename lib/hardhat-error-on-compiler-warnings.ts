@@ -35,7 +35,7 @@ subtask(
       );
       console.log();
     }
-    if (warnings.length) {
+    if (warnings.length && !process.env.SILENCE_COMPILER_WARNINGS) {
       throw new Error(
         `Found ${
           warnings.length

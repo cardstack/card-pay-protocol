@@ -4,7 +4,7 @@
 
 import "@nomiclabs/hardhat-ethers";
 import "@nomiclabs/hardhat-truffle5";
-import "@nomiclabs/hardhat-waffle";
+import "@nomicfoundation/hardhat-chai-matchers";
 import "hardhat-contract-sizer";
 import "hardhat-watcher";
 import "hardhat-tracer";
