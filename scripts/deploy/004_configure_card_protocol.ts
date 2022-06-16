@@ -8,7 +8,13 @@ import lodashIsEqual from "lodash/isEqual";
 import difference from "lodash/difference";
 import retry from "async-retry";
 import { makeFactory, patchNetworks, asyncMain, readAddressFile } from "./util";
-import { AddressFile, ContractConfig, Formatter, Value } from "./config-utils";
+import {
+  AddressFile,
+  ContractConfig,
+  Formatter,
+  Value,
+  ValueOrArrayOfValues,
+} from "./config-utils";
 
 patchNetworks();
 
@@ -17,9 +23,9 @@ const {
 } = hre;
 dotenv.config({ path: resolve(process.cwd(), `.env.${network}`) });
 
-const sendTx = async function (cb) {
+async function sendTx<T>(cb: () => Promise<T>) {
   return await retry(cb, { retries: 3 });
-};
+}
 
 async function main(proxyAddresses: AddressFile) {
   proxyAddresses = proxyAddresses || readAddressFile(network);
@@ -45,7 +51,7 @@ async function main(proxyAddresses: AddressFile) {
 
     const { contractName, proxy: address } = proxyAddresses[contractId];
     const contractFactory = await makeFactory(contractName);
-    const contract = await contractFactory.attach(address);
+    const contract = contractFactory.attach(address);
     let contractUnchanged = true;
     console.log(`
 Detecting config changes for ${contractId} (${address})`);
@@ -54,7 +60,7 @@ Detecting config changes for ${contractId} (${address})`);
         let stateChanged = false;
         for (let { name, value, propertyField, formatter } of args) {
           const rawValue = await contract[name]();
-          let currentValue;
+          let currentValue: ValueOrArrayOfValues;
           if (propertyField && typeof rawValue === "object") {
             currentValue = normalize(rawValue[propertyField]);
           } else {
@@ -95,7 +101,7 @@ Detecting config changes for ${contractId} (${address})`);
             getterParams = [queryKey];
           }
           const rawValue = await contract[property](...getterParams);
-          let currentValue;
+          let currentValue: Value | Value[];
           if (propertyField && typeof rawValue === "object") {
             currentValue = normalize(rawValue[propertyField]);
           } else {

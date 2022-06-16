@@ -1,10 +1,10 @@
-const glob = require("glob");
-const difference = require("lodash/difference");
-const { writeJSONSync, readJSONSync, existsSync } = require("node-fs-extra");
+import glob from "glob";
+import difference from "lodash/difference";
+import { writeJSONSync, readJSONSync, existsSync } from "fs-extra";
 
-const hre = require("hardhat");
+import hre from "hardhat";
 
-const {
+import {
   getDeployAddress,
   patchNetworks,
   asyncMain,
@@ -12,7 +12,8 @@ const {
   deployNewProxyAndImplementation,
   deployedImplementationMatches,
   makeFactory,
-} = require("./util");
+} from "./util";
+import { AddressFile } from "./config-utils";
 
 patchNetworks();
 
@@ -30,13 +31,21 @@ async function main() {
   const owner = await getDeployAddress();
   console.log(`Deploying from address ${owner}`);
 
+  type ContractInitSpec = {
+    [contractId: string]: {
+      contractName: string;
+      init: string[];
+      nonUpgradeable?: boolean;
+    };
+  };
+
   // Contract init details. For each upgradable contract provide a property
   // name that represents the contract "ID" (this is useful when there are
   // multiple instances of the same contract that need to be deployed), where
   // the value is an object that specifies the contract's name (as specified
   // in the solidity file), and an array of the initialize parameters to use
   // when creating the upgradable contract.
-  let contracts = {
+  let contracts: ContractInitSpec = {
     VersionManager: {
       contractName: "VersionManager",
       init: [owner],
@@ -184,7 +193,7 @@ async function main() {
   const addressesFile = `./.openzeppelin/addresses-${network}.json`;
   const addressesBackupFile = `./.openzeppelin/addresses-${network}-${Date.now()}.json.bak`;
   let skipVerify = process.env.SKIP_VERIFY === "true";
-  let proxyAddresses = {};
+  let proxyAddresses: AddressFile = {};
   let newImpls = [];
   let reverify = [];
   let previousImpls = implAddresses(network);
@@ -196,7 +205,7 @@ async function main() {
     contractId,
     { contractName, init, nonUpgradeable },
   ] of Object.entries(contracts)) {
-    let proxyAddress;
+    let proxyAddress: string;
 
     init = init.map((i) => {
       if (typeof i !== "string") {
@@ -316,8 +325,8 @@ Implementation contract verification commands:`);
   }
 }
 
-function implAddresses(network) {
-  let networkId;
+function implAddresses(network: string) {
+  let networkId: number;
   switch (network) {
     case "sokol":
       networkId = 77;
@@ -337,7 +346,9 @@ function implAddresses(network) {
     return [];
   }
   let json = readJSONSync(file);
-  return Object.values(json.impls).map((i) => i.address);
+  return Object.values(json.impls).map(
+    (i) => (i as { address: string }).address
+  );
 }
 
 asyncMain(main);

@@ -31,6 +31,7 @@ export interface MappingConfig {
 export type Formatter = (value: Value) => string;
 
 export type Value = string | number | boolean;
+export type ValueOrArrayOfValues = Value | Value[];
 
 export function getAddress(contractId: string, addresses: AddressFile): string {
   const info = addresses[contractId];
@@ -54,7 +55,7 @@ export const RELAY_SERVER_TX_SENDER =
 export const PREPAID_CARD_PROVISIONER = RELAY_SERVER_TX_SENDER;
 export const GAS_FEE_RECEIVER = RELAY_SERVER_TX_SENDER;
 export const GAS_FEE_CARD_WEI = String(
-  process.env.GAS_FEE_CARD_WEI ?? 1000000000000000000
+  process.env.GAS_FEE_CARD_WEI ?? "1000000000000000000"
 );
 export const RATE_DRIFT_PERCENTAGE =
   process.env.RATE_DRIFT_PERCENTAGE ?? 1000000; // 1% (decimals 6)

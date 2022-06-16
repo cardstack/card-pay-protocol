@@ -1,21 +1,17 @@
-const retry = require("async-retry");
+import retry from "async-retry";
 
-const hre = require("hardhat");
+import hre from "hardhat";
 const { ethers } = hre;
-const {
-  makeFactory,
-  patchNetworks,
-  asyncMain,
-  readAddressFile,
-} = require("./util");
-const { getAddress } = require("./config-utils");
+import { makeFactory, patchNetworks, asyncMain, readAddressFile } from "./util";
+import { AddressFile, getAddress } from "./config-utils";
+import { ContractFactory } from "ethers";
 patchNetworks();
 
 const {
   network: { name: network },
 } = hre;
 
-async function main(proxyAddresses) {
+async function main(proxyAddresses: AddressFile) {
   // Only setup manual feeds in our test network
   if (["sokol", "hardhat", "localhost"].includes(network)) {
     let config = {
@@ -111,8 +107,8 @@ Configuring ${contractId} ${proxy}
   }
 }
 
-async function attach(factory, proxy) {
-  let instance = await factory.attach(proxy);
+async function attach(factory: ContractFactory, proxy: string) {
+  let instance = factory.attach(proxy);
 
   if (process.env.HARDHAT_FORKING && network === "localhost") {
     let owner = await instance.owner();
