@@ -20,6 +20,8 @@ contract MerchantManager is Ownable, Versionable, Safe {
   );
   event MerchantRegistrarAdded(address token);
   event MerchantRegistrarRemoved(address token);
+  event MerchantSafeEnabled(address merchantSafe);
+  event MerchantSafeDisabled(address merchantSafe);
 
   address public deprecatedMerchantManager;
   address public actionDispatcher;
@@ -29,6 +31,7 @@ contract MerchantManager is Ownable, Versionable, Safe {
   address public versionManager;
   EnumerableSetUpgradeable.AddressSet internal merchantAddresses;
   EnumerableSetUpgradeable.AddressSet internal merchantRegistrars;
+  EnumerableSetUpgradeable.AddressSet internal disabledMerchantSafes;
 
   modifier onlyHandlersOrOwnerOrRegistrars() {
     require(
@@ -36,6 +39,16 @@ contract MerchantManager is Ownable, Versionable, Safe {
         ActionDispatcher(actionDispatcher).isHandler(msg.sender) ||
         merchantRegistrars.contains(msg.sender),
       "caller is not registered"
+    );
+    _;
+  }
+
+  modifier onlyOwnerOrRegistrars() {
+    require(
+      (owner() == _msgSender()) ||
+        ActionDispatcher(actionDispatcher).isHandler(msg.sender) ||
+        merchantRegistrars.contains(msg.sender),
+      "caller is not an owner nor a registrar"
     );
     _;
   }
@@ -116,6 +129,28 @@ contract MerchantManager is Ownable, Versionable, Safe {
 
   function getMerchantAddresses() external view returns (address[] memory) {
     return merchantAddresses.values();
+  }
+
+  function isMerchantSafeDisabled(address _merchantSafe)
+    external
+    view
+    returns (bool)
+  {
+    return disabledMerchantSafes.contains(_merchantSafe);
+  }
+
+  function getDisabledMerchantSafes() external view returns (address[] memory) {
+    return disabledMerchantSafes.values();
+  }
+
+  function enableSafe(address _merchantSafe) external onlyOwnerOrRegistrars {
+    disabledMerchantSafes.remove(_merchantSafe);
+    emit MerchantSafeEnabled(_merchantSafe);
+  }
+
+  function disableSafe(address _merchantSafe) external onlyOwnerOrRegistrars {
+    disabledMerchantSafes.add(_merchantSafe);
+    emit MerchantSafeDisabled(_merchantSafe);
   }
 
   function cardpayVersion() external view returns (string memory) {
