@@ -12,6 +12,7 @@ import {
   deployNewProxyAndImplementation,
   deployedImplementationMatches,
   makeFactory,
+  retry,
 } from "./util";
 import { AddressFile } from "./config-utils";
 
@@ -267,7 +268,14 @@ async function main() {
 
         if (!process.env.DRY_RUN) {
           let factory = await makeFactory(contractName);
-          let instance = await factory.deploy(...init);
+          let instance;
+
+          await retry(async () => {
+            instance = await factory.deploy(...init);
+          });
+          console.log(
+            `Deployed new non upgradeable contract ${contractId} (${contractName}) to ${instance.address}`
+          );
           proxyAddresses[contractId] = {
             proxy: instance.address, // it's misleading to use the proxy field here, however it's the address used later to refer to the contract
             contractName,

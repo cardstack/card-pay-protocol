@@ -46260,137 +46260,182 @@
       }
     },
     "148610ab53e8c537643f6df46ab7cb4fbdd507e388e297e631e7c0a8b7626ade": {
-      "address": "0x3f0dD806878118EF713424B6425Ef6078F916d1a",
-      "txHash": "0x1d3f4af17ac7e117bed272b85935a9227177b89bb72344d9eef6b664f7772231",
+      "address": "0x3E0F603C5d36fe621096F236f716e3EC76A5a5c5",
+      "allAddresses": ["0x3f0dD806878118EF713424B6425Ef6078F916d1a"],
+      "txHash": "0xa34a39e0e534524df0cdb2ecaf4ca4fb512b0fc1089b2b49cc47c1dff3c422f8",
       "layout": {
         "storage": [
           {
-            "contract": "Initializable",
             "label": "_initialized",
+            "offset": 0,
+            "slot": "0",
             "type": "t_bool",
+            "contract": "Initializable",
             "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:39"
           },
           {
-            "contract": "Initializable",
             "label": "_initializing",
+            "offset": 1,
+            "slot": "0",
             "type": "t_bool",
+            "contract": "Initializable",
             "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:44"
           },
           {
-            "contract": "ContextUpgradeable",
             "label": "__gap",
+            "offset": 0,
+            "slot": "1",
             "type": "t_array(t_uint256)50_storage",
+            "contract": "ContextUpgradeable",
             "src": "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:31"
           },
           {
-            "contract": "OwnableUpgradeable",
             "label": "_owner",
+            "offset": 0,
+            "slot": "51",
             "type": "t_address",
+            "contract": "OwnableUpgradeable",
             "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:22"
           },
           {
-            "contract": "OwnableUpgradeable",
             "label": "__gap",
+            "offset": 0,
+            "slot": "52",
             "type": "t_array(t_uint256)49_storage",
+            "contract": "OwnableUpgradeable",
             "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:82"
           },
           {
-            "contract": "Ownable",
             "label": "____gap_Ownable",
+            "offset": 0,
+            "slot": "101",
             "type": "t_array(t_uint256)1_storage",
+            "contract": "Ownable",
             "src": "contracts/core/Ownable.sol:23"
           },
           {
-            "contract": "Versionable",
             "label": "____gap",
+            "offset": 0,
+            "slot": "102",
             "type": "t_array(t_uint256)50_storage",
+            "contract": "Versionable",
             "src": "contracts/core/Versionable.sol:10"
           },
           {
-            "contract": "ManualFeed",
             "label": "_description",
+            "offset": 0,
+            "slot": "152",
             "type": "t_string_storage",
+            "contract": "ManualFeed",
             "src": "contracts/oracles/ManualFeed.sol:18"
           },
           {
-            "contract": "ManualFeed",
             "label": "_decimals",
+            "offset": 0,
+            "slot": "153",
             "type": "t_uint8",
+            "contract": "ManualFeed",
             "src": "contracts/oracles/ManualFeed.sol:19"
           },
           {
-            "contract": "ManualFeed",
             "label": "_currentRound",
+            "offset": 1,
+            "slot": "153",
             "type": "t_uint80",
+            "contract": "ManualFeed",
             "src": "contracts/oracles/ManualFeed.sol:20"
           },
           {
-            "contract": "ManualFeed",
             "label": "rounds",
-            "type": "t_mapping(t_uint80,t_struct(RoundData)20589_storage)",
+            "offset": 0,
+            "slot": "154",
+            "type": "t_mapping(t_uint80,t_struct(RoundData)20804_storage)",
+            "contract": "ManualFeed",
             "src": "contracts/oracles/ManualFeed.sol:22"
           },
           {
-            "contract": "ManualFeed",
             "label": "versionManager",
+            "offset": 0,
+            "slot": "155",
             "type": "t_address",
+            "contract": "ManualFeed",
             "src": "contracts/oracles/ManualFeed.sol:23"
           }
         ],
         "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_uint256)1_storage": {
+            "label": "uint256[1]",
+            "numberOfBytes": "32"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]",
+            "numberOfBytes": "1568"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_int256": {
+            "label": "int256",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint80,t_struct(RoundData)20804_storage)": {
+            "label": "mapping(uint80 => struct ManualFeed.RoundData)",
+            "numberOfBytes": "32"
+          },
           "t_string_storage": {
-            "label": "string"
+            "label": "string",
+            "numberOfBytes": "32"
           },
-          "t_uint8": {
-            "label": "uint8"
-          },
-          "t_uint80": {
-            "label": "uint80"
-          },
-          "t_mapping(t_uint80,t_struct(RoundData)20589_storage)": {
-            "label": "mapping(uint80 => struct ManualFeed.RoundData)"
-          },
-          "t_struct(RoundData)20589_storage": {
+          "t_struct(RoundData)20804_storage": {
             "label": "struct ManualFeed.RoundData",
             "members": [
               {
                 "label": "exists",
-                "type": "t_bool"
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "0"
               },
               {
                 "label": "price",
-                "type": "t_int256"
+                "type": "t_int256",
+                "offset": 0,
+                "slot": "1"
               },
               {
                 "label": "startedAt",
-                "type": "t_uint256"
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
               },
               {
                 "label": "updatedAt",
-                "type": "t_uint256"
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
               }
-            ]
-          },
-          "t_bool": {
-            "label": "bool"
-          },
-          "t_int256": {
-            "label": "int256"
+            ],
+            "numberOfBytes": "128"
           },
           "t_uint256": {
-            "label": "uint256"
+            "label": "uint256",
+            "numberOfBytes": "32"
           },
-          "t_address": {
-            "label": "address"
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
           },
-          "t_array(t_uint256)50_storage": {
-            "label": "uint256[50]"
-          },
-          "t_array(t_uint256)1_storage": {
-            "label": "uint256[1]"
-          },
-          "t_array(t_uint256)49_storage": {
-            "label": "uint256[49]"
+          "t_uint80": {
+            "label": "uint80",
+            "numberOfBytes": "10"
           }
         }
       }

@@ -148,7 +148,7 @@ type RetryCallback<T> = () => Promise<T>;
 
 export async function retry<T>(
   cb: RetryCallback<T>,
-  maxAttempts = 5
+  maxAttempts = 8
 ): Promise<T> {
   let attempts = 0;
   do {
@@ -159,6 +159,10 @@ export async function retry<T>(
       debug(
         `received ${e.message}, trying again (${attempts} of ${maxAttempts} attempts)`
       );
+
+      if (e.stack) {
+        debug(e.stack);
+      }
     }
   } while (attempts < maxAttempts);
 
