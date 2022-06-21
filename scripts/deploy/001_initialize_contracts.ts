@@ -12,6 +12,7 @@ import {
   deployNewProxyAndImplementation,
   deployedImplementationMatches,
   makeFactory,
+  retry,
 } from "./util";
 import { AddressFile } from "./config-utils";
 
@@ -265,27 +266,41 @@ async function main() {
           `Deploying new non upgradeable contract ${contractId} (${contractName})...`
         );
 
-        let factory = await makeFactory(contractName);
-        let instance = await factory.deploy(...init);
-        proxyAddresses[contractId] = {
-          proxy: instance.address, // it's misleading to use the proxy field here, however it's the address used later to refer to the contract
-          contractName,
-        };
+        if (!process.env.DRY_RUN) {
+          let factory = await makeFactory(contractName);
+          let instance;
+
+          await retry(async () => {
+            instance = await factory.deploy(...init);
+          });
+          console.log(
+            `Deployed new non upgradeable contract ${contractId} (${contractName}) to ${instance.address}`
+          );
+          proxyAddresses[contractId] = {
+            proxy: instance.address, // it's misleading to use the proxy field here, however it's the address used later to refer to the contract
+            contractName,
+          };
+        }
       }
     } else {
       console.log(`Deploying new contract ${contractId} (${contractName})...`);
 
-      let instance = await deployNewProxyAndImplementation(contractName, init);
+      if (!process.env.DRY_RUN) {
+        let instance = await deployNewProxyAndImplementation(
+          contractName,
+          init
+        );
 
-      ({ address: proxyAddress } = instance);
-      proxyAddresses[contractId] = {
-        proxy: proxyAddress,
-        contractName,
-      };
-      console.log(
-        `Deployed new proxy for ${contractId} (contract name: ${contractName}) to address ${proxyAddress}`
-      );
-      writeJSONSync(addressesBackupFile, proxyAddresses);
+        ({ address: proxyAddress } = instance);
+        proxyAddresses[contractId] = {
+          proxy: proxyAddress,
+          contractName,
+        };
+        console.log(
+          `Deployed new proxy for ${contractId} (contract name: ${contractName}) to address ${proxyAddress}`
+        );
+        writeJSONSync(addressesBackupFile, proxyAddresses);
+      }
     }
     let unverifiedImpls = difference(implAddresses(network), [
       ...previousImpls,
