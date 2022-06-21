@@ -2,7 +2,14 @@
   "extends": "solhint:recommended",
   "rules": {
     "max-states-count": "off",
+    "not-rely-on-time": "off",
     "compiler-version": ["error", "^0.8.9"],
+    "func-visibility": [
+      "warn", 
+      {
+        "ignoreConstructors": true
+      }
+    ],
     "reason-string": [
       "warn",
       {

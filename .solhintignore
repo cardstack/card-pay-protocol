@@ -5,3 +5,5 @@
 
 ./contracts/migration/EnumerableSetUpgradeUtil.sol
 ./contracts/core/ReentrancyGuard.sol
+
+./contracts/jar/JarGuard.sol
