@@ -1,1 +1,126 @@
-{"PrepaidCardManager":{"proxy":"0x15a4Cc5b3CfeBe900e5F514348bC077Eb883224D","contractName":"PrepaidCardManager"},"PrepaidCardMarket":{"proxy":"0x20f4251776e776D138967Ad36a3F5d0c6de3EB09","contractName":"PrepaidCardMarket"},"RevenuePool":{"proxy":"0xE097ec255eA9fE4e199E920E105b0f61d6e09C34","contractName":"RevenuePool"},"Exchange":{"proxy":"0x1c5B87A6905327D2370fA57C80667D432926ABA1","contractName":"Exchange"},"ActionDispatcher":{"proxy":"0x3cC7DeB8dE522E2176e8c599FaAf7503d0c78AE9","contractName":"ActionDispatcher"},"PayMerchantHandler":{"proxy":"0xdDc6709482ee4072D562C4a9f04Fc6E3249b785e","contractName":"PayMerchantHandler"},"RegisterMerchantHandler":{"proxy":"0x4101A6C673cBA6afDB2Ef082Cb578b64f81aB3D1","contractName":"RegisterMerchantHandler"},"SplitPrepaidCardHandler":{"proxy":"0x0672c77D9a9C8D81D8082a1fB925fE44f475e600","contractName":"SplitPrepaidCardHandler"},"TransferPrepaidCardHandler":{"proxy":"0x60d6c7bE551C5D399247C6683f93CC37cf06a4aB","contractName":"TransferPrepaidCardHandler"},"SetPrepaidCardInventoryHandler":{"proxy":"0x4215404Ba3920c1fce226E0a0dC796E7CFB126dA","contractName":"SetPrepaidCardInventoryHandler"},"RemovePrepaidCardInventoryHandler":{"proxy":"0xde10550aA8991f6206C82A73AAC37b899FDD6Efd","contractName":"RemovePrepaidCardInventoryHandler"},"SetPrepaidCardAskHandler":{"proxy":"0x4f6e69cf0109Fa2e3aD4Ed9F1390D02bA59f3bc2","contractName":"SetPrepaidCardAskHandler"},"BridgeUtils":{"proxy":"0xa79206F956461e053DbCF33ADDFa77553Df58D7F","contractName":"BridgeUtils"},"TokenManager":{"proxy":"0x7E3073a42FcC3F8D9dac1999CA75B361B941190A","contractName":"TokenManager"},"MerchantManager":{"proxy":"0x6b78d02cd036c0Deb67840bE9B151C1b9903c028","contractName":"MerchantManager"},"SupplierManager":{"proxy":"0xf2380376aBFEE5234bb46d8A919D42eE1A395aF3","contractName":"SupplierManager"},"SPEND":{"proxy":"0xc0247D53Ce3C6abB39b67856eDEfF79b767dB93c","contractName":"SPEND"},"DAIOracle":{"proxy":"0x36698BF676c40be119b0Fe4f964f4527943258F2","contractName":"ChainlinkFeedAdapter"},"CARDOracle":{"proxy":"0xd570Ed8b313Fe6aEEA4064bd1713b5Cc6d41D3C5","contractName":"DIAOracleAdapter"},"VersionManager":{"proxy":"0xd900133f96F85939335ADb9786ea9f2e07Bdf8c0","contractName":"VersionManager"},"RegisterRewardProgramHandler":{"proxy":"0x8e0A60912C56F4436396C636f0ED500ef27af4e0","contractName":"RegisterRewardProgramHandler"},"PayRewardTokensHandler":{"proxy":"0x90e8C108AbCF667cDdE92ECbba0078f56DeDb2c8","contractName":"PayRewardTokensHandler"},"AddRewardRuleHandler":{"proxy":"0x186d3214Af4b4025A1A8eb9E284b7e49bE0c5179","contractName":"AddRewardRuleHandler"},"LockRewardProgramHandler":{"proxy":"0xE67fd76F8293F330C25649762A65DC9296091c6e","contractName":"LockRewardProgramHandler"},"RegisterRewardeeHandler":{"proxy":"0x058916D70f00507E07dAB3C0A1101A62706a2F70","contractName":"RegisterRewardeeHandler"},"UpdateRewardProgramAdminHandler":{"proxy":"0xB2C5F67cAa1aEf617a73D29BdDc9ABb84576dC9F","contractName":"UpdateRewardProgramAdminHandler"},"RewardPool":{"proxy":"0x340EB99eB9aC7DB3a3eb68dB76c6F62738DB656a","contractName":"RewardPool"},"RewardManager":{"proxy":"0xDbAe2bC81bFa4e46df43a34403aAcde5FFdB2A9D","contractName":"RewardManager"},"RewardSafeDelegateImplementation":{"proxy":"0x56A68Bcf3c206B56610ae231EbEF9d21886e4400","contractName":"RewardSafeDelegateImplementation"},"PrepaidCardMarketV2":{"proxy":"0x8897600115FE944FA8aC78254E1A799698265ddc","contractName":"PrepaidCardMarketV2"},"AddPrepaidCardSKUHandler":{"proxy":"0xBdcd28A153F615c23508C98112a7EC628f9ce38D","contractName":"AddPrepaidCardSKUHandler"}}
+{
+  "PrepaidCardManager": {
+    "proxy": "0x15a4Cc5b3CfeBe900e5F514348bC077Eb883224D",
+    "contractName": "PrepaidCardManager"
+  },
+  "PrepaidCardMarket": {
+    "proxy": "0x20f4251776e776D138967Ad36a3F5d0c6de3EB09",
+    "contractName": "PrepaidCardMarket"
+  },
+  "RevenuePool": {
+    "proxy": "0xE097ec255eA9fE4e199E920E105b0f61d6e09C34",
+    "contractName": "RevenuePool"
+  },
+  "Exchange": {
+    "proxy": "0x1c5B87A6905327D2370fA57C80667D432926ABA1",
+    "contractName": "Exchange"
+  },
+  "ActionDispatcher": {
+    "proxy": "0x3cC7DeB8dE522E2176e8c599FaAf7503d0c78AE9",
+    "contractName": "ActionDispatcher"
+  },
+  "PayMerchantHandler": {
+    "proxy": "0xdDc6709482ee4072D562C4a9f04Fc6E3249b785e",
+    "contractName": "PayMerchantHandler"
+  },
+  "RegisterMerchantHandler": {
+    "proxy": "0x4101A6C673cBA6afDB2Ef082Cb578b64f81aB3D1",
+    "contractName": "RegisterMerchantHandler"
+  },
+  "SplitPrepaidCardHandler": {
+    "proxy": "0x0672c77D9a9C8D81D8082a1fB925fE44f475e600",
+    "contractName": "SplitPrepaidCardHandler"
+  },
+  "TransferPrepaidCardHandler": {
+    "proxy": "0x60d6c7bE551C5D399247C6683f93CC37cf06a4aB",
+    "contractName": "TransferPrepaidCardHandler"
+  },
+  "SetPrepaidCardInventoryHandler": {
+    "proxy": "0x4215404Ba3920c1fce226E0a0dC796E7CFB126dA",
+    "contractName": "SetPrepaidCardInventoryHandler"
+  },
+  "RemovePrepaidCardInventoryHandler": {
+    "proxy": "0xde10550aA8991f6206C82A73AAC37b899FDD6Efd",
+    "contractName": "RemovePrepaidCardInventoryHandler"
+  },
+  "SetPrepaidCardAskHandler": {
+    "proxy": "0x4f6e69cf0109Fa2e3aD4Ed9F1390D02bA59f3bc2",
+    "contractName": "SetPrepaidCardAskHandler"
+  },
+  "BridgeUtils": {
+    "proxy": "0xa79206F956461e053DbCF33ADDFa77553Df58D7F",
+    "contractName": "BridgeUtils"
+  },
+  "TokenManager": {
+    "proxy": "0x7E3073a42FcC3F8D9dac1999CA75B361B941190A",
+    "contractName": "TokenManager"
+  },
+  "MerchantManager": {
+    "proxy": "0x6b78d02cd036c0Deb67840bE9B151C1b9903c028",
+    "contractName": "MerchantManager"
+  },
+  "SupplierManager": {
+    "proxy": "0xf2380376aBFEE5234bb46d8A919D42eE1A395aF3",
+    "contractName": "SupplierManager"
+  },
+  "SPEND": {
+    "proxy": "0xc0247D53Ce3C6abB39b67856eDEfF79b767dB93c",
+    "contractName": "SPEND"
+  },
+  "DAIOracle": {
+    "proxy": "0x36698BF676c40be119b0Fe4f964f4527943258F2",
+    "contractName": "ChainlinkFeedAdapter"
+  },
+  "CARDOracle": {
+    "proxy": "0xd570Ed8b313Fe6aEEA4064bd1713b5Cc6d41D3C5",
+    "contractName": "DIAOracleAdapter"
+  },
+  "VersionManager": {
+    "proxy": "0xd900133f96F85939335ADb9786ea9f2e07Bdf8c0",
+    "contractName": "VersionManager"
+  },
+  "RegisterRewardProgramHandler": {
+    "proxy": "0x8e0A60912C56F4436396C636f0ED500ef27af4e0",
+    "contractName": "RegisterRewardProgramHandler"
+  },
+  "PayRewardTokensHandler": {
+    "proxy": "0x90e8C108AbCF667cDdE92ECbba0078f56DeDb2c8",
+    "contractName": "PayRewardTokensHandler"
+  },
+  "AddRewardRuleHandler": {
+    "proxy": "0x186d3214Af4b4025A1A8eb9E284b7e49bE0c5179",
+    "contractName": "AddRewardRuleHandler"
+  },
+  "LockRewardProgramHandler": {
+    "proxy": "0xE67fd76F8293F330C25649762A65DC9296091c6e",
+    "contractName": "LockRewardProgramHandler"
+  },
+  "RegisterRewardeeHandler": {
+    "proxy": "0x058916D70f00507E07dAB3C0A1101A62706a2F70",
+    "contractName": "RegisterRewardeeHandler"
+  },
+  "UpdateRewardProgramAdminHandler": {
+    "proxy": "0xB2C5F67cAa1aEf617a73D29BdDc9ABb84576dC9F",
+    "contractName": "UpdateRewardProgramAdminHandler"
+  },
+  "RewardPool": {
+    "proxy": "0x340EB99eB9aC7DB3a3eb68dB76c6F62738DB656a",
+    "contractName": "RewardPool"
+  },
+  "RewardManager": {
+    "proxy": "0xDbAe2bC81bFa4e46df43a34403aAcde5FFdB2A9D",
+    "contractName": "RewardManager"
+  },
+  "RewardSafeDelegateImplementation": {
+    "proxy": "0x56A68Bcf3c206B56610ae231EbEF9d21886e4400",
+    "contractName": "RewardSafeDelegateImplementation"
+  },
+  "PrepaidCardMarketV2": {
+    "proxy": "0x8897600115FE944FA8aC78254E1A799698265ddc",
+    "contractName": "PrepaidCardMarketV2"
+  },
+  "AddPrepaidCardSKUHandler": {
+    "proxy": "0xBdcd28A153F615c23508C98112a7EC628f9ce38D",
+    "contractName": "AddPrepaidCardSKUHandler"
+  }
+}
