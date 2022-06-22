@@ -46,10 +46,13 @@ async function verifyAddress(address) {
         constructorArguments: [],
       });
     } catch (e) {
-      if (e.message.includes("contract you want to verify was compiled with")) {
+      if (
         // some old proxy contracts are unverified and use old solidity versions, skip these proxy contracts for now
+        e.message.includes("contract you want to verify was compiled with") ||
+        // Ignore already verified contracts
+        e.message.includes("Smart-contract already verified.")
+      ) {
         console.log(e.message);
-      } else if (e.message.includes("Smart-contract already verified.")) {
         return;
       } else {
         throw e;
