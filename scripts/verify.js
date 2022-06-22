@@ -2,7 +2,6 @@ const { asyncMain } = require("./deploy/util");
 const { isVerifiedBlockscout } = require("../lib/verify");
 const hardhat = require("hardhat");
 const { ethers } = hardhat;
-const retry = require("async-retry");
 
 // bytes32(uint256(keccak256("eip1967.proxy.implementation")) - 1)
 const IMPL_SLOT =
