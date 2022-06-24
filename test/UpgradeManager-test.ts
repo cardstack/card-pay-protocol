@@ -244,11 +244,17 @@ contract.only("UpgradeManager", (accounts) => {
       )
     ).to.be.rejectedWith("Must be owner of ProxyAdmin to adopt");
   });
-  it(
-    "fails to adopt the contract if the contract is not owner by a proxy admin"
-  );
 
-  it("fails to adopt the contract if the contract id is already used");
+  it("fails to adopt the contract if the contract id is already used", async () => {
+    await deployAndAdoptContract({
+      name: "Collision",
+    });
+    await expect(
+      deployAndAdoptContract({
+        name: "Collision",
+      })
+    ).to.be.rejectedWith("Contract id already registered");
+  });
 
   it("Can deploy a new proxy");
 

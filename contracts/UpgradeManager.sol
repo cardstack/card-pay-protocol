@@ -75,6 +75,11 @@ contract UpgradeManager is Ownable {
     address _proxyAddress,
     address _proxyAdminAddress
   ) external onlyOwner {
+    require(
+      proxyAddresses[_contractId] == address(0),
+      "Contract id already registered"
+    );
+
     verifyOwnership(_proxyAddress, _proxyAdminAddress);
 
     contractIds.push(_contractId);
