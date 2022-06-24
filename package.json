@@ -9,6 +9,7 @@
     "test": "yarn lint && yarn test:sol",
     "test:parallel": "yarn lint && ./node_modules/.bin/mocha",
     "test:sol": "./node_modules/.bin/hardhat test",
+    "test:sol:debug": "npx --node-options='--inspect-brk' hardhat test",
     "test:sol:trace": "./node_modules/.bin/hardhat test --trace",
     "test:coverage": "./node_modules/.bin/hardhat coverage",
     "test:size": "{ ./node_modules/.bin/hardhat size-contracts | tee /dev/fd/3 | grep -q 'exceed the size limit for mainnet deployment' && exit 1; } 3>&1 || echo 'All contracts within size limit'",

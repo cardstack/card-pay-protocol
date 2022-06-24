@@ -2,6 +2,10 @@ import { Contract, ContractFactory } from "ethers";
 import { contract, ethers, upgrades } from "hardhat";
 import { expect } from "chai";
 import { setupVersionManager } from "./utils/helper";
+import { existsSync, unlinkSync } from "fs";
+import { join } from "path";
+
+const manifestPath = join(__dirname, "../.openzeppelin/unknown-31337.json");
 
 const {
   deployProxy,
@@ -11,7 +15,7 @@ const {
 } = upgrades;
 
 contract.only("UpgradeManager", (accounts) => {
-  let [owner, upgradeProposer, randomEOA] = accounts;
+  let [owner, upgradeProposer, otherOwner] = accounts;
 
   let upgradeManager: Contract,
     versionManager: Contract,
@@ -19,6 +23,8 @@ contract.only("UpgradeManager", (accounts) => {
     UpgradeableContractV2: ContractFactory;
 
   before(async () => {
+    clearManifest();
+
     let UpgradeManager = await ethers.getContractFactory("UpgradeManager");
     UpgradeableContractV1 = await ethers.getContractFactory(
       "UpgradeableContractV1"
@@ -34,7 +40,21 @@ contract.only("UpgradeManager", (accounts) => {
     await upgradeManager.setup([], versionManager.address);
   });
 
-  async function deployV1(): Promise<Contract> {
+  beforeEach(async () => {
+    clearManifest();
+  });
+
+  async function deployV1({ from: from = owner } = {}): Promise<{
+    proxyAdmin: Contract;
+    instance: Contract;
+  }> {
+    let signer = await ethers.getSigner(from);
+
+    let UpgradeableContractV1 = await ethers.getContractFactory(
+      "UpgradeableContractV1",
+      signer
+    );
+
     let instance = await deployProxy(UpgradeableContractV1);
     let proxyAdminAddress = await getAdminAddress(instance.address);
 
@@ -43,22 +63,50 @@ contract.only("UpgradeManager", (accounts) => {
       proxyAdminAddress
     );
 
-    let adminOwner = await proxyAdmin.owner();
-    if (adminOwner !== upgradeManager.address) {
-      expect(adminOwner).to.eq(owner);
-      await proxyAdmin.transferOwnership(upgradeManager.address);
-    }
-
     expect(await proxyAdmin.getProxyAdmin(instance.address)).to.equal(
       proxyAdmin.address
     );
 
-    return instance;
+    return { proxyAdmin, instance };
+  }
+
+  async function transferProxyAdminOwnership(
+    proxyAdmin: Contract,
+    newOwner: string
+  ) {
+    let adminOwner = await proxyAdmin.owner();
+    if (adminOwner !== newOwner) {
+      await proxyAdmin.transferOwnership(newOwner);
+    }
+  }
+
+  async function deployAndAdoptContract(): Promise<{
+    proxyAdmin: Contract;
+    instance: Contract;
+  }> {
+    let { instance, proxyAdmin } = await deployV1();
+    await transferProxyAdminOwnership(proxyAdmin, upgradeManager.address);
+
+    await upgradeManager.adoptProxy(
+      "UpgradeableContract",
+      instance.address,
+      proxyAdmin.address
+    );
+
+    return { instance, proxyAdmin };
+  }
+
+  function clearManifest() {
+    if (existsSync(manifestPath)) {
+      unlinkSync(manifestPath);
+    }
   }
 
   it("can get version of contract", async () => {
     expect(await upgradeManager.cardpayVersion()).to.equal("1.0.0");
   });
+
+  it("checks upgradability owner");
 
   it("has a set of upgrade proposers", async () => {
     expect(await upgradeManager.getUpgradeProposers()).to.have.members([]);
@@ -84,14 +132,14 @@ contract.only("UpgradeManager", (accounts) => {
   it("allows adding a proposer");
 
   it("Can adopt a contract if it is the owner of the proxy admin", async () => {
-    let instance = await deployV1();
-    let proxyAdminAddress = await getAdminAddress(instance.address);
+    let { instance, proxyAdmin } = await deployV1();
+    await transferProxyAdminOwnership(proxyAdmin, upgradeManager.address);
 
     await expect(
       upgradeManager.adoptProxy(
         "UpgradeableContractV1",
         instance.address,
-        proxyAdminAddress
+        proxyAdmin.address
       )
     )
       .to.emit(upgradeManager, "ProxyAdopted")
@@ -109,43 +157,57 @@ contract.only("UpgradeManager", (accounts) => {
 
   it("allows manually setting the version");
 
-  it.only("fails to adopt if it's not a proxy", async () => {
-    let real = await deployV1();
-    let proxyAdminAddress = await getAdminAddress(real.address);
+  it("fails to adopt if it's not a proxy", async () => {
+    let { proxyAdmin } = await deployV1();
+    await transferProxyAdminOwnership(proxyAdmin, upgradeManager.address);
+
     let instance = await UpgradeableContractV1.deploy();
-    console.log("here");
-    console.log("instance.address", instance.address);
-    console.log("proxyAdminAddress", proxyAdminAddress);
+
     await expect(
       upgradeManager.adoptProxy(
         "UpgradeableContract",
         instance.address,
-        proxyAdminAddress
+        proxyAdmin.address
       )
-    ).to.be.rejectedWith("ProxyAdmin is not admin of this contract");
+    ).to.be.rejectedWith(
+      "Call to determine proxy admin ownership of proxy failed"
+    );
   });
 
   it("fails to adopt the contract if it is not the owner of the proxy admin", async () => {
-    let instance = await deployV1();
-    let proxyAdminAddress = await getAdminAddress(instance.address);
+    let { instance, proxyAdmin } = await deployV1({ from: otherOwner });
+
     await expect(
       upgradeManager.adoptProxy(
         "UpgradeableContractV1",
         instance.address,
-        proxyAdminAddress
+        proxyAdmin.address
       )
     ).to.be.rejectedWith("Must be owner of ProxyAdmin to adopt");
   });
+  it("checks admin() on proxy");
 
   it("fails to adopt if the proxy admin is not the right proxy admin for the contract being adopted", async () => {
-    throw "todo";
-    let instance = await deployV1();
-    let proxyAdminAddress = await getAdminAddress(instance.address);
+    let { instance: instance1, proxyAdmin: proxyAdmin1 } = await deployV1({
+      from: owner,
+    });
+
+    clearManifest();
+
+    let { instance: instance2, proxyAdmin: proxyAdmin2 } = await deployV1({
+      from: otherOwner,
+    });
+
+    expect(proxyAdmin1.address).not.to.eq(
+      proxyAdmin2.address,
+      "For this test there should be two different proxy admins"
+    );
+
     await expect(
       upgradeManager.adoptProxy(
         "UpgradeableContractV1",
-        instance.address,
-        proxyAdminAddress
+        instance1.address,
+        proxyAdmin2.address
       )
     ).to.be.rejectedWith("Must be owner of ProxyAdmin to adopt");
   });
@@ -158,14 +220,7 @@ contract.only("UpgradeManager", (accounts) => {
   it("Can deploy a new proxy");
 
   it("allows a proposer to propose an upgrade", async () => {
-    let instance = await deployV1();
-    let proxyAdminAddress = await getAdminAddress(instance.address);
-
-    await upgradeManager.adoptProxy(
-      "UpgradeableContract",
-      instance.address,
-      proxyAdminAddress
-    );
+    let { instance } = await deployAndAdoptContract();
 
     let newImplementationAddress = await prepareUpgrade(
       instance.address,
@@ -191,13 +246,7 @@ contract.only("UpgradeManager", (accounts) => {
     );
   });
   it("upgrades a contract", async () => {
-    let instance = await deployV1();
-    let proxyAdminAddress = await getAdminAddress(instance.address);
-    await upgradeManager.adoptProxy(
-      "UpgradeableContract",
-      instance.address,
-      proxyAdminAddress
-    );
+    let { instance } = await deployAndAdoptContract();
 
     expect(await instance.version()).to.eq("1");
 

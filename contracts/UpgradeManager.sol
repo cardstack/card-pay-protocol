@@ -69,25 +69,40 @@ contract UpgradeManager is Ownable {
     emit ProposerRemoved(proposerAddress);
   }
 
-  // function isProxyAdmin(address _address) public {
-  //   console.log("checking", _address);
-  //   console.logBytes32(_address.codehash);
-  // }
+  function verifyProxyAdminOwnership(
+    address _proxyAddress,
+    address _proxyAdminAddress
+  ) private view {
+    IProxyAdmin proxyAdmin = IProxyAdmin(_proxyAdminAddress);
+    require(
+      proxyAdmin.owner() == address(this),
+      "Must be owner of ProxyAdmin to adopt"
+    );
+
+    // This uses staticcall because there is no way to just get a false return
+    // if the result is negative, the transaction reverts, so we detect that and
+    // give a better error message
+    (bool success, bytes memory returnData) = _proxyAdminAddress.staticcall(
+      abi.encodeWithSignature("getProxyAdmin(address)", _proxyAddress)
+    );
+
+    require(success, "Call to determine proxy admin ownership of proxy failed");
+
+    address returnedAddress = abi.decode(returnData, (address));
+
+    require(
+      returnedAddress == _proxyAdminAddress,
+      "Proxy admin is not admin of this proxy"
+    );
+  }
 
   function adoptProxy(
     string memory _contractId,
     address _proxyAddress,
     address _proxyAdminAddress
   ) external onlyOwner {
-    IProxyAdmin proxyAdmin = IProxyAdmin(_proxyAdminAddress);
-    require(
-      proxyAdmin.owner() == address(this),
-      "Must be owner of ProxyAdmin to adopt"
-    );
-    require(
-      proxyAdmin.getProxyAdmin(_proxyAddress) == _proxyAdminAddress,
-      "ProxyAdmin is not admin of this contract"
-    );
+    verifyProxyAdminOwnership(_proxyAddress, _proxyAdminAddress);
+
     contractIds.push(_contractId);
     proxies.add(_proxyAddress);
     proxyAddresses[_contractId] = _proxyAddress;
