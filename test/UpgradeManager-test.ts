@@ -44,7 +44,7 @@ contract.only("UpgradeManager", (accounts) => {
     clearManifest();
   });
 
-  async function deployV1({ from: from = owner } = {}): Promise<{
+  async function deployV1({ from = owner } = {}): Promise<{
     proxyAdmin: Contract;
     instance: Contract;
   }> {
@@ -80,18 +80,16 @@ contract.only("UpgradeManager", (accounts) => {
     }
   }
 
-  async function deployAndAdoptContract(): Promise<{
+  async function deployAndAdoptContract({
+    name = "UpgradeableContract",
+  } = {}): Promise<{
     proxyAdmin: Contract;
     instance: Contract;
   }> {
     let { instance, proxyAdmin } = await deployV1();
     await transferProxyAdminOwnership(proxyAdmin, upgradeManager.address);
 
-    await upgradeManager.adoptProxy(
-      "UpgradeableContract",
-      instance.address,
-      proxyAdmin.address
-    );
+    await upgradeManager.adoptProxy(name, instance.address, proxyAdmin.address);
 
     return { instance, proxyAdmin };
   }
@@ -266,6 +264,41 @@ contract.only("UpgradeManager", (accounts) => {
 
     expect(await instance.version()).to.eq("2");
   });
+
+  it("upgrades multiple contracts atomically", async () => {
+    let { instance: instance1 } = await deployAndAdoptContract({
+      name: "ContractA",
+    });
+    let { instance: instance2 } = await deployAndAdoptContract({
+      name: "ContractB",
+    });
+
+    expect(await instance1.version()).to.eq("1");
+    expect(await instance2.version()).to.eq("1");
+
+    let newImplementationAddress1 = await prepareUpgrade(
+      instance1.address,
+      UpgradeableContractV2
+    );
+    let newImplementationAddress2 = await prepareUpgrade(
+      instance2.address,
+      UpgradeableContractV2
+    );
+
+    expect(newImplementationAddress1).to.eq(newImplementationAddress2);
+
+    await upgradeManager.proposeUpgrade("ContractA", newImplementationAddress1);
+    await upgradeManager.proposeUpgrade("ContractB", newImplementationAddress1);
+
+    expect(await instance1.version()).to.eq("1");
+    expect(await instance2.version()).to.eq("1");
+
+    await upgradeManager.upgradeProtocol();
+
+    expect(await instance1.version()).to.eq("2");
+    expect(await instance2.version()).to.eq("2");
+  });
+
   it("emits an upgrade event for each contract upgraded");
   it("resets all state data eg for upandcall when upgrading");
 
