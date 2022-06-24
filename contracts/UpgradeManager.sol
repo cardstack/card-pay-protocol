@@ -20,6 +20,7 @@ contract UpgradeManager is Ownable {
 
   string[] public pendingUpgrades;
   mapping(address => address) public upgradeAddresses; // proxy address <=> proposed implementation address
+  mapping(address => bytes) public encodedCallData; // proxy address <=> encoded call data
 
   event Setup();
   event ProposerAdded(address indexed proposer);
@@ -27,7 +28,8 @@ contract UpgradeManager is Ownable {
   event ProxyAdopted(string indexed contractId, address indexed proxyAddress);
   event UpgradeProposed(
     string indexed contractId,
-    address indexed implementationAddress
+    address indexed implementationAddress,
+    bytes encodedCall
   );
 
   /**
@@ -59,9 +61,8 @@ contract UpgradeManager is Ownable {
     return proxies.values();
   }
 
-  function _addUpgradeProposer(address proposerAddress) internal {
-    upgradeProposers.add(proposerAddress);
-    emit ProposerAdded(proposerAddress);
+  function addUpgradeProposer(address proposerAddress) external onlyOwner {
+    _addUpgradeProposer(proposerAddress);
   }
 
   function removeUpgradeProposer(address proposerAddress) external onlyOwner {
@@ -69,14 +70,56 @@ contract UpgradeManager is Ownable {
     emit ProposerRemoved(proposerAddress);
   }
 
-  function verifyProxyAdminOwnership(
+  function adoptProxy(
+    string memory _contractId,
     address _proxyAddress,
     address _proxyAdminAddress
-  ) private view {
-    IProxyAdmin proxyAdmin = IProxyAdmin(_proxyAdminAddress);
+  ) external onlyOwner {
+    verifyOwnership(_proxyAddress, _proxyAdminAddress);
+
+    contractIds.push(_contractId);
+    proxies.add(_proxyAddress);
+    proxyAddresses[_contractId] = _proxyAddress;
+    proxyAdmins[_proxyAddress] = _proxyAdminAddress;
+    emit ProxyAdopted(_contractId, _proxyAddress);
+  }
+
+  function proposeUpgrade(
+    string memory _contractId,
+    address _implementationAddress
+  ) external {
+    bytes memory encodedCall = "";
+    _proposeUpgrade(_contractId, _implementationAddress, encodedCall);
+  }
+
+  function proposeUpgradeAndCall(
+    string memory _contractId,
+    address _implementationAddress,
+    bytes calldata encodedCall
+  ) external {
+    _proposeUpgrade(_contractId, _implementationAddress, encodedCall);
+  }
+
+  function upgradeProtocol(string calldata newVersion) external onlyOwner {
+    for (uint256 i; i < pendingUpgrades.length; i++) {
+      _upgradeContract(pendingUpgrades[i]);
+    }
+
+    VersionManager(versionManager).setVersion(newVersion);
+  }
+
+  function verifyOwnership(address _proxyAddress, address _proxyAdminAddress)
+    private
+    view
+  {
     require(
-      proxyAdmin.owner() == address(this),
+      IProxyAdmin(_proxyAdminAddress).owner() == address(this),
       "Must be owner of ProxyAdmin to adopt"
+    );
+
+    require(
+      Ownable(_proxyAddress).owner() == address(this),
+      "Must be owner of contract to adopt"
     );
 
     // This uses staticcall because there is no way to just get a false return
@@ -96,35 +139,9 @@ contract UpgradeManager is Ownable {
     );
   }
 
-  function adoptProxy(
-    string memory _contractId,
-    address _proxyAddress,
-    address _proxyAdminAddress
-  ) external onlyOwner {
-    verifyProxyAdminOwnership(_proxyAddress, _proxyAdminAddress);
-
-    contractIds.push(_contractId);
-    proxies.add(_proxyAddress);
-    proxyAddresses[_contractId] = _proxyAddress;
-    proxyAdmins[_proxyAddress] = _proxyAdminAddress;
-    emit ProxyAdopted(_contractId, _proxyAddress);
-  }
-
-  function proposeUpgrade(
-    string memory _contractId,
-    address _implementationAddress
-  ) external {
-    pendingUpgrades.push(_contractId);
-
-    upgradeAddresses[proxyAddresses[_contractId]] = _implementationAddress;
-
-    emit UpgradeProposed(_contractId, _implementationAddress);
-  }
-
-  function upgradeProtocol() external {
-    for (uint256 i; i < pendingUpgrades.length; i++) {
-      _upgradeContract(pendingUpgrades[i]);
-    }
+  function _addUpgradeProposer(address proposerAddress) private {
+    upgradeProposers.add(proposerAddress);
+    emit ProposerAdded(proposerAddress);
   }
 
   function _upgradeContract(string memory _contractId) private {
@@ -137,6 +154,27 @@ contract UpgradeManager is Ownable {
 
     IProxyAdmin proxyAdmin = IProxyAdmin(proxyAdminAddress);
 
-    proxyAdmin.upgrade(proxyAddress, newImplementationAddress);
+    if (encodedCallData[proxyAddress].length == 0) {
+      proxyAdmin.upgrade(proxyAddress, newImplementationAddress);
+    } else {
+      proxyAdmin.upgradeAndCall(
+        proxyAddress,
+        newImplementationAddress,
+        encodedCallData[proxyAddress]
+      );
+    }
+  }
+
+  function _proposeUpgrade(
+    string memory _contractId,
+    address _implementationAddress,
+    bytes memory encodedCall
+  ) private {
+    pendingUpgrades.push(_contractId);
+
+    upgradeAddresses[proxyAddresses[_contractId]] = _implementationAddress;
+    encodedCallData[proxyAddresses[_contractId]] = encodedCall;
+
+    emit UpgradeProposed(_contractId, _implementationAddress, encodedCall);
   }
 }

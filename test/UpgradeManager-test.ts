@@ -4,6 +4,8 @@ import { expect } from "chai";
 import { setupVersionManager } from "./utils/helper";
 import { existsSync, unlinkSync } from "fs";
 import { join } from "path";
+import { random } from "lodash";
+// import ProxyAdmin from "@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol/ProxyAdmin.json";
 
 const manifestPath = join(__dirname, "../.openzeppelin/unknown-31337.json");
 
@@ -15,14 +17,15 @@ const {
 } = upgrades;
 
 contract.only("UpgradeManager", (accounts) => {
-  let [owner, upgradeProposer, otherOwner] = accounts;
+  let [owner, upgradeProposer, randomEOA, otherOwner] = accounts;
 
   let upgradeManager: Contract,
     versionManager: Contract,
     UpgradeableContractV1: ContractFactory,
     UpgradeableContractV2: ContractFactory;
+  // ProxyAdminFactory: ContractFactory;
 
-  before(async () => {
+  beforeEach(async () => {
     clearManifest();
 
     let UpgradeManager = await ethers.getContractFactory("UpgradeManager");
@@ -33,15 +36,18 @@ contract.only("UpgradeManager", (accounts) => {
       "UpgradeableContractV2"
     );
 
-    versionManager = await setupVersionManager(owner);
+    versionManager = await ethers.getContractAt(
+      "VersionManager",
+      (
+        await setupVersionManager(owner)
+      ).address
+    );
 
     upgradeManager = await UpgradeManager.deploy();
     await upgradeManager.initialize(owner);
     await upgradeManager.setup([], versionManager.address);
-  });
 
-  beforeEach(async () => {
-    clearManifest();
+    await versionManager.transferOwnership(upgradeManager.address);
   });
 
   async function deployV1({ from = owner } = {}): Promise<{
@@ -55,7 +61,7 @@ contract.only("UpgradeManager", (accounts) => {
       signer
     );
 
-    let instance = await deployProxy(UpgradeableContractV1);
+    let instance = await deployProxy(UpgradeableContractV1, [owner]);
     let proxyAdminAddress = await getAdminAddress(instance.address);
 
     let proxyAdmin = await ethers.getContractAt(
@@ -80,6 +86,10 @@ contract.only("UpgradeManager", (accounts) => {
     }
   }
 
+  async function asAdminUpgradeabilityProxy(contract: Contract) {
+    return ethers.getContractAt("IAdminUpgradeabilityProxy", contract.address);
+  }
+
   async function deployAndAdoptContract({
     name = "UpgradeableContract",
   } = {}): Promise<{
@@ -88,6 +98,7 @@ contract.only("UpgradeManager", (accounts) => {
   }> {
     let { instance, proxyAdmin } = await deployV1();
     await transferProxyAdminOwnership(proxyAdmin, upgradeManager.address);
+    await instance.transferOwnership(upgradeManager.address);
 
     await upgradeManager.adoptProxy(name, instance.address, proxyAdmin.address);
 
@@ -100,11 +111,14 @@ contract.only("UpgradeManager", (accounts) => {
     }
   }
 
+  function encodeWithSignature(signature: string, ...args: unknown[]) {
+    let iface = new ethers.utils.Interface([`function ${signature}`]);
+    return iface.encodeFunctionData(signature, args);
+  }
+
   it("can get version of contract", async () => {
     expect(await upgradeManager.cardpayVersion()).to.equal("1.0.0");
   });
-
-  it("checks upgradability owner");
 
   it("has a set of upgrade proposers", async () => {
     expect(await upgradeManager.getUpgradeProposers()).to.have.members([]);
@@ -125,13 +139,21 @@ contract.only("UpgradeManager", (accounts) => {
       .withArgs(upgradeProposer);
 
     expect(await upgradeManager.getUpgradeProposers()).to.have.members([]);
+
+    await expect(await upgradeManager.addUpgradeProposer(randomEOA)).to.emit(
+      upgradeManager,
+      "ProposerAdded"
+    );
+
+    expect(await upgradeManager.getUpgradeProposers()).to.have.members([
+      randomEOA,
+    ]);
   });
 
-  it("allows adding a proposer");
-
-  it("Can adopt a contract if it is the owner of the proxy admin", async () => {
+  it("Can adopt a contract if it is the owner of the proxy admin and the proxy", async () => {
     let { instance, proxyAdmin } = await deployV1();
     await transferProxyAdminOwnership(proxyAdmin, upgradeManager.address);
+    await instance.transferOwnership(upgradeManager.address);
 
     await expect(
       upgradeManager.adoptProxy(
@@ -160,6 +182,7 @@ contract.only("UpgradeManager", (accounts) => {
     await transferProxyAdminOwnership(proxyAdmin, upgradeManager.address);
 
     let instance = await UpgradeableContractV1.deploy();
+    await instance.initialize(upgradeManager.address);
 
     await expect(
       upgradeManager.adoptProxy(
@@ -183,7 +206,19 @@ contract.only("UpgradeManager", (accounts) => {
       )
     ).to.be.rejectedWith("Must be owner of ProxyAdmin to adopt");
   });
-  it("checks admin() on proxy");
+
+  it("fails to adopt the contract if it is not the owner of the contract", async () => {
+    let { instance, proxyAdmin } = await deployV1();
+    await transferProxyAdminOwnership(proxyAdmin, upgradeManager.address);
+
+    await expect(
+      upgradeManager.adoptProxy(
+        "UpgradeableContractV1",
+        instance.address,
+        proxyAdmin.address
+      )
+    ).to.be.rejectedWith("Must be owner of contract to adopt");
+  });
 
   it("fails to adopt if the proxy admin is not the right proxy admin for the contract being adopted", async () => {
     let { instance: instance1, proxyAdmin: proxyAdmin1 } = await deployV1({
@@ -192,7 +227,7 @@ contract.only("UpgradeManager", (accounts) => {
 
     clearManifest();
 
-    let { instance: instance2, proxyAdmin: proxyAdmin2 } = await deployV1({
+    let { proxyAdmin: proxyAdmin2 } = await deployV1({
       from: otherOwner,
     });
 
@@ -232,7 +267,7 @@ contract.only("UpgradeManager", (accounts) => {
       )
     )
       .to.emit(upgradeManager, "UpgradeProposed")
-      .withArgs("UpgradeableContract", newImplementationAddress);
+      .withArgs("UpgradeableContract", newImplementationAddress, "0x");
 
     expect(await upgradeManager.pendingUpgrades(0)).to.eq(
       "UpgradeableContract"
@@ -247,6 +282,7 @@ contract.only("UpgradeManager", (accounts) => {
     let { instance } = await deployAndAdoptContract();
 
     expect(await instance.version()).to.eq("1");
+    expect(await versionManager.version()).to.eq("1.0.0");
 
     let newImplementationAddress = await prepareUpgrade(
       instance.address,
@@ -259,22 +295,29 @@ contract.only("UpgradeManager", (accounts) => {
     );
 
     expect(await instance.version()).to.eq("1");
+    expect(await versionManager.version()).to.eq("1.0.0");
 
-    await upgradeManager.upgradeProtocol();
+    await expect(upgradeManager.upgradeProtocol("1.0.1"))
+      .to.emit(versionManager, "VersionUpdate")
+      .withArgs("1.0.1");
 
     expect(await instance.version()).to.eq("2");
+    expect(await versionManager.version()).to.eq("1.0.1");
   });
 
   it("upgrades multiple contracts atomically", async () => {
-    let { instance: instance1 } = await deployAndAdoptContract({
-      name: "ContractA",
-    });
-    let { instance: instance2 } = await deployAndAdoptContract({
-      name: "ContractB",
-    });
+    let { instance: instance1, proxyAdmin: proxyAdmin1 } =
+      await deployAndAdoptContract({
+        name: "ContractA",
+      });
+    let { instance: instance2, proxyAdmin: proxyAdmin2 } =
+      await deployAndAdoptContract({
+        name: "ContractB",
+      });
 
     expect(await instance1.version()).to.eq("1");
     expect(await instance2.version()).to.eq("1");
+    expect(proxyAdmin1.address).to.eq(proxyAdmin2.address);
 
     let newImplementationAddress1 = await prepareUpgrade(
       instance1.address,
@@ -293,16 +336,45 @@ contract.only("UpgradeManager", (accounts) => {
     expect(await instance1.version()).to.eq("1");
     expect(await instance2.version()).to.eq("1");
 
-    await upgradeManager.upgradeProtocol();
+    await expect(upgradeManager.upgradeProtocol("1.0.1"))
+      .to.emit(await asAdminUpgradeabilityProxy(instance1), "Upgraded")
+      .withArgs(newImplementationAddress1)
+      .and.to.emit(await asAdminUpgradeabilityProxy(instance2), "Upgraded")
+      .withArgs(newImplementationAddress1);
 
     expect(await instance1.version()).to.eq("2");
     expect(await instance2.version()).to.eq("2");
   });
 
-  it("emits an upgrade event for each contract upgraded");
   it("resets all state data eg for upandcall when upgrading");
 
-  it("only allows owner to upgrade");
+  it("only allows owner to upgrade", async () => {
+    let { instance } = await deployAndAdoptContract();
+
+    expect(await instance.version()).to.eq("1");
+
+    let newImplementationAddress = await prepareUpgrade(
+      instance.address,
+      UpgradeableContractV2
+    );
+
+    await upgradeManager.proposeUpgrade(
+      "UpgradeableContract",
+      newImplementationAddress
+    );
+
+    expect(await instance.version()).to.eq("1");
+
+    upgradeManager = upgradeManager.connect(await ethers.getSigner(randomEOA));
+
+    await expect(
+      upgradeManager.upgradeProtocol("1.0.1", { from: randomEOA })
+    ).to.be.rejectedWith("Ownable: caller is not the owner");
+
+    expect(await instance.version()).to.eq("1");
+  });
+
+  it("has meaningful version storage not string");
   it("updates the version and emits version update event on upgrade");
   it("allows retracting upgrade proposal");
   it("does not allow an upgrade proposal for an unregistered contract id");
@@ -318,12 +390,34 @@ contract.only("UpgradeManager", (accounts) => {
   it("minimizes string storage");
   it("allows calling transferOwnership");
   it("allows calling arbitrary setup functions");
-  it("allows upgradeAndCall");
+  it("allows upgradeAndCall", async () => {
+    let { instance } = await deployAndAdoptContract();
+
+    let instanceV2 = UpgradeableContractV2.attach(instance.address);
+
+    expect(await instance.version()).to.eq("1");
+    await expect(instanceV2.foo()).to.be.rejected;
+    let newImplementationAddress = await prepareUpgrade(
+      instance.address,
+      UpgradeableContractV2
+    );
+    await upgradeManager.proposeUpgradeAndCall(
+      "UpgradeableContract",
+      newImplementationAddress,
+      encodeWithSignature("setup(string)", "bar")
+    );
+    await expect(instanceV2.foo()).to.be.rejected;
+    await upgradeManager.upgradeProtocol("1.0.1");
+    expect(await instanceV2.version()).to.eq("2");
+    expect(await instanceV2.foo()).to.eq("bar");
+  });
   it("resets all state data eg for upandcall when retracting");
   it("allows calling pause");
   it(
     "proxies upgrade proxy methods, https://blockscout.com/poa/sokol/address/0xBB6BaE445c8E43d929c0EE4C915c8ef002088D25/contracts"
   );
+
+  it("checks propsed upgradeAndCall with staticcall");
   it(
     "allows a large upgrade operation without using up too much gas in the transaction"
   );
@@ -332,4 +426,10 @@ contract.only("UpgradeManager", (accounts) => {
   it(
     "allows freezing / approving a known good version for upgrade to prevent timing attacks"
   );
+
+  it(
+    "handles overwrite when calling upgradeAndCall then normal upgrade so the call data is removed"
+  );
+
+  it("allows cancelling an proposed upgrade and a proposed upgradeandcall");
 });
