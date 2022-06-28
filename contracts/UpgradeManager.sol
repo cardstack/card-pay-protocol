@@ -10,6 +10,8 @@ import "hardhat/console.sol";
 contract UpgradeManager is Ownable {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
 
+  address public constant SENTINEL_ADDRESS = address(0x1);
+
   EnumerableSetUpgradeable.AddressSet internal upgradeProposers;
   address public versionManager;
 
@@ -18,7 +20,7 @@ contract UpgradeManager is Ownable {
   mapping(string => address) public proxyAddresses; // contract id <=> proxy address
   mapping(address => address) internal proxyAdmins; // proxy address <=> proxy admin contract address
 
-  string[] public pendingUpgrades;
+  string[] public pendingChanges;
   mapping(address => address) public upgradeAddresses; // proxy address <=> proposed implementation address
   mapping(address => bytes) public encodedCallData; // proxy address <=> encoded call data
 
@@ -26,7 +28,7 @@ contract UpgradeManager is Ownable {
   event ProposerAdded(address indexed proposer);
   event ProposerRemoved(address indexed proposer);
   event ProxyAdopted(string indexed contractId, address indexed proxyAddress);
-  event UpgradeProposed(
+  event ChangesProposed(
     string indexed contractId,
     address indexed implementationAddress,
     bytes encodedCall
@@ -94,7 +96,7 @@ contract UpgradeManager is Ownable {
     address _implementationAddress
   ) external {
     bytes memory encodedCall = "";
-    _proposeUpgrade(_contractId, _implementationAddress, encodedCall);
+    _propose(_contractId, _implementationAddress, encodedCall);
   }
 
   function proposeUpgradeAndCall(
@@ -102,15 +104,30 @@ contract UpgradeManager is Ownable {
     address _implementationAddress,
     bytes calldata encodedCall
   ) external {
-    _proposeUpgrade(_contractId, _implementationAddress, encodedCall);
+    _propose(_contractId, _implementationAddress, encodedCall);
+  }
+
+  function proposeCall(string memory _contractId, bytes calldata encodedCall)
+    external
+  {
+    _propose(_contractId, SENTINEL_ADDRESS, encodedCall);
   }
 
   function upgradeProtocol(string calldata newVersion) external onlyOwner {
-    for (uint256 i; i < pendingUpgrades.length; i++) {
-      _upgradeContract(pendingUpgrades[i]);
+    for (uint256 i; i < pendingChanges.length; i++) {
+      _applyChanges(pendingChanges[i]);
     }
 
+    delete pendingChanges;
+
     VersionManager(versionManager).setVersion(newVersion);
+  }
+
+  function call(string calldata _contractId, bytes calldata encodedCall)
+    external
+  {
+    (bool success, ) = proxyAddresses[_contractId].call(encodedCall);
+    require(success, "call failed");
   }
 
   function verifyOwnership(address _proxyAddress, address _proxyAdminAddress)
@@ -149,7 +166,7 @@ contract UpgradeManager is Ownable {
     emit ProposerAdded(proposerAddress);
   }
 
-  function _upgradeContract(string memory _contractId) private {
+  function _applyChanges(string memory _contractId) private {
     address proxyAddress = proxyAddresses[_contractId];
     assert(proxyAddress != address(0));
     address proxyAdminAddress = proxyAdmins[proxyAddress];
@@ -157,29 +174,39 @@ contract UpgradeManager is Ownable {
     address newImplementationAddress = upgradeAddresses[proxyAddress];
     assert(newImplementationAddress != address(0));
 
-    IProxyAdmin proxyAdmin = IProxyAdmin(proxyAdminAddress);
+    bytes memory encodedCall = encodedCallData[proxyAddress];
 
-    if (encodedCallData[proxyAddress].length == 0) {
-      proxyAdmin.upgrade(proxyAddress, newImplementationAddress);
+    if (newImplementationAddress == SENTINEL_ADDRESS) {
+      (bool success, ) = proxyAddress.call(encodedCall);
+      require(success, "call failed");
     } else {
-      proxyAdmin.upgradeAndCall(
-        proxyAddress,
-        newImplementationAddress,
-        encodedCallData[proxyAddress]
-      );
+      IProxyAdmin proxyAdmin = IProxyAdmin(proxyAdminAddress);
+
+      if (encodedCall.length == 0) {
+        proxyAdmin.upgrade(proxyAddress, newImplementationAddress);
+      } else {
+        proxyAdmin.upgradeAndCall(
+          proxyAddress,
+          newImplementationAddress,
+          encodedCallData[proxyAddress]
+        );
+      }
     }
+
+    encodedCallData[proxyAddress] = "";
+    upgradeAddresses[proxyAddress] = address(0);
   }
 
-  function _proposeUpgrade(
+  function _propose(
     string memory _contractId,
     address _implementationAddress,
     bytes memory encodedCall
   ) private {
-    pendingUpgrades.push(_contractId);
+    pendingChanges.push(_contractId);
 
     upgradeAddresses[proxyAddresses[_contractId]] = _implementationAddress;
     encodedCallData[proxyAddresses[_contractId]] = encodedCall;
 
-    emit UpgradeProposed(_contractId, _implementationAddress, encodedCall);
+    emit ChangesProposed(_contractId, _implementationAddress, encodedCall);
   }
 }
