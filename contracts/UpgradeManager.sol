@@ -20,7 +20,7 @@ contract UpgradeManager is Ownable {
   mapping(string => address) public proxyAddresses; // contract id <=> proxy address
   mapping(address => address) internal proxyAdmins; // proxy address <=> proxy admin contract address
 
-  string[] public pendingChanges;
+  EnumerableSetUpgradeable.AddressSet internal contractsWithPendingChanges;
   mapping(address => address) public upgradeAddresses; // proxy address <=> proposed implementation address
   mapping(address => bytes) public encodedCallData; // proxy address <=> encoded call data
 
@@ -34,8 +34,17 @@ contract UpgradeManager is Ownable {
     bytes encodedCall
   );
 
+  modifier onlyProposers() {
+    if (upgradeProposers.contains(msg.sender)) {
+      _;
+    } else {
+      revert("Caller is not proposer");
+    }
+  }
+
   /**
    * @dev set up the contract
+   * @param  _upgradeProposers the set of addresses allowed to propose upgrades
    * @param  _versionManager the address of the version manager
    */
   function setup(address[] memory _upgradeProposers, address _versionManager)
@@ -63,6 +72,10 @@ contract UpgradeManager is Ownable {
     return proxies.values();
   }
 
+  function getPendingChanges() external view returns (address[] memory) {
+    return contractsWithPendingChanges.values();
+  }
+
   function addUpgradeProposer(address proposerAddress) external onlyOwner {
     _addUpgradeProposer(proposerAddress);
   }
@@ -82,7 +95,7 @@ contract UpgradeManager is Ownable {
       "Contract id already registered"
     );
 
-    verifyOwnership(_proxyAddress, _proxyAdminAddress);
+    _verifyOwnership(_proxyAddress, _proxyAdminAddress);
 
     contractIds.push(_contractId);
     proxies.add(_proxyAddress);
@@ -113,12 +126,20 @@ contract UpgradeManager is Ownable {
     _propose(_contractId, SENTINEL_ADDRESS, encodedCall);
   }
 
-  function upgradeProtocol(string calldata newVersion) external onlyOwner {
-    for (uint256 i; i < pendingChanges.length; i++) {
-      _applyChanges(pendingChanges[i]);
-    }
+  function withdrawChanges(string calldata _contractId) external onlyProposers {
+    address proxyAddress = proxyAddresses[_contractId];
+    contractsWithPendingChanges.remove(proxyAddress);
+    encodedCallData[proxyAddress] = "";
+    upgradeAddresses[proxyAddress] = address(0);
+  }
 
-    delete pendingChanges;
+  function upgradeProtocol(string calldata newVersion) external onlyOwner {
+    uint256 count = contractsWithPendingChanges.length();
+    for (uint256 i; i < count; i++) {
+      address proxyAddress = contractsWithPendingChanges.at(0);
+      _applyChanges(proxyAddress);
+      contractsWithPendingChanges.remove(proxyAddress);
+    }
 
     VersionManager(versionManager).setVersion(newVersion);
   }
@@ -130,7 +151,7 @@ contract UpgradeManager is Ownable {
     require(success, "call failed");
   }
 
-  function verifyOwnership(address _proxyAddress, address _proxyAdminAddress)
+  function _verifyOwnership(address _proxyAddress, address _proxyAdminAddress)
     private
     view
   {
@@ -166,35 +187,34 @@ contract UpgradeManager is Ownable {
     emit ProposerAdded(proposerAddress);
   }
 
-  function _applyChanges(string memory _contractId) private {
-    address proxyAddress = proxyAddresses[_contractId];
-    assert(proxyAddress != address(0));
-    address proxyAdminAddress = proxyAdmins[proxyAddress];
+  function _applyChanges(address _proxyAddress) private {
+    assert(_proxyAddress != address(0));
+    address proxyAdminAddress = proxyAdmins[_proxyAddress];
     assert(proxyAdminAddress != address(0));
-    address newImplementationAddress = upgradeAddresses[proxyAddress];
+    address newImplementationAddress = upgradeAddresses[_proxyAddress];
     assert(newImplementationAddress != address(0));
 
-    bytes memory encodedCall = encodedCallData[proxyAddress];
+    bytes memory encodedCall = encodedCallData[_proxyAddress];
 
     if (newImplementationAddress == SENTINEL_ADDRESS) {
-      (bool success, ) = proxyAddress.call(encodedCall);
+      (bool success, ) = _proxyAddress.call(encodedCall);
       require(success, "call failed");
     } else {
       IProxyAdmin proxyAdmin = IProxyAdmin(proxyAdminAddress);
 
       if (encodedCall.length == 0) {
-        proxyAdmin.upgrade(proxyAddress, newImplementationAddress);
+        proxyAdmin.upgrade(_proxyAddress, newImplementationAddress);
       } else {
         proxyAdmin.upgradeAndCall(
-          proxyAddress,
+          _proxyAddress,
           newImplementationAddress,
-          encodedCallData[proxyAddress]
+          encodedCallData[_proxyAddress]
         );
       }
     }
 
-    encodedCallData[proxyAddress] = "";
-    upgradeAddresses[proxyAddress] = address(0);
+    encodedCallData[_proxyAddress] = "";
+    upgradeAddresses[_proxyAddress] = address(0);
   }
 
   function _propose(
@@ -202,10 +222,10 @@ contract UpgradeManager is Ownable {
     address _implementationAddress,
     bytes memory encodedCall
   ) private {
-    pendingChanges.push(_contractId);
-
-    upgradeAddresses[proxyAddresses[_contractId]] = _implementationAddress;
-    encodedCallData[proxyAddresses[_contractId]] = encodedCall;
+    address proxyAddress = proxyAddresses[_contractId];
+    contractsWithPendingChanges.add(proxyAddress);
+    upgradeAddresses[proxyAddress] = _implementationAddress;
+    encodedCallData[proxyAddress] = encodedCall;
 
     emit ChangesProposed(_contractId, _implementationAddress, encodedCall);
   }
