@@ -585,9 +585,50 @@ contract.only("UpgradeManager", (accounts) => {
     expect(await upgradeManager.getPendingChanges()).to.eql([]);
   });
 
-  it("stores pendingChanges as address array not string array");
+  it("handles proposing when already proposed", async () => {
+    let { instance: instance1 } = await deployAndAdoptContract({ id: "C1" });
+    let { instance: instance2 } = await deployAndAdoptContract({ id: "C2" });
+    let { instance: instance3 } = await deployAndAdoptContract({
+      id: "C3",
+      contract: "UpgradeableContractV2",
+    });
 
-  it("handles proposing when already proposed");
+    await upgradeManager.proposeUpgrade(
+      "C1",
+      await prepareUpgrade(instance1.address, UpgradeableContractV2)
+    );
+
+    await upgradeManager.proposeUpgradeAndCall(
+      "C2",
+      await prepareUpgrade(instance2.address, UpgradeableContractV2),
+      encodeWithSignature("setup(string)", "bar")
+    );
+
+    await upgradeManager.proposeCall(
+      "C3",
+      encodeWithSignature("setup(string)", "baz")
+    );
+    await expect(
+      upgradeManager.proposeUpgrade(
+        "C1",
+        await prepareUpgrade(instance1.address, UpgradeableContractV2)
+      )
+    ).to.be.rejectedWith("Upgrade already proposed, withdraw first");
+    await expect(
+      upgradeManager.proposeUpgradeAndCall(
+        "C2",
+        await prepareUpgrade(instance2.address, UpgradeableContractV2),
+        encodeWithSignature("setup(string)", "bar")
+      )
+    ).to.be.rejectedWith("Upgrade already proposed, withdraw first");
+    await expect(
+      upgradeManager.proposeCall(
+        "C3",
+        encodeWithSignature("setup(string)", "baz")
+      )
+    ).to.be.rejectedWith("Upgrade already proposed, withdraw first");
+  });
+
   it("resets all state data eg for upandcall when retracting");
   it("allows calling pause");
   it("doesn't upgrade if address unchanged");
