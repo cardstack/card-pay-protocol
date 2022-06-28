@@ -12,6 +12,8 @@ contract UpgradeManager is Ownable {
 
   address public constant SENTINEL_ADDRESS = address(0x1);
 
+  uint256 public nonce;
+
   EnumerableSetUpgradeable.AddressSet internal upgradeProposers;
   address public versionManager;
 
@@ -107,7 +109,7 @@ contract UpgradeManager is Ownable {
   function proposeUpgrade(
     string memory _contractId,
     address _implementationAddress
-  ) external {
+  ) external onlyProposers {
     bytes memory encodedCall = "";
     _propose(_contractId, _implementationAddress, encodedCall);
   }
@@ -116,12 +118,13 @@ contract UpgradeManager is Ownable {
     string memory _contractId,
     address _implementationAddress,
     bytes calldata encodedCall
-  ) external {
+  ) external onlyProposers {
     _propose(_contractId, _implementationAddress, encodedCall);
   }
 
   function proposeCall(string memory _contractId, bytes calldata encodedCall)
     external
+    onlyProposers
   {
     _propose(_contractId, SENTINEL_ADDRESS, encodedCall);
   }
@@ -133,7 +136,11 @@ contract UpgradeManager is Ownable {
     upgradeAddresses[proxyAddress] = address(0);
   }
 
-  function upgradeProtocol(string calldata newVersion) external onlyOwner {
+  function upgradeProtocol(string calldata newVersion, uint256 _nonce)
+    external
+    onlyOwner
+  {
+    require(_nonce == nonce, "Invalid nonce");
     uint256 count = contractsWithPendingChanges.length();
     for (uint256 i; i < count; i++) {
       address proxyAddress = contractsWithPendingChanges.at(0);
@@ -146,7 +153,9 @@ contract UpgradeManager is Ownable {
 
   function call(string calldata _contractId, bytes calldata encodedCall)
     external
+    onlyOwner
   {
+    // solhint-disable-next-line avoid-low-level-calls
     (bool success, ) = proxyAddresses[_contractId].call(encodedCall);
     require(success, "call failed");
   }
@@ -197,6 +206,7 @@ contract UpgradeManager is Ownable {
     bytes memory encodedCall = encodedCallData[_proxyAddress];
 
     if (newImplementationAddress == SENTINEL_ADDRESS) {
+      // solhint-disable-next-line avoid-low-level-calls
       (bool success, ) = _proxyAddress.call(encodedCall);
       require(success, "call failed");
     } else {
@@ -223,9 +233,15 @@ contract UpgradeManager is Ownable {
     bytes memory encodedCall
   ) private {
     address proxyAddress = proxyAddresses[_contractId];
+    require(
+      !contractsWithPendingChanges.contains(proxyAddress),
+      "Upgrade already proposed, withdraw first"
+    );
     contractsWithPendingChanges.add(proxyAddress);
     upgradeAddresses[proxyAddress] = _implementationAddress;
     encodedCallData[proxyAddress] = encodedCall;
+
+    nonce++;
 
     emit ChangesProposed(_contractId, _implementationAddress, encodedCall);
   }
