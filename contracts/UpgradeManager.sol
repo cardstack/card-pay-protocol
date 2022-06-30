@@ -1,13 +1,14 @@
 pragma solidity ^0.8.9;
 pragma abicoder v1;
 
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
+
 import "./core/Ownable.sol";
 import "./VersionManager.sol";
 import "./interfaces/IProxyAdmin.sol";
-import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
-import "hardhat/console.sol";
 
-contract UpgradeManager is Ownable {
+contract UpgradeManager is Ownable, ReentrancyGuardUpgradeable {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
 
   struct AdoptedContract {
@@ -156,6 +157,7 @@ contract UpgradeManager is Ownable {
   function upgradeProtocol(string calldata newVersion, uint256 _nonce)
     external
     onlyOwner
+    nonReentrant
   {
     require(_nonce == nonce, "Invalid nonce");
     uint256 count = proxiesWithPendingChanges.length();
@@ -169,6 +171,8 @@ contract UpgradeManager is Ownable {
     }
 
     VersionManager(versionManager).setVersion(newVersion);
+
+    nonce++;
   }
 
   function proposeUpgrade(
@@ -197,6 +201,7 @@ contract UpgradeManager is Ownable {
   function withdrawChanges(string calldata _contractId) external onlyProposers {
     address proxyAddress = adoptedContractAddresses[_contractId];
     _resetChanges(proxyAddress);
+    nonce++;
   }
 
   function _verifyOwnership(address _proxyAddress, address _proxyAdminAddress)

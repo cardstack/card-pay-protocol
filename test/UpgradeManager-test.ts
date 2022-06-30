@@ -445,7 +445,7 @@ contract.only("UpgradeManager", (accounts) => {
       proposer
     );
 
-    let encodedCall = await encodeWithSignature("foo(string)", "bar");
+    let encodedCall = encodeWithSignature("foo(string)", "bar");
     await expect(
       upgradeManagerAsProposer.proposeUpgrade(
         "BadName",
@@ -526,9 +526,13 @@ contract.only("UpgradeManager", (accounts) => {
       "Caller is not proposer"
     );
 
+    expect(await upgradeManager.nonce()).to.eq(3);
     await upgradeManagerAsProposer.withdrawChanges("C1", { from: proposer });
+    expect(await upgradeManager.nonce()).to.eq(4);
     await upgradeManagerAsProposer.withdrawChanges("C2", { from: proposer });
+    expect(await upgradeManager.nonce()).to.eq(5);
     await upgradeManagerAsProposer.withdrawChanges("C3", { from: proposer });
+    expect(await upgradeManager.nonce()).to.eq(6);
 
     expect(await upgradeManager.getPendingCallData(instance1.address)).to.eq(
       "0x"
@@ -668,6 +672,11 @@ contract.only("UpgradeManager", (accounts) => {
     ).to.be.rejectedWith("Invalid nonce");
     await upgradeManager.upgradeProtocol("1.0.1", "3");
 
+    expect(await upgradeManager.nonce()).to.eq(
+      4,
+      "a protocol upgrade should increment the nonce by exactly 1"
+    );
+
     expect(await instance1.version()).to.eq("2");
     expect(await instance1AsV2.foo()).to.eq("");
 
@@ -751,15 +760,10 @@ contract.only("UpgradeManager", (accounts) => {
     it(
       "allows transferring ownership of proxy and proxyAdmin out of upgrade manager"
     );
-    it("does not allow an upgrade proposal for an unregistered contract id");
     it("verifies proposed upgrade is a contract");
     it("tests gas usage for a large upgrade");
     it("doesn't upgrade if address unchanged");
     it("cleans up after unadopt");
-    it("increases nonce when withdrawing changes");
-    it("increases nonce when applying changes");
-    it("increases nonce when calling");
-    it("validates id length");
   });
 
   // describe("Future", function () {
