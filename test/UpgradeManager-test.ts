@@ -16,7 +16,7 @@ const {
   erc1967: { getAdminAddress },
 } = upgrades;
 
-contract.only("UpgradeManager", (accounts) => {
+contract("UpgradeManager", (accounts) => {
   let [owner, proposer, newProposer, randomEOA, otherOwner] = accounts;
 
   let upgradeManager: Contract,
