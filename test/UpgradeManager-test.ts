@@ -182,13 +182,14 @@ contract.only("UpgradeManager", (accounts) => {
       .to.emit(upgradeManager, "ProxyAdopted")
       .withArgs("UpgradeableContractV1", instance.address);
 
-    expect(await upgradeManager.contractIds(0)).to.eq("UpgradeableContractV1");
-    await expect(upgradeManager.contractIds(1)).to.be.reverted;
     expect(await upgradeManager.getProxies()).to.have.members([
       instance.address,
     ]);
-    expect(await upgradeManager.proxyAddresses("UpgradeableContractV1")).to.eq(
-      instance.address
+    expect(
+      await upgradeManager.adoptedContractAddresses("UpgradeableContractV1")
+    ).to.eq(instance.address);
+    expect(await upgradeManager.getAdoptedContractId(instance.address)).to.eq(
+      "UpgradeableContractV1"
     );
   });
 
@@ -260,7 +261,7 @@ contract.only("UpgradeManager", (accounts) => {
     ).to.be.rejectedWith("Must be owner of ProxyAdmin to adopt");
   });
 
-  it("fails to adopt the contract if the contract id is already used", async () => {
+  it("validates the contract id", async () => {
     await deployAndAdoptContract({
       id: "Collision",
     });
@@ -269,6 +270,11 @@ contract.only("UpgradeManager", (accounts) => {
         id: "Collision",
       })
     ).to.be.rejectedWith("Contract id already registered");
+    await expect(
+      deployAndAdoptContract({
+        id: "",
+      })
+    ).to.be.rejectedWith("Contract id must not be empty");
   });
 
   it("allows a proposer to propose an upgrade", async () => {
@@ -298,11 +304,13 @@ contract.only("UpgradeManager", (accounts) => {
       .to.emit(upgradeManager, "ChangesProposed")
       .withArgs("UpgradeableContract", newImplementationAddress, "0x");
 
-    expect(await upgradeManager.getPendingChanges()).to.eql([instance.address]);
+    expect(await upgradeManager.getProxiesWithPendingChanges()).to.eql([
+      instance.address,
+    ]);
 
-    expect(await upgradeManager.upgradeAddresses(instance.address)).to.eq(
-      newImplementationAddress
-    );
+    expect(
+      await upgradeManager.getPendingUpgradeAddress(instance.address)
+    ).to.eq(newImplementationAddress);
   });
   it("upgrades a contract", async () => {
     let { instance } = await deployAndAdoptContract();
@@ -378,7 +386,7 @@ contract.only("UpgradeManager", (accounts) => {
     expect(await instance1.version()).to.eq("1");
     expect(await instance2.version()).to.eq("1");
 
-    expect(await upgradeManager.getPendingChanges()).to.eql([
+    expect(await upgradeManager.getProxiesWithPendingChanges()).to.eql([
       instance1.address,
       instance2.address,
     ]);
@@ -422,6 +430,38 @@ contract.only("UpgradeManager", (accounts) => {
     ).to.be.rejectedWith("Ownable: caller is not the owner");
 
     expect(await instance.version()).to.eq("1");
+  });
+
+  it("only allows proposal to registered contract", async () => {
+    let { instance } = await deployAndAdoptContract();
+
+    let newImplementationAddress = await prepareUpgrade(
+      instance.address,
+      UpgradeableContractV2
+    );
+
+    let upgradeManagerAsProposer = await contractWithSigner(
+      upgradeManager,
+      proposer
+    );
+
+    let encodedCall = await encodeWithSignature("foo(string)", "bar");
+    await expect(
+      upgradeManagerAsProposer.proposeUpgrade(
+        "BadName",
+        newImplementationAddress
+      )
+    ).to.be.rejectedWith("Unknown contract id");
+    await expect(
+      upgradeManagerAsProposer.proposeCall("BadName", encodedCall)
+    ).to.be.rejectedWith("Unknown contract id");
+    await expect(
+      upgradeManagerAsProposer.proposeUpgradeAndCall(
+        "BadName",
+        newImplementationAddress,
+        encodedCall
+      )
+    ).to.be.rejectedWith("Unknown contract id");
   });
   it("only allows owner to call", async () => {
     let { instance } = await deployAndAdoptContract({
@@ -490,19 +530,25 @@ contract.only("UpgradeManager", (accounts) => {
     await upgradeManagerAsProposer.withdrawChanges("C2", { from: proposer });
     await upgradeManagerAsProposer.withdrawChanges("C3", { from: proposer });
 
-    expect(await upgradeManager.encodedCallData(instance1.address)).to.eq("0x");
-    expect(await upgradeManager.encodedCallData(instance2.address)).to.eq("0x");
-    expect(await upgradeManager.encodedCallData(instance3.address)).to.eq("0x");
-    expect(await upgradeManager.upgradeAddresses(instance1.address)).to.eq(
-      ZERO_ADDRESS
+    expect(await upgradeManager.getPendingCallData(instance1.address)).to.eq(
+      "0x"
     );
-    expect(await upgradeManager.upgradeAddresses(instance2.address)).to.eq(
-      ZERO_ADDRESS
+    expect(await upgradeManager.getPendingCallData(instance2.address)).to.eq(
+      "0x"
     );
-    expect(await upgradeManager.upgradeAddresses(instance3.address)).to.eq(
-      ZERO_ADDRESS
+    expect(await upgradeManager.getPendingCallData(instance3.address)).to.eq(
+      "0x"
     );
-    expect(await upgradeManager.getPendingChanges()).to.eql([]);
+    expect(
+      await upgradeManager.getPendingUpgradeAddress(instance1.address)
+    ).to.eq(ZERO_ADDRESS);
+    expect(
+      await upgradeManager.getPendingUpgradeAddress(instance2.address)
+    ).to.eq(ZERO_ADDRESS);
+    expect(
+      await upgradeManager.getPendingUpgradeAddress(instance3.address)
+    ).to.eq(ZERO_ADDRESS);
+    expect(await upgradeManager.getProxiesWithPendingChanges()).to.eql([]);
   });
   it("allows an empty upgrade (so the protocol version can be force-set)", async () => {
     await deployAndAdoptContract();
@@ -544,14 +590,16 @@ contract.only("UpgradeManager", (accounts) => {
       encodedCallData
     );
 
-    expect(await upgradeManager.encodedCallData(instance.address)).to.eq(
+    expect(await upgradeManager.getPendingCallData(instance.address)).to.eq(
       encodedCallData
     );
     await expect(instanceV2.foo()).to.be.rejected;
     await upgradeManager.upgradeProtocol("1.0.1", "1");
     expect(await instanceV2.version()).to.eq("2");
     expect(await instanceV2.foo()).to.eq("bar");
-    expect(await upgradeManager.encodedCallData(instance.address)).to.eq("0x");
+    expect(await upgradeManager.getPendingCallData(instance.address)).to.eq(
+      "0x"
+    );
   });
 
   it("Allows a combination of upgrade, call, and upgradeAndCall in the same batched operation", async () => {
@@ -609,7 +657,7 @@ contract.only("UpgradeManager", (accounts) => {
     expect(await instance3.version()).to.eq("2");
     expect(await instance3.foo()).to.eq("");
 
-    expect(await upgradeManager.getPendingChanges()).to.eql([
+    expect(await upgradeManager.getProxiesWithPendingChanges()).to.eql([
       instance1.address,
       instance2.address,
       instance3.address,
@@ -629,19 +677,25 @@ contract.only("UpgradeManager", (accounts) => {
     expect(await instance3.version()).to.eq("2");
     expect(await instance3.foo()).to.eq("baz");
 
-    expect(await upgradeManager.encodedCallData(instance1.address)).to.eq("0x");
-    expect(await upgradeManager.encodedCallData(instance2.address)).to.eq("0x");
-    expect(await upgradeManager.encodedCallData(instance3.address)).to.eq("0x");
-    expect(await upgradeManager.upgradeAddresses(instance1.address)).to.eq(
-      ZERO_ADDRESS
+    expect(await upgradeManager.getPendingCallData(instance1.address)).to.eq(
+      "0x"
     );
-    expect(await upgradeManager.upgradeAddresses(instance2.address)).to.eq(
-      ZERO_ADDRESS
+    expect(await upgradeManager.getPendingCallData(instance2.address)).to.eq(
+      "0x"
     );
-    expect(await upgradeManager.upgradeAddresses(instance3.address)).to.eq(
-      ZERO_ADDRESS
+    expect(await upgradeManager.getPendingCallData(instance3.address)).to.eq(
+      "0x"
     );
-    expect(await upgradeManager.getPendingChanges()).to.eql([]);
+    expect(
+      await upgradeManager.getPendingUpgradeAddress(instance1.address)
+    ).to.eq(ZERO_ADDRESS);
+    expect(
+      await upgradeManager.getPendingUpgradeAddress(instance2.address)
+    ).to.eq(ZERO_ADDRESS);
+    expect(
+      await upgradeManager.getPendingUpgradeAddress(instance3.address)
+    ).to.eq(ZERO_ADDRESS);
+    expect(await upgradeManager.getProxiesWithPendingChanges()).to.eql([]);
   });
 
   it("handles proposing when already proposed", async () => {
@@ -691,13 +745,9 @@ contract.only("UpgradeManager", (accounts) => {
   });
 
   describe("Cleanup", () => {
-    it("gets contract id from proxy address");
-
     it("Can deploy a new proxy");
-    it("audit access control");
 
     it("doesn't allow self ownership");
-    it("orders functions in contract by visibility");
     it(
       "allows transferring ownership of proxy and proxyAdmin out of upgrade manager"
     );
@@ -705,6 +755,11 @@ contract.only("UpgradeManager", (accounts) => {
     it("verifies proposed upgrade is a contract");
     it("tests gas usage for a large upgrade");
     it("doesn't upgrade if address unchanged");
+    it("cleans up after unadopt");
+    it("increases nonce when withdrawing changes");
+    it("increases nonce when applying changes");
+    it("increases nonce when calling");
+    it("validates id length");
   });
 
   // describe("Future", function () {

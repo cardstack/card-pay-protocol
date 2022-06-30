@@ -4,7 +4,7 @@ pragma abicoder v1;
 import "../core/Ownable.sol";
 
 contract UpgradeableContractV1 is Ownable {
-  function version() public pure returns (string memory) {
+  function version() external pure returns (string memory) {
     return "1";
   }
 }
@@ -12,7 +12,7 @@ contract UpgradeableContractV1 is Ownable {
 contract UpgradeableContractV2 is Ownable {
   string public foo;
 
-  function version() public pure returns (string memory) {
+  function version() external pure returns (string memory) {
     return "2";
   }
 
