@@ -31,7 +31,14 @@ contract UpgradeManager is Ownable, ReentrancyGuardUpgradeable {
   event Setup();
   event ProposerAdded(address indexed proposer);
   event ProposerRemoved(address indexed proposer);
-  event ProxyAdopted(string indexed contractId, address indexed proxyAddress);
+  event ContractAdopted(
+    string indexed contractId,
+    address indexed proxyAddress
+  );
+  event ContractDisowned(
+    string indexed contractId,
+    address indexed proxyAddress
+  );
   event ChangesProposed(
     string indexed contractId,
     address indexed implementationAddress,
@@ -117,7 +124,7 @@ contract UpgradeManager is Ownable, ReentrancyGuardUpgradeable {
     emit ProposerRemoved(proposerAddress);
   }
 
-  function adoptProxy(
+  function adoptContract(
     string calldata _contractId,
     address _proxyAddress,
     address _proxyAdminAddress
@@ -142,7 +149,7 @@ contract UpgradeManager is Ownable, ReentrancyGuardUpgradeable {
       address(0)
     );
 
-    emit ProxyAdopted(_contractId, _proxyAddress);
+    emit ContractAdopted(_contractId, _proxyAddress);
   }
 
   function call(string calldata _contractId, bytes calldata encodedCall)
@@ -154,7 +161,7 @@ contract UpgradeManager is Ownable, ReentrancyGuardUpgradeable {
     require(success, "call failed");
   }
 
-  function upgradeProtocol(string calldata newVersion, uint256 _nonce)
+  function upgradeProtocol(string calldata _newVersion, uint256 _nonce)
     external
     onlyOwner
     nonReentrant
@@ -170,9 +177,68 @@ contract UpgradeManager is Ownable, ReentrancyGuardUpgradeable {
       _resetChanges(proxyAddress);
     }
 
-    VersionManager(versionManager).setVersion(newVersion);
+    VersionManager(versionManager).setVersion(_newVersion);
 
     nonce++;
+  }
+
+  function disown(string calldata _contractId, address _newOwner)
+    external
+    onlyOwner
+  {
+    address proxyAddress = adoptedContractAddresses[_contractId];
+    AdoptedContract storage adoptedContract = _getAdoptedContractsByContractId(
+      _contractId
+    );
+
+    _resetChanges(proxyAddress);
+
+    proxies.remove(proxyAddress);
+    delete adoptedContractsByProxyAddress[proxyAddress];
+    delete adoptedContractAddresses[_contractId];
+
+    Ownable(proxyAddress).transferOwnership(_newOwner);
+
+    emit ContractDisowned(_contractId, proxyAddress);
+
+    nonce++;
+  }
+
+  // When disowning a contract, the proxyAdmin is not changed, and the ownership of the proxyAdmin is not changed.
+  // This is because the proxyAdmin is usually shared between multiple proxies.
+  // This function allows changing the proxyAdmin for a specific contract so that it can be
+  // upgraded externally if use with the UpgradeManager is no longer desired
+  function changeProxyAdmin(
+    address _proxyAdminAddress,
+    address _proxyAddress,
+    address _newAdmin
+  ) external onlyOwner {
+    require(
+      bytes(adoptedContractsByProxyAddress[_proxyAddress].id).length == 0,
+      "Cannot change proxy admin for owned contract"
+    );
+    IProxyAdmin(_proxyAdminAddress).changeProxyAdmin(_proxyAddress, _newAdmin);
+  }
+
+  // This allows transferring ownership of a proxy admin after the proxies it controls have been
+  // disowned
+  function disownProxyAdmin(address _proxyAdminAddress, address _newOwner)
+    external
+    onlyOwner
+  {
+    IProxyAdmin(_proxyAdminAddress).transferOwnership(_newOwner);
+  }
+
+  // just in case of accidentally trying to make the contract own itself
+  // e.g. in a script for example
+  function transferOwnership(address newOwner) public override onlyOwner {
+    require(newOwner != address(0), "Ownable: new owner is the zero address");
+    require(newOwner != address(this), "Ownable: new owner is this contract");
+    _transferOwnership(newOwner);
+  }
+
+  function renounceOwnership() public view override onlyOwner {
+    revert("Ownable: cannot renounce ownership");
   }
 
   function proposeUpgrade(

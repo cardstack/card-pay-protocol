@@ -5,7 +5,6 @@ import { setupVersionManager } from "./utils/helper";
 import { existsSync, unlinkSync } from "fs";
 import { join } from "path";
 import { ZERO_ADDRESS } from "./migration/util";
-// import ProxyAdmin from "@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol/ProxyAdmin.json";
 
 const manifestPath = join(__dirname, "../.openzeppelin/unknown-31337.json");
 
@@ -23,7 +22,6 @@ contract("UpgradeManager", (accounts) => {
     versionManager: Contract,
     UpgradeableContractV1: ContractFactory,
     UpgradeableContractV2: ContractFactory;
-  // ProxyAdminFactory: ContractFactory;
 
   beforeEach(async () => {
     clearManifest();
@@ -104,7 +102,11 @@ contract("UpgradeManager", (accounts) => {
     await transferProxyAdminOwnership(proxyAdmin, upgradeManager.address);
     await instance.transferOwnership(upgradeManager.address);
 
-    await upgradeManager.adoptProxy(id, instance.address, proxyAdmin.address);
+    await upgradeManager.adoptContract(
+      id,
+      instance.address,
+      proxyAdmin.address
+    );
 
     return { instance, proxyAdmin };
   }
@@ -173,13 +175,13 @@ contract("UpgradeManager", (accounts) => {
     await instance.transferOwnership(upgradeManager.address);
 
     await expect(
-      upgradeManager.adoptProxy(
+      upgradeManager.adoptContract(
         "UpgradeableContractV1",
         instance.address,
         proxyAdmin.address
       )
     )
-      .to.emit(upgradeManager, "ProxyAdopted")
+      .to.emit(upgradeManager, "ContractAdopted")
       .withArgs("UpgradeableContractV1", instance.address);
 
     expect(await upgradeManager.getProxies()).to.have.members([
@@ -201,7 +203,7 @@ contract("UpgradeManager", (accounts) => {
     await instance.initialize(upgradeManager.address);
 
     await expect(
-      upgradeManager.adoptProxy(
+      upgradeManager.adoptContract(
         "UpgradeableContract",
         instance.address,
         proxyAdmin.address
@@ -215,7 +217,7 @@ contract("UpgradeManager", (accounts) => {
     let { instance, proxyAdmin } = await deployV1({ from: otherOwner });
 
     await expect(
-      upgradeManager.adoptProxy(
+      upgradeManager.adoptContract(
         "UpgradeableContractV1",
         instance.address,
         proxyAdmin.address
@@ -228,7 +230,7 @@ contract("UpgradeManager", (accounts) => {
     await transferProxyAdminOwnership(proxyAdmin, upgradeManager.address);
 
     await expect(
-      upgradeManager.adoptProxy(
+      upgradeManager.adoptContract(
         "UpgradeableContractV1",
         instance.address,
         proxyAdmin.address
@@ -253,7 +255,7 @@ contract("UpgradeManager", (accounts) => {
     );
 
     await expect(
-      upgradeManager.adoptProxy(
+      upgradeManager.adoptContract(
         "UpgradeableContractV1",
         instance1.address,
         proxyAdmin2.address
@@ -753,10 +755,179 @@ contract("UpgradeManager", (accounts) => {
     ).to.be.rejectedWith("Upgrade already proposed, withdraw first");
   });
 
-  describe("Cleanup", () => {
-    it("Can deploy a new proxy");
+  it("has safety rails around Ownable module to prevent footguns", async () => {
+    await expect(
+      upgradeManager.transferOwnership(ZERO_ADDRESS)
+    ).to.be.rejectedWith("Ownable: new owner is the zero address");
+    await expect(
+      upgradeManager.transferOwnership(upgradeManager.address)
+    ).to.be.rejectedWith("Ownable: new owner is this contract");
+    await expect(upgradeManager.renounceOwnership()).to.be.rejectedWith(
+      "Ownable: cannot renounce ownership"
+    );
+  });
 
-    it("doesn't allow self ownership");
+  it("allows transferring ownership of proxy and proxyAdmin away", async () => {
+    let { instance, proxyAdmin } = await deployAndAdoptContract({
+      id: "OwnedContract",
+    });
+    let newImplementationAddress = await prepareUpgrade(
+      instance.address,
+      UpgradeableContractV2
+    );
+    clearManifest();
+
+    let { proxyAdmin: proxyAdmin2 } = await deployV1({
+      from: otherOwner,
+    });
+
+    let encodedCall = encodeWithSignature("foo(string)", "bar");
+
+    let upgradeManagerAsProposer = await contractWithSigner(
+      upgradeManager,
+      proposer
+    );
+
+    await upgradeManagerAsProposer.proposeUpgradeAndCall(
+      "OwnedContract",
+      newImplementationAddress,
+      encodedCall
+    );
+
+    let managerAsRandom = await contractWithSigner(upgradeManager, randomEOA);
+
+    await expect(
+      managerAsRandom.disown("OwnedContract", otherOwner)
+    ).to.be.rejectedWith("Ownable: caller is not the owner");
+
+    // Check state before
+    expect(await upgradeManager.nonce()).to.eq(1);
+    expect(await upgradeManager.getProxies()).to.eql([instance.address]);
+    expect(await upgradeManager.getProxiesWithPendingChanges()).to.eql([
+      instance.address,
+    ]);
+
+    let adoptedContract = await upgradeManager.adoptedContractsByProxyAddress(
+      instance.address
+    );
+
+    expect(adoptedContract.id).to.eq("OwnedContract");
+    expect(adoptedContract.proxyAdmin).to.eq(proxyAdmin.address);
+    expect(adoptedContract.encodedCall).to.eq(encodedCall);
+    expect(adoptedContract.upgradeAddress).to.eq(newImplementationAddress);
+
+    expect(
+      await upgradeManager.adoptedContractAddresses("OwnedContract")
+    ).to.eq(instance.address);
+    expect(await upgradeManager.getAdoptedContractId(instance.address)).to.eq(
+      "OwnedContract"
+    );
+    expect(
+      await upgradeManager.getPendingUpgradeAddress(instance.address)
+    ).to.eq(newImplementationAddress);
+    expect(await upgradeManager.getPendingCallData(instance.address)).to.eq(
+      encodedCall
+    );
+
+    await expect(
+      upgradeManager.changeProxyAdmin(
+        proxyAdmin.address,
+        instance.address,
+        proxyAdmin2.address
+      )
+    ).to.be.rejectedWith("Cannot change proxy admin for owned contract");
+
+    // Disown the contract
+    await expect(upgradeManager.disown("OwnedContract", otherOwner))
+      .to.emit(upgradeManager, "ContractDisowned")
+      .withArgs("OwnedContract", instance.address)
+      .and.to.emit(instance, "OwnershipTransferred")
+      .withArgs(upgradeManager.address, otherOwner);
+
+    // Check state after
+    expect(await upgradeManager.nonce()).to.eq(2);
+    expect(await upgradeManager.getProxies()).to.eql([]);
+    expect(await upgradeManager.getProxiesWithPendingChanges()).to.eql([]);
+
+    adoptedContract = await upgradeManager.adoptedContractsByProxyAddress(
+      instance.address
+    );
+
+    expect(adoptedContract.id).to.eq("");
+    expect(adoptedContract.proxyAdmin).to.eq(ZERO_ADDRESS);
+    expect(adoptedContract.encodedCall).to.eq("0x");
+    expect(adoptedContract.upgradeAddress).to.eq(ZERO_ADDRESS);
+
+    expect(
+      await upgradeManager.adoptedContractAddresses("OwnedContract")
+    ).to.eq(ZERO_ADDRESS);
+
+    expect(await upgradeManager.getAdoptedContractId(instance.address)).to.eq(
+      ""
+    );
+    expect(
+      await upgradeManager.getPendingUpgradeAddress(instance.address)
+    ).to.eq(ZERO_ADDRESS);
+    expect(await upgradeManager.getPendingCallData(instance.address)).to.eq(
+      "0x"
+    );
+
+    expect(await instance.owner()).to.eq(
+      otherOwner,
+      "The proxy owner is changed to the new owner"
+    );
+    expect(await proxyAdmin.getProxyAdmin(instance.address)).to.eq(
+      proxyAdmin.address,
+      "The proxyAdmin is not changed"
+    );
+    expect(await proxyAdmin.owner()).to.eq(
+      upgradeManager.address,
+      "The proxyAdmin owner is not changed (because it's usually shared between multiple proxies)"
+    );
+
+    expect(proxyAdmin2.address).not.to.eq(proxyAdmin.address);
+
+    await expect(
+      managerAsRandom.changeProxyAdmin(
+        proxyAdmin.address,
+        instance.address,
+        proxyAdmin2.address
+      )
+    ).to.be.rejectedWith("Ownable: caller is not the owner");
+
+    await upgradeManager.changeProxyAdmin(
+      proxyAdmin.address,
+      instance.address,
+      proxyAdmin2.address
+    );
+
+    expect(await proxyAdmin2.getProxyAdmin(instance.address)).to.eq(
+      proxyAdmin2.address,
+      "The proxyAdmin is now updated"
+    );
+
+    await expect(
+      managerAsRandom.disownProxyAdmin(proxyAdmin.address, otherOwner)
+    ).to.be.rejectedWith("Ownable: caller is not the owner");
+
+    await expect(
+      upgradeManager.disownProxyAdmin(proxyAdmin.address, otherOwner)
+    )
+      .to.emit(proxyAdmin, "OwnershipTransferred")
+      .withArgs(upgradeManager.address, otherOwner);
+
+    expect(await proxyAdmin.owner()).to.eq(
+      otherOwner,
+      "The proxy admin ownership is now transferred"
+    );
+  });
+
+  it("allows transferring contract out and resets stat");
+
+  describe("Cleanup", () => {
+    it("validates proxy uniqueness (by proxy address) when adopting");
+    it("can propose adoption");
+
     it(
       "allows transferring ownership of proxy and proxyAdmin out of upgrade manager"
     );
@@ -764,6 +935,9 @@ contract("UpgradeManager", (accounts) => {
     it("tests gas usage for a large upgrade");
     it("doesn't upgrade if address unchanged");
     it("cleans up after unadopt");
+    it("emits event for withdraw");
+    it("verifies proxy admin changes to a real proxy admin");
+    it("verifies disown proxy admin thing for proxy being in use");
   });
 
   // describe("Future", function () {

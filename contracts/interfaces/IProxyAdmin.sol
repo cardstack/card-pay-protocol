@@ -17,10 +17,17 @@ interface IProxyAdmin {
     bytes memory data
   ) external payable;
 
+  function changeProxyAdmin(address proxy, address newAdmin) external;
+
   // inherited from Ownable
   function owner() external view returns (address);
 
   function transferOwnership(address newOwner) external;
 
   function renounceOwnership() external;
+
+  event OwnershipTransferred(
+    address indexed previousOwner,
+    address indexed newOwner
+  );
 }
