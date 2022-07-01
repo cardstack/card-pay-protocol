@@ -922,10 +922,19 @@ contract("UpgradeManager", (accounts) => {
     );
   });
 
-  it("allows transferring contract out and resets stat");
+  it("validates proxy uniqueness (by proxy address) when adopting", async () => {
+    let { instance, proxyAdmin } = await deployAndAdoptContract();
+
+    await expect(
+      upgradeManager.adoptContract(
+        "Duplicate",
+        instance.address,
+        proxyAdmin.address
+      )
+    ).to.be.rejectedWith("Proxy already adopted with a different contract id");
+  });
 
   describe("Cleanup", () => {
-    it("validates proxy uniqueness (by proxy address) when adopting");
     it("can propose adoption");
 
     it(

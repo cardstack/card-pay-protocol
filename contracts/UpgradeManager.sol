@@ -137,6 +137,11 @@ contract UpgradeManager is Ownable, ReentrancyGuardUpgradeable {
       "Contract id already registered"
     );
 
+    require(
+      !_isProxyRegisted(_proxyAddress),
+      "Proxy already adopted with a different contract id"
+    );
+
     require(bytes(_contractId).length > 0, "Contract id must not be empty");
 
     proxies.add(_proxyAddress);
@@ -187,9 +192,7 @@ contract UpgradeManager is Ownable, ReentrancyGuardUpgradeable {
     onlyOwner
   {
     address proxyAddress = adoptedContractAddresses[_contractId];
-    AdoptedContract storage adoptedContract = _getAdoptedContractsByContractId(
-      _contractId
-    );
+    require(proxyAddress != address(0), "Unknown proxy");
 
     _resetChanges(proxyAddress);
 
@@ -214,7 +217,7 @@ contract UpgradeManager is Ownable, ReentrancyGuardUpgradeable {
     address _newAdmin
   ) external onlyOwner {
     require(
-      bytes(adoptedContractsByProxyAddress[_proxyAddress].id).length == 0,
+      !_isProxyRegisted(_proxyAddress),
       "Cannot change proxy admin for owned contract"
     );
     IProxyAdmin(_proxyAdminAddress).changeProxyAdmin(_proxyAddress, _newAdmin);
@@ -373,5 +376,9 @@ contract UpgradeManager is Ownable, ReentrancyGuardUpgradeable {
     adoptedContract.upgradeAddress = address(0);
     adoptedContract.encodedCall = "";
     proxiesWithPendingChanges.remove(_proxyAddress);
+  }
+
+  function _isProxyRegisted(address _proxyAddress) private view returns (bool) {
+    return bytes(adoptedContractsByProxyAddress[_proxyAddress].id).length != 0;
   }
 }
