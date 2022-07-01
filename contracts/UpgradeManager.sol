@@ -2,6 +2,7 @@ pragma solidity ^0.8.9;
 pragma abicoder v1;
 
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
 
 import "./core/Ownable.sol";
@@ -44,6 +45,7 @@ contract UpgradeManager is Ownable, ReentrancyGuardUpgradeable {
     address indexed implementationAddress,
     bytes encodedCall
   );
+  event ChangesWithdrawn(string indexed contractId);
 
   modifier onlyProposers() {
     if (upgradeProposers.contains(msg.sender)) {
@@ -270,6 +272,7 @@ contract UpgradeManager is Ownable, ReentrancyGuardUpgradeable {
   function withdrawChanges(string calldata _contractId) external onlyProposers {
     address proxyAddress = adoptedContractAddresses[_contractId];
     _resetChanges(proxyAddress);
+    emit ChangesWithdrawn(_contractId);
     nonce++;
   }
 
@@ -346,11 +349,29 @@ contract UpgradeManager is Ownable, ReentrancyGuardUpgradeable {
       !proxiesWithPendingChanges.contains(proxyAddress),
       "Upgrade already proposed, withdraw first"
     );
-    proxiesWithPendingChanges.add(proxyAddress);
 
     AdoptedContract storage adoptedContract = adoptedContractsByProxyAddress[
       proxyAddress
     ];
+    address currentImplementationAddress = IProxyAdmin(
+      adoptedContract.proxyAdmin
+    ).getProxyImplementation(proxyAddress);
+
+    require(
+      currentImplementationAddress != _implementationAddress,
+      "Implementation address unchanged"
+    );
+
+    if (_implementationAddress != address(0)) {
+      // Note: isContract() is not guaranteed to return an accurate value, never use it to provide an assurance of security, this
+      // is just a last line of defence against footgun
+      require(
+        AddressUpgradeable.isContract(_implementationAddress),
+        "Implementation address is not a contract"
+      );
+    }
+
+    proxiesWithPendingChanges.add(proxyAddress);
 
     adoptedContract.upgradeAddress = _implementationAddress;
     adoptedContract.encodedCall = encodedCall;

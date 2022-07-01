@@ -12,7 +12,7 @@ const {
   deployProxy,
   prepareUpgrade,
 
-  erc1967: { getAdminAddress },
+  erc1967: { getAdminAddress, getImplementationAddress },
 } = upgrades;
 
 contract("UpgradeManager", (accounts) => {
@@ -529,11 +529,25 @@ contract("UpgradeManager", (accounts) => {
     );
 
     expect(await upgradeManager.nonce()).to.eq(3);
-    await upgradeManagerAsProposer.withdrawChanges("C1", { from: proposer });
+    await expect(
+      upgradeManagerAsProposer.withdrawChanges("C1", { from: proposer })
+    )
+      .to.emit(upgradeManager, "ChangesWithdrawn")
+      .withArgs("C1");
     expect(await upgradeManager.nonce()).to.eq(4);
-    await upgradeManagerAsProposer.withdrawChanges("C2", { from: proposer });
+    await expect(
+      upgradeManagerAsProposer.withdrawChanges("C2", { from: proposer })
+    )
+      .to.emit(upgradeManager, "ChangesWithdrawn")
+      .withArgs("C2");
+
     expect(await upgradeManager.nonce()).to.eq(5);
-    await upgradeManagerAsProposer.withdrawChanges("C3", { from: proposer });
+    await expect(
+      upgradeManagerAsProposer.withdrawChanges("C3", { from: proposer })
+    )
+      .to.emit(upgradeManager, "ChangesWithdrawn")
+      .withArgs("C3");
+
     expect(await upgradeManager.nonce()).to.eq(6);
 
     expect(await upgradeManager.getPendingCallData(instance1.address)).to.eq(
@@ -934,17 +948,45 @@ contract("UpgradeManager", (accounts) => {
     ).to.be.rejectedWith("Proxy already adopted with a different contract id");
   });
 
+  it("validates the proposed address", async () => {
+    let { instance: instance } = await deployAndAdoptContract({ id: "C1" });
+
+    let implementationAddress = await getImplementationAddress(
+      instance.address
+    );
+    upgradeManager = await contractWithSigner(upgradeManager, proposer);
+
+    await expect(
+      upgradeManager.proposeUpgrade("C1", implementationAddress)
+    ).to.be.rejectedWith("Implementation address unchanged");
+
+    await expect(
+      upgradeManager.proposeUpgradeAndCall(
+        "C1",
+        implementationAddress,
+        encodeWithSignature("setup(string)", "baz")
+      )
+    ).to.be.rejectedWith("Implementation address unchanged");
+
+    await expect(
+      upgradeManager.proposeUpgrade("C1", randomEOA)
+    ).to.be.rejectedWith("Implementation address is not a contract");
+    await expect(
+      upgradeManager.proposeUpgradeAndCall(
+        "C1",
+        randomEOA,
+        encodeWithSignature("setup(string)", "baz")
+      )
+    ).to.be.rejectedWith("Implementation address is not a contract");
+  });
+
   describe("Cleanup", () => {
     it("can propose adoption");
 
     it(
       "allows transferring ownership of proxy and proxyAdmin out of upgrade manager"
     );
-    it("verifies proposed upgrade is a contract");
     it("tests gas usage for a large upgrade");
-    it("doesn't upgrade if address unchanged");
-    it("cleans up after unadopt");
-    it("emits event for withdraw");
     it("verifies proxy admin changes to a real proxy admin");
     it("verifies disown proxy admin thing for proxy being in use");
   });
