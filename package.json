@@ -63,7 +63,7 @@
     "start-forked-node:xdai": "env FORK_BLOCK_NUMBER=$XDAI_FORK_BLOCK_NUMBER FORK_RPC_URL=https://rpc.xdaichain.com HARDHAT_FORKING=xdai yarn start-forked-node",
     "console:localhost": "env HARDHAT_NETWORK=localhost DO_NOT_SET_THIS_ENV_VAR____IS_HARDHAT_CI=true npx hardhat console",
     "console:fork:sokol": "env HARDHAT_FORKING=sokol FORK_BLOCK_NUMBER=$SOKOL_FORK_BLOCK_NUMBER yarn console:localhost",
-    "verify": "./node_modules/.bin/hardhat run scripts/verify.js",
+    "verify": "env DEBUG=hardhat:hardhat-etherscan ./node_modules/.bin/hardhat run scripts/verify.js",
     "verify:sokol": "env HARDHAT_NETWORK=sokol yarn verify",
     "verify:xdai": "env HARDHAT_NETWORK=xdai yarn verify",
     "version:sokol:patch": "env CARDPAY_VERSION=patch yarn deploy:sokol:version",
