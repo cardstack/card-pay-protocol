@@ -69,6 +69,10 @@ contract UpgradeManager is Ownable, ReentrancyGuardUpgradeable {
     }
 
     require(_versionManager != address(0), "versionManager not set");
+    require(
+      Ownable(_versionManager).owner() == address(this),
+      "Version manager not owned by this contract"
+    );
     versionManager = _versionManager;
     emit Setup();
   }
@@ -244,6 +248,20 @@ contract UpgradeManager is Ownable, ReentrancyGuardUpgradeable {
 
   function renounceOwnership() public view override onlyOwner {
     revert("Ownable: cannot renounce ownership");
+  }
+
+  function selfUpgrade(address _newImplementation, address _proxyAdminAddress)
+    public
+    onlyOwner
+  {
+    // Note: isContract() is not guaranteed to return an accurate value, never use it to provide an assurance of security, this
+    // is just a last line of defence against footgun
+    require(
+      AddressUpgradeable.isContract(_newImplementation),
+      "Implementation address is not a contract"
+    );
+
+    IProxyAdmin(_proxyAdminAddress).upgrade(address(this), _newImplementation);
   }
 
   function proposeUpgrade(

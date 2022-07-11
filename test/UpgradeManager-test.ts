@@ -20,13 +20,14 @@ contract("UpgradeManager", (accounts) => {
 
   let upgradeManager: Contract,
     versionManager: Contract,
+    UpgradeManager: ContractFactory,
     UpgradeableContractV1: ContractFactory,
     UpgradeableContractV2: ContractFactory;
 
   beforeEach(async () => {
     clearManifest();
 
-    let UpgradeManager = await ethers.getContractFactory("UpgradeManager");
+    UpgradeManager = await ethers.getContractFactory("UpgradeManager");
     UpgradeableContractV1 = await ethers.getContractFactory(
       "UpgradeableContractV1"
     );
@@ -43,9 +44,8 @@ contract("UpgradeManager", (accounts) => {
 
     upgradeManager = await UpgradeManager.deploy();
     await upgradeManager.initialize(owner);
-    await upgradeManager.setup([proposer], versionManager.address);
-
     await versionManager.transferOwnership(upgradeManager.address);
+    await upgradeManager.setup([proposer], versionManager.address);
   });
 
   async function deployV1({
@@ -978,6 +978,68 @@ contract("UpgradeManager", (accounts) => {
         encodeWithSignature("setup(string)", "baz")
       )
     ).to.be.rejectedWith("Implementation address is not a contract");
+  });
+
+  it("should be possible to self upgrade if it ends up being the owner of its own proxyadmin", async () => {
+    clearManifest();
+
+    upgradeManager = await deployProxy(UpgradeManager, [owner]);
+    versionManager = await ethers.getContractAt(
+      "VersionManager",
+      (
+        await setupVersionManager(owner)
+      ).address
+    );
+    await versionManager.transferOwnership(upgradeManager.address);
+
+    await upgradeManager.setup([proposer], versionManager.address);
+
+    let upgradeManagerProxyAdminAddress = await getAdminAddress(
+      upgradeManager.address
+    );
+    let upgradeManagerProxyAdmin = await ethers.getContractAt(
+      "IProxyAdmin",
+      upgradeManagerProxyAdminAddress
+    );
+    expect(await upgradeManagerProxyAdmin.owner()).to.eq(owner);
+
+    let { proxyAdmin } = await deployAndAdoptContract();
+
+    expect(upgradeManagerProxyAdminAddress).to.eq(proxyAdmin.address);
+    expect(await proxyAdmin.owner()).to.eq(upgradeManager.address);
+
+    let UpgradedUpgradeManager = await ethers.getContractFactory(
+      "UpgradedUpgradeManager"
+    );
+    let newImplementation = await UpgradedUpgradeManager.deploy();
+
+    await expect(
+      (
+        await contractWithSigner(upgradeManager, randomEOA)
+      ).selfUpgrade(
+        newImplementation.address,
+        upgradeManagerProxyAdminAddress,
+        { from: randomEOA }
+      )
+    ).to.be.rejectedWith("Ownable: caller is not the owner");
+    await expect(
+      upgradeManager.selfUpgrade(ZERO_ADDRESS, upgradeManagerProxyAdminAddress)
+    ).to.be.rejectedWith("Implementation address is not a contract");
+    await expect(
+      upgradeManager.selfUpgrade(randomEOA, upgradeManagerProxyAdminAddress)
+    ).to.be.rejectedWith("Implementation address is not a contract");
+    await upgradeManager.selfUpgrade(
+      newImplementation.address,
+      upgradeManagerProxyAdminAddress
+    );
+    let upgradedUpgradeManager = await ethers.getContractAt(
+      "UpgradedUpgradeManager",
+      upgradeManager.address
+    );
+    expect(await upgradedUpgradeManager.newFunction()).to.eq(
+      "UpgradedUpgradeManager"
+    );
+    expect(await upgradedUpgradeManager.cardpayVersion()).to.eq("1.0.0");
   });
 
   describe("Cleanup", () => {
