@@ -121,6 +121,18 @@ contract("BridgeUtils", async (accounts) => {
     expect(await bridgeUtils.isRegistered(newSupplier)).to.equal(true);
   });
 
+  it("rejects a supplier registration if it has already been registered before", async () => {
+    let newSupplier = accounts[2];
+    // This is already registered from the previous test
+    expect(await bridgeUtils.isRegistered(newSupplier)).to.equal(true);
+
+    await bridgeUtils
+      .registerSupplier(newSupplier, {
+        from: mediatorBridgeMock,
+      })
+      .should.be.rejectedWith(Error, "supplier already registered");
+  });
+
   it("rejects a supplier registration from a non-mediator address", async () => {
     let newSupplier = accounts[2];
     let notMediatorOfBridge = accounts[3];
