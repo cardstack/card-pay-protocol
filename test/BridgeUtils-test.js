@@ -276,31 +276,18 @@ contract("BridgeUtils", async (accounts) => {
     );
   });
 
-  it("Returns the original depot if you register twice", async () => {
-    let newSupplier = accounts[6];
-    let txFirstRegister = await bridgeUtils.registerSupplier(newSupplier, {
+  it("does not allow registering twice", async () => {
+    let newSupplier = accounts[2];
+    await bridgeUtils.registerSupplier(newSupplier, {
       from: mediatorBridgeMock,
     });
 
-    let eventParamsFirstRegister = utils.getParamsFromEvent(
-      txFirstRegister,
-      eventABIs.SUPPLIER_SAFE_CREATED,
-      supplierManager.address
-    );
-    let depotFirstRegister = eventParamsFirstRegister[0].safe;
-
-    let txSecondRegister = await bridgeUtils.registerSupplier(newSupplier, {
-      from: mediatorBridgeMock,
-    });
-
-    let eventParamsSecondRegister = utils.getParamsFromEvent(
-      txSecondRegister,
-      eventABIs.SUPPLIER_SAFE_CREATED,
-      supplierManager.address
-    );
-    let depotSecondRegister = eventParamsSecondRegister[0].safe;
-
-    expect(depotFirstRegister).to.equal(depotSecondRegister);
     expect(await bridgeUtils.isRegistered(newSupplier)).to.equal(true);
+
+    await bridgeUtils
+      .registerSupplier(newSupplier, {
+        from: mediatorBridgeMock,
+      })
+      .should.be.rejectedWith(Error, "supplier already registered");
   });
 });
