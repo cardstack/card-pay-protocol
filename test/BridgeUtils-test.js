@@ -226,3 +226,81 @@ contract("BridgeUtils", async (accounts) => {
     expect(await supplierManager.cardpayVersion()).to.equal("1.0.0");
   });
 });
+
+contract("BridgeUtils", async (accounts) => {
+  let bridgeUtils,
+    owner,
+    unlistedToken,
+    mediatorBridgeMock,
+    tokenManager,
+    supplierManager,
+    versionManager,
+    exchange,
+    _daicpxdToken;
+  before(async () => {
+    owner = accounts[0];
+    mediatorBridgeMock = accounts[1];
+
+    versionManager = await setupVersionManager(owner);
+    unlistedToken = await ERC677Token.new();
+    await unlistedToken.initialize("Kitty Token", "KITTY", 18, owner);
+    bridgeUtils = await BridgeUtils.new();
+    await bridgeUtils.initialize(owner);
+    tokenManager = await TokenManager.new();
+    await tokenManager.initialize(owner);
+    supplierManager = await SupplierManager.new();
+    await supplierManager.initialize(owner);
+    let actionDispatcher = await ActionDispatcher.new();
+    await actionDispatcher.initialize(owner);
+
+    let gnosisFactory = await GnosisFactory.new();
+    let gnosisMaster = await GnosisSafe.new();
+
+    ({ _daicpxdToken, exchange } = await setupExchanges(owner)); // eslint-disable-line @typescript-eslint/no-unused-vars
+
+    await tokenManager.setup(bridgeUtils.address, [], versionManager.address);
+
+    await supplierManager.setup(
+      bridgeUtils.address,
+      gnosisMaster.address,
+      gnosisFactory.address,
+      versionManager.address
+    );
+
+    await bridgeUtils.setup(
+      tokenManager.address,
+      supplierManager.address,
+      exchange.address,
+      mediatorBridgeMock,
+      versionManager.address
+    );
+  });
+
+  it("Returns the original depot if you register twice", async () => {
+    let newSupplier = accounts[6];
+    let txFirstRegister = await bridgeUtils.registerSupplier(newSupplier, {
+      from: mediatorBridgeMock,
+    });
+
+    let eventParamsFirstRegister = utils.getParamsFromEvent(
+      txFirstRegister,
+      eventABIs.SUPPLIER_SAFE_CREATED,
+      supplierManager.address
+    );
+    let depotFirstRegister = eventParamsFirstRegister[0].safe;
+
+    let txSecondRegister = await bridgeUtils.registerSupplier(newSupplier, {
+      from: mediatorBridgeMock,
+    });
+
+    let eventParamsSecondRegister = utils.getParamsFromEvent(
+      txSecondRegister,
+      eventABIs.SUPPLIER_SAFE_CREATED,
+      supplierManager.address
+    );
+    let depotSecondRegister = eventParamsSecondRegister[0].safe;
+
+    expect(depotFirstRegister).to.equal(depotSecondRegister);
+    expect(await bridgeUtils.isRegistered(newSupplier)).to.equal(true);
+  });
+});
