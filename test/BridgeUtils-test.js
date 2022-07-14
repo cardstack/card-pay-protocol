@@ -121,6 +121,18 @@ contract("BridgeUtils", async (accounts) => {
     expect(await bridgeUtils.isRegistered(newSupplier)).to.equal(true);
   });
 
+  it("rejects a supplier registration if it has already been registered before", async () => {
+    let newSupplier = accounts[2];
+    // This is already registered from the previous test
+    expect(await bridgeUtils.isRegistered(newSupplier)).to.equal(true);
+
+    await bridgeUtils
+      .registerSupplier(newSupplier, {
+        from: mediatorBridgeMock,
+      })
+      .should.be.rejectedWith(Error, "supplier already registered");
+  });
+
   it("rejects a supplier registration from a non-mediator address", async () => {
     let newSupplier = accounts[2];
     let notMediatorOfBridge = accounts[3];
@@ -224,70 +236,5 @@ contract("BridgeUtils", async (accounts) => {
     expect(await tokenManager.cardpayVersion()).to.equal("1.0.0");
     expect(await bridgeUtils.cardpayVersion()).to.equal("1.0.0");
     expect(await supplierManager.cardpayVersion()).to.equal("1.0.0");
-  });
-});
-
-contract("BridgeUtils", async (accounts) => {
-  let bridgeUtils,
-    owner,
-    unlistedToken,
-    mediatorBridgeMock,
-    tokenManager,
-    supplierManager,
-    versionManager,
-    exchange,
-    _daicpxdToken;
-  before(async () => {
-    owner = accounts[0];
-    mediatorBridgeMock = accounts[1];
-
-    versionManager = await setupVersionManager(owner);
-    unlistedToken = await ERC677Token.new();
-    await unlistedToken.initialize("Kitty Token", "KITTY", 18, owner);
-    bridgeUtils = await BridgeUtils.new();
-    await bridgeUtils.initialize(owner);
-    tokenManager = await TokenManager.new();
-    await tokenManager.initialize(owner);
-    supplierManager = await SupplierManager.new();
-    await supplierManager.initialize(owner);
-    let actionDispatcher = await ActionDispatcher.new();
-    await actionDispatcher.initialize(owner);
-
-    let gnosisFactory = await GnosisFactory.new();
-    let gnosisMaster = await GnosisSafe.new();
-
-    ({ _daicpxdToken, exchange } = await setupExchanges(owner)); // eslint-disable-line @typescript-eslint/no-unused-vars
-
-    await tokenManager.setup(bridgeUtils.address, [], versionManager.address);
-
-    await supplierManager.setup(
-      bridgeUtils.address,
-      gnosisMaster.address,
-      gnosisFactory.address,
-      versionManager.address
-    );
-
-    await bridgeUtils.setup(
-      tokenManager.address,
-      supplierManager.address,
-      exchange.address,
-      mediatorBridgeMock,
-      versionManager.address
-    );
-  });
-
-  it("does not allow registering twice", async () => {
-    let newSupplier = accounts[2];
-    await bridgeUtils.registerSupplier(newSupplier, {
-      from: mediatorBridgeMock,
-    });
-
-    expect(await bridgeUtils.isRegistered(newSupplier)).to.equal(true);
-
-    await bridgeUtils
-      .registerSupplier(newSupplier, {
-        from: mediatorBridgeMock,
-      })
-      .should.be.rejectedWith(Error, "supplier already registered");
   });
 });
