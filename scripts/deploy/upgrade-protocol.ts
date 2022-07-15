@@ -9,6 +9,7 @@ import {
   reportProtocolStatus,
   confirm,
   retry,
+  getSigner,
 } from "./util";
 
 const debug = debugFactory("card-protocol.deploy");
@@ -19,7 +20,7 @@ async function main() {
   console.log((await reportProtocolStatus(network)).toString());
 
   let upgradeManager = (await getUpgradeManager(network)).connect(
-    await ethers.getSigner(await getDeployAddress())
+    getSigner(await getDeployAddress())
   );
 
   let nonce = await upgradeManager.nonce();
