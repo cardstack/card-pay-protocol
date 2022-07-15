@@ -167,9 +167,7 @@ contract UpgradeManager is Ownable, ReentrancyGuardUpgradeable {
     external
     onlyOwner
   {
-    // solhint-disable-next-line avoid-low-level-calls
-    (bool success, ) = adoptedContractAddresses[_contractId].call(encodedCall);
-    require(success, "call failed");
+    _call(adoptedContractAddresses[_contractId], encodedCall);
   }
 
   function upgradeProtocol(string calldata _newVersion, uint256 _nonce)
@@ -251,7 +249,7 @@ contract UpgradeManager is Ownable, ReentrancyGuardUpgradeable {
   }
 
   function selfUpgrade(address _newImplementation, address _proxyAdminAddress)
-    public
+    external
     onlyOwner
   {
     // Note: isContract() is not guaranteed to return an accurate value, never use it to provide an assurance of security, this
@@ -342,14 +340,14 @@ contract UpgradeManager is Ownable, ReentrancyGuardUpgradeable {
     } else {
       IProxyAdmin proxyAdmin = IProxyAdmin(adoptedContract.proxyAdmin);
 
-      if (adoptedContract.encodedCall.length == 0) {
-        proxyAdmin.upgrade(_proxyAddress, adoptedContract.upgradeAddress);
-      } else {
-        proxyAdmin.upgradeAndCall(
-          _proxyAddress,
-          adoptedContract.upgradeAddress,
-          adoptedContract.encodedCall
-        );
+      // This doesn't use the proxyAdmin upgradeAndCall method because with that method,
+      // the msg.sender is the ProxyAdmin not this contract, and this contract is the
+      // owner so setup calls with fail unless this contract calls directly.
+      // The upgrade and call are still atomic, a failure in the call will revert the
+      // upgrade as it is all the same transaction
+      proxyAdmin.upgrade(_proxyAddress, adoptedContract.upgradeAddress);
+      if (adoptedContract.encodedCall.length > 0) {
+        _call(_proxyAddress, adoptedContract.encodedCall);
       }
     }
   }
@@ -397,6 +395,12 @@ contract UpgradeManager is Ownable, ReentrancyGuardUpgradeable {
     nonce++;
 
     emit ChangesProposed(_contractId, _implementationAddress, encodedCall);
+  }
+
+  function _call(address _proxyAddress, bytes memory encodedCall) private {
+    // solhint-disable-next-line avoid-low-level-calls
+    (bool success, ) = _proxyAddress.call(encodedCall);
+    require(success, "call failed");
   }
 
   function _getAdoptedContractsByContractId(string calldata _contractId)
