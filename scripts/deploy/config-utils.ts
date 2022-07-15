@@ -1,7 +1,13 @@
+import { debug as debugFactory } from "debug";
+import dotenv from "dotenv";
+import hre from "hardhat";
+import { resolve } from "path";
+
+const debug = debugFactory("card-protocol.deploy");
+
 export interface AddressFile {
   [contractId: string]: {
     proxy: string;
-    contractName: string;
   };
 }
 
@@ -28,6 +34,15 @@ export interface MappingConfig {
   };
 }
 
+export interface PendingChanges {
+  newImplementations: {
+    [contractId: string]: string;
+  };
+  encodedCalls: {
+    [contractId: string]: string;
+  };
+}
+
 export type Formatter = (value: Value) => string;
 
 export type Value = string | number | boolean;
@@ -42,6 +57,24 @@ export function getAddress(contractId: string, addresses: AddressFile): string {
   }
   return info.proxy;
 }
+
+export function getNetwork(): string {
+  let {
+    network: { name: network },
+  } = hre;
+  if (process.env.HARDHAT_FORKING) {
+    network = process.env.HARDHAT_FORKING;
+    debug(`(Using forked copy of ${network})`);
+  }
+
+  return network;
+}
+
+let network = getNetwork();
+
+let envFile = `.env.${network}`;
+debug("Loading env file", envFile);
+dotenv.config({ path: resolve(process.cwd(), envFile) });
 
 export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 export const GNOSIS_SAFE_MASTER_COPY =

@@ -49,6 +49,8 @@ const {
   checkGnosisExecution,
 } = require("./general");
 
+const { expect } = require("../setup");
+
 // we'll just use the block gas limit as a safe tx gas estimate because its
 // easy and the relay server is really responsible for this (and not part of
 // these tests)
@@ -209,7 +211,7 @@ async function signAndSendSafeTransaction(
 }
 
 exports.shouldBeSameBalance = async function (token, address, amount) {
-  await token.balanceOf(address).should.eventually.be.a.bignumber.equal(amount);
+  expect(await token.balanceOf(address)).to.eq(amount);
 };
 
 exports.getBalance = async function (token, account) {

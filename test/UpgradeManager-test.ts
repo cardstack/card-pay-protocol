@@ -1042,17 +1042,6 @@ contract("UpgradeManager", (accounts) => {
     expect(await upgradedUpgradeManager.cardpayVersion()).to.eq("1.0.0");
   });
 
-  describe("Cleanup", () => {
-    it("can propose adoption");
-
-    it(
-      "allows transferring ownership of proxy and proxyAdmin out of upgrade manager"
-    );
-    it("tests gas usage for a large upgrade");
-    it("verifies proxy admin changes to a real proxy admin");
-    it("verifies disown proxy admin thing for proxy being in use");
-  });
-
   // describe("Future", function () {
   //   it("has meaningful version storage not string");
   //   it("has support for pausing all contracts that support pause")

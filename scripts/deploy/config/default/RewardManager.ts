@@ -7,7 +7,7 @@ import {
   REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
   GOVERNANCE_ADMIN,
 } from "../../config-utils";
-import { getDeployAddress } from "../../util";
+import { getDeployAddress, readMetadata } from "../../util";
 
 export default async function (
   proxyAddresses: AddressFile
@@ -50,7 +50,7 @@ export default async function (
       },
       {
         name: "safeDelegateImplementation",
-        value: address("RewardSafeDelegateImplementation"),
+        value: readMetadata("RewardSafeDelegateImplementationAddress"),
       },
       {
         name: "versionManager",
