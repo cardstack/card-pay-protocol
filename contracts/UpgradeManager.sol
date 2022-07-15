@@ -19,6 +19,8 @@ contract UpgradeManager is Ownable, ReentrancyGuardUpgradeable {
     address upgradeAddress;
   }
 
+  uint256 public constant MAXIMUM_CONTRACTS = 100;
+
   uint256 public nonce;
 
   EnumerableSetUpgradeable.AddressSet internal upgradeProposers;
@@ -135,6 +137,8 @@ contract UpgradeManager is Ownable, ReentrancyGuardUpgradeable {
     address _proxyAddress,
     address _proxyAdminAddress
   ) external onlyOwner {
+    require(proxies.length() < MAXIMUM_CONTRACTS, "Too many contracts adopted");
+
     _verifyOwnership(_proxyAddress, _proxyAdminAddress);
 
     address existingProxyAddress = adoptedContractAddresses[_contractId];

@@ -8,14 +8,13 @@ import {
   getDeployAddress,
   getNetwork,
   getProxyAddresses,
+  getSigner,
   getUpgradeManager,
   reportProtocolStatus,
   retry,
 } from "./util";
 import { Contract } from "@ethersproject/contracts";
 const debug = debugFactory("card-protocol.deploy");
-
-const { ethers } = hre;
 
 async function main() {
   let network = getNetwork();
@@ -29,10 +28,8 @@ async function main() {
     let proxyAddress = proxyAddresses[contractId].proxy;
 
     let upgradeManager = (await getUpgradeManager(network)).connect(
-      await ethers.getSigner(await getDeployAddress())
+      getSigner(await getDeployAddress())
     );
-
-    debug("Allowed proposers", await upgradeManager.getUpgradeProposers());
 
     let newImplementation = pendingChanges.newImplementations[contractId];
     let encodedCall = pendingChanges.encodedCalls[contractId];

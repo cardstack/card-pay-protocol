@@ -2,7 +2,7 @@ import {
   getAddress,
   AddressFile,
   ContractConfig,
-  PREPAID_CARD_PROVISIONER,
+  PREPAID_CARD_PROVISIONERS,
 } from "../../config-utils";
 
 export default async function (
@@ -23,7 +23,7 @@ export default async function (
       },
       {
         name: "provisioner",
-        value: PREPAID_CARD_PROVISIONER,
+        value: PREPAID_CARD_PROVISIONERS[0],
       },
       {
         name: "versionManager",
