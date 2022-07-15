@@ -1,4 +1,5 @@
 import { JsonRpcProvider, JsonRpcSigner } from "@ethersproject/providers";
+
 import { hashBytecodeWithoutMetadata } from "@openzeppelin/upgrades-core";
 import Table from "cli-table3";
 import { debug as debugFactory } from "debug";
@@ -61,15 +62,20 @@ export async function makeFactory(
   }
 
   return (await ethers.getContractFactory(contractName)).connect(
-    getProvider().getSigner(await getDeployAddress())
+    getSigner(await getDeployAddress())
   );
 }
 
-export function getSigner(): JsonRpcSigner {
-  return getProvider().getSigner();
+export function getSigner(address?: string): JsonRpcSigner {
+  return getProvider().getSigner(address);
 }
 
+let trezorProvider: JsonRpcProvider;
 export function getProvider(): JsonRpcProvider {
+  if (trezorProvider) {
+    return trezorProvider;
+  }
+
   const {
     network: { name: network, config },
   } = hre;
@@ -78,18 +84,20 @@ export function getProvider(): JsonRpcProvider {
   const { derivationPath } = config as unknown as { derivationPath: string };
 
   if (network === "localhost") {
+    debug("Using ethers.getDefaultProvider");
     return ethers.getDefaultProvider(
       "http://localhost:8545"
     ) as JsonRpcProvider;
   }
 
+  debug("Using TrezorWalletProvider");
   const walletProvider = new TrezorWalletProvider(rpcUrl, {
     chainId: chainId,
     numberOfAccounts: 3,
     derivationPath,
   });
-
-  return new ethers.providers.Web3Provider(walletProvider, network);
+  trezorProvider = new ethers.providers.Web3Provider(walletProvider, network);
+  return trezorProvider;
 }
 
 let deployAddress: string;
@@ -146,10 +154,11 @@ type RetryCallback<T> = () => Promise<T>;
 
 export async function retry<T>(
   cb: RetryCallback<T>,
-  maxAttempts = 8
+  maxAttempts = 10
 ): Promise<T> {
   let attempts = 0;
   do {
+    await delay(1000 + attempts * 1000);
     try {
       attempts++;
       return await cb();
@@ -165,6 +174,10 @@ export async function retry<T>(
   } while (attempts < maxAttempts);
 
   throw new Error("Reached max retry attempts");
+}
+
+async function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export async function deployedCodeMatches(
@@ -326,13 +339,10 @@ export async function getOrDeployUpgradeManager(
   if (readMetadata("upgradeManagerAddress", network)) {
     let upgradeManager = await getUpgradeManager(network);
     debug(`Found existing upgrade manager at ${upgradeManager.address}`);
-    // This verifies we're talking a live upgradeManager contract
-    let cardPayVersion = await upgradeManager.cardpayVersion();
-    debug(`Cardpay version from upgradeManager: ${cardPayVersion}`);
     return upgradeManager;
   } else {
     debug(`Deploying new upgrade manager`);
-    let UpgradeManager = await ethers.getContractFactory("UpgradeManager");
+    let UpgradeManager = await makeFactory("UpgradeManager");
 
     let upgradeManager = await deployProxy(UpgradeManager, [owner]);
     await upgradeManager.deployed();
@@ -390,5 +400,5 @@ export async function contractWithSigner(
   contract: Contract,
   signer: string
 ): Promise<Contract> {
-  return contract.connect(await ethers.getSigner(signer));
+  return contract.connect(getSigner(signer));
 }

@@ -403,15 +403,6 @@ contract UpgradeManager is Ownable, ReentrancyGuardUpgradeable {
     require(success, "call failed");
   }
 
-  function _getAdoptedContractsByContractId(string calldata _contractId)
-    private
-    view
-    returns (AdoptedContract storage)
-  {
-    return
-      adoptedContractsByProxyAddress[adoptedContractAddresses[_contractId]];
-  }
-
   function _resetChanges(address _proxyAddress) private {
     AdoptedContract storage adoptedContract = adoptedContractsByProxyAddress[
       _proxyAddress

@@ -9,7 +9,9 @@ import {
   getDeployAddress,
   getNetwork,
   getOrDeployUpgradeManager,
+  getSigner,
   patchNetworks,
+  retry,
   writeMetadata,
 } from "./util";
 
@@ -51,19 +53,24 @@ async function main() {
   let upgradeProposers = [deployAddress];
 
   if ((await versionManager.owner()) !== upgradeManager.address) {
-    debug("Transferring versionManager ownership");
+    debug("Transferring versionManager ownership to", upgradeManager.address);
     await versionManager.transferOwnership(upgradeManager.address);
   }
 
   if (
     (await upgradeManager.versionManager()) !== versionManager.address ||
-    (await upgradeManager.getUpgradeProposers()) !== upgradeProposers
+    JSON.stringify(await upgradeManager.getUpgradeProposers()) !==
+      JSON.stringify(upgradeProposers)
   ) {
     debug(
       `Setting up upgradeManager with initial proposer ${upgradeProposers} and version manager ${versionManager.address}`
     );
     await upgradeManager.setup(upgradeProposers, versionManager.address);
   }
+
+  // This verifies we're talking a live upgradeManager contract
+  let cardPayVersion = await upgradeManager.cardpayVersion();
+  debug(`Cardpay version from upgradeManager: ${cardPayVersion}`);
 
   let upgradeManagerProxyAdminAddress = await getAdminAddress(
     upgradeManager.address
@@ -116,19 +123,32 @@ async function main() {
       debug("  - This contract is already adopted");
     } else {
       if (owner !== upgradeManager.address) {
-        debug("  - Owner is not upgrade manager, reassigning");
-        await contract.transferOwnership(upgradeManager.address);
+        debug(
+          "  - Owner is not upgrade manager, reassigning to",
+          upgradeManager.address
+        );
+        await retry(
+          async () => await contract.transferOwnership(upgradeManager.address)
+        );
       }
       if (proxyAdminOwner !== upgradeManager.address) {
-        debug("  - ProxyAdmin owner is not upgrade manager, reassigning");
-        await proxyAdmin.transferOwnership(upgradeManager.address);
+        debug(
+          "  - ProxyAdmin owner is not upgrade manager, reassigning to",
+          upgradeManager.address
+        );
+        await retry(
+          async () => await proxyAdmin.transferOwnership(upgradeManager.address)
+        );
       }
 
       debug("Adopting contract");
-      await upgradeManager.adoptContract(
-        contractId,
-        contract.address,
-        proxyAdmin.address
+      await retry(
+        async () =>
+          await upgradeManager.adoptContract(
+            contractId,
+            contract.address,
+            proxyAdmin.address
+          )
       );
       debug("Adoption successful");
     }
@@ -139,7 +159,7 @@ async function getDeployedContract(id: string): Promise<{
   contract: Contract;
   proxyAdmin: Contract;
 }> {
-  let signer = await ethers.getSigner(await getDeployAddress());
+  let signer = getSigner(await getDeployAddress());
   let name = addresses[id].contractName;
   let proxyAddress = addresses[id].proxy;
 

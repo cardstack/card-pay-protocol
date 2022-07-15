@@ -8,6 +8,7 @@ import {
   getUpgradeManager,
   reportProtocolStatus,
   confirm,
+  retry,
 } from "./util";
 
 const debug = debugFactory("card-protocol.deploy");
@@ -34,7 +35,9 @@ async function main() {
     )
   ) {
     debug("Upgrading…");
-    await upgradeManager.upgradeProtocol(newVersion, nonce);
+    await retry(
+      async () => await upgradeManager.upgradeProtocol(newVersion, nonce)
+    );
     debug("Success");
   } else {
     debug("Cancelling upgrade");

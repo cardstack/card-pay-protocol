@@ -779,6 +779,12 @@ contract("UpgradeManager", (accounts) => {
     await expect(upgradeManager.renounceOwnership()).to.be.rejectedWith(
       "Ownable: cannot renounce ownership"
     );
+
+    await expect(upgradeManager.transferOwnership(otherOwner))
+      .to.emit(upgradeManager, "OwnershipTransferred")
+      .withArgs(owner, otherOwner);
+
+    expect(await upgradeManager.owner()).to.eq(otherOwner);
   });
 
   it("allows transferring ownership of proxy and proxyAdmin away", async () => {
@@ -1040,6 +1046,16 @@ contract("UpgradeManager", (accounts) => {
       "UpgradedUpgradeManager"
     );
     expect(await upgradedUpgradeManager.cardpayVersion()).to.eq("1.0.0");
+  });
+
+  it("only allows 100 contracts maxiumum", async () => {
+    for (let i = 0; i < 100; i++) {
+      await deployAndAdoptContract({ id: `C${i}` });
+    }
+
+    await expect(
+      deployAndAdoptContract({ id: "last contract" })
+    ).to.be.rejectedWith("Too many contracts adopted");
   });
 
   // describe("Future", function () {

@@ -10,6 +10,7 @@ import {
   getProxyAddresses,
   getUpgradeManager,
   reportProtocolStatus,
+  retry,
 } from "./util";
 import { Contract } from "@ethersproject/contracts";
 const debug = debugFactory("card-protocol.deploy");
@@ -53,18 +54,26 @@ async function main() {
       );
     } else if (newImplementation && encodedCall) {
       debug("Proposing upgrade and call for", contractId);
-      await upgradeManager.proposeUpgradeAndCall(
-        contractId,
-        newImplementation,
-        encodedCall
+      await retry(
+        async () =>
+          await upgradeManager.proposeUpgradeAndCall(
+            contractId,
+            newImplementation,
+            encodedCall
+          )
       );
     } else if (newImplementation) {
       debug("Proposing upgrade for", contractId);
-      await upgradeManager.proposeUpgrade(contractId, newImplementation);
+      await retry(
+        async () =>
+          await upgradeManager.proposeUpgrade(contractId, newImplementation)
+      );
       debug(`Successfully proposed upgrade`);
     } else if (encodedCall) {
       debug("Proposing call for", contractId);
-      await upgradeManager.proposeCall(contractId, encodedCall);
+      await retry(
+        async () => await upgradeManager.proposeCall(contractId, encodedCall)
+      );
     }
   }
 
