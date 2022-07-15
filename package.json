@@ -49,6 +49,7 @@
     "deploy:fork:upgrade-protocol": "env HARDHAT_NETWORK=localhost DO_NOT_SET_THIS_ENV_VAR____IS_HARDHAT_CI=true yarn deploy:upgrade-protocol",
     "deploy:fork:upgrade-protocol:sokol:patch": "env HARDHAT_FORKING=sokol FORK_BLOCK_NUMBER=$SOKOL_FORK_BLOCK_NUMBER CARDPAY_VERSION=patch yarn deploy:fork:upgrade-protocol",
     "adopt": "env DEBUG=card-protocol.* ./node_modules/.bin/hardhat run scripts/deploy/adopt.ts",
+    "adopt:sokol": "env HARDHAT_NETWORK=sokol yarn adopt",
     "adopt:fork": "env HARDHAT_NETWORK=localhost DO_NOT_SET_THIS_ENV_VAR____IS_HARDHAT_CI=true yarn adopt",
     "adopt:fork:sokol": "env HARDHAT_FORKING=sokol FORK_BLOCK_NUMBER=$SOKOL_FORK_BLOCK_NUMBER yarn adopt:fork",
     "start-forked-node": "./node_modules/.bin/hardhat node --fork $FORK_RPC_URL --fork-block-number $FORK_BLOCK_NUMBER",
