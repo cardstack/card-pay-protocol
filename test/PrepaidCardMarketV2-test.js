@@ -788,6 +788,9 @@ contract("PrepaidCardMarketV2", (accounts) => {
         prepaidCardManager.address
       );
 
+      expect(createPrepaidCardEvent.issuer).to.be.equal(issuer);
+      expect(createPrepaidCardEvent.owner).to.be.equal(customer);
+
       let [provisionPrepaidCardEvent] = getParamsFromEvent(
         tx,
         eventABIs.PREPAID_CARD_MARKET_V2_PREPAID_CARD_PROVISIONED,
