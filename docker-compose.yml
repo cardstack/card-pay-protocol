@@ -1,0 +1,45 @@
+version: "3.3"
+services:
+  foreign-node:
+    container_name: foreign-node
+    build:
+      context: .
+      dockerfile: Dockerfile.blocknode
+      args:
+        - NETWORK_ID=5778
+        - CHAIN_ID=1338
+        - CHAIN_DIRECTORY=foreign_node.zip
+    networks:
+      - foreign-network
+    ports:
+      - "8546:8545"
+    healthcheck:
+      test: curl --location --request POST 'localhost:8545/' --header 'Content-Type:application/json' --data-raw '{"jsonrpc":"2.0","method":"eth_accounts","params":[],"id":1}' || exit 1
+      interval: 1m30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+  home-node:
+    container_name: home-node
+    build:
+      context: .
+      dockerfile: Dockerfile.blocknode
+      args:
+        - NETWORK_ID=5777
+        - CHAIN_ID=1337
+        - CHAIN_DIRECTORY=home_node.zip
+    networks:
+      - home-network
+    ports:
+      - "8545:8545"
+    healthcheck:
+      test: curl --location --request POST 'localhost:8545/' --header 'Content-Type:application/json' --data-raw '{"jsonrpc":"2.0","method":"eth_accounts","params":[],"id":1}' || exit 1
+      interval: 1m30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  foreign-network:
+  home-network:
+  

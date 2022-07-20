@@ -1,0 +1,22 @@
+FROM trufflesuite/ganache-cli:latest
+
+ARG NETWORK_ID
+ARG CHAIN_ID
+ARG CHAIN_DIRECTORY
+
+ENV NETWORK_ID=$NETWORK_ID
+ENV CHAIN_ID=$CHAIN_ID
+
+RUN apk update
+RUN apk upgrade
+RUN apk --no-cache add curl
+RUN apk --no-cache add zip
+
+WORKDIR /usr/src/app
+COPY ./docker/run-blocknode.sh ./run-blocknode.sh
+COPY ./docker/$CHAIN_DIRECTORY .
+
+RUN unzip ./$CHAIN_DIRECTORY -d /ganache_data
+RUN chmod +x /usr/src/app/run-blocknode.sh
+
+ENTRYPOINT ["/bin/ash", "/usr/src/app/run-blocknode.sh"]
