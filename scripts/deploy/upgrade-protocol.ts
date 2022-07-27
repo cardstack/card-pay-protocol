@@ -1,5 +1,4 @@
 import { debug as debugFactory } from "debug";
-import { ethers } from "hardhat";
 import { nextVersion } from "../../lib/release-utils";
 import { getNetwork } from "./config-utils";
 import {

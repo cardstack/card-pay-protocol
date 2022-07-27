@@ -1,4 +1,3 @@
-import CliTable3 from "cli-table3";
 import dotenv from "dotenv";
 import { resolve } from "path";
 import {
