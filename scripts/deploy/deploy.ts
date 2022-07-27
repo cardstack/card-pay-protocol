@@ -74,7 +74,7 @@ async function main() {
     }
   }
 
-  console.log((await reportProtocolStatus(network)).toString());
+  console.log((await reportProtocolStatus(network)).table.toString());
 
   let reverify = [];
 

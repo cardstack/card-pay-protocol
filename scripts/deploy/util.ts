@@ -261,12 +261,14 @@ export async function getProxyAddresses(network: string): Promise<AddressFile> {
 export async function reportProtocolStatus(
   network: string,
   includeUnchanged = false
-): Promise<Table.Table> {
+): Promise<{ table: Table.Table; anyChanged: boolean }> {
   let upgradeManager = await getUpgradeManager(network);
 
   let proxyAddresses = await getProxies(network);
 
   let contracts = contractInitSpec({ network });
+
+  let anyChanged = false;
 
   let table = new Table({
     head: [
@@ -276,6 +278,7 @@ export async function reportProtocolStatus(
       "Current Implementation Address",
       "Proposed Implementation Address",
       "Proposed Function Call",
+      "Local Bytecode Changed",
     ],
   });
 
@@ -283,16 +286,26 @@ export async function reportProtocolStatus(
     let adoptedContract = await upgradeManager.adoptedContractsByProxyAddress(
       proxyAddress
     );
+    let contractName = contracts[adoptedContract.id].contractName;
+    let contract = await ethers.getContractAt(contractName, proxyAddress);
+
+    let localBytecodeChanged = (await deployedCodeMatches(
+      contractName,
+      proxyAddress
+    ))
+      ? null
+      : "YES";
     if (
       adoptedContract.upgradeAddress == ZERO_ADDRESS &&
       adoptedContract.encodedCall == "0x" &&
+      !localBytecodeChanged &&
       !includeUnchanged
     ) {
       continue;
     }
 
-    let contractName = contracts[adoptedContract.id].contractName;
-    let contract = await ethers.getContractAt(contractName, proxyAddress);
+    anyChanged = true;
+
     table.push([
       adoptedContract.id,
       contractName,
@@ -304,10 +317,11 @@ export async function reportProtocolStatus(
       adoptedContract.encodedCall !== "0x"
         ? await decodeEncodedCall(contract, adoptedContract.encodedCall)
         : null,
+      localBytecodeChanged,
     ]);
   }
 
-  return table;
+  return { table, anyChanged };
 }
 
 export async function decodeEncodedCall(

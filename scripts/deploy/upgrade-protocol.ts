@@ -17,7 +17,7 @@ const debug = debugFactory("card-protocol.deploy");
 async function main() {
   let network = getNetwork();
 
-  console.log((await reportProtocolStatus(network)).toString());
+  console.log((await reportProtocolStatus(network)).table.toString());
 
   let upgradeManager = (await getUpgradeManager(network)).connect(
     getSigner(await getDeployAddress())
