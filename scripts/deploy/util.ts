@@ -295,16 +295,19 @@ export async function reportProtocolStatus(
     ))
       ? null
       : "YES";
-    if (
-      adoptedContract.upgradeAddress == ZERO_ADDRESS &&
-      adoptedContract.encodedCall == "0x" &&
-      !localBytecodeChanged &&
-      !includeUnchanged
-    ) {
-      continue;
+
+    let codeChanges =
+      adoptedContract.upgradeAddress !== ZERO_ADDRESS ||
+      adoptedContract.encodedCall !== "0x" ||
+      localBytecodeChanged;
+
+    if (codeChanges) {
+      anyChanged = true;
     }
 
-    anyChanged = true;
+    if (!codeChanges && !includeUnchanged) {
+      continue;
+    }
 
     table.push([
       adoptedContract.id,
