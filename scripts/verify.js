@@ -1,8 +1,7 @@
-const { asyncMain } = require("./deploy/util.js");
+const { asyncMain } = require("./deploy/util");
 const { isVerifiedBlockscout } = require("../lib/verify");
 const hardhat = require("hardhat");
 const { ethers } = hardhat;
-const retry = require("async-retry");
 
 // bytes32(uint256(keccak256("eip1967.proxy.implementation")) - 1)
 const IMPL_SLOT =
@@ -25,25 +24,40 @@ async function main() {
       // Currently only RewardSafeDelegateImplementation, but this would apply
       // for any non upgradeable contract
       implementationAddress = proxy;
+    } else {
+      console.log("Verifying proxy to", contractName, "at", proxy);
+      console.log(
+        "Note: this should verify proxy contracts, proxy admin, implementation all at once"
+      );
+      await verifyAddress(proxy);
     }
 
     console.log("Verifying", contractName, "at", implementationAddress);
-    await retry(
-      async () => {
-        let alreadyVerified = await isVerifiedBlockscout(implementationAddress);
 
-        if (alreadyVerified) {
-          console.log("Already verified, skipping!");
-          return;
-        }
+    await verifyAddress(implementationAddress);
+  }
+}
 
-        await hardhat.run("verify:verify", {
-          address: implementationAddress,
-          constructorArguments: [],
-        });
-      },
-      { retries: 4, minTimeout: 10000 }
-    );
+async function verifyAddress(address) {
+  if (!(await isVerifiedBlockscout(address))) {
+    try {
+      await hardhat.run("verify:verify", {
+        address: address,
+        constructorArguments: [],
+      });
+    } catch (e) {
+      if (
+        // some old proxy contracts are unverified and use old solidity versions, skip these proxy contracts for now
+        e.message.includes("contract you want to verify was compiled with") ||
+        // Ignore already verified contracts
+        e.message.includes("Smart-contract already verified.")
+      ) {
+        console.log(e.message);
+        return;
+      } else {
+        throw e;
+      }
+    }
   }
 }
 

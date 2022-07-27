@@ -70,6 +70,7 @@ contract SupplierManager is Ownable, Versionable, Safe {
       msg.sender == bridgeUtils || (owner() == _msgSender()),
       "caller is not BridgeUtils nor owner"
     );
+    require(!isRegistered(supplier), "supplier already registered");
     return _registerSupplier(supplier);
   }
 

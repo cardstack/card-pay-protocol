@@ -221,6 +221,26 @@ Abis generated from this repository will be used inside the [monorepo](https://g
 yarn write:abi
 ```
 
+### Deploying to local computer network
+If you want to run the card pay relay server and subgraph on your local computer, then you can deploy the card pay contract to the local blockchain node:
+```sh
+docker-compose up
+```
+
+Switch to a different terminal window and then perform the following steps:
+
+1. Compile the contracts if you have recently made changes (otherwise the most recently built contracts will be deployed):
+```sh
+yarn build:clean
+```
+
+2. The deploy and configure the protocol in the private network:
+```sh
+yarn deploy:localhost
+```
+
+3. You can run the relay server or the subgraph in docker container that points to this url ```http://home-node:8545``` on docker network ```card-pay-protocol_home-network```
+
 ### Deploying to private network
 If you desire to test the protocol in an ad hoc manner in a private network (hardhat), then first start an RPC node in its own terminal window:
 ```sh
