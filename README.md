@@ -221,25 +221,28 @@ Abis generated from this repository will be used inside the [monorepo](https://g
 yarn write:abi
 ```
 
-### Deploying to local computer network
-If you want to run the card pay relay server and subgraph on your local computer, then you can deploy the card pay contract to the local blockchain node:
+### Deploying to local computer network using Docker with prebuilt contracts
+
+To run the local node which already has all the smart contracts needed for CardPay protocol already deployed, you can use docker compose which will run the home node (contracts deployed: card protocol, Gnosis Safe, Home AMB Bridge, Home Bridge, UniswapFactory, UniswapRouter, Card, Dai, SPEND), and the foreign node (foreign bridge of token bridge).
+
+This is convenient in case you want to quickly load all the CardPay protocol related contracts into your node and connect to it with your local graph node, or the relayer.
+
+Steps needed:
+
 ```sh
 docker-compose up
 ```
 
-Switch to a different terminal window and then perform the following steps:
+This will load all the needed protocol contracts into the local RPC node served in Docker and make the node available at http://localhost:8545. You can use this URL in your graph and relayer setups. In case you run the graph node or the relayer inside Docker too, you should use http://host.docker.internal:8545.
 
-1. Compile the contracts if you have recently made changes (otherwise the most recently built contracts will be deployed):
+The smart contract snapshots loaded into your local node have been generated on July 20th 2022.
+
+If you want to upgrade the card protocol contracts deployed in your local node (i.e. want to apply changes done to contracts after the date of snapshot), then run:
+
 ```sh
 yarn build:clean
-```
-
-2. The deploy and configure the protocol in the private network:
-```sh
 yarn deploy:localhost
 ```
-
-3. You can run the relay server or the subgraph in docker container that points to this url ```http://home-node:8545``` on docker network ```card-pay-protocol_home-network```
 
 ### Deploying to private network
 If you desire to test the protocol in an ad hoc manner in a private network (hardhat), then first start an RPC node in its own terminal window:
