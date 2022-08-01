@@ -4,6 +4,7 @@ import { readJSONSync } from "fs-extra";
 import glob from "glob";
 import hre from "hardhat";
 import difference from "lodash/difference";
+import { shuffle } from "lodash";
 import { PendingChanges, ZERO_ADDRESS } from "./config-utils";
 import {
   contractInitSpec,
@@ -45,10 +46,11 @@ export default async function (
   let upgradeManager = await getOrDeployUpgradeManager(network, owner);
   let contracts = contractInitSpec({ network, owner: upgradeManager.address });
 
-  for (let [
-    contractId,
-    { contractName, init, nonUpgradeable },
-  ] of Object.entries(contracts)) {
+  // Contracts are shuffled to deploy in random order, as a workaround to issues
+  // deploying to sokol
+  for (let [contractId, { contractName, init, nonUpgradeable }] of shuffle(
+    Object.entries(contracts)
+  )) {
     debug("Contract:", contractId);
 
     init = await Promise.all(
@@ -165,7 +167,7 @@ export default async function (
         let proxyAdmin = await ethers.getContractAt(
           "IProxyAdmin",
           proxyAdminAddress,
-          getSigner()
+          getSigner(await getDeployAddress())
         );
 
         let proxyAdminOwner = await proxyAdmin.owner();
@@ -197,7 +199,9 @@ export default async function (
       "and version manager",
       versionManagerAddress
     );
-    await upgradeManager.setup([owner], versionManagerAddress);
+    await retry(
+      async () => await upgradeManager.setup([owner], versionManagerAddress)
+    );
   }
 
   let unverifiedImpls = difference(implAddresses(network), previousImpls);

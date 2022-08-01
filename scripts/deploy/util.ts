@@ -346,7 +346,11 @@ export async function decodeEncodedCall(
 
 export async function getUpgradeManager(network: string): Promise<Contract> {
   let upgradeManagerAddress = readMetadata("upgradeManagerAddress", network);
-  return await ethers.getContractAt("UpgradeManager", upgradeManagerAddress);
+  return await ethers.getContractAt(
+    "UpgradeManager",
+    upgradeManagerAddress,
+    getSigner(await getDeployAddress())
+  );
 }
 
 export async function getOrDeployUpgradeManager(
