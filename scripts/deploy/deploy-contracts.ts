@@ -168,8 +168,11 @@ export default async function (
           getSigner()
         );
 
-        if ((await proxyAdmin.owner()) !== upgradeManager.address) {
-          debug("Proxy admin is not owned by upgrade manager, transferring");
+        let proxyAdminOwner = await proxyAdmin.owner();
+        if (proxyAdminOwner !== upgradeManager.address) {
+          debug(
+            `Proxy admin ${proxyAdmin.address} is not owned by upgrade manager, it is owned by ${proxyAdminOwner}, transferring`
+          );
           await proxyAdmin.transferOwnership(upgradeManager.address);
         }
 
