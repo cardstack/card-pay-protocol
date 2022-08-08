@@ -724,12 +724,13 @@ contract("PrepaidCardMarket", (accounts) => {
   });
 
   describe("provision prepaid cards", () => {
-    let prepaidCards,
+    let createPrepaidCardTx,
+      prepaidCards,
       sku,
       askPrice = toTokenUnit(10);
 
     before(async () => {
-      ({ prepaidCards } = await createPrepaidCards(
+      ({ safeTx: createPrepaidCardTx, prepaidCards } = await createPrepaidCards(
         depot,
         prepaidCardManager,
         daicpxdToken,
@@ -762,6 +763,15 @@ contract("PrepaidCardMarket", (accounts) => {
     });
 
     it(`can allow the provisioner to provision a prepaid card from the inventory`, async function () {
+      let [createPrepaidCardEvent] = getParamsFromEvent(
+        createPrepaidCardTx,
+        eventABIs.CREATE_PREPAID_CARD,
+        prepaidCardManager.address
+      );
+
+      expect(createPrepaidCardEvent.issuer).to.be.equal(issuer);
+      expect(createPrepaidCardEvent.owner).to.be.equal(issuer); // owner and issuer are the same before provisioning
+
       let startingInventory = await prepaidCardMarket.getInventory(sku);
       expect(startingInventory.length).to.be.greaterThanOrEqual(1);
       let startingBalance = await daicpxdToken.balanceOf(startingInventory[0]);

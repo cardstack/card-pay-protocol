@@ -52,6 +52,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
   event Setup();
   event CreatePrepaidCard(
     address issuer,
+    address owner,
     address card,
     address token,
     address createdFromDepot,
@@ -690,6 +691,7 @@ contract PrepaidCardManager is Ownable, Versionable, Safe {
     IERC677(token).safeTransfer(card, issuingTokenAmount - _gasFee);
 
     emit CreatePrepaidCard(
+      issuer,
       owner,
       card,
       token,
