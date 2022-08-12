@@ -16,7 +16,7 @@ import {
   getSigner,
   makeFactory,
   readMetadata,
-  retry,
+  retryAndWaitForNonceIncrease,
   writeMetadata,
 } from "./util";
 
@@ -140,7 +140,7 @@ export default async function (
           let factory = await makeFactory(contractName);
           let instance: Contract;
 
-          await retry(async () => {
+          await retryAndWaitForNonceIncrease(async () => {
             instance = await factory.deploy(...init);
           });
           debug(
@@ -199,7 +199,7 @@ export default async function (
       "and version manager",
       versionManagerAddress
     );
-    await retry(
+    await retryAndWaitForNonceIncrease(
       async () => await upgradeManager.setup([owner], versionManagerAddress)
     );
   }

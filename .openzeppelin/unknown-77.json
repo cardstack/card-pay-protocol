@@ -5275,7 +5275,7 @@
             "label": "rounds",
             "offset": 0,
             "slot": "154",
-            "type": "t_mapping(t_uint80,t_struct(RoundData)20812_storage)",
+            "type": "t_mapping(t_uint80,t_struct(RoundData)21973_storage)",
             "contract": "ManualFeed",
             "src": "contracts/oracles/ManualFeed.sol:22"
           },
@@ -5313,7 +5313,7 @@
             "label": "int256",
             "numberOfBytes": "32"
           },
-          "t_mapping(t_uint80,t_struct(RoundData)20812_storage)": {
+          "t_mapping(t_uint80,t_struct(RoundData)21973_storage)": {
             "label": "mapping(uint80 => struct ManualFeed.RoundData)",
             "numberOfBytes": "32"
           },
@@ -5321,7 +5321,7 @@
             "label": "string",
             "numberOfBytes": "32"
           },
-          "t_struct(RoundData)20812_storage": {
+          "t_struct(RoundData)21973_storage": {
             "label": "struct ManualFeed.RoundData",
             "members": [
               {
@@ -5630,6 +5630,186 @@
           "t_uint256": {
             "label": "uint256",
             "numberOfBytes": "32"
+          }
+        }
+      }
+    },
+    "37084392a8bce38614c7d258f40aca971e1d18d5c1a4cec0f6450fd4ff748f11": {
+      "address": "0xD3B2Ef52E6FF96453bFA7f00C626f213E4b98365",
+      "txHash": "0x8775bb5e4e379e1b67b24ae3d20ba50c4079888ac43585c0e16cdc4056b35f16",
+      "layout": {
+        "storage": [
+          {
+            "label": "_initialized",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:39"
+          },
+          {
+            "label": "_initializing",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:44"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ContextUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:31"
+          },
+          {
+            "label": "_owner",
+            "offset": 0,
+            "slot": "51",
+            "type": "t_address",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:22"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "52",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:82"
+          },
+          {
+            "label": "____gap_Ownable",
+            "offset": 0,
+            "slot": "101",
+            "type": "t_array(t_uint256)1_storage",
+            "contract": "Ownable",
+            "src": "contracts/core/Ownable.sol:23"
+          },
+          {
+            "label": "____gap",
+            "offset": 0,
+            "slot": "102",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "Versionable",
+            "src": "contracts/core/Versionable.sol:10"
+          },
+          {
+            "label": "_description",
+            "offset": 0,
+            "slot": "152",
+            "type": "t_string_storage",
+            "contract": "ManualFeed",
+            "src": "contracts/oracles/ManualFeed.sol:18"
+          },
+          {
+            "label": "_decimals",
+            "offset": 0,
+            "slot": "153",
+            "type": "t_uint8",
+            "contract": "ManualFeed",
+            "src": "contracts/oracles/ManualFeed.sol:19"
+          },
+          {
+            "label": "_currentRound",
+            "offset": 1,
+            "slot": "153",
+            "type": "t_uint80",
+            "contract": "ManualFeed",
+            "src": "contracts/oracles/ManualFeed.sol:20"
+          },
+          {
+            "label": "rounds",
+            "offset": 0,
+            "slot": "154",
+            "type": "t_mapping(t_uint80,t_struct(RoundData)654_storage)",
+            "contract": "ManualFeed",
+            "src": "contracts/oracles/ManualFeed.sol:22"
+          },
+          {
+            "label": "versionManager",
+            "offset": 0,
+            "slot": "155",
+            "type": "t_address",
+            "contract": "ManualFeed",
+            "src": "contracts/oracles/ManualFeed.sol:23"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_uint256)1_storage": {
+            "label": "uint256[1]",
+            "numberOfBytes": "32"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]",
+            "numberOfBytes": "1568"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_int256": {
+            "label": "int256",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint80,t_struct(RoundData)654_storage)": {
+            "label": "mapping(uint80 => struct ManualFeed.RoundData)",
+            "numberOfBytes": "32"
+          },
+          "t_string_storage": {
+            "label": "string",
+            "numberOfBytes": "32"
+          },
+          "t_struct(RoundData)654_storage": {
+            "label": "struct ManualFeed.RoundData",
+            "members": [
+              {
+                "label": "exists",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "price",
+                "type": "t_int256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "startedAt",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "updatedAt",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              }
+            ],
+            "numberOfBytes": "128"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          },
+          "t_uint80": {
+            "label": "uint80",
+            "numberOfBytes": "10"
           }
         }
       }

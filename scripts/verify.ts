@@ -1,35 +1,45 @@
-const { asyncMain } = require("./deploy/util");
-const { isVerifiedBlockscout } = require("../lib/verify");
-const hardhat = require("hardhat");
-const { ethers } = hardhat;
+import { asyncMain, contractInitSpec, readMetadata } from "./deploy/util";
+import { isVerifiedBlockscout } from "../lib/verify";
+import hardhat from "hardhat";
 
-// bytes32(uint256(keccak256("eip1967.proxy.implementation")) - 1)
-const IMPL_SLOT =
-  "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc";
+const {
+  upgrades: {
+    erc1967: { getImplementationAddress },
+  },
+  network: { name: network },
+  ethers,
+} = hardhat;
 
 async function main() {
   console.log("verifying all contracts");
 
-  let addresses = require(`../.openzeppelin/addresses-${hardhat.network.name}`);
+  let upgradeManagerAddress = readMetadata("upgradeManagerAddress", network);
 
-  for (let contractLabel of Object.keys(addresses)) {
-    let { proxy, contractName } = addresses[contractLabel];
+  let upgradeManager = await ethers.getContractAt(
+    "UpgradeManager",
+    upgradeManagerAddress
+  );
 
-    let implementationAddress =
-      "0x" + (await ethers.provider.getStorageAt(proxy, IMPL_SLOT)).slice(26);
+  let contracts = contractInitSpec({ network, onlyUpgradeable: false });
+
+  for (let proxyAddress of await upgradeManager.getProxies()) {
+    let contractId = await upgradeManager.getAdoptedContractId(proxyAddress);
+    let contractName = contracts[contractId].contractName;
+
+    let implementationAddress = await getImplementationAddress(proxyAddress);
 
     if (
       implementationAddress === "0x0000000000000000000000000000000000000000"
     ) {
       // Currently only RewardSafeDelegateImplementation, but this would apply
       // for any non upgradeable contract
-      implementationAddress = proxy;
+      implementationAddress = proxyAddress;
     } else {
-      console.log("Verifying proxy to", contractName, "at", proxy);
+      console.log("Verifying proxy to", contractName, "at", proxyAddress);
       console.log(
         "Note: this should verify proxy contracts, proxy admin, implementation all at once"
       );
-      await verifyAddress(proxy);
+      await verifyAddress(proxyAddress);
     }
 
     console.log("Verifying", contractName, "at", implementationAddress);
@@ -38,7 +48,7 @@ async function main() {
   }
 }
 
-async function verifyAddress(address) {
+async function verifyAddress(address: string) {
   if (!(await isVerifiedBlockscout(address))) {
     try {
       await hardhat.run("verify:verify", {

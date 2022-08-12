@@ -10,6 +10,8 @@ import {
   contractInitSpec,
   getDeployAddress,
   decodeEncodedCall,
+  getUpgradeManager,
+  retryAndWaitForNonceIncrease,
 } from "./util";
 import { debug as debugFactory } from "debug";
 const debug = debugFactory("card-protocol.deploy");
@@ -22,6 +24,7 @@ import {
   ValueOrArrayOfValues,
   PendingChanges,
 } from "./config-utils";
+import { Contract } from "ethers";
 
 export default async function (
   network: string,
@@ -45,6 +48,8 @@ export default async function (
       })
     )
   );
+
+  let upgradeManager = await getUpgradeManager(network);
 
   for (const [contractId, config] of deployConfig.entries()) {
     if (!proxyAddresses[contractId]) {
@@ -85,12 +90,14 @@ export default async function (
             setter,
             values
           );
-          debug(
-            "Calling",
+
+          await configChanged({
             contractId,
-            await decodeEncodedCall(contract, encodedCall)
-          );
-          pendingChanges.encodedCalls[contractId] = encodedCall;
+            encodedCall,
+            upgradeManager,
+            pendingChanges,
+            contract,
+          });
         }
       } else {
         for (let [
@@ -103,6 +110,7 @@ export default async function (
             keyTransform,
             formatter,
             getterParams,
+            getterFunc,
           },
         ] of Object.entries(args)) {
           let queryKey = keyTransform ? keyTransform(key) : key;
@@ -111,7 +119,12 @@ export default async function (
           } else {
             getterParams = [queryKey];
           }
-          const rawValue = await contract[property](...getterParams);
+          let rawValue: unknown;
+          if (getterFunc) {
+            rawValue = await getterFunc(contract);
+          } else {
+            rawValue = await contract[property](...getterParams);
+          }
           let currentValue: Value | Value[];
           if (propertyField && typeof rawValue === "object") {
             currentValue = normalize(rawValue[propertyField]);
@@ -141,12 +154,14 @@ export default async function (
               setter,
               params
             );
-            debug(
-              "Calling",
+
+            await configChanged({
               contractId,
-              await decodeEncodedCall(contract, encodedCall)
-            );
-            pendingChanges.encodedCalls[contractId] = encodedCall;
+              encodedCall,
+              upgradeManager,
+              pendingChanges,
+              contract,
+            });
           }
         }
       }
@@ -162,6 +177,33 @@ Completed configurations
 `);
 }
 
+async function configChanged({
+  contractId,
+  encodedCall,
+  upgradeManager,
+  pendingChanges,
+  contract,
+}: {
+  contractId: string;
+  encodedCall: string;
+  upgradeManager: Contract;
+  pendingChanges: PendingChanges;
+  contract: Contract;
+}): Promise<void> {
+  debug("Calling", contractId, "\n", decodeEncodedCall(contract, encodedCall));
+
+  if (process.env.IMMEDIATE_CONFIG_APPLY) {
+    // if there are a large series of calls e.g. during initial setup, it might make more sense
+    // to run this script as the owner and perform the config directly, if there are multiple calls for each
+    // contract
+    debug("Immediate apply");
+    await retryAndWaitForNonceIncrease(() =>
+      upgradeManager.call(contractId, encodedCall)
+    );
+  } else {
+    pendingChanges.encodedCalls[contractId] = encodedCall;
+  }
+}
 function isEqual(val1, val2): boolean {
   if (Array.isArray(val1) && Array.isArray(val2)) {
     return (

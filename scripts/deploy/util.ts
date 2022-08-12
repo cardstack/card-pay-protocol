@@ -176,6 +176,27 @@ export async function retry<T>(
   throw new Error("Reached max retry attempts");
 }
 
+// This waits for nonce increase after doing a transaction to prevent the next
+// transaction having the wrong nonce
+export async function retryAndWaitForNonceIncrease<T>(
+  cb: RetryCallback<T>,
+  address = null,
+  maxAttempts = 10
+): Promise<T> {
+  if (!address) {
+    address = await getDeployAddress();
+  }
+  let oldNonce = await ethers.provider.getTransactionCount(address);
+
+  let result = await retry(cb, maxAttempts);
+  await retry(async () => {
+    if ((await ethers.provider.getTransactionCount(address)) === oldNonce) {
+      throw new Error("Nonce not increased yet");
+    }
+  });
+  return result;
+}
+
 async function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -195,6 +216,21 @@ export async function deployedCodeMatches(
     contractName,
     currentImplementationAddress
   );
+}
+
+// If you are using a forked node, you can update the contract code locally and use
+// this function to set this code for the local fork to the new bytecode for debugging
+export async function setCodeToLocal(
+  contractName: string,
+  address: string
+): Promise<void> {
+  let artifact = hre.artifacts.require(contractName);
+  artifact.deployedBytecode;
+
+  await hre.network.provider.request({
+    method: "hardhat_setCode",
+    params: [address, artifact.deployedBytecode],
+  });
 }
 
 export async function deployedImplementationMatches(
@@ -309,6 +345,22 @@ export async function reportProtocolStatus(
       continue;
     }
 
+    let formattedCall = null;
+    if (adoptedContract.encodedCall !== "0x") {
+      formattedCall = decodeEncodedCall(contract, adoptedContract.encodedCall);
+      try {
+        await getProvider().call({
+          data: adoptedContract.encodedCall,
+          to: contract.address,
+          from: upgradeManager.address,
+        });
+      } catch (e) {
+        formattedCall = `${formattedCall}\nFAILING CALL!: ${extractErrorMessage(
+          e
+        )}`;
+      }
+    }
+
     table.push([
       adoptedContract.id,
       contractName,
@@ -317,9 +369,7 @@ export async function reportProtocolStatus(
       adoptedContract.upgradeAddress !== ZERO_ADDRESS
         ? adoptedContract.upgradeAddress
         : null,
-      adoptedContract.encodedCall !== "0x"
-        ? await decodeEncodedCall(contract, adoptedContract.encodedCall)
-        : null,
+      formattedCall,
       localBytecodeChanged,
     ]);
   }
@@ -327,10 +377,10 @@ export async function reportProtocolStatus(
   return { table, anyChanged };
 }
 
-export async function decodeEncodedCall(
+export function decodeEncodedCall(
   contract: Contract,
   encodedCall: string
-): Promise<string> {
+): string {
   let tx = contract.interface.parseTransaction({ data: encodedCall });
   let {
     functionFragment: { name, inputs },
@@ -371,6 +421,16 @@ export async function getOrDeployUpgradeManager(
     debug(`Deployed new upgrade manager to ${upgradeManager.address}`);
     writeMetadata("upgradeManagerAddress", upgradeManager.address, network);
     return upgradeManager;
+  }
+}
+
+export function extractErrorMessage(e: { error: { body: string } }): string {
+  // missing revert data in call exception error causing this horrible lookup pattern
+  if (e.error && e.error.body) {
+    return JSON.parse(e.error.body).error.message;
+  } else {
+    console.log(e);
+    throw e;
   }
 }
 

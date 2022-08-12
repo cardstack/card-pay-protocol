@@ -11,24 +11,27 @@ import {
   getSigner,
   getUpgradeManager,
   reportProtocolStatus,
-  retry,
+  retryAndWaitForNonceIncrease,
 } from "./util";
+
 import { Contract } from "@ethersproject/contracts";
 const debug = debugFactory("card-protocol.deploy");
 
 async function main() {
   let network = getNetwork();
   const { pendingChanges, unverifiedImpls } = await deployContracts(network);
+
   await configureCardProtocol(network, pendingChanges);
 
   let contracts = contractInitSpec({ network, onlyUpgradeable: true });
   let proxyAddresses = await getProxyAddresses(network);
+  let deployAddress = await getDeployAddress();
 
   for (let [contractId] of Object.entries(contracts)) {
     let proxyAddress = proxyAddresses[contractId].proxy;
 
     let upgradeManager = (await getUpgradeManager(network)).connect(
-      getSigner(await getDeployAddress())
+      getSigner(deployAddress)
     );
 
     let newImplementation = pendingChanges.newImplementations[contractId];
@@ -51,7 +54,7 @@ async function main() {
       );
     } else if (newImplementation && encodedCall) {
       debug("Proposing upgrade and call for", contractId);
-      await retry(
+      await retryAndWaitForNonceIncrease(
         async () =>
           await upgradeManager.proposeUpgradeAndCall(
             contractId,
@@ -61,14 +64,14 @@ async function main() {
       );
     } else if (newImplementation) {
       debug("Proposing upgrade for", contractId);
-      await retry(
+      await retryAndWaitForNonceIncrease(
         async () =>
           await upgradeManager.proposeUpgrade(contractId, newImplementation)
       );
       debug(`Successfully proposed upgrade`);
     } else if (encodedCall) {
       debug("Proposing call for", contractId);
-      await retry(
+      await retryAndWaitForNonceIncrease(
         async () => await upgradeManager.proposeCall(contractId, encodedCall)
       );
     }

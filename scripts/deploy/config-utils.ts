@@ -1,8 +1,8 @@
+import { Contract } from "@ethersproject/contracts";
 import { debug as debugFactory } from "debug";
 import dotenv from "dotenv";
 import hre from "hardhat";
 import { resolve } from "path";
-
 const debug = debugFactory("card-protocol.deploy");
 
 export interface AddressFile {
@@ -31,6 +31,7 @@ export interface MappingConfig {
     propertyField?: string;
     formatter?: Formatter;
     getterParams?: Value[];
+    getterFunc?: (contract: Contract) => Promise<unknown>;
   };
 }
 
