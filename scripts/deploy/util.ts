@@ -1,19 +1,34 @@
-import { readJSONSync } from "fs-extra";
+import { JsonRpcProvider, JsonRpcSigner } from "@ethersproject/providers";
+
+import { hashBytecodeWithoutMetadata } from "@openzeppelin/upgrades-core";
+import Table from "cli-table3";
+import { debug as debugFactory } from "debug";
+import { prompt } from "enquirer";
+import { Contract, ContractFactory } from "ethers";
 import { existsSync } from "fs";
+import { readJSONSync, writeJsonSync } from "fs-extra";
+import hre from "hardhat";
+import {
+  HardhatNetworkHDAccountsConfig,
+  HttpNetworkConfig,
+} from "hardhat/types";
 import { resolve } from "path";
 import TrezorWalletProvider from "trezor-cli-wallet-provider";
-import { debug as debugFactory } from "debug";
-import { hashBytecodeWithoutMetadata } from "@openzeppelin/upgrades-core";
+import { ZERO_ADDRESS } from "../../test/migration/util";
+import { AddressFile, getNetwork } from "./config-utils";
+import { default as contractInitSpec } from "./contract-init-spec";
+import { patchNetworks } from "./patchNetworks";
 
-export { patchNetworks } from "./patchNetworks";
+export { patchNetworks };
+export { contractInitSpec };
+export { getNetwork };
+patchNetworks();
 
 const debug = debugFactory("card-protocol.deploy");
 
-import hre from "hardhat";
 const {
   upgrades: {
     deployProxy,
-    upgradeProxy,
     erc1967: { getImplementationAddress },
   },
   ethers,
@@ -24,31 +39,7 @@ const {
   },
 } = hre;
 
-import {
-  HardhatNetworkHDAccountsConfig,
-  HttpNetworkConfig,
-} from "hardhat/types";
-
 const { mnemonic } = accounts as HardhatNetworkHDAccountsConfig;
-
-import { Contract, ContractFactory } from "ethers";
-import { JsonRpcProvider, JsonRpcSigner } from "@ethersproject/providers";
-import { AddressFile } from "./config-utils";
-
-export function readAddressFile(network: string): AddressFile {
-  network = network === "hardhat" ? "localhost" : network;
-  const addressesFile = resolve(
-    __dirname,
-    "..",
-    "..",
-    ".openzeppelin",
-    `addresses-${network}.json`
-  );
-  if (!existsSync(addressesFile)) {
-    throw new Error(`Cannot read from the addresses file ${addressesFile}`);
-  }
-  return readJSONSync(addressesFile);
-}
 
 function getHardhatTestWallet() {
   let provider = ethers.getDefaultProvider("http://localhost:8545");
@@ -71,15 +62,20 @@ export async function makeFactory(
   }
 
   return (await ethers.getContractFactory(contractName)).connect(
-    getProvider().getSigner(await getDeployAddress())
+    getSigner(await getDeployAddress())
   );
 }
 
-export function getSigner(): JsonRpcSigner {
-  return getProvider().getSigner();
+export function getSigner(address?: string): JsonRpcSigner {
+  return getProvider().getSigner(address);
 }
 
+let trezorProvider: JsonRpcProvider;
 export function getProvider(): JsonRpcProvider {
+  if (trezorProvider) {
+    return trezorProvider;
+  }
+
   const {
     network: { name: network, config },
   } = hre;
@@ -88,51 +84,61 @@ export function getProvider(): JsonRpcProvider {
   const { derivationPath } = config as unknown as { derivationPath: string };
 
   if (network === "localhost") {
+    debug("Using ethers.getDefaultProvider");
     return ethers.getDefaultProvider(
       "http://localhost:8545"
     ) as JsonRpcProvider;
   }
 
+  debug("Using TrezorWalletProvider");
   const walletProvider = new TrezorWalletProvider(rpcUrl, {
     chainId: chainId,
     numberOfAccounts: 3,
     derivationPath,
   });
-
-  return new ethers.providers.Web3Provider(walletProvider, network);
+  trezorProvider = new ethers.providers.Web3Provider(walletProvider, network);
+  return trezorProvider;
 }
 
+let deployAddress: string;
 export async function getDeployAddress(): Promise<string> {
+  if (deployAddress) {
+    return deployAddress;
+  }
   if (hre.network.name === "hardhat") {
     let [signer] = await ethers.getSigners();
-    return signer.address;
+    deployAddress = signer.address;
   } else if (hre.network.name === "localhost") {
     if (process.env.HARDHAT_FORKING) {
-      const addressesFile = `./.openzeppelin/addresses-${process.env.HARDHAT_FORKING}.json`;
-      debug(
-        "Determining deploy address for forked deploy from addresses file",
-        addressesFile
+      debug("Determining deploy address for forked deploy from metadata file");
+
+      let upgradeManagerAddress = readMetadata(
+        "upgradeManagerAddress",
+        process.env.HARDHAT_FORKING
+      );
+      debug("Found upgrade manager address in metadata", upgradeManagerAddress);
+      let upgradeManager = await ethers.getContractAt(
+        "UpgradeManager",
+        upgradeManagerAddress
       );
 
-      let addresses = readJSONSync(addressesFile);
-      let versionManagerAddress = addresses.VersionManager.proxy;
-      let versionManager = await ethers.getContractAt(
-        "VersionManager",
-        versionManagerAddress
-      );
+      let owner = await upgradeManager.owner();
 
-      let owner = await versionManager.owner();
+      debug(`Impersonating upgradeManager owner: ${owner}`);
+
       await hre.network.provider.request({
         method: "hardhat_impersonateAccount",
         params: [owner],
       });
-      return owner;
+      deployAddress = owner;
     } else {
-      return getHardhatTestWallet().address;
+      deployAddress = getHardhatTestWallet().address;
     }
+  } else {
+    const trezorSigner = getSigner();
+    deployAddress = await trezorSigner.getAddress();
   }
-  const trezorSigner = getSigner();
-  return await trezorSigner.getAddress();
+  return deployAddress;
 }
 
 export function asyncMain(main: { (...args: unknown[]): Promise<void> }): void {
@@ -148,10 +154,11 @@ type RetryCallback<T> = () => Promise<T>;
 
 export async function retry<T>(
   cb: RetryCallback<T>,
-  maxAttempts = 8
+  maxAttempts = 10
 ): Promise<T> {
   let attempts = 0;
   do {
+    await delay(1000 + attempts * 1000);
     try {
       attempts++;
       return await cb();
@@ -169,7 +176,35 @@ export async function retry<T>(
   throw new Error("Reached max retry attempts");
 }
 
-async function deployedCodeMatches(contractName: string, proxyAddress: string) {
+// This waits for nonce increase after doing a transaction to prevent the next
+// transaction having the wrong nonce
+export async function retryAndWaitForNonceIncrease<T>(
+  cb: RetryCallback<T>,
+  address = null,
+  maxAttempts = 10
+): Promise<T> {
+  if (!address) {
+    address = await getDeployAddress();
+  }
+  let oldNonce = await ethers.provider.getTransactionCount(address);
+
+  let result = await retry(cb, maxAttempts);
+  await retry(async () => {
+    if ((await ethers.provider.getTransactionCount(address)) === oldNonce) {
+      throw new Error("Nonce not increased yet");
+    }
+  });
+  return result;
+}
+
+async function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+export async function deployedCodeMatches(
+  contractName: string,
+  proxyAddress: string
+): Promise<boolean> {
   let currentImplementationAddress = await getImplementationAddress(
     proxyAddress
   );
@@ -181,6 +216,21 @@ async function deployedCodeMatches(contractName: string, proxyAddress: string) {
     contractName,
     currentImplementationAddress
   );
+}
+
+// If you are using a forked node, you can update the contract code locally and use
+// this function to set this code for the local fork to the new bytecode for debugging
+export async function setCodeToLocal(
+  contractName: string,
+  address: string
+): Promise<void> {
+  let artifact = hre.artifacts.require(contractName);
+  artifact.deployedBytecode;
+
+  await hre.network.provider.request({
+    method: "hardhat_setCode",
+    params: [address, artifact.deployedBytecode],
+  });
 }
 
 export async function deployedImplementationMatches(
@@ -206,42 +256,6 @@ export async function deployedImplementationMatches(
   return deployedCodeHash === localCodeHash;
 }
 
-export async function upgradeImplementation(
-  contractName: string,
-  proxyAddress: string
-): Promise<void> {
-  await retry(async () => {
-    if (await deployedCodeMatches(contractName, proxyAddress)) {
-      debug(
-        `Deployed bytecode already matches for ${contractName}@${proxyAddress} - no need to deploy new version`
-      );
-    } else {
-      debug(
-        `Bytecode changed for ${contractName}@${proxyAddress}... Upgrading`
-      );
-
-      if (!process.env.DRY_RUN) {
-        let factory = await makeFactory(contractName);
-
-        await upgradeProxy(proxyAddress, factory);
-
-        debug(`Successfully upgraded proxy`);
-
-        let matchesAfter = await deployedCodeMatches(
-          contractName,
-          proxyAddress
-        );
-
-        if (!matchesAfter) {
-          throw new Error(
-            `Bytecode does not match for ${contractName}@${proxyAddress} after deploy!`
-          );
-        }
-      }
-    }
-  });
-}
-
 export async function deployNewProxyAndImplementation(
   contractName: string,
   constructorArgs: unknown[]
@@ -250,7 +264,7 @@ export async function deployNewProxyAndImplementation(
     try {
       debug(`Creating factory`);
       let factory = await makeFactory(contractName);
-      debug(`Deploying proxy`);
+      debug(`Deploying proxy with constructorArgs`, constructorArgs);
       let instance = await deployProxy(factory, constructorArgs);
       debug("Waiting for transaction");
       await instance.deployed();
@@ -260,4 +274,212 @@ export async function deployNewProxyAndImplementation(
       throw new Error("It failed, retrying");
     }
   });
+}
+
+export async function getProxies(network: string): Promise<string[]> {
+  let upgradeManager = await getUpgradeManager(network);
+  return await upgradeManager.getProxies();
+}
+
+export async function getProxyAddresses(network: string): Promise<AddressFile> {
+  let proxies = await getProxies(network);
+  let upgradeManager = await getUpgradeManager(network);
+
+  let addresses: AddressFile = {};
+  for (let proxyAddress of proxies) {
+    let id = await upgradeManager.getAdoptedContractId(proxyAddress);
+    addresses[id] = { proxy: proxyAddress };
+  }
+
+  return addresses;
+}
+
+export async function reportProtocolStatus(
+  network: string,
+  includeUnchanged = false
+): Promise<{ table: Table.Table; anyChanged: boolean }> {
+  let upgradeManager = await getUpgradeManager(network);
+
+  let proxyAddresses = await getProxies(network);
+
+  let contracts = contractInitSpec({ network });
+
+  let anyChanged = false;
+
+  let table = new Table({
+    head: [
+      "Contract ID",
+      "Contract Name",
+      "Proxy Address",
+      "Current Implementation Address",
+      "Proposed Implementation Address",
+      "Proposed Function Call",
+      "Local Bytecode Changed",
+    ],
+  });
+
+  for (let proxyAddress of proxyAddresses) {
+    let adoptedContract = await upgradeManager.adoptedContractsByProxyAddress(
+      proxyAddress
+    );
+    let contractName = contracts[adoptedContract.id].contractName;
+    let contract = await ethers.getContractAt(contractName, proxyAddress);
+
+    let localBytecodeChanged = (await deployedCodeMatches(
+      contractName,
+      proxyAddress
+    ))
+      ? null
+      : "YES";
+
+    let codeChanges =
+      adoptedContract.upgradeAddress !== ZERO_ADDRESS ||
+      adoptedContract.encodedCall !== "0x" ||
+      localBytecodeChanged;
+
+    if (codeChanges) {
+      anyChanged = true;
+    }
+
+    if (!codeChanges && !includeUnchanged) {
+      continue;
+    }
+
+    let formattedCall = null;
+    if (adoptedContract.encodedCall !== "0x") {
+      formattedCall = decodeEncodedCall(contract, adoptedContract.encodedCall);
+      try {
+        await getProvider().call({
+          data: adoptedContract.encodedCall,
+          to: contract.address,
+          from: upgradeManager.address,
+        });
+      } catch (e) {
+        formattedCall = `${formattedCall}\nFAILING CALL!: ${extractErrorMessage(
+          e
+        )}`;
+      }
+    }
+
+    table.push([
+      adoptedContract.id,
+      contractName,
+      proxyAddress,
+      await getImplementationAddress(proxyAddress),
+      adoptedContract.upgradeAddress !== ZERO_ADDRESS
+        ? adoptedContract.upgradeAddress
+        : null,
+      formattedCall,
+      localBytecodeChanged,
+    ]);
+  }
+
+  return { table, anyChanged };
+}
+
+export function decodeEncodedCall(
+  contract: Contract,
+  encodedCall: string
+): string {
+  let tx = contract.interface.parseTransaction({ data: encodedCall });
+  let {
+    functionFragment: { name, inputs },
+    args,
+  } = tx;
+
+  let formattedArgs = inputs.map(
+    (input, i) => `\n  ${input.type} ${input.name}: ${args[i]}`
+  );
+
+  return `${name}(${formattedArgs.join()}\n)`;
+}
+
+export async function getUpgradeManager(network: string): Promise<Contract> {
+  let upgradeManagerAddress = readMetadata("upgradeManagerAddress", network);
+  return await ethers.getContractAt(
+    "UpgradeManager",
+    upgradeManagerAddress,
+    getSigner(await getDeployAddress())
+  );
+}
+
+export async function getOrDeployUpgradeManager(
+  network: string,
+  owner: string
+): Promise<Contract> {
+  if (readMetadata("upgradeManagerAddress", network)) {
+    let upgradeManager = await getUpgradeManager(network);
+    debug(`Found existing upgrade manager at ${upgradeManager.address}`);
+    return upgradeManager;
+  } else {
+    debug(`Deploying new upgrade manager`);
+    let UpgradeManager = await makeFactory("UpgradeManager");
+
+    let upgradeManager = await deployProxy(UpgradeManager, [owner]);
+    await upgradeManager.deployed();
+
+    debug(`Deployed new upgrade manager to ${upgradeManager.address}`);
+    writeMetadata("upgradeManagerAddress", upgradeManager.address, network);
+    return upgradeManager;
+  }
+}
+
+export function extractErrorMessage(e: { error: { body: string } }): string {
+  // missing revert data in call exception error causing this horrible lookup pattern
+  if (e.error && e.error.body) {
+    return JSON.parse(e.error.body).error.message;
+  } else {
+    console.log(e);
+    throw e;
+  }
+}
+
+export function readMetadata(
+  key: string,
+  network: string = getNetwork()
+): string {
+  let path = metadataPath(network);
+  if (existsSync(path)) {
+    return readJSONSync(path)[key];
+  }
+}
+export function writeMetadata(
+  key: string,
+  value: unknown,
+  network: string = getNetwork()
+): void {
+  let path = metadataPath(network);
+  let metadata = {};
+  if (existsSync(path)) {
+    metadata = readJSONSync(path);
+  }
+
+  metadata[key] = value;
+
+  writeJsonSync(path, metadata);
+}
+
+function metadataPath(network: string) {
+  return resolve(__dirname, `../../.openzeppelin/metadata-${network}.json`);
+}
+
+export async function confirm(message: string): Promise<boolean> {
+  if (process.env.CARDPAY_AUTOCONFIRM == "true") {
+    return true;
+  }
+
+  let { question } = (await prompt({
+    type: "confirm",
+    name: "question",
+    message,
+  })) as { question: boolean };
+
+  return question;
+}
+
+export async function contractWithSigner(
+  contract: Contract,
+  signer: string
+): Promise<Contract> {
+  return contract.connect(getSigner(signer));
 }

@@ -1,60 +1,68 @@
-import { resolve, basename, join, sep as fileSeparator } from "path";
+import { basename, join, sep as fileSeparator } from "path";
 import merge from "lodash/merge";
 import { existsSync } from "fs";
 import glob from "glob-promise";
-import dotenv from "dotenv";
-import hre from "hardhat";
 import lodashIsEqual from "lodash/isEqual";
 import difference from "lodash/difference";
-import retry from "async-retry";
-import { makeFactory, patchNetworks, asyncMain, readAddressFile } from "./util";
+import {
+  makeFactory,
+  getProxyAddresses,
+  contractInitSpec,
+  getDeployAddress,
+  decodeEncodedCall,
+  getUpgradeManager,
+  retryAndWaitForNonceIncrease,
+} from "./util";
+import { debug as debugFactory } from "debug";
+const debug = debugFactory("card-protocol.deploy");
+
 import {
   AddressFile,
   ContractConfig,
   Formatter,
   Value,
   ValueOrArrayOfValues,
+  PendingChanges,
 } from "./config-utils";
+import { Contract } from "ethers";
 
-patchNetworks();
-
-const {
-  network: { name: network },
-} = hre;
-dotenv.config({ path: resolve(process.cwd(), `.env.${network}`) });
-
-async function sendTx<T>(cb: () => Promise<T>) {
-  return await retry(cb, { retries: 3 });
-}
-
-async function main(proxyAddresses: AddressFile) {
-  proxyAddresses = proxyAddresses || readAddressFile(network);
+export default async function (
+  network: string,
+  pendingChanges: PendingChanges
+): Promise<void> {
+  debug(`Configuring protocol on ${network}`);
 
   const configFiles: string[] = await glob(`${__dirname}/config/**/*.ts`);
   const configs = configFiles.map((file) => basename(file));
+
+  let proxyAddresses = await getProxyAddresses(network);
+  const owner = await getDeployAddress();
+  const contracts = contractInitSpec({ network, owner, onlyUpgradeable: true });
 
   const deployConfig = new Map(
     await Promise.all(
       configs.map(async (configModule) => {
         const name = configModule.replace(".ts", "");
-        const config = await getConfig(configModule, proxyAddresses);
+        const config = await getConfig(configModule, proxyAddresses, network);
         return [name, config] as [string, ContractConfig];
       })
     )
   );
 
+  let upgradeManager = await getUpgradeManager(network);
+
   for (const [contractId, config] of deployConfig.entries()) {
     if (!proxyAddresses[contractId]) {
-      console.log(`Skipping ${contractId} for network ${network}`);
+      debug(`Skipping ${contractId} for network ${network}`);
       continue;
     }
 
-    const { contractName, proxy: address } = proxyAddresses[contractId];
+    const { proxy: address } = proxyAddresses[contractId];
+    const { contractName } = contracts[contractId];
     const contractFactory = await makeFactory(contractName);
     const contract = contractFactory.attach(address);
     let contractUnchanged = true;
-    console.log(`
-Detecting config changes for ${contractId} (${address})`);
+    debug(`\nDetecting config changes for ${contractId} (${address})`);
     for (const [setter, args] of Object.entries(config)) {
       if (Array.isArray(args)) {
         let stateChanged = false;
@@ -78,8 +86,18 @@ Detecting config changes for ${contractId} (${address})`);
         if (stateChanged) {
           contractUnchanged = false;
           const values = args.map((arg) => arg.value);
-          printSend(contractId, setter, values);
-          await sendTx(async () => contract[setter](...values));
+          let encodedCall = contract.interface.encodeFunctionData(
+            setter,
+            values
+          );
+
+          await configChanged({
+            contractId,
+            encodedCall,
+            upgradeManager,
+            pendingChanges,
+            contract,
+          });
         }
       } else {
         for (let [
@@ -92,6 +110,7 @@ Detecting config changes for ${contractId} (${address})`);
             keyTransform,
             formatter,
             getterParams,
+            getterFunc,
           },
         ] of Object.entries(args)) {
           let queryKey = keyTransform ? keyTransform(key) : key;
@@ -100,7 +119,12 @@ Detecting config changes for ${contractId} (${address})`);
           } else {
             getterParams = [queryKey];
           }
-          const rawValue = await contract[property](...getterParams);
+          let rawValue: unknown;
+          if (getterFunc) {
+            rawValue = await getterFunc(contract);
+          } else {
+            rawValue = await contract[property](...getterParams);
+          }
           let currentValue: Value | Value[];
           if (propertyField && typeof rawValue === "object") {
             currentValue = normalize(rawValue[propertyField]);
@@ -126,23 +150,60 @@ Detecting config changes for ${contractId} (${address})`);
             contractUnchanged = false;
             const params = replaceParams(paramsTemplate, key, value);
             printDiff(currentValue, value, property, formatter, key);
-            printSend(contractId, setter, params);
-            await sendTx(async () => contract[setter](...params));
+            let encodedCall = contract.interface.encodeFunctionData(
+              setter,
+              params
+            );
+
+            await configChanged({
+              contractId,
+              encodedCall,
+              upgradeManager,
+              pendingChanges,
+              contract,
+            });
           }
         }
       }
     }
 
     if (contractUnchanged) {
-      console.log(`  no changes`);
+      debug(`  no changes`);
     }
   }
 
-  console.log(`
+  debug(`
 Completed configurations
 `);
 }
 
+async function configChanged({
+  contractId,
+  encodedCall,
+  upgradeManager,
+  pendingChanges,
+  contract,
+}: {
+  contractId: string;
+  encodedCall: string;
+  upgradeManager: Contract;
+  pendingChanges: PendingChanges;
+  contract: Contract;
+}): Promise<void> {
+  debug("Calling", contractId, "\n", decodeEncodedCall(contract, encodedCall));
+
+  if (process.env.IMMEDIATE_CONFIG_APPLY) {
+    // if there are a large series of calls e.g. during initial setup, it might make more sense
+    // to run this script as the owner and perform the config directly, if there are multiple calls for each
+    // contract
+    debug("Immediate apply");
+    await retryAndWaitForNonceIncrease(() =>
+      upgradeManager.call(contractId, encodedCall)
+    );
+  } else {
+    pendingChanges.encodedCalls[contractId] = encodedCall;
+  }
+}
 function isEqual(val1, val2): boolean {
   if (Array.isArray(val1) && Array.isArray(val2)) {
     return (
@@ -154,7 +215,8 @@ function isEqual(val1, val2): boolean {
 
 async function getConfig(
   moduleName: string,
-  proxyAddresses: AddressFile
+  proxyAddresses: AddressFile,
+  network: string
 ): Promise<ContractConfig> {
   let networkConfigFile = join(__dirname, "config", network, moduleName);
   let defaultConfigFile = join(__dirname, "config", "default", moduleName);
@@ -200,14 +262,14 @@ function printDiff(
       : formatter(desiredValue);
   }
   if (propertyKey) {
-    console.log(`  mapping "${propertyName}(${propertyKey})":
+    debug(`  mapping "${propertyName}(${propertyKey})":
     ${JSON.stringify(currentValue)}${
       currentFormatted ? " (" + currentFormatted + ")" : ""
     } => ${JSON.stringify(desiredValue)}${
       desiredFormatted ? " (" + desiredFormatted + ")" : ""
     }`);
   } else {
-    console.log(`  property "${propertyName}":
+    debug(`  property "${propertyName}":
     ${JSON.stringify(currentValue)}${
       currentFormatted ? " (" + currentFormatted + ")" : ""
     } => ${isSet ? "add item to set: " : ""} ${JSON.stringify(desiredValue)}${
@@ -216,23 +278,12 @@ function printDiff(
   }
 }
 
-function printSend(
-  contractId: string,
-  setter: string,
-  params: (Value | Value[])[]
-) {
-  console.log(
-    `  Calling ${contractId}.${setter}() with arguments:
-    ${params.map((v) => JSON.stringify(v)).join(",\n    ")}`
-  );
-}
-
 //eslint-disable-next-line @typescript-eslint/no-explicit-any
 function normalize(value: any) {
   if (Array.isArray(value)) {
     return value.map((v) => normalize(v));
   } else {
-    const valueStr = value.toString();
+    const valueStr = value && value.toString();
     if (["true", "false"].includes(valueStr)) {
       return valueStr === "true";
     }
@@ -251,5 +302,3 @@ function replaceParams(params: Value[], name: string, value: Value) {
     return p;
   });
 }
-
-asyncMain(main);

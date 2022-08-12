@@ -6,8 +6,9 @@ import {
   GNOSIS_SAFE_FACTORY,
   REWARD_PROGRAM_REGISTRATION_FEE_IN_SPEND,
   GOVERNANCE_ADMIN,
+  EXTRA_EIP_1271_CONTRACTS,
 } from "../../config-utils";
-import { getDeployAddress } from "../../util";
+import { getDeployAddress, readMetadata } from "../../util";
 
 export default async function (
   proxyAddresses: AddressFile
@@ -42,7 +43,7 @@ export default async function (
       },
       {
         name: "getEip1271Contracts",
-        value: [address("RewardPool")],
+        value: [address("RewardPool")].concat(EXTRA_EIP_1271_CONTRACTS),
       },
       {
         name: "governanceAdmin",
@@ -50,7 +51,7 @@ export default async function (
       },
       {
         name: "safeDelegateImplementation",
-        value: address("RewardSafeDelegateImplementation"),
+        value: readMetadata("RewardSafeDelegateImplementationAddress"),
       },
       {
         name: "versionManager",

@@ -1,7 +1,13 @@
+import { Contract } from "@ethersproject/contracts";
+import { debug as debugFactory } from "debug";
+import dotenv from "dotenv";
+import hre from "hardhat";
+import { resolve } from "path";
+const debug = debugFactory("card-protocol.deploy");
+
 export interface AddressFile {
   [contractId: string]: {
     proxy: string;
-    contractName: string;
   };
 }
 
@@ -25,6 +31,16 @@ export interface MappingConfig {
     propertyField?: string;
     formatter?: Formatter;
     getterParams?: Value[];
+    getterFunc?: (contract: Contract) => Promise<unknown>;
+  };
+}
+
+export interface PendingChanges {
+  newImplementations: {
+    [contractId: string]: string;
+  };
+  encodedCalls: {
+    [contractId: string]: string;
   };
 }
 
@@ -43,6 +59,24 @@ export function getAddress(contractId: string, addresses: AddressFile): string {
   return info.proxy;
 }
 
+export function getNetwork(): string {
+  let {
+    network: { name: network },
+  } = hre;
+  if (process.env.HARDHAT_FORKING) {
+    network = process.env.HARDHAT_FORKING;
+    debug(`(Using forked copy of ${network})`);
+  }
+
+  return network;
+}
+
+let network = getNetwork();
+
+let envFile = `.env.${network}`;
+debug("Loading env file", envFile);
+dotenv.config({ path: resolve(process.cwd(), envFile) });
+
 export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 export const GNOSIS_SAFE_MASTER_COPY =
   process.env.GNOSIS_SAFE_MASTER_COPY ??
@@ -52,7 +86,10 @@ export const GNOSIS_SAFE_FACTORY =
   "0x76E2cFc1F5Fa8F6a5b3fC4c8F4788F0116861F9B";
 export const RELAY_SERVER_TX_SENDER =
   process.env.RELAY_SERVER_TX_SENDER ?? ZERO_ADDRESS;
-export const PREPAID_CARD_PROVISIONER = RELAY_SERVER_TX_SENDER;
+export const PREPAID_CARD_PROVISIONERS = [
+  RELAY_SERVER_TX_SENDER,
+  "0x3087ee149042C9c303784bb964f5C5dA28246Fe1",
+];
 export const GAS_FEE_RECEIVER = RELAY_SERVER_TX_SENDER;
 export const GAS_FEE_CARD_WEI = String(
   process.env.GAS_FEE_CARD_WEI ?? "1000000000000000000"
@@ -80,3 +117,6 @@ export const GOVERNANCE_ADMIN =
   process.env.GOVERNANCE_ADMIN ?? "0x76E2cFc1F5Fa8F6a5b3fC4c8F4788F0116861F9B";
 
 export const MERCHANT_REGISTRAR = RELAY_SERVER_TX_SENDER;
+export const EXTRA_EIP_1271_CONTRACTS = process.env.EXTRA_EIP_1271_CONTRACTS
+  ? process.env.EXTRA_EIP_1271_CONTRACTS.split(",")
+  : [];

@@ -13,6 +13,7 @@ coverage
 *.lock
 
 .openzeppelin/.session
+.openzeppelin/metadata-localhost.json
 .openzeppelin/addresses-localhost-*.json
 .openzeppelin/unknown-31337.json
 .openzeppelin/unknown-1337.json
