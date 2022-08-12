@@ -283,7 +283,7 @@ function normalize(value: any) {
   if (Array.isArray(value)) {
     return value.map((v) => normalize(v));
   } else {
-    const valueStr = value.toString();
+    const valueStr = value && value.toString();
     if (["true", "false"].includes(valueStr)) {
       return valueStr === "true";
     }

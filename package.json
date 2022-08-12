@@ -33,7 +33,7 @@
     "deploy:localhost": "env HARDHAT_NETWORK=localhost SKIP_VERIFY=true yarn deploy && yarn deploy:localhost:upgrade-protocol",
     "deploy:localhost:upgrade-protocol": "env HARDHAT_NETWORK=localhost yarn deploy:upgrade-protocol",
     "deploy:smoketest": "rm -f .openzeppelin/metadata-localhost.json .openzeppelin/unknown-31337.json && env BRIDGE_MEDIATOR=0xd1e46b8a371AF04Ce74c993B325b844ef0f48b16 RELAY_SERVER_TX_SENDER=0x76E2cFc1F5Fa8F6a5b3fC4c8F4788F0116861F9B CARDPAY_AUTOCONFIRM=true yarn deploy:smoketest:localhost",
-    "deploy:smoketest:localhost": "yarn deploy:localhost && yarn deploy:localhost && yarn deploy:status:localhost",
+    "deploy:smoketest:localhost": "env IMMEDIATE_CONFIG_APPLY=true yarn deploy:localhost && yarn deploy:localhost && yarn deploy:status:localhost",
     "deploy:fork": "env SKIP_VERIFY=true HARDHAT_NETWORK=localhost DO_NOT_SET_THIS_ENV_VAR____IS_HARDHAT_CI=true yarn deploy",
     "deploy:fork:sokol": "env HARDHAT_FORKING=sokol FORK_BLOCK_NUMBER=$SOKOL_FORK_BLOCK_NUMBER yarn deploy:fork",
     "deploy:fork:xdai": "env HARDHAT_FORKING=xdai FORK_BLOCK_NUMBER=$XDAI_FORK_BLOCK_NUMBER yarn deploy:fork",
