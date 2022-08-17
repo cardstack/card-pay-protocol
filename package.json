@@ -41,6 +41,7 @@
     "deploy:xdai:config-only": "env HARDHAT_NETWORK=xdai yarn deploy:config-only",
     "deploy:xdai:upgrade-only:skip-verify": "env SKIP_VERIFY=true yarn deploy:xdai:upgrade-only",
     "deploy:xdai:version": "env HARDHAT_NETWORK=xdai yarn deploy:config:version",
+    "deploy:xdai:update-card-price": "env HARDHAT_NETWORK=xdai ./node_modules/.bin/hardhat run scripts/deploy/updateCardPrice.ts",
     "deploy:localhost": "yarn deploy:localhost:contracts && yarn deploy:localhost:config:manual-feeds && yarn deploy:localhost:config-only && yarn deploy:localhost:config:version",
     "deploy:localhost:contracts": "env HARDHAT_NETWORK=localhost SKIP_VERIFY=true yarn deploy:contracts",
     "deploy:localhost:config-only": "env HARDHAT_NETWORK=localhost yarn deploy:config-only",

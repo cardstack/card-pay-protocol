@@ -158,10 +158,11 @@ async function main() {
       init: [owner],
     };
   }
-  // only use mock DIA for private networks
+  // only use mock DIA for private networks, and as a temporary fix on xdai due to the DIA oracle being out of date
   if (
-    ["hardhat", "localhost"].includes(network) &&
-    !process.env.HARDHAT_FORKING
+    (["hardhat", "localhost"].includes(network) &&
+      !process.env.HARDHAT_FORKING) ||
+    network == "xdai"
   ) {
     contracts["CARDOracle"] = {
       contractName: "ChainlinkFeedAdapter",

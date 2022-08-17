@@ -1,5 +1,9 @@
+import {
+  chainlinkETHUSDAddress,
+  chainlinkDAIUSDAddress,
+} from "../../xdai-oracles";
+
 import { getAddress, AddressFile, ContractConfig } from "../../config-utils";
-import { diaOracleAddress, chainlinkDAIUSDAddress } from "../../xdai-oracles";
 
 export default async function (
   proxyAddresses: AddressFile
@@ -10,16 +14,25 @@ export default async function (
   return Promise.resolve({
     setup: [
       {
-        name: "oracle",
-        value: diaOracleAddress,
+        name: "tokenUsdFeed",
+        value: address("CARDUSDFeed"),
       },
       {
-        name: "tokenSymbol",
-        value: "CARD",
+        name: "ethUsdFeed",
+        value: chainlinkETHUSDAddress,
       },
       {
         name: "daiUsdFeed",
         value: chainlinkDAIUSDAddress,
+      },
+      {
+        name: "canSnapToUSD",
+        value: false,
+      },
+      {
+        name: "snapThreshold",
+        value: 0,
+        formatter: (v) => `${(Number(v) / 100000000).toFixed(4)}%`,
       },
       {
         name: "versionManager",

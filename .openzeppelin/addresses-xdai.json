@@ -71,10 +71,6 @@
     "proxy": "0x36698BF676c40be119b0Fe4f964f4527943258F2",
     "contractName": "ChainlinkFeedAdapter"
   },
-  "CARDOracle": {
-    "proxy": "0xd570Ed8b313Fe6aEEA4064bd1713b5Cc6d41D3C5",
-    "contractName": "DIAOracleAdapter"
-  },
   "VersionManager": {
     "proxy": "0xd900133f96F85939335ADb9786ea9f2e07Bdf8c0",
     "contractName": "VersionManager"
@@ -122,5 +118,13 @@
   "AddPrepaidCardSKUHandler": {
     "proxy": "0xBdcd28A153F615c23508C98112a7EC628f9ce38D",
     "contractName": "AddPrepaidCardSKUHandler"
+  },
+  "CARDOracle": {
+    "proxy": "0x426558d0cA2f9ec45EbBe4A69Ef10323d5941446",
+    "contractName": "ChainlinkFeedAdapter"
+  },
+  "CARDUSDFeed": {
+    "proxy": "0xb62e47A584F9Db9fCbB3241966A12B24dF926261",
+    "contractName": "ManualFeed"
   }
 }
