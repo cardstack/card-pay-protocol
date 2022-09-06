@@ -28,6 +28,8 @@ async function reportStatus() {
   if (anyChanged) {
     console.log("Exiting with exit code 1 because changes were detected");
     process.exit(1);
+  } else {
+    console.log("No changes detected to deploy");
   }
 }
 

@@ -120,3 +120,51 @@ export const MERCHANT_REGISTRAR = RELAY_SERVER_TX_SENDER;
 export const EXTRA_EIP_1271_CONTRACTS = process.env.EXTRA_EIP_1271_CONTRACTS
   ? process.env.EXTRA_EIP_1271_CONTRACTS.split(",")
   : [];
+
+export const SafeTxTypes = {
+  SafeTx: [
+    {
+      type: "address",
+      name: "to",
+    },
+    {
+      type: "uint256",
+      name: "value",
+    },
+    {
+      type: "bytes",
+      name: "data",
+    },
+    {
+      type: "uint8",
+      name: "operation",
+    },
+    {
+      type: "uint256",
+      name: "safeTxGas",
+    },
+    {
+      type: "uint256",
+      name: "baseGas",
+    },
+    {
+      type: "uint256",
+      name: "gasPrice",
+    },
+    {
+      type: "address",
+      name: "gasToken",
+    },
+    {
+      type: "address",
+      name: "refundReceiver",
+    },
+    {
+      type: "uint256",
+      name: "nonce",
+    },
+  ],
+};
+
+export const CALL = 0;
+export const DELEGATE_CALL = 1;

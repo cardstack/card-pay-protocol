@@ -19,13 +19,14 @@ const debug = debugFactory("card-protocol.deploy");
 
 async function main() {
   let network = getNetwork();
+  let deployAddress = await getDeployAddress();
+
   const { pendingChanges, unverifiedImpls } = await deployContracts(network);
 
   await configureCardProtocol(network, pendingChanges);
 
   let contracts = contractInitSpec({ network, onlyUpgradeable: true });
   let proxyAddresses = await getProxyAddresses(network);
-  let deployAddress = await getDeployAddress();
 
   for (let [contractId] of Object.entries(contracts)) {
     let proxyAddress = proxyAddresses[contractId].proxy;
