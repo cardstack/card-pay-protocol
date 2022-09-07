@@ -1,6 +1,12 @@
-import { asyncMain, contractInitSpec, readMetadata } from "./deploy/util";
+import {
+  asyncMain,
+  contractInitSpec,
+  readMetadata,
+  retry,
+} from "./deploy/util";
 import { isVerifiedBlockscout } from "../lib/verify";
 import hardhat from "hardhat";
+import { ZERO_ADDRESS } from "./deploy/config-utils";
 
 const {
   upgrades: {
@@ -45,29 +51,43 @@ async function main() {
     console.log("Verifying", contractName, "at", implementationAddress);
 
     await verifyAddress(implementationAddress);
+
+    let proposedImplementationAddress =
+      await upgradeManager.getPendingUpgradeAddress(proxyAddress);
+    if (proposedImplementationAddress !== ZERO_ADDRESS) {
+      console.log(
+        "Verifying proposed implementation for",
+        contractName,
+        "at",
+        proposedImplementationAddress
+      );
+      await verifyAddress(proposedImplementationAddress);
+    }
   }
 }
 
 async function verifyAddress(address: string) {
   if (!(await isVerifiedBlockscout(address))) {
-    try {
-      await hardhat.run("verify:verify", {
-        address: address,
-        constructorArguments: [],
-      });
-    } catch (e) {
-      if (
-        // some old proxy contracts are unverified and use old solidity versions, skip these proxy contracts for now
-        e.message.includes("contract you want to verify was compiled with") ||
-        // Ignore already verified contracts
-        e.message.includes("Smart-contract already verified.")
-      ) {
-        console.log(e.message);
-        return;
-      } else {
-        throw e;
+    await retry(async () => {
+      try {
+        await hardhat.run("verify:verify", {
+          address: address,
+          constructorArguments: [],
+        });
+      } catch (e) {
+        if (
+          // some old proxy contracts are unverified and use old solidity versions, skip these proxy contracts for now
+          e.message.includes("contract you want to verify was compiled with") ||
+          // Ignore already verified contracts
+          e.message.includes("Smart-contract already verified.")
+        ) {
+          console.log(e.message);
+          return;
+        } else {
+          throw e;
+        }
       }
-    }
+    });
   }
 }
 
