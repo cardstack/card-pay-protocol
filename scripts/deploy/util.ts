@@ -308,9 +308,9 @@ export async function reportProtocolStatus(
   network: string,
   includeUnchanged = false
 ): Promise<{ table: Table.Table; anyChanged: boolean }> {
-  let upgradeManager = await getUpgradeManager(network);
+  let upgradeManager = await getUpgradeManager(network, true);
 
-  let proxyAddresses = await getProxies(network);
+  let proxyAddresses = await upgradeManager.getProxies();
 
   let contracts = contractInitSpec({ network });
 
