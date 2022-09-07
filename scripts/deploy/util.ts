@@ -615,12 +615,11 @@ export async function safeTransaction({
     message
   );
 
-  debug("Signature Bytes", signatureBytes);
-
   let signature: SafeSignature = {
     signer: signerAddress.toLowerCase(),
     signatureBytes,
   };
+  debug("Signature:", signature);
 
   let signatures = [...priorSignatures, signature];
 
