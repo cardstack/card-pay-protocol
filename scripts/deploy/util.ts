@@ -1,6 +1,9 @@
 import { BaseProvider, JsonRpcProvider } from "@ethersproject/providers";
 
 import { hashBytecodeWithoutMetadata } from "@openzeppelin/upgrades-core";
+import axios from "axios";
+import { diffLines } from "diff";
+import colors from "colors/safe";
 import Table from "cli-table3";
 import { debug as debugFactory } from "debug";
 import { prompt } from "enquirer";
@@ -385,6 +388,73 @@ export async function reportProtocolStatus(
   return { table, anyChanged };
 }
 
+export async function proposedDiff(contractId: string): Promise<void> {
+  let network = getNetwork();
+  let upgradeManager = await getUpgradeManager(network, true);
+
+  let proxyAddress = await upgradeManager.adoptedContractAddresses(contractId);
+  let currentImplementationAddress = await getImplementationAddress(
+    proxyAddress
+  );
+  let proposedImplementationAddress =
+    await upgradeManager.getPendingUpgradeAddress(proxyAddress);
+
+  if (!proposedImplementationAddress) {
+    throw new Error(`no new implementation proposed for ${contractId}`);
+  }
+
+  debug(
+    "Current implementation address",
+    currentImplementationAddress,
+    "proposed implementation address",
+    proposedImplementationAddress
+  );
+
+  debug("Fetching source code for current implementation…");
+  let currentCode = await getSourceCode(currentImplementationAddress, network);
+  debug("Fetching source code for proposed implementation…");
+  let proposedCode = await getSourceCode(
+    proposedImplementationAddress,
+    network
+  );
+
+  let diff = diffLines(currentCode, proposedCode);
+  diff.forEach((part) => {
+    // green for additions, red for deletions
+    // grey for common parts
+    const color = part.added ? "green" : part.removed ? "red" : "grey";
+    process.stderr.write(colors[color](part.value));
+  });
+}
+
+async function getSourceCode(address: string, network: string) {
+  let apiUrl = {
+    sokol: "https://blockscout.com/poa/sokol/api",
+    xdai: "https://blockscout.com/poa/xdai/api",
+  }[network];
+  let url = `${apiUrl}?module=contract&action=getsourcecode&address=${address}`;
+  const {
+    data: {
+      result: [result],
+    },
+  } = await axios.get(url);
+
+  if (!result.SourceCode) {
+    throw new Error(
+      `Missing SourceCode for ${address}, contract may not be verified`
+    );
+  }
+
+  let code: string = result.AdditionalSources.map(
+    (s) => `// ${s.Filename}\n=================\n\n${s.SourceCode}`
+  ).join("\n\n");
+
+  return code.concat(
+    "\n\n// Main Contract Code\n===============\n\n",
+    result.SourceCode
+  );
+}
+
 export function getProvider(): BaseProvider {
   return ethers.getDefaultProvider(getRpcUrl());
 }
@@ -424,12 +494,19 @@ export function decodeEncodedCall(
   return `${name}(${formattedArgs.join()}\n)`;
 }
 
-export async function getUpgradeManager(network: string): Promise<Contract> {
+export async function getUpgradeManager(
+  network: string,
+  readOnly = false
+): Promise<Contract> {
   let upgradeManagerAddress = readMetadata("upgradeManagerAddress", network);
+  let signer: VoidSigner;
+  if (!readOnly) {
+    signer = getSigner(await getDeployAddress());
+  }
   return await ethers.getContractAt(
     "UpgradeManager",
     upgradeManagerAddress,
-    getSigner(await getDeployAddress())
+    signer
   );
 }
 

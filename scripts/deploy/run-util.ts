@@ -4,6 +4,7 @@ import {
   asyncMain,
   getNetwork,
   patchNetworks,
+  proposedDiff,
   reportProtocolStatus,
 } from "./util";
 let network = getNetwork();
@@ -15,6 +16,12 @@ async function main() {
   switch (process.env.DEPLOY_UTIL) {
     case "status":
       await reportStatus();
+      break;
+    case "proposed-diff":
+      if (!process.env.CONTRACT_ID) {
+        throw new Error("Missing CONTRACT_ID env var");
+      }
+      await proposedDiff(process.env.CONTRACT_ID);
       break;
     default:
       throw new Error(`Unknown DEPLOY_UTIL: ${process.env.DEPLOY_UTIL}`);
