@@ -567,6 +567,7 @@ export async function safeTransaction({
 
   let signer = getSigner(signerAddress);
   let safe = await ethers.getContractAt("GnosisSafe", safeAddress, signer);
+  debug("Preparing for safe transaction using safe", safeAddress);
   let safeVersion = await safe.VERSION();
   debug("It looks like a safe, version", safeVersion);
   let safeOwners = await safe.getOwners();
