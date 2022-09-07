@@ -113,7 +113,7 @@ export function getSigner(address?: string): VoidSigner {
       walletProvider,
       network
     );
-    return trezorProvider.getSigner() as unknown as VoidSigner;
+    return trezorProvider.getSigner(address) as unknown as VoidSigner;
   }
 }
 

@@ -9,7 +9,9 @@ import {
   confirm,
   decodeEncodedCall,
   encodeWithSignature,
+  getDeployAddress,
   getNetwork,
+  getSigner,
   getUpgradeManager,
   patchNetworks,
 } from "./util";
@@ -51,7 +53,8 @@ async function main() {
 
   let gnosisSafeProxyFactory = await ethers.getContractAt(
     "GnosisSafeProxyFactory",
-    process.env.GNOSIS_SAFE_FACTORY
+    process.env.GNOSIS_SAFE_FACTORY,
+    getSigner(await getDeployAddress())
   );
 
   let encodedSetupCall = encodeWithSignature(
