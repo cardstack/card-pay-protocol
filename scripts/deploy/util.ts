@@ -740,6 +740,8 @@ export async function safeTransaction({
         concatenatedSignatures
       );
 
+      debug("Submitted transaction", tx.hash);
+
       return await tx.wait();
     });
 
