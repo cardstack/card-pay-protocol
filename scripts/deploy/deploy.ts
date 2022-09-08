@@ -15,6 +15,7 @@ import {
 } from "./util";
 
 import { Contract } from "@ethersproject/contracts";
+import { ZERO_ADDRESS } from "./config-utils";
 const debug = debugFactory("card-protocol.deploy");
 
 async function main() {
@@ -129,6 +130,9 @@ async function proposalMatches({
   let pendingAddress = await upgradeManager.getPendingUpgradeAddress(
     proxyAddress
   );
+  if (pendingAddress === ZERO_ADDRESS) {
+    pendingAddress = undefined;
+  }
 
   if (pendingAddress !== newImplementation) {
     return false;

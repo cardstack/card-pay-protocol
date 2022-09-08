@@ -22,6 +22,7 @@ import { ZERO_ADDRESS } from "../../test/migration/util";
 import { AddressFile, CALL, getNetwork, SafeTxTypes } from "./config-utils";
 import { default as contractInitSpec } from "./contract-init-spec";
 import { patchNetworks } from "./patchNetworks";
+import { Interface } from "@ethersproject/abi";
 
 export { patchNetworks };
 export { contractInitSpec };
@@ -428,6 +429,18 @@ export async function proposedDiff(contractId: string): Promise<void> {
 }
 
 async function getSourceCode(address: string, network: string) {
+  let result = await getSourceCodeData(address, network);
+  let code: string = result.AdditionalSources.map(
+    (s) => `// ${s.Filename}\n=================\n\n${s.SourceCode}`
+  ).join("\n\n");
+
+  return code.concat(
+    "\n\n// Main Contract Code\n===============\n\n",
+    result.SourceCode
+  );
+}
+
+async function getSourceCodeData(address: string, network: string) {
   let apiUrl = {
     sokol: "https://blockscout.com/poa/sokol/api",
     xdai: "https://blockscout.com/poa/xdai/api",
@@ -444,15 +457,7 @@ async function getSourceCode(address: string, network: string) {
       `Missing SourceCode for ${address}, contract may not be verified`
     );
   }
-
-  let code: string = result.AdditionalSources.map(
-    (s) => `// ${s.Filename}\n=================\n\n${s.SourceCode}`
-  ).join("\n\n");
-
-  return code.concat(
-    "\n\n// Main Contract Code\n===============\n\n",
-    result.SourceCode
-  );
+  return result;
 }
 
 export function getProvider(): BaseProvider {
@@ -474,7 +479,14 @@ export function decodeEncodedCall(
   contract: Contract | ContractFactory,
   encodedCall: string
 ): string {
-  let tx = contract.interface.parseTransaction({ data: encodedCall });
+  return decodeEncodedCallWithInterface(contract.interface, encodedCall);
+}
+
+export function decodeEncodedCallWithInterface(
+  iface: Interface,
+  encodedCall: string
+): string {
+  let tx = iface.parseTransaction({ data: encodedCall });
   let {
     functionFragment: { name, inputs },
     args,
@@ -488,7 +500,7 @@ export function decodeEncodedCall(
     }
   }
   let formattedArgs = inputs.map(
-    (input, i) => `\n  ${input.type} ${input.name}: ${format(args[i])}`
+    (input, i) => `\n  ${input.type} ${input.name || ""}: ${format(args[i])}`
   );
 
   return `${name}(${formattedArgs.join()}\n)`;
@@ -702,6 +714,10 @@ export async function safeTransaction({
 
   if (signatures.length >= threshold.toNumber()) {
     debug("We have enough signatures, submitting safe transaction");
+
+    if (!(await confirm("Execute safe transaction?"))) {
+      process.exit(1);
+    }
 
     let concatenatedSignatures =
       "0x" +
