@@ -430,9 +430,12 @@ export async function proposedDiff(contractId: string): Promise<void> {
 
 async function getSourceCode(address: string, network: string) {
   let result = await getSourceCodeData(address, network);
-  let code: string = result.AdditionalSources.map(
-    (s) => `// ${s.Filename}\n=================\n\n${s.SourceCode}`
-  ).join("\n\n");
+  let code: string = sortBy(
+    result.AdditionalSources,
+    ({ Filename }) => Filename
+  )
+    .map((s) => `// ${s.Filename}\n=================\n\n${s.SourceCode}`)
+    .join("\n\n");
 
   return code.concat(
     "\n\n// Main Contract Code\n===============\n\n",
