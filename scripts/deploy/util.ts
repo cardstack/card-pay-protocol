@@ -528,7 +528,10 @@ export async function getOrDeployUpgradeManager(
 ): Promise<Contract> {
   if (readMetadata("upgradeManagerAddress", network)) {
     let upgradeManager = await getUpgradeManager(network);
-    debug(`Found existing upgrade manager at ${upgradeManager.address}`);
+    let nonce = await upgradeManager.nonce(); // Sanity check that it's a real contract
+    debug(
+      `Found existing upgrade manager at ${upgradeManager.address}, nonce ${nonce}`
+    );
     return upgradeManager;
   } else {
     debug(`Deploying new upgrade manager`);

@@ -234,6 +234,11 @@
       "address": "0xb62e47A584F9Db9fCbB3241966A12B24dF926261",
       "txHash": "0x262fe94cc7058fa4ae06112d701f18c2b4d1b6c9d6e87817792861a63d0a8b66",
       "kind": "transparent"
+    },
+    {
+      "address": "0x7030C81EB0ADD208ecb4Fb5e0BF856C4bC51b6Ed",
+      "txHash": "0x5fc72fe1b63c479ab0518f0030e22bda85f68e62a54d8be4a059c860bdcad537",
+      "kind": "transparent"
     }
   ],
   "impls": {
@@ -18278,6 +18283,257 @@
           "t_uint80": {
             "label": "uint80",
             "numberOfBytes": "10"
+          }
+        }
+      }
+    },
+    "0c3e4ba64709f1685856aa999fea200fd218c3ab9c20614b939558575e66eb95": {
+      "address": "0xB664649352A830a59dF1A1BE35070808eC59F9E8",
+      "txHash": "0x5cffdd0e5712d15103fa5f3d1f593a837031d8feb6e78ef3fa100a81f7ecef60",
+      "layout": {
+        "storage": [
+          {
+            "label": "_initialized",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint8",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:62",
+            "retypedFrom": "bool"
+          },
+          {
+            "label": "_initializing",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:67"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ContextUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:36"
+          },
+          {
+            "label": "_owner",
+            "offset": 0,
+            "slot": "51",
+            "type": "t_address",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:22"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "52",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:94"
+          },
+          {
+            "label": "____gap_Ownable",
+            "offset": 0,
+            "slot": "101",
+            "type": "t_array(t_uint256)1_storage",
+            "contract": "Ownable",
+            "src": "contracts/core/Ownable.sol:23"
+          },
+          {
+            "label": "_status",
+            "offset": 0,
+            "slot": "102",
+            "type": "t_uint256",
+            "contract": "ReentrancyGuardUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol:38"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "103",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "ReentrancyGuardUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol:74"
+          },
+          {
+            "label": "nonce",
+            "offset": 0,
+            "slot": "152",
+            "type": "t_uint256",
+            "contract": "UpgradeManager",
+            "src": "contracts/UpgradeManager.sol:24"
+          },
+          {
+            "label": "upgradeProposers",
+            "offset": 0,
+            "slot": "153",
+            "type": "t_struct(AddressSet)6541_storage",
+            "contract": "UpgradeManager",
+            "src": "contracts/UpgradeManager.sol:26"
+          },
+          {
+            "label": "versionManager",
+            "offset": 0,
+            "slot": "155",
+            "type": "t_address",
+            "contract": "UpgradeManager",
+            "src": "contracts/UpgradeManager.sol:27"
+          },
+          {
+            "label": "proxies",
+            "offset": 0,
+            "slot": "156",
+            "type": "t_struct(AddressSet)6541_storage",
+            "contract": "UpgradeManager",
+            "src": "contracts/UpgradeManager.sol:29"
+          },
+          {
+            "label": "proxiesWithPendingChanges",
+            "offset": 0,
+            "slot": "158",
+            "type": "t_struct(AddressSet)6541_storage",
+            "contract": "UpgradeManager",
+            "src": "contracts/UpgradeManager.sol:30"
+          },
+          {
+            "label": "adoptedContractsByProxyAddress",
+            "offset": 0,
+            "slot": "160",
+            "type": "t_mapping(t_address,t_struct(AdoptedContract)15365_storage)",
+            "contract": "UpgradeManager",
+            "src": "contracts/UpgradeManager.sol:31"
+          },
+          {
+            "label": "adoptedContractAddresses",
+            "offset": 0,
+            "slot": "161",
+            "type": "t_mapping(t_string_memory_ptr,t_address)",
+            "contract": "UpgradeManager",
+            "src": "contracts/UpgradeManager.sol:32"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_bytes32)dyn_storage": {
+            "label": "bytes32[]",
+            "numberOfBytes": "32"
+          },
+          "t_array(t_uint256)1_storage": {
+            "label": "uint256[1]",
+            "numberOfBytes": "32"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]",
+            "numberOfBytes": "1568"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_bytes_storage": {
+            "label": "bytes",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_struct(AdoptedContract)15365_storage)": {
+            "label": "mapping(address => struct UpgradeManager.AdoptedContract)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_uint256)": {
+            "label": "mapping(bytes32 => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_string_memory_ptr,t_address)": {
+            "label": "mapping(string => address)",
+            "numberOfBytes": "32"
+          },
+          "t_string_memory_ptr": {
+            "label": "string",
+            "numberOfBytes": "32"
+          },
+          "t_string_storage": {
+            "label": "string",
+            "numberOfBytes": "32"
+          },
+          "t_struct(AddressSet)6541_storage": {
+            "label": "struct EnumerableSetUpgradeable.AddressSet",
+            "members": [
+              {
+                "label": "_inner",
+                "type": "t_struct(Set)6240_storage",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_struct(AdoptedContract)15365_storage": {
+            "label": "struct UpgradeManager.AdoptedContract",
+            "members": [
+              {
+                "label": "id",
+                "type": "t_string_storage",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "proxyAdmin",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "encodedCall",
+                "type": "t_bytes_storage",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "upgradeAddress",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "3"
+              }
+            ],
+            "numberOfBytes": "128"
+          },
+          "t_struct(Set)6240_storage": {
+            "label": "struct EnumerableSetUpgradeable.Set",
+            "members": [
+              {
+                "label": "_values",
+                "type": "t_array(t_bytes32)dyn_storage",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_indexes",
+                "type": "t_mapping(t_bytes32,t_uint256)",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
           }
         }
       }
