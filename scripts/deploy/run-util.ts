@@ -1,14 +1,10 @@
-import { Interface } from "@ethersproject/abi";
-import axios from "axios";
 import dotenv from "dotenv";
-import { compact } from "lodash";
 import { resolve } from "path";
 import {
-  assert,
   asyncMain,
-  decodeEncodedCallWithInterface,
   getDeployAddress,
   getNetwork,
+  guessSignatureAndDecode,
   patchNetworks,
   proposedDiff,
   reportProtocolStatus,
@@ -96,49 +92,6 @@ async function safeTx() {
     data,
     priorSignatures: true,
   });
-}
-
-async function guessSignatureAndDecode(txdata: string) {
-  try {
-    let signature = txdata.slice(0, 10);
-    let {
-      data: { results },
-      status,
-    } = await axios.get(
-      `https://www.4byte.directory/api/v1/signatures/?hex_signature=${signature}`
-    );
-
-    assert(status === 200, "api failed to return response");
-
-    let decodedCalls = compact(
-      results.map(({ text_signature }) => {
-        let iface = new Interface([`function ${text_signature}`]);
-        try {
-          return decodeEncodedCallWithInterface(iface, txdata);
-        } catch (e) {
-          console.log(e);
-          return null;
-        }
-      })
-    );
-
-    if (decodedCalls.length) {
-      console.log(
-        "Found these possible interpretations of the function call:\n\n",
-        decodedCalls.join("\n\n")
-      );
-    } else {
-      console.log(
-        "Could not find interpretation of function call from public signature db"
-      );
-    }
-
-    console.log(
-      "IMPORTANT: this relies on a public db of 4-byte signatures that are trivial to brute force collisions of. Do not trust these decodes and ensure the txdata you are signing is from a trusted source"
-    );
-  } catch (e) {
-    console.log("Failed to decode txdata, cannot show preview", e);
-  }
 }
 
 asyncMain(main);
