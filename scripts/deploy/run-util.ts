@@ -60,7 +60,7 @@ async function reportStatus() {
 // Util for executing an arbitrary safe transaction whilst collecting multiple signatures
 // ENCODED_SAFE_TX: encoded data, e.g.:
 
-// let encodedSafeTx = (await ethers.getContractAt("Foo", "0x123")).interface.encodeFunctionData("bar", [
+// let encodedSafeTx = (await ethers.getContractFactory("Foo")).interface.encodeFunctionData("bar", [
 //   123,
 //   "456",
 // ]);
