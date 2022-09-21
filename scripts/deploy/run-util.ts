@@ -4,6 +4,7 @@ import {
   asyncMain,
   getDeployAddress,
   getNetwork,
+  getUpgradeManager,
   guessSignatureAndDecode,
   patchNetworks,
   proposedDiff,
@@ -21,10 +22,21 @@ async function main() {
       await reportStatus();
       break;
     case "proposed-diff":
-      if (!process.env.CONTRACT_ID) {
-        throw new Error("Missing CONTRACT_ID env var");
+      if (process.env.CONTRACT_ID) {
+        await proposedDiff(process.env.CONTRACT_ID);
+      } else {
+        let upgradeManager = await getUpgradeManager(network, true);
+        let proxies = await upgradeManager.getProxies();
+
+        for (let proxyAddress of proxies) {
+          let adoptedContract =
+            await upgradeManager.adoptedContractsByProxyAddress(proxyAddress);
+
+          if (adoptedContract.upgradeAddress) {
+            await proposedDiff(adoptedContract.id);
+          }
+        }
       }
-      await proposedDiff(process.env.CONTRACT_ID);
       break;
     case "safe-tx":
       await safeTx();
