@@ -14,16 +14,9 @@ import "@openzeppelin/hardhat-upgrades";
 import "./lib/hardhat-error-on-compiler-warnings";
 import "./lib/hardhat-use-local-compiler";
 
-const SOKOL_RPC_URL = "https://sokol.poa.network";
-let XDAI_RPC_URL;
-
-if (process.env.HARDHAT_FORKING) {
-  // To read old blocks for events for migration test an archive node is needed
-  XDAI_RPC_URL = "https://xdai-archive.blockscout.com";
-} else {
-  XDAI_RPC_URL =
-    "https://lively-wandering-flower.xdai.quiknode.pro/3dfea7d446624963a14e4c0032e9af18477ae295/";
-}
+const SOKOL_RPC_URL = "https://sokol-archive.poa.network/";
+let XDAI_RPC_URL =
+  "https://lively-wandering-flower.xdai.quiknode.pro/3dfea7d446624963a14e4c0032e9af18477ae295/";
 
 let forking: { url: string; blockNumber?: number },
   forkingChainId: number,

@@ -1,10 +1,13 @@
-import { JsonRpcProvider, JsonRpcSigner } from "@ethersproject/providers";
+import { BaseProvider, JsonRpcProvider } from "@ethersproject/providers";
 
 import { hashBytecodeWithoutMetadata } from "@openzeppelin/upgrades-core";
+import axios from "axios";
+import { diffLines } from "diff";
+import colors from "colors/safe";
 import Table from "cli-table3";
 import { debug as debugFactory } from "debug";
 import { prompt } from "enquirer";
-import { Contract, ContractFactory } from "ethers";
+import { Contract, ContractFactory, VoidSigner } from "ethers";
 import { existsSync } from "fs";
 import { readJSONSync, writeJsonSync } from "fs-extra";
 import hre from "hardhat";
@@ -12,12 +15,14 @@ import {
   HardhatNetworkHDAccountsConfig,
   HttpNetworkConfig,
 } from "hardhat/types";
+import { compact, sortBy } from "lodash";
 import { resolve } from "path";
 import TrezorWalletProvider from "trezor-cli-wallet-provider";
 import { ZERO_ADDRESS } from "../../test/migration/util";
-import { AddressFile, getNetwork } from "./config-utils";
+import { AddressFile, CALL, getNetwork, SafeTxTypes } from "./config-utils";
 import { default as contractInitSpec } from "./contract-init-spec";
 import { patchNetworks } from "./patchNetworks";
+import { Interface } from "@ethersproject/abi";
 
 export { patchNetworks };
 export { contractInitSpec };
@@ -66,16 +71,17 @@ export async function makeFactory(
   );
 }
 
-export function getSigner(address?: string): JsonRpcSigner {
-  return getProvider().getSigner(address);
+function getRpcUrl(): string {
+  const {
+    network: { config },
+  } = hre;
+  const { url: rpcUrl } = config as HttpNetworkConfig;
+
+  return rpcUrl;
 }
 
-let trezorProvider: JsonRpcProvider;
-export function getProvider(): JsonRpcProvider {
-  if (trezorProvider) {
-    return trezorProvider;
-  }
-
+// VoidSigner is the same as Signer but implements TypedDataSigner interface
+export function getSigner(address?: string): VoidSigner {
   const {
     network: { name: network, config },
   } = hre;
@@ -83,21 +89,36 @@ export function getProvider(): JsonRpcProvider {
   const { chainId, url: rpcUrl } = config as HttpNetworkConfig;
   const { derivationPath } = config as unknown as { derivationPath: string };
 
-  if (network === "localhost") {
-    debug("Using ethers.getDefaultProvider");
-    return ethers.getDefaultProvider(
+  if (
+    network === "localhost" &&
+    (!process.env.HARDHAT_FORKING || process.env.IMPERSONATE_ADDRESS)
+  ) {
+    let provider = ethers.getDefaultProvider(
       "http://localhost:8545"
     ) as JsonRpcProvider;
+
+    return provider.getSigner(address) as unknown as VoidSigner;
   }
 
-  debug("Using TrezorWalletProvider");
-  const walletProvider = new TrezorWalletProvider(rpcUrl, {
-    chainId: chainId,
-    numberOfAccounts: 3,
-    derivationPath,
-  });
-  trezorProvider = new ethers.providers.Web3Provider(walletProvider, network);
-  return trezorProvider;
+  if (process.env.DEPLOY_MNEMONIC) {
+    let provider = ethers.getDefaultProvider(rpcUrl) as JsonRpcProvider;
+    return ethers.Wallet.fromMnemonic(
+      process.env.DEPLOY_MNEMONIC,
+      process.env.DEPLOY_MNEMONIC_DERIVATION_PATH
+    ).connect(provider) as unknown as VoidSigner;
+  } else {
+    debug("No DEPLOY_MNEMONIC found, using trezor");
+    const walletProvider = new TrezorWalletProvider(rpcUrl, {
+      chainId: chainId,
+      numberOfAccounts: 3,
+      derivationPath,
+    });
+    let trezorProvider = new ethers.providers.Web3Provider(
+      walletProvider,
+      network
+    );
+    return trezorProvider.getSigner(address) as unknown as VoidSigner;
+  }
 }
 
 let deployAddress: string;
@@ -108,35 +129,25 @@ export async function getDeployAddress(): Promise<string> {
   if (hre.network.name === "hardhat") {
     let [signer] = await ethers.getSigners();
     deployAddress = signer.address;
-  } else if (hre.network.name === "localhost") {
-    if (process.env.HARDHAT_FORKING) {
-      debug("Determining deploy address for forked deploy from metadata file");
-
-      let upgradeManagerAddress = readMetadata(
-        "upgradeManagerAddress",
-        process.env.HARDHAT_FORKING
-      );
-      debug("Found upgrade manager address in metadata", upgradeManagerAddress);
-      let upgradeManager = await ethers.getContractAt(
-        "UpgradeManager",
-        upgradeManagerAddress
-      );
-
-      let owner = await upgradeManager.owner();
-
-      debug(`Impersonating upgradeManager owner: ${owner}`);
-
-      await hre.network.provider.request({
-        method: "hardhat_impersonateAccount",
-        params: [owner],
-      });
-      deployAddress = owner;
-    } else {
-      deployAddress = getHardhatTestWallet().address;
-    }
+  } else if (hre.network.name === "localhost" && !process.env.HARDHAT_FORKING) {
+    deployAddress = getHardhatTestWallet().address;
+  } else if (process.env.IMPERSONATE_ADDRESS) {
+    debug(`Impersonating ${process.env.IMPERSONATE_ADDRESS}`);
+    await hre.network.provider.request({
+      method: "hardhat_impersonateAccount",
+      params: [process.env.IMPERSONATE_ADDRESS],
+    });
+    return process.env.IMPERSONATE_ADDRESS;
   } else {
-    const trezorSigner = getSigner();
-    deployAddress = await trezorSigner.getAddress();
+    deployAddress = await getSigner().getAddress();
+    if (
+      !process.env.HARDHAT_FORKING &&
+      !(await confirm(
+        `Send transactions from address ${deployAddress}? (No further confirmations for mnemnonic-derived addresses)`
+      ))
+    ) {
+      process.exit(1);
+    }
   }
   return deployAddress;
 }
@@ -191,7 +202,7 @@ export async function retryAndWaitForNonceIncrease<T>(
   let result = await retry(cb, maxAttempts);
   await retry(async () => {
     if ((await ethers.provider.getTransactionCount(address)) === oldNonce) {
-      throw new Error("Nonce not increased yet");
+      throw new Error(`Nonce not increased yet for ${address}`);
     }
   });
   return result;
@@ -298,9 +309,9 @@ export async function reportProtocolStatus(
   network: string,
   includeUnchanged = false
 ): Promise<{ table: Table.Table; anyChanged: boolean }> {
-  let upgradeManager = await getUpgradeManager(network);
+  let upgradeManager = await getUpgradeManager(network, true);
 
-  let proxyAddresses = await getProxies(network);
+  let proxyAddresses = await upgradeManager.getProxies();
 
   let contracts = contractInitSpec({ network });
 
@@ -348,6 +359,7 @@ export async function reportProtocolStatus(
     let formattedCall = null;
     if (adoptedContract.encodedCall !== "0x") {
       formattedCall = decodeEncodedCall(contract, adoptedContract.encodedCall);
+
       try {
         await getProvider().call({
           data: adoptedContract.encodedCall,
@@ -377,29 +389,139 @@ export async function reportProtocolStatus(
   return { table, anyChanged };
 }
 
+export async function proposedDiff(contractId: string): Promise<void> {
+  let network = getNetwork();
+  let upgradeManager = await getUpgradeManager(network, true);
+
+  let proxyAddress = await upgradeManager.adoptedContractAddresses(contractId);
+  let currentImplementationAddress = await getImplementationAddress(
+    proxyAddress
+  );
+  let proposedImplementationAddress =
+    await upgradeManager.getPendingUpgradeAddress(proxyAddress);
+
+  if (!proposedImplementationAddress) {
+    throw new Error(`no new implementation proposed for ${contractId}`);
+  }
+
+  debug(
+    "Current implementation address",
+    currentImplementationAddress,
+    "proposed implementation address",
+    proposedImplementationAddress
+  );
+
+  debug("Fetching source code for current implementation…");
+  let currentCode = await getSourceCode(currentImplementationAddress, network);
+  debug("Fetching source code for proposed implementation…");
+  let proposedCode = await getSourceCode(
+    proposedImplementationAddress,
+    network
+  );
+
+  let diff = diffLines(currentCode, proposedCode);
+  diff.forEach((part) => {
+    // green for additions, red for deletions
+    // grey for common parts
+    const color = part.added ? "green" : part.removed ? "red" : "grey";
+    process.stderr.write(colors[color](part.value));
+  });
+}
+
+async function getSourceCode(address: string, network: string) {
+  let result = await getSourceCodeData(address, network);
+  let code: string = sortBy(
+    result.AdditionalSources,
+    ({ Filename }) => Filename
+  )
+    .map((s) => `// ${s.Filename}\n=================\n\n${s.SourceCode}`)
+    .join("\n\n");
+
+  return code.concat(
+    "\n\n// Main Contract Code\n===============\n\n",
+    result.SourceCode
+  );
+}
+
+async function getSourceCodeData(address: string, network: string) {
+  let apiUrl = {
+    sokol: "https://blockscout.com/poa/sokol/api",
+    xdai: "https://blockscout.com/poa/xdai/api",
+  }[network];
+  let url = `${apiUrl}?module=contract&action=getsourcecode&address=${address}`;
+  const {
+    data: {
+      result: [result],
+    },
+  } = await axios.get(url);
+
+  if (!result.SourceCode) {
+    throw new Error(
+      `Missing SourceCode for ${address}, contract may not be verified`
+    );
+  }
+  return result;
+}
+
+export function getProvider(): BaseProvider {
+  return ethers.getDefaultProvider(getRpcUrl());
+}
+export async function getChainId(): Promise<number> {
+  return (await getProvider().getNetwork()).chainId;
+}
+
+export function strip0x(data: string): string {
+  if (data[0] === "0" && data[1] === "x") {
+    return data.slice(2);
+  } else {
+    throw new Error(`String does not start with 0x: ${data}`);
+  }
+}
+
 export function decodeEncodedCall(
-  contract: Contract,
+  contract: Contract | ContractFactory,
   encodedCall: string
 ): string {
-  let tx = contract.interface.parseTransaction({ data: encodedCall });
+  return decodeEncodedCallWithInterface(contract.interface, encodedCall);
+}
+
+export function decodeEncodedCallWithInterface(
+  iface: Interface,
+  encodedCall: string
+): string {
+  let tx = iface.parseTransaction({ data: encodedCall });
   let {
     functionFragment: { name, inputs },
     args,
   } = tx;
 
+  function format(arg: unknown) {
+    if (Array.isArray(arg)) {
+      return JSON.stringify(arg);
+    } else {
+      return arg;
+    }
+  }
   let formattedArgs = inputs.map(
-    (input, i) => `\n  ${input.type} ${input.name}: ${args[i]}`
+    (input, i) => `\n  ${input.type} ${input.name || ""}: ${format(args[i])}`
   );
 
   return `${name}(${formattedArgs.join()}\n)`;
 }
 
-export async function getUpgradeManager(network: string): Promise<Contract> {
+export async function getUpgradeManager(
+  network: string,
+  readOnly = false
+): Promise<Contract> {
   let upgradeManagerAddress = readMetadata("upgradeManagerAddress", network);
+  let signer: VoidSigner;
+  if (!readOnly) {
+    signer = getSigner(await getDeployAddress());
+  }
   return await ethers.getContractAt(
     "UpgradeManager",
     upgradeManagerAddress,
-    getSigner(await getDeployAddress())
+    signer
   );
 }
 
@@ -409,7 +531,10 @@ export async function getOrDeployUpgradeManager(
 ): Promise<Contract> {
   if (readMetadata("upgradeManagerAddress", network)) {
     let upgradeManager = await getUpgradeManager(network);
-    debug(`Found existing upgrade manager at ${upgradeManager.address}`);
+    let nonce = await upgradeManager.nonce(); // Sanity check that it's a real contract
+    debug(
+      `Found existing upgrade manager at ${upgradeManager.address}, nonce ${nonce}`
+    );
     return upgradeManager;
   } else {
     debug(`Deploying new upgrade manager`);
@@ -482,4 +607,211 @@ export async function contractWithSigner(
   signer: string
 ): Promise<Contract> {
   return contract.connect(getSigner(signer));
+}
+
+export function encodeWithSignature(
+  signature: string,
+  ...args: unknown[]
+): string {
+  let iface = new ethers.utils.Interface([`function ${signature}`]);
+  return iface.encodeFunctionData(signature, args);
+}
+
+export function assert(test: boolean, message: string): void {
+  if (!test) {
+    throw new Error(message);
+  }
+}
+
+export async function safeTransaction({
+  signerAddress,
+  safeAddress,
+  to,
+  data,
+  priorSignatures = [],
+  value = 0,
+  operation = CALL,
+  safeTxGas = 0,
+  baseGas = 0,
+  gasPrice = 0,
+  gasToken = ZERO_ADDRESS,
+  refundReceiver = ZERO_ADDRESS,
+}: {
+  signerAddress: string;
+  safeAddress: string;
+  to: string;
+  data: string;
+  priorSignatures?: Array<SafeSignature> | true;
+  value?: number;
+  operation?: number;
+  safeTxGas?: number;
+  baseGas?: number;
+  gasPrice?: number;
+  gasToken?: string;
+  refundReceiver?: string;
+}): Promise<void> {
+  if (priorSignatures === true) {
+    if (process.env.PRIOR_SIGNATURES?.length) {
+      priorSignatures = JSON.parse(process.env.PRIOR_SIGNATURES);
+    } else {
+      priorSignatures = [];
+    }
+  }
+
+  priorSignatures = priorSignatures as Array<SafeSignature>;
+
+  let signer = getSigner(signerAddress);
+  let safe = await ethers.getContractAt("GnosisSafe", safeAddress, signer);
+  debug("Preparing for safe transaction using safe", safeAddress);
+  let safeVersion = await safe.VERSION();
+  debug("It looks like a safe, version", safeVersion);
+  let safeOwners = await safe.getOwners();
+  if (!safeOwners.includes(signerAddress)) {
+    throw new Error(
+      `Signer address ${signerAddress} is not an owner of safe ${safe.address}`
+    );
+  }
+  let threshold = await safe.getThreshold();
+  let nonce = (await safe.nonce()).toNumber();
+
+  debug(
+    `We have ${priorSignatures.length} prior signatures, and the safe threshold is ${threshold}. Safe nonce is ${nonce}.`
+  );
+
+  if (priorSignatures.some((s) => s.signer === signerAddress.toLowerCase())) {
+    throw new Error(
+      `Signer ${signerAddress} is already included in priorSignatures`
+    );
+  }
+
+  let chainId = await getChainId();
+
+  let domain = {
+    verifyingContract: safe.address,
+    chainId,
+  };
+
+  let message = {
+    to,
+    value,
+    data,
+    operation,
+    safeTxGas,
+    baseGas,
+    gasPrice,
+    gasToken,
+    refundReceiver,
+    nonce,
+  };
+
+  let signatureBytes = await signer._signTypedData(
+    domain,
+    SafeTxTypes,
+    message
+  );
+
+  let signature: SafeSignature = {
+    signer: signerAddress.toLowerCase(),
+    signatureBytes,
+  };
+  debug("Signature:", signature);
+
+  let signatures = [...priorSignatures, signature];
+
+  if (signatures.length >= threshold.toNumber()) {
+    debug("We have enough signatures, submitting safe transaction");
+
+    if (!(await confirm("Execute safe transaction?"))) {
+      process.exit(1);
+    }
+
+    let concatenatedSignatures =
+      "0x" +
+      sortBy(signatures, (s) => s.signer)
+        .map((s) => s.signatureBytes)
+        .map(strip0x)
+        .join("");
+
+    let receipt = await retryAndWaitForNonceIncrease(async () => {
+      let tx = await safe.execTransaction(
+        to,
+        value,
+        data,
+        operation,
+        safeTxGas,
+        baseGas,
+        gasPrice,
+        gasToken,
+        refundReceiver,
+        concatenatedSignatures
+      );
+
+      debug("Submitted transaction", tx.hash);
+
+      return await tx.wait();
+    });
+
+    debug("Transaction successful", receipt.transactionHash);
+  } else {
+    debug(
+      "We only have",
+      signatures.length,
+      "signatures, but the threshold is",
+      threshold.toString()
+    );
+    debug(
+      "Still not enough signatures to submit, please gather",
+      threshold - signatures.length,
+      "more signatures. Current signature list:"
+    );
+    debug(JSON.stringify(signatures));
+  }
+}
+
+type SafeSignature = {
+  signer: string;
+  signatureBytes: string;
+};
+
+export async function guessSignatureAndDecode(txdata: string): Promise<void> {
+  try {
+    let signature = txdata.slice(0, 10);
+    let {
+      data: { results },
+      status,
+    } = await axios.get(
+      `https://www.4byte.directory/api/v1/signatures/?hex_signature=${signature}`
+    );
+
+    assert(status === 200, "api failed to return response");
+
+    let decodedCalls = compact(
+      results.map(({ text_signature }) => {
+        let iface = new Interface([`function ${text_signature}`]);
+        try {
+          return decodeEncodedCallWithInterface(iface, txdata);
+        } catch (e) {
+          console.log(e);
+          return null;
+        }
+      })
+    );
+
+    if (decodedCalls.length) {
+      console.log(
+        "Found these possible interpretations of the function call:\n\n",
+        decodedCalls.join("\n\n")
+      );
+    } else {
+      console.log(
+        "Could not find interpretation of function call from public signature db"
+      );
+    }
+
+    console.log(
+      "IMPORTANT: this relies on a public db of 4-byte signatures that are trivial to brute force collisions of. Do not trust these decodes and ensure the txdata you are signing is from a trusted source"
+    );
+  } catch (e) {
+    console.log("Failed to decode txdata, cannot show preview", e);
+  }
 }

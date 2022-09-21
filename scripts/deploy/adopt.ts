@@ -11,9 +11,10 @@ import {
   getOrDeployUpgradeManager,
   getSigner,
   patchNetworks,
-  retry,
+  retryAndWaitForNonceIncrease,
   writeMetadata,
 } from "./util";
+import { shuffle } from "lodash";
 
 const debug = debugFactory("card-protocol.adopt");
 
@@ -94,7 +95,7 @@ async function main() {
 
   debug(`Adopting ${contractIds.length} contracts`);
 
-  for (let contractId of contractIds) {
+  for (let contractId of shuffle(contractIds)) {
     let { contract, proxyAdmin } = await getDeployedContract(contractId);
     if (contractId === "RewardSafeDelegateImplementation") {
       // Not an upgradeable contract in the sense we mean here
@@ -127,7 +128,7 @@ async function main() {
           "  - Owner is not upgrade manager, reassigning to",
           upgradeManager.address
         );
-        await retry(
+        await retryAndWaitForNonceIncrease(
           async () => await contract.transferOwnership(upgradeManager.address)
         );
       }
@@ -136,13 +137,13 @@ async function main() {
           "  - ProxyAdmin owner is not upgrade manager, reassigning to",
           upgradeManager.address
         );
-        await retry(
+        await retryAndWaitForNonceIncrease(
           async () => await proxyAdmin.transferOwnership(upgradeManager.address)
         );
       }
 
       debug("Adopting contract");
-      await retry(
+      await retryAndWaitForNonceIncrease(
         async () =>
           await upgradeManager.adoptContract(
             contractId,

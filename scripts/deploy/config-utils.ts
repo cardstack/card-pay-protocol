@@ -86,10 +86,7 @@ export const GNOSIS_SAFE_FACTORY =
   "0x76E2cFc1F5Fa8F6a5b3fC4c8F4788F0116861F9B";
 export const RELAY_SERVER_TX_SENDER =
   process.env.RELAY_SERVER_TX_SENDER ?? ZERO_ADDRESS;
-export const PREPAID_CARD_PROVISIONERS = [
-  RELAY_SERVER_TX_SENDER,
-  "0x3087ee149042C9c303784bb964f5C5dA28246Fe1",
-];
+export const PREPAID_CARD_PROVISIONERS = [RELAY_SERVER_TX_SENDER];
 export const GAS_FEE_RECEIVER = RELAY_SERVER_TX_SENDER;
 export const GAS_FEE_CARD_WEI = String(
   process.env.GAS_FEE_CARD_WEI ?? "1000000000000000000"
@@ -120,3 +117,51 @@ export const MERCHANT_REGISTRAR = RELAY_SERVER_TX_SENDER;
 export const EXTRA_EIP_1271_CONTRACTS = process.env.EXTRA_EIP_1271_CONTRACTS
   ? process.env.EXTRA_EIP_1271_CONTRACTS.split(",")
   : [];
+
+export const SafeTxTypes = {
+  SafeTx: [
+    {
+      type: "address",
+      name: "to",
+    },
+    {
+      type: "uint256",
+      name: "value",
+    },
+    {
+      type: "bytes",
+      name: "data",
+    },
+    {
+      type: "uint8",
+      name: "operation",
+    },
+    {
+      type: "uint256",
+      name: "safeTxGas",
+    },
+    {
+      type: "uint256",
+      name: "baseGas",
+    },
+    {
+      type: "uint256",
+      name: "gasPrice",
+    },
+    {
+      type: "address",
+      name: "gasToken",
+    },
+    {
+      type: "address",
+      name: "refundReceiver",
+    },
+    {
+      type: "uint256",
+      name: "nonce",
+    },
+  ],
+};
+
+export const CALL = 0;
+export const DELEGATE_CALL = 1;

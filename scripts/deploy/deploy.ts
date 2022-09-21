@@ -15,27 +15,39 @@ import {
 } from "./util";
 
 import { Contract } from "@ethersproject/contracts";
+import { ZERO_ADDRESS } from "./config-utils";
 const debug = debugFactory("card-protocol.deploy");
 
 async function main() {
   let network = getNetwork();
+  let deployAddress = await getDeployAddress();
+
   const { pendingChanges, unverifiedImpls } = await deployContracts(network);
 
   await configureCardProtocol(network, pendingChanges);
 
   let contracts = contractInitSpec({ network, onlyUpgradeable: true });
   let proxyAddresses = await getProxyAddresses(network);
-  let deployAddress = await getDeployAddress();
+
+  let upgradeManager = (await getUpgradeManager(network)).connect(
+    getSigner(deployAddress)
+  );
+
+  let alreadyPending = await upgradeManager.getProxiesWithPendingChanges();
 
   for (let [contractId] of Object.entries(contracts)) {
     let proxyAddress = proxyAddresses[contractId].proxy;
 
-    let upgradeManager = (await getUpgradeManager(network)).connect(
-      getSigner(deployAddress)
-    );
-
     let newImplementation = pendingChanges.newImplementations[contractId];
     let encodedCall = pendingChanges.encodedCalls[contractId];
+
+    let proposeWithWithdrawIfNeeded = async function (cb) {
+      if (alreadyPending.includes(proxyAddress)) {
+        debug("Withdraw needed first for", contractId);
+        await upgradeManager.withdrawChanges(contractId);
+      }
+      return await retryAndWaitForNonceIncrease(cb);
+    };
 
     if (!newImplementation && !encodedCall) {
       continue;
@@ -54,7 +66,7 @@ async function main() {
       );
     } else if (newImplementation && encodedCall) {
       debug("Proposing upgrade and call for", contractId);
-      await retryAndWaitForNonceIncrease(
+      await proposeWithWithdrawIfNeeded(
         async () =>
           await upgradeManager.proposeUpgradeAndCall(
             contractId,
@@ -64,14 +76,14 @@ async function main() {
       );
     } else if (newImplementation) {
       debug("Proposing upgrade for", contractId);
-      await retryAndWaitForNonceIncrease(
+      await proposeWithWithdrawIfNeeded(
         async () =>
           await upgradeManager.proposeUpgrade(contractId, newImplementation)
       );
       debug(`Successfully proposed upgrade`);
     } else if (encodedCall) {
       debug("Proposing call for", contractId);
-      await retryAndWaitForNonceIncrease(
+      await proposeWithWithdrawIfNeeded(
         async () => await upgradeManager.proposeCall(contractId, encodedCall)
       );
     }
@@ -115,20 +127,23 @@ async function proposalMatches({
   upgradeManager: Contract;
   proxyAddress: string;
 }) {
-  if (newImplementation) {
-    let pendingAddress = await upgradeManager.getPendingUpgradeAddress(
-      proxyAddress
-    );
-    if (pendingAddress !== newImplementation) {
-      return false;
-    }
+  let pendingAddress = await upgradeManager.getPendingUpgradeAddress(
+    proxyAddress
+  );
+  if (pendingAddress === ZERO_ADDRESS) {
+    pendingAddress = undefined;
   }
 
-  if (encodedCall) {
-    let pendingCallData = await upgradeManager.getPendingCallData(proxyAddress);
-    if (pendingCallData !== encodedCall) {
-      return false;
-    }
+  if (pendingAddress !== newImplementation) {
+    return false;
+  }
+
+  let pendingCallData = await upgradeManager.getPendingCallData(proxyAddress);
+  if (pendingCallData === "0x") {
+    pendingCallData = undefined;
+  }
+  if (pendingCallData !== encodedCall) {
+    return false;
   }
   return true;
 }
